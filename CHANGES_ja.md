@@ -2,4 +2,4 @@
 
 ## 未リリース
 
-- `main` のテストと本番ビルドの成功後に GitHub Pages へデプロイし、`urx-lcd-sim.semnil.com` でシミュレーターを公開する。
+- アプリケーションのバージョンだけを更新する PR を `main` にマージし、テストと本番ビルドが成功した後に GitHub Pages へデプロイする。公開先は `urx-lcd-sim.semnil.com`。通常のマージと PR では検査だけを行う。

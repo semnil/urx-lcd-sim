@@ -49,10 +49,17 @@ pnpm dev
 
 ## ホスティング
 
-[GitHub Pages](https://urx-lcd-sim.semnil.com/) で `main` の本番ビルドを配信する。
-[GitHub Pages ワークフロー](.github/workflows/pages.yml) がテスト・型チェック・ビルドを実行し、
-成功後に `dist/` だけをデプロイする。`main` 向けのプルリクエストでは同じ検査を実行し、
-デプロイしない。ワークフローは `main` を指定して手動実行することもできる。
+[GitHub Pages](https://urx-lcd-sim.semnil.com/) でリリースした本番ビルドを配信する。
+[GitHub Pages ワークフロー](.github/workflows/pages.yml) は、`main` 向けのプルリクエストと
+`main` への push でテスト・型チェック・本番ビルドを実行する。デプロイは、push によって
+`package.json` の `version` が変わり、検査が成功した場合に限る。それ以外のフィールドの変更や
+通常のマージでは検査だけを行い、公開しない。
+
+リリースするときはアプリケーションの変更を先にマージし、`package.json` の `version` だけを
+更新する独立したプルリクエストをマージする。この値がアプリケーションのバージョンの定義元で、
+シミュレーターの VERSION 画面にも使われる。ワークフローは push 前後のコミットを比較し、
+push されたコミットから作った `dist/` だけを配信する。リリースの失敗時は元の Actions 実行を
+再実行できる。バージョン検査を迂回する手動デプロイのトリガーは設けない。
 
 リポジトリの **Settings → Pages** で配信元を **GitHub Actions**、カスタムドメインを
 `urx-lcd-sim.semnil.com` に設定し、**Enforce HTTPS** を有効にする。DNS (Domain Name System)

@@ -50,10 +50,17 @@ No runtime dependencies. The dev dependencies are TypeScript, Vite and Vitest.
 
 ## Hosting
 
-[GitHub Pages](https://urx-lcd-sim.semnil.com/) serves the production build of `main`.
-The [GitHub Pages workflow](.github/workflows/pages.yml) runs the tests and typecheck, builds the
-site, and deploys only `dist/` after those checks pass. Pull requests targeting `main` run the
-same checks without deploying. The workflow can also be run manually against `main`.
+[GitHub Pages](https://urx-lcd-sim.semnil.com/) serves the released production build.
+The [GitHub Pages workflow](.github/workflows/pages.yml) runs tests, typechecking and a production
+build for pull requests targeting `main` and pushes to `main`. Deployment follows only when the
+push changes `package.json`'s `version` and those checks pass. Changes to other manifest fields
+and ordinary merges run the checks without publishing.
+
+To release, merge the application changes first, then merge a separate pull request that only
+updates `version` in `package.json`. This is the application's version source, also used by the
+simulator's VERSION screen. The workflow compares the commits before and after that push and
+deploys only `dist/` built from the pushed commit. A failed release can be retried by re-running
+its original Actions run; there is no manual deployment trigger that bypasses the version check.
 
 The repository's **Settings → Pages** uses **GitHub Actions** as its source, with
 `urx-lcd-sim.semnil.com` as the custom domain and **Enforce HTTPS** enabled. The domain's DNS
