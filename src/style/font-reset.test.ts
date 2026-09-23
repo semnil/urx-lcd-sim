@@ -94,10 +94,10 @@ function outranks(a: Specificity, b: Specificity): boolean {
 }
 
 /**
- * Every registered screen, drawn once for each kind of strip, and with each sheet,
+ * A registered screen, drawn once for each kind of strip, and with each sheet,
  * list or dialog a control on it opens over the screen with the first strip.
  */
-async function drawScreens(): Promise<HTMLElement[]> {
+async function drawScreen(id: string): Promise<HTMLElement[]> {
   const roots: HTMLElement[] = [];
   const registry = buildRegistry();
   const draw = async (id: string, strip: string): Promise<HTMLElement> => {
@@ -109,22 +109,20 @@ async function drawScreens(): Promise<HTMLElement[]> {
     await new Promise((resolve) => setTimeout(resolve, 0));
     return shell.root;
   };
-  for (const id of registry.ids()) {
-    for (const strip of STRIPS) roots.push(await draw(id, strip));
-    // One control of each kind is touched, each on a screen of its own, so one
-    // opening cannot hide another.
-    const controls = (root: HTMLElement): Element[] => [...root.querySelectorAll(OPENERS)];
-    const kinds = new Map<string, number>();
-    for (const [i, node] of controls(await draw(id, STRIPS[0] ?? "ch1")).entries()) {
-      const kind = `${node.tagName} ${node.getAttribute("class") ?? ""}`;
-      if (!kinds.has(kind)) kinds.set(kind, i);
-    }
-    for (const i of kinds.values()) {
-      const root = await draw(id, STRIPS[0] ?? "ch1");
-      controls(root)[i]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      await new Promise((resolve) => setTimeout(resolve, 0));
-      if (root.querySelector("[data-overlay]")) roots.push(root);
-    }
+  for (const strip of STRIPS) roots.push(await draw(id, strip));
+  // One control of each kind is touched, each on a screen of its own, so one
+  // opening cannot hide another.
+  const controls = (root: HTMLElement): Element[] => [...root.querySelectorAll(OPENERS)];
+  const kinds = new Map<string, number>();
+  for (const [i, node] of controls(await draw(id, STRIPS[0] ?? "ch1")).entries()) {
+    const kind = `${node.tagName} ${node.getAttribute("class") ?? ""}`;
+    if (!kinds.has(kind)) kinds.set(kind, i);
+  }
+  for (const i of kinds.values()) {
+    const root = await draw(id, STRIPS[0] ?? "ch1");
+    controls(root)[i]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    if (root.querySelector("[data-overlay]")) roots.push(root);
   }
   return roots;
 }
@@ -171,10 +169,12 @@ function overridden(css: string, roots: HTMLElement[], props = FONT): { dead: st
   return { dead, reaching };
 }
 
-let roots: HTMLElement[] = [];
-beforeAll(async () => {
-  roots = await drawScreens();
-});
+const roots: HTMLElement[] = [];
+for (const id of buildRegistry().ids()) {
+  beforeAll(async () => {
+    roots.push(...await drawScreen(id));
+  });
+}
 
 describe("the colour a rule gives a control", () => {
   it("is not taken back by the reset that hands every control its surroundings' colour", () => {
