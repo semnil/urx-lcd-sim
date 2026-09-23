@@ -1,0 +1,144 @@
+/* The simulator's own chrome — everything outside the 480x272 glass. */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 24px 16px 48px;
+  background: #14161a;
+  color: #dfe3ea;
+  font-family: var(--font);
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  /* "safe center" keeps a panel wider than the window from being clipped at the
+   * left, where centred overflow is unreachable. Browsers without it fall back
+   * to the plain keyword on the line above. */
+  align-items: center;
+  align-items: safe center;
+  gap: 16px;
+}
+
+/* As wide as the glass and sitting over it, so the chrome's text wraps where the
+ * screen ends. The frame around the glass is wider, and it is what the column is
+ * sized by, so these two centre themselves inside it. */
+.chrome,
+.chrome-foot {
+  width: min(calc(var(--lcd-w) * var(--scale) * var(--zoom, 1)), 100%);
+  margin-inline: auto;
+}
+
+.chrome {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.chrome-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.chrome-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chrome-select {
+  min-height: 36px;
+  padding: 0 10px;
+  background: #232830;
+  color: inherit;
+  border: 1px solid #3a4150;
+  border-radius: var(--radius-md);
+  font: inherit;
+}
+
+.chrome-button {
+  min-height: 36px;
+  padding: 0 12px;
+  background: #232830;
+  color: inherit;
+  border: 1px solid #3a4150;
+  border-radius: var(--radius-md);
+  font: inherit;
+  cursor: pointer;
+}
+
+.chrome-button:hover {
+  background: #2b313b;
+}
+
+/* Resetting drops everything the unit holds, so the button asks in place. */
+.chrome-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chrome-reset-ask {
+  font-size: 12px;
+}
+
+.chrome-button.is-danger {
+  border-color: #a4444a;
+  color: #ff9ba0;
+}
+
+.chrome-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #232830;
+  font-size: 12px;
+}
+
+.chrome-link::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--meter-yellow);
+}
+
+.chrome-link-bridge::before {
+  background: var(--meter-green);
+}
+
+.chrome-foot {
+  color: #8b94a3;
+  font-size: 12px;
+}
+
+.chrome-foot p {
+  margin: 0;
+}
+
+.chrome-foot p + p {
+  margin-top: 6px;
+}
+
+/* --- Screen frame ------------------------------------------------------- */
+
+.panel {
+  /* The frame the glass sits in, centred in the column whatever width the
+   * page's own rows give that column. The display zoom scales the glass inside
+   * this box, not the box itself. */
+  width: fit-content;
+  margin-inline: auto;
+  display: flex;
+  padding: 14px;
+  background: var(--frame);
+  border: 1px solid var(--frame-edge);
+  border-radius: 10px;
+}
+

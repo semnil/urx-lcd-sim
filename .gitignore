@@ -1,0 +1,19 @@
+node_modules/
+dist/
+dist-*/
+*.local
+.DS_Store
+coverage/
+
+# Extracted Yamaha user-guide artwork and any other primary-source derivative.
+# Copyrighted by Yamaha Corporation: kept locally as a rendering reference only,
+# never committed and never redistributed. Regenerate with scripts/extract-ug-screens.mjs
+# and scripts/ug-visible-ranges.py.
+/reference
+
+# Measurement scaffolding: extraction scripts and their output. Kept out of the
+# tree so a long task survives a session, never shipped.
+/work
+
+# Python's own build cache, left beside the extraction scripts.
+__pycache__/

@@ -1,0 +1,640 @@
+/* LCD palette. Where each value comes from is in docs/en/design-tokens.md. */
+
+/* The typeface, bundled with its licence in public/fonts (SIL Open Font License
+ * 1.1). The glass draws each weight one or two steps lighter than its name:
+ * 400 and 500 with the Regular face, 600 and 700 with the Medium face. */
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/IBMPlexSans-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/IBMPlexSans-Regular.ttf") format("truetype");
+  font-weight: 500;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/IBMPlexSans-Medium.ttf") format("truetype");
+  font-weight: 600;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/IBMPlexSans-Medium.ttf") format("truetype");
+  font-weight: 700;
+  font-display: block;
+}
+
+:root {
+  /* Panel geometry — the unit has a 4.3-inch 480x272 screen (user guide
+   * "Specifications" gives the size; 480x272 is the native pixel size of every
+   * screen capture embedded in the guide). */
+  --lcd-w: 480px;
+  --lcd-h: 272px;
+  /* How much bigger than life the screen is drawn. The chrome around it is
+   * sized from the same value so its text wraps to the width of the glass. */
+  --scale: 2;
+
+  /* Surfaces */
+  --lcd-bg: #000000;
+  --surface: #4a515a;
+  --surface-raised: #5a5d63;
+  --surface-toolbar: #424952;
+  --surface-inset: #313542;
+  --surface-inset-corner: #3a3d4a; /* the shade at the rounded corners of a block on --surface-inset */
+  --surface-sunken: #31313a; /* the tray a dropdown list sits on */
+  --menu-tray: #848284; /* the tray SETUP stands its GENERAL row on */
+  --surface-well: #292d31;
+  --surface-dim: #3a3d42;
+  --surface-sunk: #31393a; /* the panel PAN and LEVEL stand on */
+  --well-deep: #191819; /* the value box on that panel */
+  --graph-bg: #212021; /* the panel an EQ curve is drawn on */
+  --shape-box: #212421; /* the face of the EQ screen's filter shape box */
+  --shape-box-edge: #636973; /* the 1px line round that box */
+  --oneknob-band: #3a3942; /* the band under [1 1-knob] while it is off */
+  --oneknob-lit: #4aaa31; /* [1 1-knob] while it is on */
+  --oneknob-lit-band: #317529; /* the band under it then */
+  --oneknob-panel: #393c42; /* the panel behind the 1-knob level and button while it is on */
+  --oneknob-link: #4aa631; /* the line tying the level to the button */
+  --oneknob-type: #636973; /* the face of 1-knob EQ's curve pulldown */
+  --eq-badge-curve: #219e52; /* the curve drawn in EQ's lit title box */
+  --corner-sunk-a: #101410; /* a sunk cell's corner on the glass, and a block band's foot: the outer shade */
+  --corner-sunk-b: #212829; /* the same, the shade after it */
+  --corner-sunk-c: #212d29; /* the same, the diagonal shade */
+  --corner-block-a: #191c21; /* a channel view block's top corner on the glass: the outer shade */
+  --corner-block-b: #313d42; /* the same, the shade after it */
+  --corner-block-c: #3a4142; /* the same, the diagonal shade; also where the face turns onto the band */
+  --corner-block-band-top: #3a454a; /* the face's last pixel above the band on a block's side */
+  --corner-block-band-inner: #424952; /* the face's shade along the step onto the band */
+  --corner-well-on-sunk: #191c19; /* a value box's corner shade on a sunk cell */
+  --corner-panel-a: #101010;
+  --corner-panel-b: #212429;
+  --corner-plot-a: #31393a;
+  --corner-plot-b: #424d52;
+  --corner-path-left: #31393a;
+  --corner-path-a: #3a454a;
+  --corner-path-b: #424952;
+  --corner-path-c: #293131;
+  --corner-tray-a: #313131;
+  --corner-tray-b: #636163;
+  --corner-tray-c: #080808;
+  --corner-tray-d: #6b696b;
+  --corner-well-on-surface: #191c21; /* a value box's corner shade on a panel, and a well's on the glass */
+  --corner-well-inner: #292d31; /* a well's pixel just inside its corner */
+  --corner-block-well: #293131; /* a block's value well, its corner shade */
+  --corner-level-well: #31393a; /* HOME's level readout, its corner shade */
+  --corner-focus-on-sunk: #b51073; /* a focused value box's corner: the frame's shade on a sunk cell */
+  --corner-focus-on-sunken: #b50c73; /* the same on INPUT's darker panel */
+  --corner-focus-on-surface: #bd107b; /* the same on a panel of the surface colour */
+  --corner-focus-b: #ef0094; /* the pixel inside the frame's turn */
+  --corner-focus-c: #ad1473; /* the frame's shade over the fill */
+  --corner-focus-d: #63244a; /* the fill's shade inside the frame */
+  --corner-raised-a: #212021; /* a raised panel's top corner on the glass (a strip's name, MONITOR's head): the outer shade */
+  --corner-raised-b: #42454a; /* the same, the shade after it */
+  --corner-raised-c: #42494a; /* the same, the diagonal shade */
+  --corner-mon-foot-a: #101419; /* a MONITOR strip's band where it meets the glass: the outer shade */
+  --corner-mon-foot-b: #212831; /* the same, the shade after it */
+  --corner-mon-foot-c: #212d31; /* the same, the diagonal shade */
+  --corner-mon-band-top: #4a4d52; /* the face's last pixel above a MONITOR strip's band on its side */
+  --corner-mon-band-mid: #3a494a; /* the face's shade along the step onto that band */
+  --corner-badge-off-a: #63656b; /* an unlit block switch: top corner, shade a */
+  --corner-badge-off-b: #a5aaad; /* an unlit block switch: top corner, shade b */
+  --corner-badge-off-c: #cecace; /* an unlit block switch: top corner, shade c */
+  --corner-badge-off-d: #4a4d52; /* an unlit block switch: bottom corner over the band, shade d */
+  --corner-badge-off-e: #7b7d7b; /* an unlit block switch: bottom corner over the band, shade e */
+  --corner-badge-off-f: #949694; /* an unlit block switch: bottom corner over the band, shade f */
+  --badge-band-off: #9c9e9c; /* an unlit block switch: its band */
+  --corner-badge-gate-a: #6b594a; /* a lit GATE or DUCKER switch: top corner, shade a */
+  --corner-badge-gate-b: #c57131; /* a lit GATE or DUCKER switch: top corner, shade b */
+  --corner-badge-gate-c: #f78229; /* a lit GATE or DUCKER switch: top corner, shade c */
+  --corner-badge-gate-d: #52413a; /* a lit GATE or DUCKER switch: bottom corner over the band, shade d */
+  --corner-badge-gate-e: #945529; /* a lit GATE or DUCKER switch: bottom corner over the band, shade e */
+  --corner-badge-gate-f: #b55d21; /* a lit GATE or DUCKER switch: bottom corner over the band, shade f */
+  --badge-band-gate: #c56121; /* a lit GATE or DUCKER switch: its band */
+  --corner-badge-comp-a: #634d52; /* a lit COMP switch: top corner, shade a */
+  --corner-badge-comp-b: #a54d3a; /* a lit COMP switch: top corner, shade b */
+  --corner-badge-comp-c: #c54931; /* a lit COMP switch: top corner, shade c */
+  --corner-badge-comp-d: #4a393a; /* a lit COMP switch: bottom corner over the band, shade d */
+  --corner-badge-comp-e: #7b3529; /* a lit COMP switch: bottom corner over the band, shade e */
+  --corner-badge-comp-f: #943529; /* a lit COMP switch: bottom corner over the band, shade f */
+  --badge-band-comp: #9c3929; /* a lit COMP switch: its band */
+  --corner-badge-eq-a: #42655a; /* a lit EQ switch: top corner, shade a */
+  --corner-badge-eq-b: #319e63; /* a lit EQ switch: top corner, shade b */
+  --corner-badge-eq-c: #29be63; /* a lit EQ switch: top corner, shade c */
+  --corner-badge-eq-d: #314d42; /* a lit EQ switch: bottom corner over the band, shade d */
+  --corner-badge-eq-e: #21794a; /* a lit EQ switch: bottom corner over the band, shade e */
+  --corner-badge-eq-f: #218e52; /* a lit EQ switch: bottom corner over the band, shade f */
+  --badge-band-eq: #219252; /* a lit EQ switch: its band */
+  --corner-badge-fx-a: #526973; /* a lit DELAY or INS FX switch: top corner, shade a */
+  --corner-badge-fx-b: #6baac5; /* a lit DELAY or INS FX switch: top corner, shade b */
+  --corner-badge-fx-c: #7bcef7; /* a lit DELAY or INS FX switch: top corner, shade c */
+  --corner-badge-fx-d: #3a4d5a; /* a lit DELAY or INS FX switch: bottom corner over the band, shade d */
+  --corner-badge-fx-e: #52829c; /* a lit DELAY or INS FX switch: bottom corner over the band, shade e */
+  --corner-badge-fx-f: #5a9abd; /* a lit DELAY or INS FX switch: bottom corner over the band, shade f */
+  --badge-band-fx: #63a2c5; /* a lit DELAY or INS FX switch: its band */
+  /* OSCILLATOR's assigned destination: its corners over the glass (p071-1). */
+
+  /* An EQ band's box: its corners over the glass, and its band (p106-1). */
+  --corner-eq-band-a: #213131;
+  --corner-eq-band-b: #8cbace;
+  --corner-eq-band-d: #192021;
+  --corner-eq-band-e: #638294;
+  --band-eq-band: #7ba2b5;
+  /* [1-knob] while it is off: its top corner over the glass (p099-1). */
+  --corner-oneknob-a: #080c10;
+  --corner-oneknob-b: #31353a;
+  --corner-oneknob-c: #4a4d52;
+  --corner-oneknob-in: #4a5152;
+
+  /* INPUT's flags: their corners on the tray, and their band (p100-1). */
+  --corner-flag-a: #4a4d52;
+  --corner-flag-b: #9c9ea5;
+  --corner-flag-c: #cec6ce;
+  --corner-flag-d: #3a3942;
+  --corner-flag-e: #737573;
+  --corner-flag-f: #949694;
+  --band-wizard: #a6a6a6; /* the band under the mode wizard's buttons */
+
+  /* HOME's bank button on the input side: its corners over the glass (p036-1). */
+  /* HOME's [Sends] tab: its corners over the glass, and its band (p045-1). */
+  /* The same tab's colour on the [Sends] sheet, where the ground is the sheet (p051-1). */
+
+  /* The channel view's [SEND TO]: its corners over the glass (p090-1). */
+  --corner-sendto-a: #080c10;
+  --corner-sendto-b: #31393a;
+  --corner-sendto-c: #4a5152;
+  --corner-sendto-d: #080808;
+  --corner-sendto-e: #212829;
+  --corner-sendto-f: #31353a;
+
+  /* The channel screen's title badge, unlit: its corners over the glass (p113-1). */
+  --corner-title-off-a1: #212421;
+  --corner-title-off-a2: #848284;
+  --corner-title-off-a3: #bdbabd;
+  --corner-title-off-in: #c5c2c5;
+  --corner-title-off-d1: #101410;
+  --corner-title-off-d2: #424542;
+  --corner-title-off-d3: #636563;
+  --badge-title-band-off: #6b696b;
+
+  /* The channel screen's title badge, a lit GATE or DUCKER: its corners over the glass (p114-1). */
+  --corner-title-gate-a1: #291800;
+  --corner-title-gate-a2: #a55519;
+  --corner-title-gate-a3: #ef7921;
+  --corner-title-gate-in: #f77d21;
+  --corner-title-gate-d1: #191008;
+  --corner-title-gate-d2: #522d10;
+  --corner-title-gate-d3: #7b4110;
+  --badge-title-band-gate: #844519;
+
+  /* The channel screen's title badge, a lit COMP: its corners over the glass (p099-1). */
+  --corner-title-comp-a1: #3a1408;
+  --corner-title-comp-a2: #8c3121;
+  --corner-title-comp-a3: #c54529;
+  --corner-title-comp-in: #c54529;
+  --corner-title-comp-d1: #190c08;
+  --corner-title-comp-d2: #4a1c10;
+  --corner-title-comp-d3: #6b2819;
+  --corner-title-comp-fin: #6b2821;
+  --corner-title-comp-b1: #311008;
+  --corner-title-comp-e2: #4a1810;
+  --corner-title-comp-e3: #632419;
+  --badge-title-band-comp: #6b2821;
+
+  /* The channel screen's title badge, a lit EQ: its corners over the glass (p106-1). */
+  --corner-title-eq-a1: #000400;
+  --corner-title-eq-a2: #106d3a;
+  --corner-title-eq-a3: #21b663;
+  --corner-title-eq-in: #21b663;
+  --corner-title-eq-d1: #000400;
+  --corner-title-eq-d2: #105529;
+  --corner-title-eq-d3: #106d3a;
+  --corner-title-eq-b2: #105529;
+  --corner-title-eq-b3: #21aa5a;
+  --badge-title-band-eq: #317529;
+
+  /* The channel screen's title badge, a lit DELAY or INS FX: its corners over the glass (p115-1). */
+  --corner-title-fx-a1: #192429;
+  --corner-title-fx-a2: #528aa5;
+  --corner-title-fx-a3: #7bc6ef;
+  --corner-title-fx-in: #7bcef7;
+  --corner-title-fx-d1: #081419;
+  --corner-title-fx-d2: #294952;
+  --corner-title-fx-d3: #3a697b;
+  --badge-title-band-fx: #426d84;
+
+  --corner-toggle-1: #293131; /* the knob toggle's free corner: shades from the ground in, 1 to 6 */
+  --corner-toggle-2: #525563;
+  --corner-toggle-3: #101819;
+  --corner-toggle-4: #5a5d6b;
+  --corner-toggle-5: #636973;
+  --corner-toggle-6: #4a4d52;
+  --corner-toggle-lit-1: #524563; /* the same while USER DEFINED KNOBS is on, 1 to 9 */
+  --corner-toggle-lit-2: #9c82b5;
+  --corner-toggle-lit-3: #ceaaef;
+  --corner-toggle-lit-4: #211c31;
+  --corner-toggle-lit-5: #ad8ece;
+  --corner-toggle-lit-6: #c5a2e6;
+  --corner-toggle-lit-7: #8461ad;
+  --corner-toggle-lit-8: #734994;
+  --corner-toggle-lit-9: #6b418c;
+  --corner-readout-0: #080c08; /* the readout bar's top corners: shades from the ground in, 0 to 5 */
+  --corner-readout-1: #4a494a;
+  --corner-readout-2: #949294;
+  --corner-readout-3: #9c9ea5;
+  --corner-readout-4: #73757b;
+  --corner-readout-5: #4a4d52;
+  --corner-readout-udk-0: #525563; /* the same in USER DEFINED KNOBS, 0 to 5 */
+  --corner-readout-udk-1: #7b718c;
+  --corner-readout-udk-2: #ad96c5;
+  --corner-readout-udk-3: #b59ace;
+  --corner-readout-udk-4: #8461a5;
+  --corner-readout-udk-5: #5a3d84;
+  --corner-readout-udk-right-0: #080808; /* its right corner, where it differs from the left */
+  --corner-readout-udk-right-1: #4a4152;
+  --corner-readout-udk-right-3: #a58abd;
+  --corner-readout-udk-right-4: #9482ad;
+  --graph-grid: #4a515a; /* the 0 dB lines ruled across a dynamics curve */
+  --graph-grid-lit: #63695a; /* those lines where they cross the area under the curve */
+  --handle-arrow: #ce0484; /* the drag marks beside the handle TOUCH AND TURN holds */
+  --graph-fill: #424529; /* the area under a dynamics curve */
+  --graph-line: #ada24a; /* the curve itself */
+  --mbc-gr-open: #e6e6e6; /* the frame round the band whose page is open, on the reduction meters */
+  --mbc-mid-line: #29b5d6; /* the middle band of the multi-band compressor, from the unit's own palette */
+  --mbc-mid-fill: #23444c; /* the area under its curve, as far from the panel as the low band's is */
+  --mbc-high-line: #8c4ade; /* its high band, from the same palette */
+  --mbc-high-fill: #3b2a4e;
+  --eq-fill: #314529; /* the area under an EQ curve */
+  --eq-line: #6baa4a; /* the EQ curve on the EQ screen */
+  --eq-thumb-line: #7bba63; /* the curve in a channel view's EQ block */
+  --eq-focus-edge: #b5086b; /* the upper row of that curve while 1-knob turns EQ */
+  --eq-focus-line: #bd1884; /* its lower row then */
+  --eq-focus-fill: #4a1831; /* the area under it then */
+  --handle-face: #5a6163; /* a draggable handle on that curve */
+  --handle-ring: #a5aab5;
+  --surface-btn: #52555a; /* a plain button standing on the glass */
+  --surface-disabled: #212829; /* the face of a button that cannot be used */
+  --strip-rail-shut: #393a3e; /* the rail of a strip that cannot be used */
+  /* What a control that cannot be used keeps of its own brightness. Applied to
+   * --surface it lands on --surface-disabled and applied to --text it lands on
+   * --text-disabled, every channel within 3/255, so a control that has to keep
+   * its own colour while it is out of reach can be dimmed by this instead. */
+  --dim-disabled: 0.475;
+  --surface-knob: #4a4952; /* the knob-toggle button in the bottom right corner */
+  --surface-on-sunk: #5a656b; /* MONITOR's Source and a RECORDER slot's source button */
+  --scroll-thumb-dim: #cecace; /* the thumb on a list's bar, dimmer than a sheet's */
+
+  /* Text */
+  --text: #ffffff;
+  --text-secondary: #c5c6ce;
+  --text-muted: #6b6d7b;
+  --text-disabled: #848284; /* the name on a button that cannot be used */
+  --menu-text-disabled: #7b797b; /* the name on a menu entry that cannot be used */
+  --tab-ink: #adaead; /* the name and glyph on an unlit side-rail tab */
+  --tab-name-lit: #31313a; /* the name on a lit side-rail tab; its glyph keeps --surface-dim */
+  --caption-pale: #cecace; /* the caption over Operation Mode's value */
+  --drop-mark: #dedbde; /* the down mark beside a name that drops a list */
+  --strip-id-other: #000000; /* the number of the channel a stereo input's screens do not open on */
+  --rec-copy-mark: #dedfde; /* RECORDER's copy mark on a slot's source button */
+  --field-mark: #848a8c; /* the copy and rename marks in CH SETTING's fields */
+  --knob-card-mark: #adaead; /* the copy mark on a USER DEFINED KNOBS card */
+  --ink-on-lit: #3a3d3a; /* the name on a chosen option, and on USB Storage Mode while it is lit */
+  --test-pass: #01ff00; /* what a card test passes, and the grade it gives */
+  --text-inverse: #000000;
+
+  /* Accents, each tied to the control it names on the unit */
+  --accent-on: #84e3ff; /* [ON] / [CUE] / [PRE] switch when it is lit */
+  --accent-selected: #84dfff; /* selected list row, selected option button */
+  --scene-preset: #4adb5a; /* the number of a scene the unit ships with */
+  --scene-protect: #32eb73; /* a protected scene's Lock cell */
+  --accent-cue: #d6ced6; /* [CUE] button when off */
+  --readout: #42454a; /* the multi-function knob readout: the bar's face */
+  --readout-edge: #c5c6ce; /* its border, its dividers, and the band its labels sit on */
+  --readout-label: #3a3d42; /* the label text on that band */
+  --accent-udk: #5a3984; /* USER DEFINED KNOBS: the bar */
+  --accent-udk-edge: #ceaeef; /* its border, and the band its labels sit on */
+  --accent-udk-label: #290c3a; /* the label text on that band */
+  --accent-udk-toggle: #633984; /* the knob toggle button while USER DEFINED KNOBS is on */
+  --accent-udk-toggle-edge: #d6b2f7; /* its border */
+  --accent-menu: #ffd74a; /* selected side-menu item */
+  --accent-band: #ade3ff; /* the EQ band the knobs are holding */
+  /* The [Sends] tab, the sheet's selected destination and the level knob all
+   * take the colour of the destination in view. */
+  --accent-sends: #ce4529; /* STEREO. Also the STEREO strip rail */
+  --accent-sends-mix: #e66d00; /* MIX 1 / MIX 2 */
+  --accent-sends-fx: #5a9aff; /* FX 1 / FX 2 */
+  --accent-focus: #ff009c; /* TOUCH AND TURN focus border */
+
+  /* The simulator's own mark for where the keys are, carrying no meaning the unit
+   * gives a colour: a pale dashed line. */
+  --focus-ring: #f2f4f7;
+  --accent-focus-fill: #5a284a;
+  --accent-bank-in: #429a29; /* INPUT channel-bank button */
+  --accent-bank-out: #de5152; /* OUTPUT channel-bank button */
+  --accent-bank-active: #f7f73a; /* the lit bank cell */
+  --accent-bank-cell: #318221; /* a bank not in view, on the INPUT bank button */
+  /* The band along the bottom of each bank button, in its own darker cast */
+  --accent-bank-in-bevel: #296921;
+  --accent-bank-out-bevel: #9c393a;
+  /* [+48V] and [φ] lit. They take the palette's own red and orange. */
+  --accent-phantom: var(--accent-sends);
+  --accent-phase: var(--block-gate);
+
+  /* Processing blocks — the badge colours in the channel indicator area */
+  --block-gate: #ff8629;
+  --block-comp: #ce4931;
+  --block-eq: #29c26b;
+  --block-ducker: #ff8629;
+  --block-delay: #84dfff;
+  --block-fx: #84d7ff; /* INS FX, DELAY and SSMCS, lit */
+  /* The COMP and EQ switches the SSMCS screens carry: the EQ's green is darker
+   * than the one the EQ block lights in, and both bands are darker than a title
+   * badge's own. */
+  --ssmcs-switch-eq: #4aaa31;
+  --ssmcs-switch-eq-band: #295519;
+  --ssmcs-switch-comp-band: #6b2419;
+  /* Their corners, which stand on the black of the main area rather than on the
+   * toolbar the title badges sit in. */
+  --corner-ssmcs-comp-a1: #210c08;
+  --corner-ssmcs-comp-a2: #842d19;
+  --corner-ssmcs-comp-a3: #bd4129;
+  --corner-ssmcs-comp-in: #c54529;
+  --corner-ssmcs-comp-d1: #100400;
+  --corner-ssmcs-comp-d2: #421408;
+  --corner-ssmcs-comp-d3: #5a2010;
+  --corner-ssmcs-eq-a1: #081c08;
+  --corner-ssmcs-eq-a2: #296921;
+  --corner-ssmcs-eq-a3: #429e29;
+  --corner-ssmcs-eq-in: #42a229;
+  --corner-ssmcs-eq-d1: #081000;
+  --corner-ssmcs-eq-d2: #193510;
+  --corner-ssmcs-eq-d3: #194d10;
+  --corner-ssmcs-eq-fin: #214d10;
+  --badge-off: #d6ced6; /* a block's name while the block is off */
+  --badge-title-off: #cecace; /* the name box in the toolbar while its block is off */
+
+  /* Meters */
+  --lamp-on: #42d763; /* a dynamics block's lamp, leaving the signal alone */
+  --lamp-hold: #f7f73a; /* a dynamics block's lamp, holding the signal part of the way */
+  --lamp-shut: #de5152; /* a dynamics block's lamp, holding the signal down to its range */
+  --meter-green: #3aeb73;
+  --meter-yellow: #fffb42;
+  --meter-red: #de5152;
+  --transport-rec: #ff696b; /* the dot on the recorder's [●] */
+  --transport-play: #31eb73; /* the triangle on the recorder's play */
+  --progress-played: #2196f7; /* the part of RECORDER's progress bar already played */
+  --meter-track-wide: #4a4d5a; /* behind the wider bars, on a dynamics screen and on the rail */
+  --meter-track-input: #101010; /* behind the head-amp meter on the INPUT screen */
+
+  /* The ends of a meter's bars and clip dots: the shade at each rounded corner
+   * (outer) and the one beside it (inner), for the unlit part, the lit foot of a
+   * bar and a bar lit to its top. The plain names are the meters on the panel;
+   * wide is a 6px meter on the black ground, card a meter on --surface-sunken,
+   * sunk the OSC meter on --surface-sunk. */
+  --meter-end-outer: #3a454a;
+  --meter-end-inner: #293131;
+  --meter-lit-outer: #31514a;
+  --meter-lit-inner: #31ce7b;
+  --meter-top-outer: #313129;
+  --meter-top-inner: #c5d752;
+  --meter-wide-end-outer: #212429;
+  --meter-wide-end-inner: #424552;
+  --meter-wide-lit-outer: #215d4a;
+  --meter-wide-lit-inner: #31db7b;
+  --meter-wide-top-outer: #526142;
+  --meter-wide-top-inner: #deeb52;
+  --meter-card-end-outer: #212021;
+  --meter-card-end-inner: #000400;
+  --meter-card-lit-outer: #213121;
+  --meter-card-lit-inner: #29ca7b;
+  --meter-input-lit-outer: #215942;
+  --meter-sunk-end-outer: #293131;
+  --meter-sunk-lit-outer: #21614a;
+  --meter-sunk-lit-side: #216552;
+  --meter-sunk-lit-right: #195542;
+
+  /* The row a bar's lit part starts on below the bar's own top, and the sides of
+   * the rows under it: the same two shades, on the track, in the yellow of the
+   * upper half or the green of the lower half. */
+  --meter-level-outer: #63825a;
+  --meter-level-inner: #deeb52;
+  --meter-level-green-outer: #217d6b;
+  --meter-level-green-inner: #31db7b;
+  --meter-wide-level-outer: #94b673;
+  --meter-wide-level-inner: #eff34a;
+  --meter-wide-level-green-outer: #31ae8c;
+  --meter-wide-level-green-inner: #31e373;
+  --meter-input-level-outer: #8ca663;
+  --meter-input-level-green-outer: #299e7c;
+  --meter-sunk-level-outer: #8cae6b;
+  --meter-sunk-level-green-outer: #29a684;
+
+  /* A lit clip dot: its face and its corner shades */
+  --meter-clip-lit: #f73d3a;
+  --meter-clip-outer: #7b1c19;
+  --meter-clip-inner: #e63931;
+
+  /* The gain reduction bar on a dynamics screen: its face and the shades of its top end */
+  --gain-reduction: #ff8229;
+  --gain-reduction-outer: #3a2d29;
+  --gain-reduction-inner: #d67529;
+  --meter-track: #292d31;
+
+  /* Type: the bundled IBM Plex Sans, and the platform sans-serifs where it
+   * cannot be loaded. */
+  --font: "IBM Plex Sans", -apple-system, "Segoe UI", "Meiryo", system-ui, sans-serif;
+  --fs-sm: 11.5px;
+  --fs-md: 11px;
+  --fs-lg: 13px;
+  --fs-xl: 15px;
+  /* The block name in the middle of the toolbar */
+  --fs-2xl: 18.5px;
+
+  /* Dialog box: a pale sheet inside a blue frame, with the mark on a dark disc */
+  --dialog-sheet: #bdbebd;
+  --peripheral-text: #bdbebd; /* Peripheral's captions and its note */
+  --dialog-edge: #5a9aff;
+  --dialog-caution: #f7f73a; /* the frame and the mark of a dialog that warns */
+  --dialog-ink: #31393a;
+  --dialog-mark-face: #101010;
+
+  /* The darker band along the bottom edge of a menu or dialog button */
+  --btn-bevel: #31393a;
+  --btn-bevel-disabled: #191c19; /* the band under a menu entry that cannot be used */
+  --list-selected-mark: #3a3d3a; /* a mark in a selected list row */
+  --btn-bevel-sunk: #42494a; /* the band under a source button on the sunk face */
+  --udk-dial-rim-top: #524d52; /* the rim of a USER DEFINED KNOBS knob picture, at its top */
+  --udk-dial-rim-bottom: #191c19; /* the same at its foot */
+  --udk-dial-face-top: #312d31; /* the face inside the rim, at its top */
+  --udk-dial-face-mid: #3a393a; /* the same a little above its middle */
+  --udk-dial-face-low: #4a494a; /* the same a little above its foot */
+  --udk-dial-face-bottom: #524d52; /* the same at its foot */
+  --udk-dial-edge: #424142; /* the line where the face meets the rim */
+  --btn-bevel-plain: #3a3d42; /* the band under a plain button and a user defined knob's card */
+
+  /* A button's corner pixels, per face, band and ground (the rules under "Corners drawn a pixel at a time"). */
+  --corner-switch-a: #73757b;
+  --corner-switch-b: #b5b6b5;
+  --corner-switch-c: #cecece;
+  --corner-switch-band: #9c969c;
+  --corner-switch-band-a: #a5a2a5;
+  --corner-switch-band-b: #c5bec5;
+  --corner-switch-band-c: #cecece;
+  --corner-switch-foot-a: #525d63;
+  --corner-switch-foot-b: #7b7d84;
+  --corner-switch-foot-c: #949294;
+  --corner-switch-glass-a: #424142;
+  --corner-switch-glass-b: #adaead;
+  --corner-switch-glass-c: #cecece;
+  --corner-switch-glass-foot-a: #191c19;
+  --corner-switch-glass-foot-b: #6b656b;
+  --corner-switch-glass-foot-c: #948e94;
+  --corner-switch-lit-a: #52798c;
+  --corner-switch-lit-b: #73c6e6;
+  --corner-switch-lit-c: #84dfff;
+  --corner-switch-lit-band-a: #6bb2ce;
+  --corner-switch-lit-band-b: #7bceef;
+  --corner-switch-lit-band-c: #84dfff;
+  --corner-switch-lit-foot-a: #4a5d6b;
+  --corner-switch-lit-foot-b: #5a8a9c;
+  --corner-switch-lit-foot-c: #63a2b5;
+  --corner-switch-lit-glass-a: #294952;
+  --corner-switch-lit-glass-b: #6bbede;
+  --corner-switch-lit-glass-c: #84dfff;
+  --corner-switch-lit-glass-foot-a: #101c21;
+  --corner-switch-lit-glass-foot-b: #42717b;
+  --corner-switch-lit-glass-foot-c: #639eb5;
+  /* The same on OSCILLATOR's sunk panel: lit from p070-1; unlit carried over from the unlit shades on --surface by how much of each pixel the face covers. */
+  --corner-switch-sunk-a: #606366;
+  --corner-switch-sunk-b: #b0acb2;
+  --corner-switch-sunk-c: #cfc8d0;
+  --corner-switch-sunk-foot-a: #404647;
+  --corner-switch-sunk-foot-b: #747377;
+  --corner-switch-sunk-foot-c: #928d93;
+  --corner-switch-lit-sunk-a: #4a6d73;
+  --corner-switch-lit-sunk-b: #73c2de;
+  --corner-switch-lit-sunk-c: #84dfff;
+  --corner-switch-lit-sunk-foot-a: #3a4d52;
+  --corner-switch-lit-sunk-foot-b: #528294;
+  --corner-switch-lit-sunk-foot-c: #63a2b5;
+  /* The half-round ends of RECORDER's progress bars, over the glass and over the tray. */
+  --corner-track-dark: #101010;
+  --corner-track-mid: #212429;
+  --corner-played-dark: #101819;
+  --corner-played-mid: #21557b;
+  --corner-played-inner: #215d94;
+  --corner-played-end-light: #2179c5;
+  --corner-played-end-dark: #29557b;
+  --corner-played-end-inner: #2182ce;
+  --corner-played-end-track: #293542;
+
+  /* The band along the bottom edge of a side-rail tab. The unit gives it a
+   * colour of its own in each state rather than washing the face with black. */
+  --tab-band: #42454a;
+  --tab-band-lit: #9c8642;
+  --tab-band-disabled: #191c19;
+  /* The pixels of a side-rail tab's two left-hand corners, per tab state. */
+  --tab-corner-outer: #293131;
+  --tab-corner-inner: #424952;
+  --tab-corner-band-top: #424952;
+  --tab-corner-band-outer: #292829;
+  --tab-corner-band-inner: #3a3d42;
+  --tab-corner-outer-lit: #9c8629;
+  --tab-corner-inner-lit: #efc642;
+  --tab-corner-band-top-lit: #d6b642;
+  --tab-corner-band-outer-lit: #5a5129;
+  --tab-corner-band-inner-lit: #8c793a;
+  --tab-corner-outer-disabled: #101819;
+  --tab-corner-inner-disabled: #192421;
+  --tab-corner-band-top-disabled: #192021;
+  --tab-corner-band-outer-disabled: #081008;
+  --tab-corner-band-inner-disabled: #101810;
+
+  /* The band along the bottom of a MONITOR bus card */
+  --strip-bevel: #313942;
+
+  /* The band along the bottom of an [ON] / [CUE] / [PRE] switch while it is lit */
+  --switch-band: #9c969c; /* the band under an unlit [ON] / [CUE] / [PRE] */
+  --switch-band-lit: #6ba6bd;
+  /* The band along the bottom of any other lit button */
+  --toggle-band-lit: #5a9eb5;
+
+  /* MONITOR's [CUE Interrupt] and [MONO] while they are off: face, band and name */
+  --mon-toggle-off: #cecace;
+  --mon-toggle-off-band: #948e94;
+  --mon-toggle-off-ink: #3a3d3a;
+
+  /* The copy mark beside a channel's name */
+  --chip-mark: #848a8c;
+
+  /* The line between the toolbar's icons and its HOME button */
+  --toolbar-sep: #5a5d6b;
+  /* The rule along the two open edges of the icon band */
+  --toolbar-edge: #6b6d7b;
+  /* HOME's own divider before its HOME button: a single lighter pixel */
+  --toolbar-sep-home: #737584;
+  /* The row above and the row below the divider on the other screens */
+  --toolbar-sep-end: #52515a;
+  /* The lower left corner of the icon row's band, pixel by pixel: the shades
+   * outside the curve toward the glass and inside it toward the face */
+  --toolbar-corner-outer: #525563;
+  --toolbar-corner-fade: #293131;
+  --toolbar-corner-step: #5a5d6b;
+  --toolbar-corner-dark: #101819;
+  --toolbar-corner-inner: #52555a;
+  --toolbar-corner-inner-fade: #4a4d52;
+  /* The same corner of a sheet's back button, on the sheet's light ground */
+  --sheet-back-corner-outer: #848a8c;
+  --sheet-back-corner-step: #636973;
+  --sheet-back-corner-light: #a5a6a5;
+  --sheet-back-corner-inner: #52555a;
+  --sheet-back-corner-inner-fade: #4a4952;
+  --sheet-back-corner-inner-soft: #4a4d52;
+  /* Its top right corner, which turns over the dimmed screen rather than the sheet */
+  --sheet-back-top-corner-inner: #3a454a;
+  --sheet-back-top-corner-outer: #212d31;
+
+  /* What a sheet leaves of the screen it covers */
+  --key-held: #ffffff3d; /* over a Pitch Fix key while it is held down */
+  --scrim: #000000ce;
+  /* The shadow a picker sheet drops to its right and below: black offset 1px and
+   * 2px, darkening the first pixel outside by 0.82 and the second by 0.35 */
+  --sheet-shadow-near: #000000b8;
+  --sheet-shadow-far: #00000059;
+
+  /* The frame the screen sits in. It belongs to the simulator, not to the unit,
+   * so it is a neutral surround chosen against the page background. */
+  --frame: #1c1f24;
+  --frame-edge: #2b2f36;
+
+  /* The disc the SSMCS page arrows are drawn on: the screen shows through it. */
+  --page-arrow: #ffffff7a;
+
+  /* A button's corner, as a share of what stands behind it rather than as a
+   * colour: how much shows through the outer pixel of the corner and through the
+   * one inside it, and how far the band under a button is cast down from its
+   * own face. */
+  /* A send switched off on the SEND TO screen, shown on HOME: its knob and the
+   * arc around it stand in a grey that reads as unused, and its value in one
+   * that still carries 4.5:1 over the well it stands in, since it can be set. */
+  --send-off: #5a6169;
+  --send-off-ink: #8c949c;
+
+  --px-cut-out: 40%;
+  --px-cut-in: 8%;
+  --px-band-cast: 31%;
+  /* How far the cut at a button's foot stands above its bottom edge. */
+  --px-foot-off: 0px;
+
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  /* The HOME strip's own corner, rounder than the controls inside it. */
+  --radius-strip: 6px;
+}
