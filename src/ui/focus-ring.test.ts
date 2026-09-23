@@ -58,6 +58,7 @@ describe("the ring marking where the keys are", () => {
   it("stays where the control stands while the control is held down", async () => {
     const root = glass();
     const button = document.createElement("button");
+    button.style.setProperty("--ring-corners", "0 0 0 0");
     root.appendChild(button);
     stub(button, { x: 100, y: 63, w: 80, h: 40 });
     button.style.setProperty("--press", "3px");
@@ -90,6 +91,7 @@ describe("the ring marking where the keys are", () => {
     tight.style.overflow = "hidden";
     stub(tight, { x: 100, y: 130, w: 80, h: 40 });
     const row = document.createElement("button");
+    row.style.setProperty("--ring-corners", "0 0 0 0");
     stub(row, { x: 100, y: 130, w: 80, h: 40 });
     tight.appendChild(row);
     list.appendChild(tight);
@@ -104,6 +106,7 @@ describe("the ring marking where the keys are", () => {
   it("draws nothing where the browser says the focus is not one the keys put there", async () => {
     const root = glass();
     const button = document.createElement("button");
+    button.style.setProperty("--ring-corners", "0 0 0 0");
     root.appendChild(button);
     stub(button, { x: 100, y: 60, w: 80, h: 40 });
     // A control touched with a pointer holds the focus without showing it.
@@ -121,6 +124,7 @@ describe("the ring marking where the keys are", () => {
   it("takes the ring away when the keys leave the glass", async () => {
     const root = glass();
     const button = document.createElement("button");
+    button.style.setProperty("--ring-corners", "0 0 0 0");
     root.appendChild(button);
     stub(button, { x: 100, y: 60, w: 80, h: 40 });
     const outside = document.createElement("button");
