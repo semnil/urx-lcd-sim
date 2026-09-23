@@ -8,6 +8,8 @@ front of you. It is a standalone project, and it talks to no hardware by itself.
 
 > 日本語: [README.ja.md](README.ja.md)
 
+[Open the simulator](https://urx-lcd-sim.semnil.com/)
+
 ## What it does
 
 - Navigation from HOME (Overview) through channel view, SETUP, MONITOR, SCENE, microSD and the
@@ -30,6 +32,8 @@ simulator carries no audio, and a take it records carries none either.
 
 ## Running it
 
+Use Node.js from `.node-version` and the pnpm version in `package.json`.
+
 ```bash
 pnpm install
 pnpm dev
@@ -43,6 +47,18 @@ pnpm dev
 | `pnpm typecheck` | Typecheck only |
 
 No runtime dependencies. The dev dependencies are TypeScript, Vite and Vitest.
+
+## Hosting
+
+[GitHub Pages](https://urx-lcd-sim.semnil.com/) serves the production build of `main`.
+The [GitHub Pages workflow](.github/workflows/pages.yml) runs the tests and typecheck, builds the
+site, and deploys only `dist/` after those checks pass. Pull requests targeting `main` run the
+same checks without deploying. The workflow can also be run manually against `main`.
+
+The repository's **Settings → Pages** uses **GitHub Actions** as its source, with
+`urx-lcd-sim.semnil.com` as the custom domain and **Enforce HTTPS** enabled. The domain's DNS
+(Domain Name System) record is a `CNAME` pointing to `semnil.github.io`. The custom domain is
+configured in Pages settings; this Actions deployment does not use a `CNAME` file.
 
 ## Documentation
 

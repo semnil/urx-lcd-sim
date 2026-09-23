@@ -8,6 +8,8 @@ YAMAHA URX シリーズ (URX22 / URX44 / URX44V) の 4.3 インチ LCD タッチ
 
 > English: [README.md](README.md)
 
+[シミュレーターを開く](https://urx-lcd-sim.semnil.com/)
+
 ## できること
 
 - HOME (Overview) からチャンネルビュー、SETUP、MONITOR、SCENE、microSD、各チャンネル画面までの
@@ -29,6 +31,8 @@ YAMAHA URX シリーズ (URX22 / URX44 / URX44V) の 4.3 インチ LCD タッチ
 
 ## 動かす
 
+Node.js は `.node-version`、pnpm は `package.json` に記載したバージョンを使う。
+
 ```bash
 pnpm install
 pnpm dev
@@ -42,6 +46,18 @@ pnpm dev
 | `pnpm typecheck` | 型チェックのみ |
 
 外部ランタイム依存は無い。開発用の依存は TypeScript / Vite / Vitest だけ。
+
+## ホスティング
+
+[GitHub Pages](https://urx-lcd-sim.semnil.com/) で `main` の本番ビルドを配信する。
+[GitHub Pages ワークフロー](.github/workflows/pages.yml) がテスト・型チェック・ビルドを実行し、
+成功後に `dist/` だけをデプロイする。`main` 向けのプルリクエストでは同じ検査を実行し、
+デプロイしない。ワークフローは `main` を指定して手動実行することもできる。
+
+リポジトリの **Settings → Pages** で配信元を **GitHub Actions**、カスタムドメインを
+`urx-lcd-sim.semnil.com` に設定し、**Enforce HTTPS** を有効にする。DNS (Domain Name System)
+の `CNAME` レコードは `semnil.github.io` を指す。カスタムドメインは Pages の設定で管理し、
+この Actions による配信では `CNAME` ファイルを使わない。
 
 ## ドキュメント
 
