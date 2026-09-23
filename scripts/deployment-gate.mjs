@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { releaseDetails } from "./release.mjs";
 
 function git(...args) {
   return execFileSync("git", args, {
@@ -9,9 +10,7 @@ function git(...args) {
 
 function versionAt(commit) {
   const { version } = JSON.parse(git("show", `${commit}:package.json`));
-  if (typeof version !== "string" || version.trim() === "") {
-    throw new Error(`Missing application version at ${commit}`);
-  }
+  releaseDetails(version);
   return version;
 }
 

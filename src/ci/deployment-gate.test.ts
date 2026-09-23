@@ -59,6 +59,7 @@ beforeAll(() => {
   git("remote", "add", "origin", join(repository, "remote.git"));
   mkdirSync(join(repository, "scripts"));
   copyFileSync(script, join(repository, "scripts/deployment-gate.mjs"));
+  copyFileSync(resolve("scripts/release.mjs"), join(repository, "scripts/release.mjs"));
 });
 
 afterAll(() => rmSync(repository, { recursive: true, force: true }));
@@ -153,6 +154,7 @@ describe("Pages deployment gate", () => {
   it("queues deployment jobs and checks freshness inside the serialized job", () => {
     const workflow = readFileSync(resolve(".github/workflows/pages.yml"), "utf8");
     const deployment = workflow.split("\n  deploy:\n")[1]!;
+    expect(deployment).toContain("needs: [build, release]");
     expect(deployment).toMatch(/concurrency:\n\s+group: github-pages\n\s+queue: max\n\s+cancel-in-progress: false/);
     expect(deployment).toContain("contents: read");
     expect(deployment).toContain("ref: ${{ github.sha }}");
@@ -215,7 +217,7 @@ describe("Pages deployment gate", () => {
     }
   });
 
-  it.each(["{", "{}", '{"version":null}', '{"version":1}', '{"version":" "}'])("fails closed on an invalid manifest %s", (manifest) => {
+  it.each(["{", "{}", '{"version":null}', '{"version":1}', '{"version":" "}', '{"version":"1.0.0-preview1"}'])("fails closed on an invalid manifest %s", (manifest) => {
     const invalid = commit(manifest);
     for (const [before, after] of [[initial, invalid], [invalid, release]]) {
       const result = gate(before!, after!);
@@ -253,6 +255,7 @@ describe("Pages deployment gate", () => {
     const conditions = [
       /- name: Upload site\n\s+if: (.+)/.exec(workflow)?.[1],
       /\n  deploy:\n\s+if: (.+)/.exec(workflow)?.[1],
+      /\n  release:\n\s+if: (.+)/.exec(workflow)?.[1],
     ];
     for (const condition of conditions) {
       expect(condition).toBeDefined();

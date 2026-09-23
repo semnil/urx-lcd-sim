@@ -54,9 +54,34 @@ jobs:
         with:
           path: dist
 
-  deploy:
+  release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.build.outputs.deploy == 'true'
     needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Check out tested source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Create version tag and draft Release
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        timeout-minutes: 3
+        with:
+          script: |
+            const { readFile } = await import('node:fs/promises');
+            const { ensureRelease } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/release.mjs`);
+            const { version } = JSON.parse(await readFile('package.json', 'utf8'));
+            const release = await ensureRelease(github, { ...context.repo, sha: context.sha, version });
+            core.info(`Release: ${release.html_url}`);
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.build.outputs.deploy == 'true'
+    needs: [build, release]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
