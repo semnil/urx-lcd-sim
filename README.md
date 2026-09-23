@@ -59,8 +59,12 @@ and ordinary merges run the checks without publishing.
 To release, merge the application changes first, then merge a separate pull request that only
 updates `version` in `package.json`. This is the application's version source, also used by the
 simulator's VERSION screen. The workflow compares the commits before and after that push and
-deploys only `dist/` built from the pushed commit. A failed release can be retried by re-running
-its original Actions run; there is no manual deployment trigger that bypasses the version check.
+deploys only `dist/` built from the pushed commit. Deployment jobs queue without replacing a
+pending job and fetch `main` again immediately before publishing. If a later version change has
+landed, the older run skips deployment; ordinary subsequent changes do not prevent the release.
+A failed release can be retried by re-running its original Actions run while it is still the
+latest version update. There is no manual deployment trigger that bypasses these checks.
+The workflow does not create tags or GitHub Releases.
 
 The repository's **Settings → Pages** uses **GitHub Actions** as its source, with
 `urx-lcd-sim.semnil.com` as the custom domain and **Enforce HTTPS** enabled. The domain's DNS

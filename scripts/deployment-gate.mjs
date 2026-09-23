@@ -1,11 +1,14 @@
 import { execFileSync } from "node:child_process";
 
-function versionAt(commit) {
-  const manifest = execFileSync("git", ["show", `${commit}:package.json`], {
+function git(...args) {
+  return execFileSync("git", args, {
     encoding: "utf8",
     env: { ...process.env, LC_ALL: "C", LANG: "C" },
-  });
-  const { version } = JSON.parse(manifest);
+  }).trim();
+}
+
+function versionAt(commit) {
+  const { version } = JSON.parse(git("show", `${commit}:package.json`));
   if (typeof version !== "string" || version.trim() === "") {
     throw new Error(`Missing application version at ${commit}`);
   }
@@ -23,7 +26,16 @@ function shouldDeploy() {
   }
   // Branch creation has no previous version to compare.
   if (before === "0".repeat(40)) return false;
-  return versionAt(before) !== versionAt(after);
+  const version = versionAt(after);
+  if (versionAt(before) === version) return false;
+  if (process.argv.includes("--latest")) {
+    if (git("merge-base", after, "origin/main") !== after) return false;
+    const subsequent = git("rev-list", "--first-parent", `${after}..origin/main`);
+    for (const commit of subsequent.split("\n").filter(Boolean)) {
+      if (versionAt(commit) !== version) return false;
+    }
+  }
+  return true;
 }
 
 console.log(`deploy=${shouldDeploy()}`);
