@@ -1311,7 +1311,8 @@ lowers the count to that ceiling, and lowering the frequency again does not rais
 happens when the frequency moves, and three paths move it — the SAMPLING FREQUENCY screen, a settings
 file being loaded, and a unit coming back from storage. This [Track Count] is the only way back up. The copy mark on a slot's Source button is drawn the softened way the unit
 draws it, each pixel mixing `--rec-copy-mark` into the face at a share of its own (`Icons.copySoft`), 1px in from the
-button's top right (x378..387 / y185..194 in p079-2). A take
+button's top right (x378..387 / y185..194 in p079-2). The mark's top right pixel lies on the button's corner cut, so its
+share is the one that gives the figure's colour over the cut. A take
 moves through four states in turn. When the screen opens it is stopped, and the middle transport button carries the
 green triangle, which does nothing when pressed. A press on [●] arms the recorder, and the ● fades out and back in over
 two seconds (half the pace of a held EQ band's triangles). A press on the middle triangle while armed starts the take,
