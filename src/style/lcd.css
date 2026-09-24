@@ -5766,7 +5766,6 @@
   padding: 0 2px 0 4px;
   display: flex;
   align-items: center;
-  border-radius: 6px;
   background: var(--oneknob-panel);
 }
 
@@ -8172,7 +8171,7 @@
 
 /* These draw their corners on an overlay, so each stands as the box its overlay
  * is placed in. */
-:where(.param-cell:not(.osc-output .param-cell), .cv-param, .delay-cell, .efx-cell:not(.is-bare), .dyn-set, .cv-block, .cv-gain, .value-box, .cv-block-value:not(.cv-delay-value), .strip-level-value, .scene-box-static, .udk-toggle, .sd-path-field) {
+:where(.param-cell:not(.osc-output .param-cell), .cv-param, .delay-cell, .efx-cell:not(.is-bare), .dyn-set, .oneknob-panel, .cv-block, .cv-gain, .value-box, .cv-block-value:not(.cv-delay-value), .strip-level-value, .scene-box-static, .udk-toggle, .sd-path-field) {
   position: relative;
 }
 
@@ -8182,6 +8181,7 @@
 .lcd .delay-cell,
 .lcd .efx-cell:not(.is-bare),
 .lcd .dyn-set,
+.lcd .oneknob-panel,
 .lcd .cv-block,
 .lcd .cv-gain,
 .lcd .value-box,
@@ -8208,6 +8208,7 @@
 .lcd .delay-cell::after,
 .lcd .efx-cell:not(.is-bare)::after,
 .lcd .dyn-set::after,
+.lcd .oneknob-panel::after,
 .lcd .input-panel::after {
   content: "";
   position: absolute;
@@ -8254,6 +8255,13 @@
     linear-gradient(var(--pc-c), var(--pc-c)) right 1px bottom 2px / 1px 1px no-repeat,
     linear-gradient(var(--pc-a), var(--pc-a)) right 0px bottom 3px / 1px 1px no-repeat,
     linear-gradient(var(--pc-b), var(--pc-b)) right 0px bottom 4px / 1px 1px no-repeat;
+}
+
+/* The panel 1-knob stands its row on turns in shades of its own face (p104-2). */
+.lcd .oneknob-panel::after {
+  --pc-a: var(--corner-oneknob-panel-a);
+  --pc-b: var(--corner-oneknob-panel-b);
+  --pc-c: var(--corner-oneknob-panel-c);
 }
 
 /* INPUT's panels are darker than the cells and turn in their own shades. */
@@ -9576,16 +9584,78 @@
   left: 84px;
   top: 23px;
   width: 202px;
-  height: 37px;
-  padding: 0;
+  height: 40px;
+  padding: 0 0 3px;
   border: 0;
-  border-radius: var(--radius-md);
+  border-radius: 0;
+  box-shadow: inset 0 -3px 0 var(--btn-bevel-sunk);
   background: var(--surface-on-sunk);
   color: var(--text);
   font-size: 13px;
   display: grid;
   place-items: center;
   cursor: pointer;
+}
+
+/* The button turns its top corners over five pixels on the Morphing panel, its band's
+ * foot over four, and steps from the face onto the band up five rows (p108-1). */
+.lcd .ssmcs-data::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  --sd-g: var(--surface-sunk);
+  background:
+    linear-gradient(var(--sd-g), var(--sd-g)) left 0px top 0px / 3px 1px no-repeat,
+    linear-gradient(var(--corner-data-a), var(--corner-data-a)) left 3px top 0px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-b), var(--corner-data-b)) left 4px top 0px / 1px 1px no-repeat,
+    linear-gradient(var(--sd-g), var(--sd-g)) left 0px top 1px / 2px 1px no-repeat,
+    linear-gradient(var(--corner-data-c), var(--corner-data-c)) left 2px top 1px / 1px 1px no-repeat,
+    linear-gradient(var(--sd-g), var(--sd-g)) left 0px top 2px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-c), var(--corner-data-c)) left 1px top 2px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-a), var(--corner-data-a)) left 0px top 3px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-b), var(--corner-data-b)) left 0px top 4px / 1px 1px no-repeat,
+    linear-gradient(var(--sd-g), var(--sd-g)) right 0px top 0px / 3px 1px no-repeat,
+    linear-gradient(var(--corner-data-a), var(--corner-data-a)) right 3px top 0px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-b), var(--corner-data-b)) right 4px top 0px / 1px 1px no-repeat,
+    linear-gradient(var(--sd-g), var(--sd-g)) right 0px top 1px / 2px 1px no-repeat,
+    linear-gradient(var(--corner-data-c), var(--corner-data-c)) right 2px top 1px / 1px 1px no-repeat,
+    linear-gradient(var(--sd-g), var(--sd-g)) right 0px top 2px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-c), var(--corner-data-c)) right 1px top 2px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-a), var(--corner-data-a)) right 0px top 3px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-b), var(--corner-data-b)) right 0px top 4px / 1px 1px no-repeat,
+    linear-gradient(var(--sd-g), var(--sd-g)) left 0px bottom 0px / 2px 1px no-repeat,
+    linear-gradient(var(--corner-data-foot-a), var(--corner-data-foot-a)) left 2px bottom 0px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-foot-b), var(--corner-data-foot-b)) left 3px bottom 0px / 1px 1px no-repeat,
+    linear-gradient(var(--sd-g), var(--sd-g)) left 0px bottom 1px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-foot-b), var(--corner-data-foot-b)) left 1px bottom 1px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-foot-a), var(--corner-data-foot-a)) left 0px bottom 2px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-foot-b), var(--corner-data-foot-b)) left 0px bottom 3px / 1px 1px no-repeat,
+    linear-gradient(var(--btn-bevel-sunk), var(--btn-bevel-sunk)) left 1px bottom 3px / 2px 1px no-repeat,
+    linear-gradient(var(--corner-data-step-a), var(--corner-data-step-a)) left 3px bottom 3px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-step-b), var(--corner-data-step-b)) left 4px bottom 3px / 1px 1px no-repeat,
+    linear-gradient(var(--btn-bevel-sunk), var(--btn-bevel-sunk)) left 0px bottom 4px / 2px 1px no-repeat,
+    linear-gradient(var(--corner-data-step-b), var(--corner-data-step-b)) left 2px bottom 4px / 1px 1px no-repeat,
+    linear-gradient(var(--btn-bevel-sunk), var(--btn-bevel-sunk)) left 0px bottom 5px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-step-b), var(--corner-data-step-b)) left 1px bottom 5px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-step-c), var(--corner-data-step-c)) left 0px bottom 6px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-b), var(--corner-data-b)) left 0px bottom 7px / 1px 1px no-repeat,
+    linear-gradient(var(--sd-g), var(--sd-g)) right 0px bottom 0px / 2px 1px no-repeat,
+    linear-gradient(var(--corner-data-foot-a), var(--corner-data-foot-a)) right 2px bottom 0px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-foot-b), var(--corner-data-foot-b)) right 3px bottom 0px / 1px 1px no-repeat,
+    linear-gradient(var(--sd-g), var(--sd-g)) right 0px bottom 1px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-foot-b), var(--corner-data-foot-b)) right 1px bottom 1px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-foot-a), var(--corner-data-foot-a)) right 0px bottom 2px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-foot-b), var(--corner-data-foot-b)) right 0px bottom 3px / 1px 1px no-repeat,
+    linear-gradient(var(--btn-bevel-sunk), var(--btn-bevel-sunk)) right 1px bottom 3px / 2px 1px no-repeat,
+    linear-gradient(var(--corner-data-step-a), var(--corner-data-step-a)) right 3px bottom 3px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-step-b), var(--corner-data-step-b)) right 4px bottom 3px / 1px 1px no-repeat,
+    linear-gradient(var(--btn-bevel-sunk), var(--btn-bevel-sunk)) right 0px bottom 4px / 2px 1px no-repeat,
+    linear-gradient(var(--corner-data-step-b), var(--corner-data-step-b)) right 2px bottom 4px / 1px 1px no-repeat,
+    linear-gradient(var(--btn-bevel-sunk), var(--btn-bevel-sunk)) right 0px bottom 5px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-step-b), var(--corner-data-step-b)) right 1px bottom 5px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-step-c), var(--corner-data-step-c)) right 0px bottom 6px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-data-b), var(--corner-data-b)) right 0px bottom 7px / 1px 1px no-repeat;
 }
 
 .ssmcs-data-mark {

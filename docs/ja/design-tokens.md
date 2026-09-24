@@ -228,8 +228,19 @@ PY
 | `--corner-raised-a` | `#212021` | 一段明るい面 (HOME のストリップの名前、MONITOR の見出し) の上の角の混色。外側から 1 つめ (p047-1 のストリップ 2 の x108..112 / y50..54、p067-1) |
 | `--corner-raised-b` | `#42454a` | 同、2 つめ |
 | `--corner-raised-c` | `#42494a` | 同、斜めの画素 |
+| `--corner-oneknob-panel-a` | `#101418` | 1-knob のパネルのガラスの上の角の外側の混色 (p104-2 の x314 / y47) |
+| `--corner-oneknob-panel-b` | `#292c31` | 同、その次の混色 (p104-2 の x315 / y47) |
+| `--corner-oneknob-panel-c` | `#293031` | 同、斜めの画素 (p104-2 の x313 / y48) |
 | `--corner-source-step-a` | `#4a595a` | MONITOR の [Source] の面が帯へ曲がる段の、両端の混色 (p068-1 の x8 / y148、x6 / y146) |
 | `--corner-source-step-b` | `#526163` | 同、段の中の行の混色 (p068-1 の x7 / y147) |
+| `--corner-data-a` | `#3a494a` | SSMCS の Sweet Spot Data のボタンの上の角の外側の混色 (p108-1 の x203 / y167) |
+| `--corner-data-b` | `#4a595a` | 同、その次の混色と、段の上の面の最後の画素 (p108-1 の x204 / y167、x200 / y199) |
+| `--corner-data-c` | `#52595a` | 同、斜めの画素 (p108-1 の x202 / y168) |
+| `--corner-data-foot-a` | `#313d3a` | 同じボタンの帯の足の外側の混色 (p108-1 の x202 / y206) |
+| `--corner-data-foot-b` | `#3a4142` | 同、その内側の混色 (p108-1 の x203 / y206) |
+| `--corner-data-step-a` | `#4a5152` | 同じボタンの面が帯の段に接する混色 (p108-1 の x203 / y203) |
+| `--corner-data-step-b` | `#525d63` | 同、段に沿う面の混色 (p108-1 の x204 / y203) |
+| `--corner-data-step-c` | `#424d4a` | 同、段の上端の面の画素 (p108-1 の x200 / y200) |
 | `--corner-mon-foot-a` | `#101419` | MONITOR のストリップの帯がガラスに接する角の混色。外側から 1 つめ (p067-1 の x2..6 / y264..268) |
 | `--corner-mon-foot-b` | `#212831` | 同、2 つめ |
 | `--corner-mon-foot-c` | `#212d31` | 同、斜めの画素 |

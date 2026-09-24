@@ -887,7 +887,7 @@ own size and carries its own rules: the compressor's at 0.8 across and 0.2 down,
 reduction meter (x155/y14). Two panels below (face `--surface-sunk`, corner `--radius-lg`): Comp
 Drive 86x84 at x10/y94 and Morphing 300x84 at x114/y94. The name, the value and the knob line up on
 the 86px column at the panel's left: the name 13px, two pixels left of centre (y2), the value box 52x22 (x17/y19), the
-knob at x20/y46. The Morphing panel carries the Sweet Spot Data button beside them (202x37, x198/y117,
+knob at x20/y46. The Morphing panel carries the Sweet Spot Data button beside them (202x40: 37 rows of face over a 3px band `--btn-bevel-sunk`, x198/y117,
 face `--surface-on-sunk`, its copy mark 11x11 4px from the right and 5px from the top). A press drops
 a sheet of the 34 names, two to a row.
 
@@ -1518,7 +1518,9 @@ A box's corners are drawn the same way, in a shape set by the kind of box.
 - A sunk cell (the parameter cells, OSC's output, the channel view's PAN / LEVEL cells, DELAY's cells, an effect's panels, the dynamics screens' settings rows (p099-1)) and a channel view block
   round each corner over five pixels, in the ground and three shades. A block's bottom corners are drawn twice: the foot where
   the band meets the ground, and the step where the face turns onto the band (p056-1, p090-1). INPUT's panels take the same shape
-  in two shades of their own (p100-1).
+  in two shades of their own (p100-1), and the 1-knob panel in three of its own (`--corner-oneknob-panel-*`, p104-2).
+- SSMCS's Sweet Spot Data button rounds its top corners in the sunk cells' five-pixel shape, its band's foot over four
+  pixels and the step from the face onto the band over five rows, in the `--corner-data-*` shades (p108-1).
 - A value box and a well (RECORDER's slots, SCENE LIST's box, a box that only names its screen) round over three
   pixels, a well with one more shade inside the corner (p090-1, p067-1, p079-2). INPUT's value boxes carry no shade and
   turn in two steps of the panel alone (p100-1).

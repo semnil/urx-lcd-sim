@@ -98,8 +98,19 @@
   --corner-raised-a: #212021; /* a raised panel's top corner on the glass (a strip's name, MONITOR's head): the outer shade */
   --corner-raised-b: #42454a; /* the same, the shade after it */
   --corner-raised-c: #42494a; /* the same, the diagonal shade */
+  --corner-oneknob-panel-a: #101418; /* the 1-knob panel's corner on the glass: the outer shade */
+  --corner-oneknob-panel-b: #292c31; /* the same, the shade after it */
+  --corner-oneknob-panel-c: #293031; /* the same, the diagonal shade */
   --corner-source-step-a: #4a595a; /* MONITOR's Source: the face's shade at the ends of the step onto its band */
   --corner-source-step-b: #526163; /* the same, the shade in the step's middle row */
+  --corner-data-a: #3a494a; /* SSMCS's Sweet Spot Data button on its panel: the top corner's outer shade */
+  --corner-data-b: #4a595a; /* the same, the shade after it, and the face's last pixel above the band's step */
+  --corner-data-c: #52595a; /* the same, the diagonal shade */
+  --corner-data-foot-a: #313d3a; /* the same button's band foot: the outer shade */
+  --corner-data-foot-b: #3a4142; /* the same, the shade inside it */
+  --corner-data-step-a: #4a5152; /* the face's shade where it meets the band's step */
+  --corner-data-step-b: #525d63; /* the face's shade along the step onto the band */
+  --corner-data-step-c: #424d4a; /* the face's pixel over the step's top */
   --corner-mon-foot-a: #101419; /* a MONITOR strip's band where it meets the glass: the outer shade */
   --corner-mon-foot-b: #212831; /* the same, the shade after it */
   --corner-mon-foot-c: #212d31; /* the same, the diagonal shade */

@@ -2825,6 +2825,28 @@ describe("corners the unit draws a pixel at a time", () => {
     expect(corner(layers, "right", "bottom")).toEqual(corner(layers, "left", "bottom"));
   });
 
+  it("turns SSMCS's Sweet Spot Data in the pixels p108-1 draws on the Morphing panel", () => {
+    const data = cellsOf(declarations(CSS, ".lcd .ssmcs-data::after")["background"] ?? "");
+    expect(corner(data, "left", "top")).toEqual(["0,0,3,--sd-g", "3,0,1,--corner-data-a", "4,0,1,--corner-data-b", "0,1,2,--sd-g", "2,1,1,--corner-data-c", "0,2,1,--sd-g", "1,2,1,--corner-data-c", "0,3,1,--corner-data-a", "0,4,1,--corner-data-b"]);
+    // The band's foot turns over four pixels, and the face steps onto the band up five rows.
+    expect(corner(data, "left", "bottom")).toEqual([
+      "0,0,2,--sd-g", "2,0,1,--corner-data-foot-a", "3,0,1,--corner-data-foot-b",
+      "0,1,1,--sd-g", "1,1,1,--corner-data-foot-b",
+      "0,2,1,--corner-data-foot-a",
+      "0,3,1,--corner-data-foot-b", "1,3,2,--btn-bevel-sunk", "3,3,1,--corner-data-step-a", "4,3,1,--corner-data-step-b",
+      "0,4,2,--btn-bevel-sunk", "2,4,1,--corner-data-step-b",
+      "0,5,1,--btn-bevel-sunk", "1,5,1,--corner-data-step-b",
+      "0,6,1,--corner-data-step-c",
+      "0,7,1,--corner-data-b",
+    ]);
+    for (const edge of ["top", "bottom"]) expect(corner(data, "right", edge), edge).toEqual(corner(data, "left", edge));
+    expect(declarations(CSS, ".lcd .ssmcs-data::after")["--sd-g"]).toBe("var(--surface-sunk)");
+    const root = declarations(TOKENS, ":root");
+    expect(["a", "b", "c", "foot-a", "foot-b", "step-a", "step-b", "step-c"].map((k) => root[`--corner-data-${k}`])).toEqual([
+      "#3a494a", "#4a595a", "#52595a", "#313d3a", "#3a4142", "#4a5152", "#525d63", "#424d4a",
+    ]);
+  });
+
   it("ends RECORDER's progress bars and their played part in half-rounds drawn a pixel at a time", () => {
     const vars = declarations(CSS, ".sd-progress");
     const rows = (cells: Cell[], side: string): number[] => [...new Set(cells.filter((c) => c.side === side).map((c) => c.y))].sort((a, b) => a - b);
@@ -3031,6 +3053,14 @@ describe("the channel, monitor and microSD parts measured against the guide's fi
     expect(declarations(CSS, ".efx-cell")["border-radius"], "no curve of the browser's under the pixels").toBeUndefined();
     const placed = CSS.match(/:where\(\.param-cell[^{]*\{\s*position: relative;/)?.[0] ?? "";
     expect(placed, "each panel is the box its overlay is placed in").toContain(".efx-cell:not(.is-bare)");
+    // The panel 1-knob stands its row on turns the same way in shades of its own face (p104-2).
+    expect(declarations(CSS, ".lcd .oneknob-panel::after")["background"]).toBe(cell["background"]);
+    expect(declarations(CSS, ".oneknob-panel")["border-radius"]).toBeUndefined();
+    expect(placed).toContain(".oneknob-panel");
+    const knobPanel = declarations(CSS, ".lcd .oneknob-panel::after");
+    expect([knobPanel["--pc-a"], knobPanel["--pc-b"], knobPanel["--pc-c"]]).toEqual(["var(--corner-oneknob-panel-a)", "var(--corner-oneknob-panel-b)", "var(--corner-oneknob-panel-c)"]);
+    const tokens = declarations(TOKENS, ":root");
+    expect(["a", "b", "c"].map((k) => tokens[`--corner-oneknob-panel-${k}`])).toEqual(["#101418", "#292c31", "#293031"]);
     // The dynamics screens' settings stand on the same sunk panel (p099-1, p103-1, p114-1).
     expect(declarations(CSS, ".lcd .dyn-set::after")["background"]).toBe(cell["background"]);
     expect(declarations(CSS, ".lcd .dyn-set")["border-radius"]).toBe("0");

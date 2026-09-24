@@ -231,8 +231,19 @@ PY
 | `--corner-raised-a` | `#212021` | A raised panel's top corner shade (a HOME strip's name, MONITOR's head), the first from the outside (x108..112 / y50..54 in p047-1, p067-1) |
 | `--corner-raised-b` | `#42454a` | The same, the second |
 | `--corner-raised-c` | `#42494a` | The same, the diagonal pixel |
+| `--corner-oneknob-panel-a` | `#101418` | The 1-knob panel's corner on the glass, the outer shade (x314 / y47 in p104-2) |
+| `--corner-oneknob-panel-b` | `#292c31` | The same, the shade after it (x315 / y47 in p104-2) |
+| `--corner-oneknob-panel-c` | `#293031` | The same, the diagonal pixel (x313 / y48 in p104-2) |
 | `--corner-source-step-a` | `#4a595a` | MONITOR's [Source], the shade at each end of the step from its face onto its band (x8 / y148 and x6 / y146 in p068-1) |
 | `--corner-source-step-b` | `#526163` | The same, the shade in the step's middle row (x7 / y147 in p068-1) |
+| `--corner-data-a` | `#3a494a` | SSMCS's Sweet Spot Data button, the outer shade of its top corner (x203 / y167 in p108-1) |
+| `--corner-data-b` | `#4a595a` | The same, the shade after it, and the face's last pixel above the step (x204 / y167 and x200 / y199 in p108-1) |
+| `--corner-data-c` | `#52595a` | The same, the diagonal pixel (x202 / y168 in p108-1) |
+| `--corner-data-foot-a` | `#313d3a` | The same button's band foot, the outer shade (x202 / y206 in p108-1) |
+| `--corner-data-foot-b` | `#3a4142` | The same, the shade inside it (x203 / y206 in p108-1) |
+| `--corner-data-step-a` | `#4a5152` | The same button's face where it meets the band's step (x203 / y203 in p108-1) |
+| `--corner-data-step-b` | `#525d63` | The same, the face's shade along the step (x204 / y203 in p108-1) |
+| `--corner-data-step-c` | `#424d4a` | The same, the face's pixel over the step's top (x200 / y200 in p108-1) |
 | `--corner-mon-foot-a` | `#101419` | A MONITOR strip's corner where its band meets the glass, the first shade from the outside (x2..6 / y264..268 in p067-1) |
 | `--corner-mon-foot-b` | `#212831` | The same, the second |
 | `--corner-mon-foot-c` | `#212d31` | The same, the diagonal pixel |
