@@ -2796,7 +2796,7 @@ describe("corners the unit draws a pixel at a time", () => {
     const cut = blocks.find((b) => b.body.includes("mask: var(--px-mask-left), var(--px-mask-right)"));
     const cast = blocks.find((b) => b.sel.endsWith("::after") && b.sel.includes(".menu-btn"));
     const listed = (rule: { sel: string } | undefined, sel: string): boolean => (rule?.sel ?? "").includes(`, ${sel},`) || (rule?.sel ?? "").includes(`, ${sel})`);
-    // p090-1, wide/p040-1, p068-1 and p079-3 cut each corner the way every other button does.
+    // p090-1, wide/p040-1, p068-1 and p079-3 cut each corner the way the shared button corners do.
     for (const sel of [".ch-chip", ".pick-dialog-row", ".mon-source", ".dropdown-list"]) {
       expect(listed(cut, sel), sel).toBe(true);
     }
