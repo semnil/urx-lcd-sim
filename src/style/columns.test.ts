@@ -1590,6 +1590,10 @@ describe("an effect's grid of controls", () => {
     const cut = CSS.match(/:where\(\.menu-btn[^{]*\{\s*mask: var\(--px-mask-left\), var\(--px-mask-right\)/)?.[0] ?? "";
     const cast = CSS.match(/:where\(\.menu-btn[^{]*::after \{/)?.[0] ?? "";
     expect([cut, cast].map((sel) => sel.includes(".efx-button")), "the cut and the band's step").toEqual([true, true]);
+    // So do Pitch Fix's [Correction] and M.B.Comp's [Bypass], each standing alone.
+    for (const button of [".pitch-corner", ".mbc-bypass"]) {
+      expect([cut, cast].map((sel) => sel.includes(`, ${button},`) || sel.includes(`, ${button})`)), button).toEqual([true, true]);
+    }
     expect(
       [".efx-button::after", ".efx-button:first-child::after", ".efx-button:last-child::after"].map((s) => declarations(CSS, s)["background"]),
       "Cho / Off / Vib join into one row",

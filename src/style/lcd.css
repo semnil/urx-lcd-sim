@@ -7914,7 +7914,7 @@
  * band repeats the shape where the face meets the band and where the band meets
  * what the button stands on. The shades depend on the face, the band and that
  * ground, so each set is a group of tokens. */
-:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .oneknob.is-on) {
+:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass, .oneknob.is-on) {
   position: relative;
   --px-ground: var(--lcd-bg);
   /* The three pixels at each corner are cut away and the two beside them let the
@@ -7997,16 +7997,18 @@
 .tools-screen > .btn,
 .rec-transport .btn,
 .mode-box,
-.efx-button) {
+.efx-button,
+.pitch-corner,
+.mbc-bypass) {
   border-radius: 0;
 }
 
-:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button) {
+:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass) {
   mask: var(--px-mask-left), var(--px-mask-right), linear-gradient(#000, #000);
   mask-composite: exclude;
 }
 
-:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button)::after {
+:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass)::after {
   content: "";
   position: absolute;
   inset: 0;
