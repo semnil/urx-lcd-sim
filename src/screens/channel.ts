@@ -8,6 +8,7 @@ import type { DeviceStore, WriteRule } from "../device/store";
 import { clamp } from "../device/store";
 import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, GATE_DEFAULTS, compEqBankDefaults, ssmcsBankDefaults } from "../model/defaults";
 import { COMP_GR_METER_DB, COMP_KNEE_WIDTH, GR_METER_DB, compResponse } from "../model/dynamics";
+import { eqResponse } from "../model/eq-response";
 import type { Strip } from "../model/types";
 import { findStrip, sendsTo } from "../model/types";
 import { CH_COLOR_NONE, CH_COLOR_OFF, CH_COLOR_PALETTE } from "../model/units";
@@ -222,18 +223,27 @@ export function block(
 
 /**
  * A tiny EQ curve over the grid the unit rules the panel with: three lines down
- * it and one across the middle, with the curve drawn from the four band gains.
- * A band switched off adds nothing.
+ * it at 100 Hz, 1 kHz and 10 kHz and one across the middle, with the curve the
+ * EQ screen draws. A band switched off adds nothing.
  */
 function eqThumb(ctx: AppContext, stripId: string): HTMLElement {
   const W = 78;
   const H = 42;
-  const gains = EQ_BANDS.map((b) => (eqBandOn(ctx, `ch.${stripId}`, b.key) ? ctx.store.num(`ch.${stripId}.eq.${b.key}.gain`, 0) : 0));
-  const pts = gains.map((g, i) => {
-    const x = (i * W) / (EQ_BANDS.length - 1);
-    const y = H / 2 - (g / 18) * (H / 2 - 4);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  });
+  const base = `ch.${stripId}`;
+  const at = eqResponse(
+    EQ_BANDS.map((b) => ({
+      on: eqBandOn(ctx, base, b.key),
+      shape: eqBandShape(ctx, base, b.key),
+      freq: ctx.store.num(`${base}.eq.${b.key}.freq`, 1000),
+      q: ctx.store.num(`${base}.eq.${b.key}.q`, 0.71),
+      gain: ctx.store.num(`${base}.eq.${b.key}.gain`, 0),
+    })),
+  );
+  const pts: string[] = [];
+  for (let x = 0; x <= W; x += 2) {
+    const hz = EQ_HZ_MIN * (EQ_HZ_MAX / EQ_HZ_MIN) ** (x / W);
+    pts.push(`${x.toFixed(1)},${(H / 2 - (at(hz) / 18) * (H / 2 - 4)).toFixed(1)}`);
+  }
   const ns = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(ns, "svg");
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
@@ -1424,6 +1434,13 @@ export const delayScreen: ScreenDef = {
   },
 };
 
+/** The filter shape an EQ band holds, or its first shape where it holds one the band cannot take. */
+function eqBandShape(ctx: AppContext, base: string, key: (typeof EQ_BANDS)[number]["key"]): string {
+  const shapes = EQ_SHAPES[key];
+  const stored = ctx.store.str(`${base}.eq.${key}.shape`, "Bell");
+  return shapes.includes(stored) ? stored : (shapes[0] ?? "Bell");
+}
+
 /** Whether an EQ band is on; the band box switches it, and a band switched off shapes no curve. */
 function eqBandOn(ctx: AppContext, base: string, band: string): boolean {
   return ctx.store.bool(`${base}.eq.${band}.on`, true);
@@ -1467,8 +1484,7 @@ export const eqScreen: ScreenDef = {
     ctx.setKnobs([null, specs[0] ?? null, specs[1] ?? null, specs[2] ?? null]);
     const on = ctx.store.bool(`${base}.eq.on`, true);
     const shapes = EQ_SHAPES[band.key];
-    const stored = ctx.store.str(`${base}.eq.${band.key}.shape`, "Bell");
-    const shape = shapes.includes(stored) ? stored : (shapes[0] ?? "Bell");
+    const shape = eqBandShape(ctx, base, band.key);
 
     const svg = document.createElementNS(NS, "svg");
     svg.setAttribute("viewBox", `0 0 ${EQ_W} ${EQ_H}`);
@@ -1490,15 +1506,11 @@ export const eqScreen: ScreenDef = {
       hz: ctx.store.num(`${base}.eq.${b.key}.freq`, 1000),
       gain: ctx.store.num(`${base}.eq.${b.key}.gain`, 0),
       q: ctx.store.num(`${base}.eq.${b.key}.q`, 0.71),
+      shape: eqBandShape(ctx, base, b.key),
       on: eqBandOn(ctx, base, b.key),
     }));
     // A band switched off keeps its grip where its values put it and adds nothing to the curve.
-    const at = (hz: number): number =>
-      bands.reduce((sum, s) => {
-        if (!s.on) return sum;
-        const octaves = Math.log2(hz / s.hz);
-        return sum + s.gain * Math.exp(-((octaves * s.q) ** 2) * 2);
-      }, 0);
+    const at = eqResponse(bands.map((s) => ({ on: s.on, shape: s.shape, freq: s.hz, q: s.q, gain: s.gain })));
     const points: string[] = [];
     for (let i = 0; i <= 96; i++) {
       const hz = EQ_HZ_MIN * (EQ_HZ_MAX / EQ_HZ_MIN) ** (i / 96);
