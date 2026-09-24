@@ -1586,11 +1586,28 @@ describe("an effect's grid of controls", () => {
     expect(px(declarations(CSS, ".efx-cell.has-buttons")["width"])).toBe((tracks[0] ?? 0) + px(declarations(CSS, ".efx-cell")["width"]));
     expect(declarations(CSS, ".efx-cell.is-foot")["justify-content"]).toBe("flex-end");
     expect(declarations(CSS, ".efx-buttons .btn.efx-button.is-on")["background"], "the one taken lit cyan").toBe("var(--accent-selected)");
+    // The buttons turn their corners in the pixels every other button does, a row at its two ends only.
+    const cut = CSS.match(/:where\(\.menu-btn[^{]*\{\s*mask: var\(--px-mask-left\), var\(--px-mask-right\)/)?.[0] ?? "";
+    const cast = CSS.match(/:where\(\.menu-btn[^{]*::after \{/)?.[0] ?? "";
+    expect([cut, cast].map((sel) => sel.includes(".efx-button")), "the cut and the band's step").toEqual([true, true]);
+    expect(
+      [".efx-button::after", ".efx-button:first-child::after", ".efx-button:last-child::after"].map((s) => declarations(CSS, s)["background"]),
+      "Cho / Off / Vib join into one row",
+    ).toEqual(["none", "var(--px-left)", "var(--px-right)"]);
+    expect(
+      [".efx-button", ".efx-button:first-child", ".efx-button:last-child"].map((s) => declarations(CSS, s)["mask"]),
+    ).toEqual(["none", "var(--px-mask-left), linear-gradient(#000, #000)", "var(--px-mask-right), linear-gradient(#000, #000)"]);
+    // Cho / Off / Vib stand on whole pixels, 59 / 60 / 59, and fill the row between the panel's padding (2026-09-24).
+    const ends = px(declarations(CSS, ".efx-buttons .btn.efx-button:not(:only-child)")["flex"]?.split(" ")[2]);
+    const middle = px(declarations(CSS, ".efx-buttons .btn.efx-button:not(:first-child, :last-child)")["flex-basis"]);
+    const inset = px((declarations(CSS, ".efx-cell")["padding"] ?? "").split(/\s+/)[1]);
+    expect([ends, middle]).toEqual([59, 60]);
+    expect(ends * 2 + middle + 2 * px(declarations(CSS, ".efx-buttons")["gap"])).toBe(px(declarations(CSS, ".efx-cell.has-buttons")["width"]) - 2 * inset);
     // Gate stands alone, not one of a row: round on the left as on the right (URX44V, 2026-09-22).
-    expect(declarations(CSS, ".efx-buttons .btn.efx-button:only-child")["border-radius"]).toBe("var(--radius-md)");
-    expect(CSS.indexOf(".efx-buttons .btn.efx-button:only-child {"), "after the row's end rules, so it wins").toBeGreaterThan(
-      CSS.indexOf(".efx-buttons .btn.efx-button:last-child {"),
-    );
+    expect(declarations(CSS, ".efx-button:only-child")["mask"]).toBe("var(--px-mask-left), var(--px-mask-right), linear-gradient(#000, #000)");
+    expect(declarations(CSS, ".efx-button:only-child::after")["background"]).toBe("var(--px-left), var(--px-right)");
+    expect(CSS.indexOf(".efx-button:only-child {"), "after the row's end rules, so it wins").toBeGreaterThan(CSS.lastIndexOf(".efx-button:last-child"));
+    expect(declarations(CSS, ".efx-buttons .btn.efx-button")["border-radius"], "and no curve of the browser's under them").toBe("0");
     // Gate and a delay's Note run the width of a panel: the cell drops the panel's padding, the
     // button fills the row, and a list on the glass is the panel's width.
     expect(declarations(CSS, ".efx-cell.is-bare:not(.is-foot, .has-buttons)")["padding-inline"]).toBe("0");

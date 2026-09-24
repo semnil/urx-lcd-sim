@@ -627,7 +627,8 @@ the same day): the first page's upper row is Volume / Distortion / Blend / Outpu
 Middle / Bass / Presence, the second page's upper row Cho, Off and Vib / Gate / SP Type and its lower row Speed /
 Depth / Gate Level / Mic Position. Cho, Off and Vib take the upper row's first two places (the two tracks and the
 gap between them, 190px), three buttons side by side with no caption, the one taken lit in the cyan
-`--accent-selected` (the third reads `Vib`; the operator, the same day). Gate has no caption and carries `Gate` on its
+`--accent-selected` (the third reads `Vib`; the operator, the same day). They are 59, 60 and 59 wide (the operator's
+instruction, 2026-09-24). Gate has no caption and carries `Gate` on its
 own button, the dark button Cho, Off and Vib use, rounded on its left end as on its right since it is not one of a row, and as wide as a panel, 86px (the operator's instruction, the same day). Cho, Off and Vib, Gate, SP Type and Mic Position stand on the glass with no panel under them, their buttons and
 lists 36px high, nine tenths of the toolbar's 40px effect name. SP Type and Mic Position set their caption in the
 dark grey `--text-muted` 4px apart over the list, stand caption and list at the foot of their place, and run their
@@ -1484,7 +1485,8 @@ figures (a face of 74,81,90 bands at 49,57,58 and one of 132,223,255 at 90,158,1
 sheet ground and a black one). The radius of 3 on [ON] / [CUE] / [PRE] is three shades over four rows, fixed for each
 pairing of face, band and ground, so each set is a group of tokens (`--corner-*` in `design-tokens.md`). The bank buttons of USER DEFINED KNOBS and the
 frequencies of SAMPLING FREQUENCY and CH SETTING's PAN and BAL join into one row, rounded at its two ends only (p057-1, p058-1,
-p093-1). The ends of RECORDER's
+p093-1). An effect's Cho, Off and Vib are such a row too, and Gate and Sync, each standing alone, turn all four corners in
+the same pixels. The ends of RECORDER's
 progress bars, and of their played part, are 12-row half-rounds drawn a pixel at a time too (p079-2, p081-1).
 
 The switch (`--pb-*`) and the title badge (`--pt-*`) draw their corners in the same 46 places, each from shades of its own.

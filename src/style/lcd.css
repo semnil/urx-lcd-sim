@@ -7615,17 +7615,14 @@
   font-size: var(--fs-sm);
 }
 
-.efx-buttons .btn.efx-button:first-child {
-  border-radius: var(--radius-md) 0 0 var(--radius-md);
+/* A row's buttons stand on whole pixels, so their corners do: the middle one takes
+ * the pixel the row has over three equal widths. */
+.efx-buttons .btn.efx-button:not(:only-child) {
+  flex: 0 0 59px;
 }
 
-.efx-buttons .btn.efx-button:last-child {
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
-}
-
-/* A button standing alone, not one of a row, keeps all four corners round. */
-.efx-buttons .btn.efx-button:only-child {
-  border-radius: var(--radius-md);
+.efx-buttons .btn.efx-button:not(:first-child, :last-child) {
+  flex-basis: 60px;
 }
 
 /* The one taken is lit cyan, its name in the dark grey of a lit name. */
@@ -7920,7 +7917,7 @@
  * band repeats the shape where the face meets the band and where the band meets
  * what the button stands on. The shades depend on the face, the band and that
  * ground, so each set is a group of tokens. */
-:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .oneknob.is-on) {
+:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .oneknob.is-on) {
   position: relative;
   --px-ground: var(--lcd-bg);
   /* The three pixels at each corner are cut away and the two beside them let the
@@ -8002,16 +7999,17 @@
 .scene-actions .btn,
 .tools-screen > .btn,
 .rec-transport .btn,
-.mode-box) {
+.mode-box,
+.efx-button) {
   border-radius: 0;
 }
 
-:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box) {
+:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button) {
   mask: var(--px-mask-left), var(--px-mask-right), linear-gradient(#000, #000);
   mask-composite: exclude;
 }
 
-:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box)::after {
+:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button)::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -8050,13 +8048,14 @@
 }
 
 /* The bank buttons, the sampling frequencies, SCENE LIST's Standard and Simple,
- * CH SETTING's PAN and BAL and OSCILLATOR's three modes join into one row,
- * rounded at its two ends only. */
+ * CH SETTING's PAN and BAL, OSCILLATOR's three modes and an effect's Cho / Off /
+ * Vib join into one row, rounded at its two ends only. */
 .udk-bank::after,
 .rate-btn::after,
 .scene-bank::after,
 .panbal-btn::after,
 .osc-mode::after,
+.efx-button::after,
 .peripheral-group .btn-row .btn::after {
   background: none;
 }
@@ -8066,6 +8065,7 @@
 .scene-bank,
 .panbal-btn,
 .osc-mode,
+.efx-button,
 .peripheral-group .btn-row .btn {
   mask: none;
 }
@@ -8075,7 +8075,8 @@
 .osc-mode:first-child,
 .rate-btn:first-child,
 .scene-bank:first-child,
-.panbal-btn:first-child {
+.panbal-btn:first-child,
+.efx-button:first-child {
   mask: var(--px-mask-left), linear-gradient(#000, #000);
   mask-composite: exclude;
 }
@@ -8085,7 +8086,8 @@
 .osc-mode:last-child,
 .rate-btn:last-child,
 .scene-bank:last-child,
-.panbal-btn:last-child {
+.panbal-btn:last-child,
+.efx-button:last-child {
   mask: var(--px-mask-right), linear-gradient(#000, #000);
   mask-composite: exclude;
 }
@@ -8095,7 +8097,8 @@
 .osc-mode:first-child::after,
 .rate-btn:first-child::after,
 .scene-bank:first-child::after,
-.panbal-btn:first-child::after {
+.panbal-btn:first-child::after,
+.efx-button:first-child::after {
   background: var(--px-left);
 }
 
@@ -8104,8 +8107,19 @@
 .osc-mode:last-child::after,
 .rate-btn:last-child::after,
 .scene-bank:last-child::after,
-.panbal-btn:last-child::after {
+.panbal-btn:last-child::after,
+.efx-button:last-child::after {
   background: var(--px-right);
+}
+
+/* An effect's Gate and Sync stand alone rather than in a row, so they turn at both ends. */
+.efx-button:only-child {
+  mask: var(--px-mask-left), var(--px-mask-right), linear-gradient(#000, #000);
+  mask-composite: exclude;
+}
+
+.efx-button:only-child::after {
+  background: var(--px-left), var(--px-right);
 }
 
 /* --- Corners drawn from the guide's pixels: cells, blocks, wells, rings ---- */
