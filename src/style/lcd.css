@@ -1361,9 +1361,9 @@
   white-space: nowrap;
 }
 
-/* The Note list opens to the left of its box (x326..412 / y185..221), 2px clear of
+/* The Note list opens to the left of its box (x326..411 / y185..220), 2px clear of
  * it and of the readout bar under it (y233), over the panels the delay's second page
- * leaves empty. Its left end reaches over the foot of Sync (x12..98 / y86..122). */
+ * leaves empty. Its left end reaches over the foot of Sync (x12..97 / y86..121). */
 .efx-note-list {
   left: 60px;
   top: 107px;
@@ -5858,7 +5858,6 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 7px 0 10px;
-  border-radius: var(--radius-md);
   background: var(--surface-sunk);
 }
 
@@ -6656,7 +6655,7 @@
 .source-popup {
   width: 100%;
   height: 100%;
-  background: #bdbebd;
+  background: var(--dialog-sheet);
   border-radius: var(--radius-md);
   box-shadow: 1px 1px 0 var(--sheet-shadow-near), 2px 2px 0 var(--sheet-shadow-far);
   padding: 5px 6px;
@@ -7514,7 +7513,6 @@
   width: 86px;
   height: 82px;
   box-sizing: border-box;
-  border-radius: var(--radius-md);
   background: var(--surface-sunk);
   display: flex;
   flex-direction: column;
@@ -7587,9 +7585,7 @@
 }
 
 .efx-cell .btn.btn-switch {
-  padding: 0 0 3px;
-  border-radius: 3px;
-  box-shadow: inset 0 -3px 0 var(--switch-band);
+  padding: 0 0 4px;
 }
 
 /* A list the unit sets out as buttons takes two panels, the first two tracks and
@@ -7616,17 +7612,14 @@
   font-size: var(--fs-sm);
 }
 
-.efx-buttons .btn.efx-button:first-child {
-  border-radius: var(--radius-md) 0 0 var(--radius-md);
+/* A row's buttons stand on whole pixels, so their corners do: the middle one takes
+ * the pixel the row has over three equal widths. */
+.efx-buttons .btn.efx-button:not(:only-child) {
+  flex: 0 0 59px;
 }
 
-.efx-buttons .btn.efx-button:last-child {
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
-}
-
-/* A button standing alone, not one of a row, keeps all four corners round. */
-.efx-buttons .btn.efx-button:only-child {
-  border-radius: var(--radius-md);
+.efx-buttons .btn.efx-button:not(:first-child, :last-child) {
+  flex-basis: 60px;
 }
 
 /* The one taken is lit cyan, its name in the dark grey of a lit name. */
@@ -7672,7 +7665,7 @@
 }
 
 /* A list that runs the width of the readout bar's division under it starts at the
- * division's left edge (x317..420 under the last column, whose panel starts at x326). */
+ * division's left edge (x317..419 under the last column, whose panel starts at x326). */
 .efx-cell.is-bare.is-division .pulldown {
   align-self: flex-start;
   width: 103px;
@@ -7921,7 +7914,7 @@
  * band repeats the shape where the face meets the band and where the band meets
  * what the button stands on. The shades depend on the face, the band and that
  * ground, so each set is a group of tokens. */
-:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .oneknob.is-on) {
+:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass, .oneknob.is-on) {
   position: relative;
   --px-ground: var(--lcd-bg);
   /* The three pixels at each corner are cut away and the two beside them let the
@@ -8003,16 +7996,19 @@
 .scene-actions .btn,
 .tools-screen > .btn,
 .rec-transport .btn,
-.mode-box) {
+.mode-box,
+.efx-button,
+.pitch-corner,
+.mbc-bypass) {
   border-radius: 0;
 }
 
-:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box) {
+:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass) {
   mask: var(--px-mask-left), var(--px-mask-right), linear-gradient(#000, #000);
   mask-composite: exclude;
 }
 
-:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box)::after {
+:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass)::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -8051,13 +8047,14 @@
 }
 
 /* The bank buttons, the sampling frequencies, SCENE LIST's Standard and Simple,
- * CH SETTING's PAN and BAL and OSCILLATOR's three modes join into one row,
- * rounded at its two ends only. */
+ * CH SETTING's PAN and BAL, OSCILLATOR's three modes and an effect's Cho / Off /
+ * Vib join into one row, rounded at its two ends only. */
 .udk-bank::after,
 .rate-btn::after,
 .scene-bank::after,
 .panbal-btn::after,
 .osc-mode::after,
+.efx-button::after,
 .peripheral-group .btn-row .btn::after {
   background: none;
 }
@@ -8067,6 +8064,7 @@
 .scene-bank,
 .panbal-btn,
 .osc-mode,
+.efx-button,
 .peripheral-group .btn-row .btn {
   mask: none;
 }
@@ -8076,7 +8074,8 @@
 .osc-mode:first-child,
 .rate-btn:first-child,
 .scene-bank:first-child,
-.panbal-btn:first-child {
+.panbal-btn:first-child,
+.efx-button:first-child {
   mask: var(--px-mask-left), linear-gradient(#000, #000);
   mask-composite: exclude;
 }
@@ -8086,7 +8085,8 @@
 .osc-mode:last-child,
 .rate-btn:last-child,
 .scene-bank:last-child,
-.panbal-btn:last-child {
+.panbal-btn:last-child,
+.efx-button:last-child {
   mask: var(--px-mask-right), linear-gradient(#000, #000);
   mask-composite: exclude;
 }
@@ -8096,7 +8096,8 @@
 .osc-mode:first-child::after,
 .rate-btn:first-child::after,
 .scene-bank:first-child::after,
-.panbal-btn:first-child::after {
+.panbal-btn:first-child::after,
+.efx-button:first-child::after {
   background: var(--px-left);
 }
 
@@ -8105,15 +8106,26 @@
 .osc-mode:last-child::after,
 .rate-btn:last-child::after,
 .scene-bank:last-child::after,
-.panbal-btn:last-child::after {
+.panbal-btn:last-child::after,
+.efx-button:last-child::after {
   background: var(--px-right);
+}
+
+/* An effect's Gate and Sync stand alone rather than in a row, so they turn at both ends. */
+.efx-button:only-child {
+  mask: var(--px-mask-left), var(--px-mask-right), linear-gradient(#000, #000);
+  mask-composite: exclude;
+}
+
+.efx-button:only-child::after {
+  background: var(--px-left), var(--px-right);
 }
 
 /* --- Corners drawn from the guide's pixels: cells, blocks, wells, rings ---- */
 
 /* These draw their corners on an overlay, so each stands as the box its overlay
  * is placed in. */
-:where(.param-cell:not(.osc-output .param-cell), .cv-param, .delay-cell, .cv-block, .cv-gain, .value-box, .cv-block-value:not(.cv-delay-value), .strip-level-value, .scene-box-static, .udk-toggle, .sd-path-field) {
+:where(.param-cell:not(.osc-output .param-cell), .cv-param, .delay-cell, .efx-cell:not(.is-bare), .dyn-set, .cv-block, .cv-gain, .value-box, .cv-block-value:not(.cv-delay-value), .strip-level-value, .scene-box-static, .udk-toggle, .sd-path-field) {
   position: relative;
 }
 
@@ -8121,6 +8133,8 @@
 .lcd .osc-output,
 .lcd .cv-param,
 .lcd .delay-cell,
+.lcd .efx-cell:not(.is-bare),
+.lcd .dyn-set,
 .lcd .cv-block,
 .lcd .cv-gain,
 .lcd .value-box,
@@ -8138,13 +8152,15 @@
 }
 
 /* A sunk cell on the glass (the parameter cells, OSC's output, the channel view's
- * PAN / LEVEL cells, DELAY's cells) rounds each corner over five pixels: the
- * ground on the first three of the edge row and two of the next, and three
- * shades between it and the face. */
+ * PAN / LEVEL cells, DELAY's cells, an effect's panels, the dynamics screens'
+ * settings) rounds each corner over five pixels: the ground on the first three of
+ * the edge row and two of the next, and three shades between it and the face. */
 .lcd .param-cell:not(.osc-output .param-cell)::after,
 .lcd .osc-output::after,
 .lcd .cv-param::after,
 .lcd .delay-cell::after,
+.lcd .efx-cell:not(.is-bare)::after,
+.lcd .dyn-set::after,
 .lcd .input-panel::after {
   content: "";
   position: absolute;
@@ -9337,8 +9353,10 @@
   --px-foot-c: var(--corner-switch-lit-foot-c);
 }
 
-/* OSCILLATOR stands its [ON] on the output's sunk panel. */
-.btn.btn-switch.osc-on {
+/* OSCILLATOR stands its [ON] on the output's sunk panel, and an effect its [ON] on
+ * the panel it names. */
+.btn.btn-switch.osc-on,
+.btn.btn-switch.efx-switch {
   --px-ground: var(--surface-sunk);
   --px-a: var(--corner-switch-sunk-a);
   --px-b: var(--corner-switch-sunk-b);
@@ -9348,7 +9366,8 @@
   --px-foot-c: var(--corner-switch-sunk-foot-c);
 }
 
-.btn.btn-switch.osc-on.is-on {
+.btn.btn-switch.osc-on.is-on,
+.btn.btn-switch.efx-switch.is-on {
   --px-a: var(--corner-switch-lit-sunk-a);
   --px-b: var(--corner-switch-lit-sunk-b);
   --px-c: var(--corner-switch-lit-sunk-c);

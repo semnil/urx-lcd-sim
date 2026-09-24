@@ -608,12 +608,13 @@ does fix is that the controls stand in the middle of the screen (the middle of p
 [No Effect] leaves empty) and that the input/output meters stand at the right.
 
 The parameter settings screen holds eight controls to a page, four across and two down. The cells are
-the 86x82 the DELAY screen uses, at x12..412 / y53..225 on an 8px row gutter, the second row starting
-at y143. The columns follow the rule the oscillator's boxes follow: each one stands over the division
+as wide as the DELAY screen's, 86, and 82 high, 2px lower than DELAY's 84 (the operator's instruction, 2026-09-24), at
+x12..411 / y53..224 on an 8px row gutter, the second row starting at y143. The columns follow the rule the oscillator's boxes follow: each one stands over the division
 of the knob readout bar that reads it (x12, 116, 222 and 326, each within 0.5px of its division's
 middle). A cell carries a 15px caption over its control, and a value that moves continuously
 carries the 38px knob that turns it under the control. A value box is the 60x22 box the DELAY
-screen's cells use, corners and all; a pulldown and an on/off switch take a 78x22 box. Each page
+screen's cells use, corners and all; a pulldown and an on/off switch take a 78x22 box. An on/off switch is drawn as OSCILLATOR's [ON] is, its corners
+on the panel as their ground and a 4px band. Each page
 fills in fours from the lower row up: a page of four or fewer stands in the lower row (the second
 page of Rev-X Hall, HPF and LPF), and a page of five to eight puts its first four in the upper row
 and the rest in the lower one. The knob readout bar reads a row at a time, the lower row first, then the
@@ -627,11 +628,12 @@ the same day): the first page's upper row is Volume / Distortion / Blend / Outpu
 Middle / Bass / Presence, the second page's upper row Cho, Off and Vib / Gate / SP Type and its lower row Speed /
 Depth / Gate Level / Mic Position. Cho, Off and Vib take the upper row's first two places (the two tracks and the
 gap between them, 190px), three buttons side by side with no caption, the one taken lit in the cyan
-`--accent-selected` (the third reads `Vib`; the operator, the same day). Gate has no caption and carries `Gate` on its
+`--accent-selected` (the third reads `Vib`; the operator, the same day). They are 59, 60 and 59 wide (the operator's
+instruction, 2026-09-24). Gate has no caption and carries `Gate` on its
 own button, the dark button Cho, Off and Vib use, rounded on its left end as on its right since it is not one of a row, and as wide as a panel, 86px (the operator's instruction, the same day). Cho, Off and Vib, Gate, SP Type and Mic Position stand on the glass with no panel under them, their buttons and
 lists 36px high, nine tenths of the toolbar's 40px effect name. SP Type and Mic Position set their caption in the
 dark grey `--text-muted` 4px apart over the list, stand caption and list at the foot of their place, and run their
-list the width of the readout bar's division under it (x317..420 under the last column). The upper row's SP Type comes
+list the width of the readout bar's division under it (x317..419 under the last column). The upper row's SP Type comes
 down until its list ends 8px over the lower row's
 Mic Position caption, and the upper row's Cho, Off and Vib and Gate end where that list begins (the operator's own
 instruction, the same day). Gate lights cyan when on, as Cho, Off and Vib do (the operator, the same day). The 4px
@@ -655,9 +657,9 @@ upper row and Rev.Time / Ini.Delay / Hi.Ratio / Diffusion in the lower, page two
 A pulldown with six options or more opens on a sheet rather than under its box. Note opens no sheet: its list opens
 to the left of its box, three rows of five (the operator's instruction, the same day; its place confirmed by the
 operator the same day), over as little as it can:
-2px clear of the Note box (x326..412) and of the readout bar (y233), at x60..324 / y107..231. The list is 264px wide,
-wider than the room left of the box (from Sync's right end at x98 to the box), so its left end lies over the foot of
-Sync (x60..98 / y107..122).
+2px clear of the Note box (x326..411) and of the readout bar (y233), at x60..323 / y107..230. The list is 264px wide,
+wider than the room left of the box (x98..325, right of Sync), so its left end lies over the foot of
+Sync (x60..97 / y107..121).
 Every control but Cho, Off and Vib takes one place, and a list value whose name does not fit its panel (Pitch Fix's `Harmonic Minor` and the like)
 ends in `…`, as every other name too long for its box does; the whole of it is on the sheet. The
 block's own input and output meters stand at the right (x430..473), in the place and at the size the
@@ -1484,7 +1486,8 @@ figures (a face of 74,81,90 bands at 49,57,58 and one of 132,223,255 at 90,158,1
 sheet ground and a black one). The radius of 3 on [ON] / [CUE] / [PRE] is three shades over four rows, fixed for each
 pairing of face, band and ground, so each set is a group of tokens (`--corner-*` in `design-tokens.md`). The bank buttons of USER DEFINED KNOBS and the
 frequencies of SAMPLING FREQUENCY and CH SETTING's PAN and BAL join into one row, rounded at its two ends only (p057-1, p058-1,
-p093-1). The ends of RECORDER's
+p093-1). An effect's Cho, Off and Vib are such a row too, and Gate and Sync, each standing alone, turn all four corners in
+the same pixels. The ends of RECORDER's
 progress bars, and of their played part, are 12-row half-rounds drawn a pixel at a time too (p079-2, p081-1).
 
 The switch (`--pb-*`) and the title badge (`--pt-*`) draw their corners in the same 46 places, each from shades of its own.
@@ -1494,7 +1497,7 @@ pixels on the rounded controls beside it (measured: 21 pixels on ch.eq, one step
 
 A box's corners are drawn the same way, in a shape set by the kind of box.
 
-- A sunk cell (the parameter cells, OSC's output, the channel view's PAN / LEVEL cells, DELAY's cells) and a channel view block
+- A sunk cell (the parameter cells, OSC's output, the channel view's PAN / LEVEL cells, DELAY's cells, an effect's panels, the dynamics screens' settings rows (p099-1)) and a channel view block
   round each corner over five pixels, in the ground and three shades. A block's bottom corners are drawn twice: the foot where
   the band meets the ground, and the step where the face turns onto the band (p056-1, p090-1). INPUT's panels take the same shape
   in two shades of their own (p100-1).

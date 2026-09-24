@@ -1586,11 +1586,32 @@ describe("an effect's grid of controls", () => {
     expect(px(declarations(CSS, ".efx-cell.has-buttons")["width"])).toBe((tracks[0] ?? 0) + px(declarations(CSS, ".efx-cell")["width"]));
     expect(declarations(CSS, ".efx-cell.is-foot")["justify-content"]).toBe("flex-end");
     expect(declarations(CSS, ".efx-buttons .btn.efx-button.is-on")["background"], "the one taken lit cyan").toBe("var(--accent-selected)");
+    // The buttons turn their corners in the pixels every other button does, a row at its two ends only.
+    const cut = CSS.match(/:where\(\.menu-btn[^{]*\{\s*mask: var\(--px-mask-left\), var\(--px-mask-right\)/)?.[0] ?? "";
+    const cast = CSS.match(/:where\(\.menu-btn[^{]*::after \{/)?.[0] ?? "";
+    expect([cut, cast].map((sel) => sel.includes(".efx-button")), "the cut and the band's step").toEqual([true, true]);
+    // So do Pitch Fix's [Correction] and M.B.Comp's [Bypass], each standing alone.
+    for (const button of [".pitch-corner", ".mbc-bypass"]) {
+      expect([cut, cast].map((sel) => sel.includes(`, ${button},`) || sel.includes(`, ${button})`)), button).toEqual([true, true]);
+    }
+    expect(
+      [".efx-button::after", ".efx-button:first-child::after", ".efx-button:last-child::after"].map((s) => declarations(CSS, s)["background"]),
+      "Cho / Off / Vib join into one row",
+    ).toEqual(["none", "var(--px-left)", "var(--px-right)"]);
+    expect(
+      [".efx-button", ".efx-button:first-child", ".efx-button:last-child"].map((s) => declarations(CSS, s)["mask"]),
+    ).toEqual(["none", "var(--px-mask-left), linear-gradient(#000, #000)", "var(--px-mask-right), linear-gradient(#000, #000)"]);
+    // Cho / Off / Vib stand on whole pixels, 59 / 60 / 59, and fill the row between the panel's padding (2026-09-24).
+    const ends = px(declarations(CSS, ".efx-buttons .btn.efx-button:not(:only-child)")["flex"]?.split(" ")[2]);
+    const middle = px(declarations(CSS, ".efx-buttons .btn.efx-button:not(:first-child, :last-child)")["flex-basis"]);
+    const inset = px((declarations(CSS, ".efx-cell")["padding"] ?? "").split(/\s+/)[1]);
+    expect([ends, middle]).toEqual([59, 60]);
+    expect(ends * 2 + middle + 2 * px(declarations(CSS, ".efx-buttons")["gap"])).toBe(px(declarations(CSS, ".efx-cell.has-buttons")["width"]) - 2 * inset);
     // Gate stands alone, not one of a row: round on the left as on the right (URX44V, 2026-09-22).
-    expect(declarations(CSS, ".efx-buttons .btn.efx-button:only-child")["border-radius"]).toBe("var(--radius-md)");
-    expect(CSS.indexOf(".efx-buttons .btn.efx-button:only-child {"), "after the row's end rules, so it wins").toBeGreaterThan(
-      CSS.indexOf(".efx-buttons .btn.efx-button:last-child {"),
-    );
+    expect(declarations(CSS, ".efx-button:only-child")["mask"]).toBe("var(--px-mask-left), var(--px-mask-right), linear-gradient(#000, #000)");
+    expect(declarations(CSS, ".efx-button:only-child::after")["background"]).toBe("var(--px-left), var(--px-right)");
+    expect(CSS.indexOf(".efx-button:only-child {"), "after the row's end rules, so it wins").toBeGreaterThan(CSS.lastIndexOf(".efx-button:last-child"));
+    expect(declarations(CSS, ".efx-buttons .btn.efx-button")["border-radius"], "and no curve of the browser's under them").toBe("0");
     // Gate and a delay's Note run the width of a panel: the cell drops the panel's padding, the
     // button fills the row, and a list on the glass is the panel's width.
     expect(declarations(CSS, ".efx-cell.is-bare:not(.is-foot, .has-buttons)")["padding-inline"]).toBe("0");
@@ -1605,9 +1626,9 @@ describe("an effect's grid of controls", () => {
     }
     expect(declarations(CSS, ".efx-cell.is-bare .efx-cell-caption")["color"]).toBe("var(--text-muted)");
     // A foot list on the glass is as wide as the readout bar's division under it: the
-    // last division runs x317..420 (URX44V, 2026-09-22).
+    // last division runs x317..419 (URX44V, 2026-09-22).
     const footList = declarations(CSS, ".efx-cell.is-bare.is-division .pulldown");
-    expect(px(footList["width"])).toBe(420 - 317);
+    expect(px(footList["width"])).toBe(419 - 317 + 1);
     // The last column's panel starts at x326 (12 + 104 + 106 + 104).
     const tracks4 = (declarations(CSS, ".efx-params")["grid-template-columns"] ?? "").split(" ").map(px);
     const lastPanelLeft = px(declarations(CSS, ".efx-params")["left"]) + 2 + (tracks4[0] ?? 0) + (tracks4[1] ?? 0) + (tracks4[2] ?? 0);
@@ -2970,6 +2991,17 @@ describe("the channel, monitor and microSD parts measured against the guide's fi
     expect([cell["--pc-g"], cell["--pc-a"], cell["--pc-b"], cell["--pc-c"]]).toEqual(["var(--lcd-bg)", "var(--corner-sunk-a)", "var(--corner-sunk-b)", "var(--corner-sunk-c)"]);
     expect(cell["background"], "the ground on three pixels of the edge row").toContain("linear-gradient(var(--pc-g), var(--pc-g)) left 0px top 0px / 3px 1px no-repeat");
     expect(cell["background"], "then the outer shade").toContain("linear-gradient(var(--pc-a), var(--pc-a)) left 3px top 0px / 1px 1px no-repeat");
+    // An effect's panels turn as DELAY's cells do; a control on the glass has no panel to turn.
+    expect(declarations(CSS, ".lcd .efx-cell:not(.is-bare)::after")["background"]).toBe(cell["background"]);
+    expect(declarations(CSS, ".lcd .efx-cell:not(.is-bare)")["border-radius"]).toBe("0");
+    expect(declarations(CSS, ".efx-cell")["border-radius"], "no curve of the browser's under the pixels").toBeUndefined();
+    const placed = CSS.match(/:where\(\.param-cell[^{]*\{\s*position: relative;/)?.[0] ?? "";
+    expect(placed, "each panel is the box its overlay is placed in").toContain(".efx-cell:not(.is-bare)");
+    // The dynamics screens' settings stand on the same sunk panel (p099-1, p103-1, p114-1).
+    expect(declarations(CSS, ".lcd .dyn-set::after")["background"]).toBe(cell["background"]);
+    expect(declarations(CSS, ".lcd .dyn-set")["border-radius"]).toBe("0");
+    expect(declarations(CSS, ".dyn-set")["border-radius"], "no curve of the browser's under the pixels").toBeUndefined();
+    expect(placed).toContain(".dyn-set");
     const block = declarations(CSS, ".lcd .cv-block::after");
     expect([block["--pc-a"], block["--pc-foot-a"], block["--pc-band"]]).toEqual(["var(--corner-block-a)", "var(--corner-sunk-a)", "var(--btn-bevel)"]);
     expect(block["background"], "the step onto the band").toContain("linear-gradient(var(--corner-block-band-top), var(--corner-block-band-top)) right 0px bottom 7px / 1px 1px no-repeat");
@@ -3195,6 +3227,13 @@ describe("the marks on the control holding the focus", () => {
     const osc = declarations(CSS, ".osc-on");
     expect([osc["width"], osc["height"], osc["min-height"]], "OSCILLATOR's switch keeps the shared 40px square").toEqual([undefined, undefined, undefined]);
     expect(declarations(CSS, ".btn.btn-switch.osc-on")["--px-ground"]).toBe("var(--surface-sunk)");
+    // An effect's [ON] stands on its panel as OSCILLATOR's stands on the output's, and keeps the
+    // shared switch's corners and band, its name on the face above the band.
+    expect(declarations(CSS, ".btn.btn-switch.efx-switch")).toEqual(declarations(CSS, ".btn.btn-switch.osc-on"));
+    expect(declarations(CSS, ".btn.btn-switch.efx-switch.is-on")).toEqual(declarations(CSS, ".btn.btn-switch.osc-on.is-on"));
+    const inPanel = declarations(CSS, ".efx-cell .btn.btn-switch");
+    expect([inPanel["border-radius"], inPanel["box-shadow"]]).toEqual([undefined, undefined]);
+    expect(inPanel["padding"]).toBe(`0 0 ${-px(declarations(CSS, ".btn.btn-switch")["box-shadow"]?.split(" ")[2])}px`);
   });
 
   it("marks a held mid band above and below, and keeps the band box to one line", () => {
@@ -3430,6 +3469,7 @@ describe("a picker sheet's silhouette", () => {
   // right and bottom sides by 0.82 and the second by 0.35, and leaves the pixels
   // to its left and above it as they are.
   it("drops a two pixel shadow to its right and below", () => {
+    expect(declarations(CSS, ".source-popup")["background"], "on the sheet every other picker opens").toBe("var(--dialog-sheet)");
     expect(declarations(CSS, ".source-popup")["box-shadow"]).toBe("1px 1px 0 var(--sheet-shadow-near), 2px 2px 0 var(--sheet-shadow-far)");
     const tokens = declarations(TOKENS, ":root");
     expect([tokens["--sheet-shadow-near"], tokens["--sheet-shadow-far"]]).toEqual(["#000000b8", "#00000059"]);
