@@ -608,8 +608,8 @@ does fix is that the controls stand in the middle of the screen (the middle of p
 [No Effect] leaves empty) and that the input/output meters stand at the right.
 
 The parameter settings screen holds eight controls to a page, four across and two down. The cells are
-the 86x82 the DELAY screen uses, at x12..412 / y53..225 on an 8px row gutter, the second row starting
-at y143. The columns follow the rule the oscillator's boxes follow: each one stands over the division
+as wide as the DELAY screen's, 86, and 82 high, 2px lower than DELAY's 84 (the operator's instruction, 2026-09-24), at
+x12..411 / y53..224 on an 8px row gutter, the second row starting at y143. The columns follow the rule the oscillator's boxes follow: each one stands over the division
 of the knob readout bar that reads it (x12, 116, 222 and 326, each within 0.5px of its division's
 middle). A cell carries a 15px caption over its control, and a value that moves continuously
 carries the 38px knob that turns it under the control. A value box is the 60x22 box the DELAY
@@ -633,7 +633,7 @@ instruction, 2026-09-24). Gate has no caption and carries `Gate` on its
 own button, the dark button Cho, Off and Vib use, rounded on its left end as on its right since it is not one of a row, and as wide as a panel, 86px (the operator's instruction, the same day). Cho, Off and Vib, Gate, SP Type and Mic Position stand on the glass with no panel under them, their buttons and
 lists 36px high, nine tenths of the toolbar's 40px effect name. SP Type and Mic Position set their caption in the
 dark grey `--text-muted` 4px apart over the list, stand caption and list at the foot of their place, and run their
-list the width of the readout bar's division under it (x317..420 under the last column). The upper row's SP Type comes
+list the width of the readout bar's division under it (x317..419 under the last column). The upper row's SP Type comes
 down until its list ends 8px over the lower row's
 Mic Position caption, and the upper row's Cho, Off and Vib and Gate end where that list begins (the operator's own
 instruction, the same day). Gate lights cyan when on, as Cho, Off and Vib do (the operator, the same day). The 4px
@@ -657,9 +657,9 @@ upper row and Rev.Time / Ini.Delay / Hi.Ratio / Diffusion in the lower, page two
 A pulldown with six options or more opens on a sheet rather than under its box. Note opens no sheet: its list opens
 to the left of its box, three rows of five (the operator's instruction, the same day; its place confirmed by the
 operator the same day), over as little as it can:
-2px clear of the Note box (x326..412) and of the readout bar (y233), at x60..324 / y107..231. The list is 264px wide,
-wider than the room left of the box (from Sync's right end at x98 to the box), so its left end lies over the foot of
-Sync (x60..98 / y107..122).
+2px clear of the Note box (x326..411) and of the readout bar (y233), at x60..323 / y107..230. The list is 264px wide,
+wider than the room left of the box (x98..325, right of Sync), so its left end lies over the foot of
+Sync (x60..97 / y107..121).
 Every control but Cho, Off and Vib takes one place, and a list value whose name does not fit its panel (Pitch Fix's `Harmonic Minor` and the like)
 ends in `…`, as every other name too long for its box does; the whole of it is on the sheet. The
 block's own input and output meters stand at the right (x430..473), in the place and at the size the

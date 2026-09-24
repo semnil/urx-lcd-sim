@@ -1622,9 +1622,9 @@ describe("an effect's grid of controls", () => {
     }
     expect(declarations(CSS, ".efx-cell.is-bare .efx-cell-caption")["color"]).toBe("var(--text-muted)");
     // A foot list on the glass is as wide as the readout bar's division under it: the
-    // last division runs x317..420 (URX44V, 2026-09-22).
+    // last division runs x317..419 (URX44V, 2026-09-22).
     const footList = declarations(CSS, ".efx-cell.is-bare.is-division .pulldown");
-    expect(px(footList["width"])).toBe(420 - 317);
+    expect(px(footList["width"])).toBe(419 - 317 + 1);
     // The last column's panel starts at x326 (12 + 104 + 106 + 104).
     const tracks4 = (declarations(CSS, ".efx-params")["grid-template-columns"] ?? "").split(" ").map(px);
     const lastPanelLeft = px(declarations(CSS, ".efx-params")["left"]) + 2 + (tracks4[0] ?? 0) + (tracks4[1] ?? 0) + (tracks4[2] ?? 0);

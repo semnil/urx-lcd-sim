@@ -1361,9 +1361,9 @@
   white-space: nowrap;
 }
 
-/* The Note list opens to the left of its box (x326..412 / y185..221), 2px clear of
+/* The Note list opens to the left of its box (x326..411 / y185..220), 2px clear of
  * it and of the readout bar under it (y233), over the panels the delay's second page
- * leaves empty. Its left end reaches over the foot of Sync (x12..98 / y86..122). */
+ * leaves empty. Its left end reaches over the foot of Sync (x12..97 / y86..121). */
 .efx-note-list {
   left: 60px;
   top: 107px;
@@ -7666,7 +7666,7 @@
 }
 
 /* A list that runs the width of the readout bar's division under it starts at the
- * division's left edge (x317..420 under the last column, whose panel starts at x326). */
+ * division's left edge (x317..419 under the last column, whose panel starts at x326). */
 .efx-cell.is-bare.is-division .pulldown {
   align-self: flex-start;
   width: 103px;
