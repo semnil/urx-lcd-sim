@@ -33,6 +33,8 @@ describe("the copy mark", () => {
     const share = (x: number, y: number): number => Number(icon.querySelector(`rect[x="${x}"][y="${y}"]`)?.getAttribute("fill-opacity") ?? 0);
     // The front square's top edge, its brightest corner, the back square's corner, and the hollow middle.
     expect([share(3, 1), share(8, 1), share(1, 8), share(5, 4), share(0, 0)]).toEqual([0.87, 1, 1, 0, 0]);
+    // The top right pixel stands on the source button's corner cut, which dims it with the button.
+    expect(share(9, 0)).toBe(0.04);
     expect(icon.querySelectorAll("rect")).toHaveLength(76);
   });
 });
