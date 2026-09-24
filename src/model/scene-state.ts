@@ -39,7 +39,7 @@ export function captureScene(store: DeviceStore): Record<string, ParamValue> {
 export async function applyScene(store: DeviceStore, state: Record<string, ParamValue>): Promise<void> {
   for (const [path, value] of Object.entries(state)) {
     if (!inScene(path)) continue;
-    await store.set(path, value);
+    await store.restore(path, value);
   }
 }
 

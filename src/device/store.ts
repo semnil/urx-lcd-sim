@@ -17,7 +17,7 @@ export type ChangeListener = (paths: ReadonlySet<ParamPath>) => void;
 
 /**
  * The other writes an edit carries with it. It runs on edits alone, not on
- * what the device announces.
+ * what the device announces or on a restore.
  */
 export type WriteRule = (path: ParamPath, value: ParamValue) => Iterable<[ParamPath, ParamValue]>;
 
@@ -113,10 +113,24 @@ export class DeviceStore {
 
   /**
    * Edit a value: mirror it now, send it to the device, revert on rejection.
-   * Returns the write promise so callers that must sequence (a scene recall
-   * writing many values in order) can await it; UI handlers ignore it.
+   * Returns the write promise so callers that must sequence can await it; UI
+   * handlers ignore it.
    */
   set(path: ParamPath, value: ParamValue): Promise<void> {
+    return this.write(path, value, true);
+  }
+
+  /**
+   * Put back a value stored together with every value it depends on (a scene,
+   * a settings file), writing many in order. The writes an edit carries are not
+   * carried: the stored copy already holds them, and carrying them would move
+   * values it holds.
+   */
+  restore(path: ParamPath, value: ParamValue): Promise<void> {
+    return this.write(path, value, false);
+  }
+
+  private write(path: ParamPath, value: ParamValue, carry: boolean): Promise<void> {
     const previous = this.mirror.get(path);
     if (previous === value) return Promise.resolve();
     this.mirror.set(path, value);
@@ -124,7 +138,7 @@ export class DeviceStore {
     // Each write the rule adds is an ordinary edit, with its own optimistic
     // update and its own revert. A rule that points back at the path it was
     // given stops on the guard above, which has already taken the new value.
-    if (this.writeRule) for (const [p, v] of this.writeRule(path, value)) void this.set(p, v);
+    if (carry && this.writeRule) for (const [p, v] of this.writeRule(path, value)) void this.set(p, v);
 
     const t = this.transport;
     if (!t) return Promise.resolve();

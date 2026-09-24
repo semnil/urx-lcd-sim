@@ -61,7 +61,9 @@ flowchart TB
   Year と Month の持つ月の最終日まで下げる。`src/screens/head-amp.ts` は端子の HI-Z を入れたときに
   A.Gain を +40 dB まで下げ、`src/model/effects.ts` は Sync の入ったディレイの時間を音価とテンポから
   決め、`src/screens/channel.ts` は 1-knob EQ のカーブと Level から 4 バンドを決める。規則が走るのは
-  編集のときだけで、デバイス側の notify では走らない (実機は自分でミラーするため)。
+  編集のときだけで、デバイス側の notify では走らない (実機は自分でミラーするため)。シーンのリコールと
+  設定ファイルの Load が保存した値を戻す `store.restore(path, value)` でも走らない (戻す値は規則が決めた
+  値を含むため)。
 - **デバイス側の変更** — トランスポートの notify として届く。シーンリコール、実機のノブ操作、
   Auto Gain の完了などがこの経路。`echo: false` の notify は無条件に採用する。
 - **エコー** — 自分の書き込みが返ってきたものは `echo: true` で区別され、操作中のコントロールを
