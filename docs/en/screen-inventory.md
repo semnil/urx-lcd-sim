@@ -1511,7 +1511,8 @@ at 42% on its outer pixel (shares fitted to the blue band of p090-1 and the oran
 The switch (`--pb-*`) and the title badge (`--pt-*`) draw their corners in the same 46 places, each from shades of its own.
 The list of 46 layers stands in two rules because one rule can hold only one order of layers, and reordering either one moves
 pixels on the rounded controls beside it (measured: 21 pixels on ch.eq, one step per channel, and 3 pixels on ch.comp with
-1-knob lit). That the two agree on the places is guarded by "the two corner maps" in `src/style/columns.test.ts`.
+1-knob lit). That the two agree on the places is guarded by "the two corner maps" in `src/style/columns.test.ts`. [1 1-knob]
+lit draws the switch's places over the 1-knob panel in the `--corner-oneknob-lit-*` shades (p104-2).
 
 A box's corners are drawn the same way, in a shape set by the kind of box.
 

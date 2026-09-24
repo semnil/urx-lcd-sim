@@ -164,6 +164,10 @@
   --corner-oneknob-b: #31353a;
   --corner-oneknob-c: #4a4d52;
   --corner-oneknob-in: #4a5152;
+  --corner-oneknob-lit-a: #395139; /* lit [1-knob] on its panel: the corner's outer shade */
+  --corner-oneknob-lit-b: #428239; /* the same, the shade after it */
+  --corner-oneknob-lit-c: #42a231; /* the same, the shade nearest the face */
+  --corner-oneknob-lit-in: #42a631; /* the same, the pixel inside the turn */
 
   /* INPUT's flags: their corners on the tray, and their band (p100-1). */
   --corner-flag-a: #4a4d52;

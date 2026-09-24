@@ -7912,7 +7912,7 @@
  * band repeats the shape where the face meets the band and where the band meets
  * what the button stands on. The shades depend on the face, the band and that
  * ground, so each set is a group of tokens. */
-:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass, .ch-chip, .pick-dialog-row, .mon-source, .dropdown-list, .pitch-keys, .oneknob.is-on) {
+:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass, .ch-chip, .pick-dialog-row, .mon-source, .dropdown-list, .pitch-keys) {
   position: relative;
   --px-ground: var(--lcd-bg);
   /* The three pixels at each corner are cut away and the two beside them let the
@@ -8267,6 +8267,29 @@
   --pc-a: var(--corner-oneknob-panel-a);
   --pc-b: var(--corner-oneknob-panel-b);
   --pc-c: var(--corner-oneknob-panel-c);
+}
+
+/* EQ's panel runs square into the screen's right edge, so only its left end turns (p106-2). */
+.lcd .eq-screen > .oneknob-panel::after {
+  background:
+    linear-gradient(var(--pc-g), var(--pc-g)) left 0px top 0px / 3px 1px no-repeat,
+    linear-gradient(var(--pc-a), var(--pc-a)) left 3px top 0px / 1px 1px no-repeat,
+    linear-gradient(var(--pc-b), var(--pc-b)) left 4px top 0px / 1px 1px no-repeat,
+    linear-gradient(var(--pc-g), var(--pc-g)) left 0px top 1px / 2px 1px no-repeat,
+    linear-gradient(var(--pc-c), var(--pc-c)) left 2px top 1px / 1px 1px no-repeat,
+    linear-gradient(var(--pc-g), var(--pc-g)) left 0px top 2px / 1px 1px no-repeat,
+    linear-gradient(var(--pc-c), var(--pc-c)) left 1px top 2px / 1px 1px no-repeat,
+    linear-gradient(var(--pc-a), var(--pc-a)) left 0px top 3px / 1px 1px no-repeat,
+    linear-gradient(var(--pc-b), var(--pc-b)) left 0px top 4px / 1px 1px no-repeat,
+    linear-gradient(var(--pc-g), var(--pc-g)) left 0px bottom 0px / 3px 1px no-repeat,
+    linear-gradient(var(--pc-a), var(--pc-a)) left 3px bottom 0px / 1px 1px no-repeat,
+    linear-gradient(var(--pc-b), var(--pc-b)) left 4px bottom 0px / 1px 1px no-repeat,
+    linear-gradient(var(--pc-g), var(--pc-g)) left 0px bottom 1px / 2px 1px no-repeat,
+    linear-gradient(var(--pc-c), var(--pc-c)) left 2px bottom 1px / 1px 1px no-repeat,
+    linear-gradient(var(--pc-g), var(--pc-g)) left 0px bottom 2px / 1px 1px no-repeat,
+    linear-gradient(var(--pc-c), var(--pc-c)) left 1px bottom 2px / 1px 1px no-repeat,
+    linear-gradient(var(--pc-a), var(--pc-a)) left 0px bottom 3px / 1px 1px no-repeat,
+    linear-gradient(var(--pc-b), var(--pc-b)) left 0px bottom 4px / 1px 1px no-repeat;
 }
 
 /* INPUT's panels are darker than the cells and turn in their own shades. */
@@ -8899,8 +8922,8 @@
 }
 
 /* [1-knob] turns its head like the switches and keeps its band square at the
- * foot, as the figure has it (p099-1). Lit, it takes HOME's bank button's
- * green — the measured face nearest its own — and that button's turn with it. */
+ * foot, as the figure has it (p099-1). Lit, it stands on the 1-knob panel and
+ * turns the same pixels in shades of its own over it (p104-2). */
 .lcd .oneknob {
   --pb-ground: var(--lcd-bg);
   --pb-a: var(--corner-oneknob-a);
@@ -8914,8 +8937,15 @@
 }
 
 .lcd .oneknob.is-on {
+  --pb-ground: var(--oneknob-panel);
+  --pb-a: var(--corner-oneknob-lit-a);
+  --pb-b: var(--corner-oneknob-lit-b);
+  --pb-c: var(--corner-oneknob-lit-c);
+  --pb-in: var(--corner-oneknob-lit-in);
+  --pb-d: var(--oneknob-lit-band);
+  --pb-e: var(--oneknob-lit-band);
+  --pb-f: var(--oneknob-lit-band);
   --pb-band: var(--oneknob-lit-band);
-  --px-ground: var(--lcd-bg);
 }
 
 /* INPUT's flags stand on the tray a dropdown sits on, in a block switch's pale
@@ -9238,10 +9268,6 @@
     linear-gradient(var(--pt-step-in), var(--pt-step-in)) right 1px bottom 4px / 1px 1px no-repeat,
     linear-gradient(var(--pt-step-b2), var(--pt-step-b2)) right 0px bottom 5px / 1px 1px no-repeat,
     linear-gradient(var(--pt-step-b3), var(--pt-step-b3)) right 0px bottom 6px / 1px 1px no-repeat;
-}
-
-.lcd .oneknob.is-on::after {
-  background: var(--px-left), var(--px-right);
 }
 
 /* The card's path field rounds its right corners over three pixels against the

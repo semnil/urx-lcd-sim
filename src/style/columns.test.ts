@@ -3066,6 +3066,11 @@ describe("the channel, monitor and microSD parts measured against the guide's fi
     expect([knobPanel["--pc-a"], knobPanel["--pc-b"], knobPanel["--pc-c"]]).toEqual(["var(--corner-oneknob-panel-a)", "var(--corner-oneknob-panel-b)", "var(--corner-oneknob-panel-c)"]);
     const tokens = declarations(TOKENS, ":root");
     expect(["a", "b", "c"].map((k) => tokens[`--corner-oneknob-panel-${k}`])).toEqual(["#101418", "#292c31", "#293031"]);
+    // EQ's panel runs square into the right edge: the same left corners and no right ones (p106-2).
+    const eqPanel = declarations(CSS, ".lcd .eq-screen > .oneknob-panel::after")["background"] ?? "";
+    expect(eqPanel.includes("right "), "no right corner").toBe(false);
+    const sides = (bg: string, side: string): string[] => bg.split("no-repeat").filter((l) => l.includes(` ${side} `)).map((l) => l.trim().replace(/^,\s*/, ""));
+    expect(sides(eqPanel, "left")).toEqual(sides(cell["background"] ?? "", "left"));
     // The dynamics screens' settings stand on the same sunk panel (p099-1, p103-1, p114-1).
     expect(declarations(CSS, ".lcd .dyn-set::after")["background"]).toBe(cell["background"]);
     expect(declarations(CSS, ".lcd .dyn-set")["border-radius"]).toBe("0");
@@ -3443,6 +3448,13 @@ describe("the marks on the control holding the focus", () => {
     expect(declarations(CSS, ".cv-oneknob > .cv-block-value")["background"]).toBe("var(--accent-focus-fill)");
     const lit = declarations(CSS, ".lcd .oneknob.is-on");
     expect([lit["background"], lit["box-shadow"]]).toEqual(["var(--oneknob-lit)", "inset 0 -3px 0 var(--oneknob-lit-band)"]);
+    // Lit, it turns the switch's pixels over the panel it stands on, its band square to the foot (p104-2).
+    const pb = declarations(CSS, ".lcd .oneknob.is-on");
+    expect(["ground", "a", "b", "c", "in", "d", "e", "f"].map((k) => pb[`--pb-${k}`])).toEqual([
+      "var(--oneknob-panel)", "var(--corner-oneknob-lit-a)", "var(--corner-oneknob-lit-b)", "var(--corner-oneknob-lit-c)", "var(--corner-oneknob-lit-in)",
+      "var(--oneknob-lit-band)", "var(--oneknob-lit-band)", "var(--oneknob-lit-band)",
+    ]);
+    expect(declarations(CSS, ".lcd .oneknob.is-on::after")["background"], "no other corner laid over the switch's").toBeUndefined();
     const panel = declarations(CSS, ".oneknob-panel");
     expect([px(panel["height"]), panel["background"]]).toEqual([44, "var(--oneknob-panel)"]);
     const level = declarations(CSS, ".lcd .oneknob-panel > .oneknob-level");
@@ -3456,6 +3468,7 @@ describe("the marks on the control holding the focus", () => {
     expect(declarations(CSS, ".eq-plot.is-oneknob .eq-curve-line")["stroke"], "the curve in magenta while 1-knob drives it").toBe("var(--accent-focus)");
     const root = declarations(TOKENS, ":root");
     expect([root["--oneknob-lit"], root["--oneknob-lit-band"], root["--oneknob-panel"], root["--oneknob-link"], root["--oneknob-type"]]).toEqual(["#4aaa31", "#317529", "#393c42", "#4aa631", "#636973"]);
+    expect(["a", "b", "c", "in"].map((k) => root[`--corner-oneknob-lit-${k}`])).toEqual(["#395139", "#428239", "#42a231", "#42a631"]);
   });
 });
 

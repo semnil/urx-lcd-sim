@@ -307,6 +307,10 @@ PY
 | `--corner-oneknob-b` | `#31353a` | [1-knob] while it is off: top corner, the second shade (p099-1 at x386..477 / y50..87) |
 | `--corner-oneknob-c` | `#4a4d52` | [1-knob] while it is off: top corner, the third shade (p099-1 at x386..477 / y50..87) |
 | `--corner-oneknob-in` | `#4a5152` | [1-knob] while it is off: the pixel inside the top turn (p099-1 at x386..477 / y50..87) |
+| `--corner-oneknob-lit-a` | `#395139` | [1-knob] lit on the 1-knob panel: the corner's outer shade (x387 / y50 in p104-2) |
+| `--corner-oneknob-lit-b` | `#428239` | The same, the shade after it (x388 / y50 in p104-2) |
+| `--corner-oneknob-lit-c` | `#42a231` | The same, the shade next to the face (x389 / y50 in p104-2) |
+| `--corner-oneknob-lit-in` | `#42a631` | The same, the pixel inside the turn (x387 / y51 in p104-2) |
 | `--corner-title-off-a1` | `#212421` | an unlit title badge: top corner, the outer shade (p113-1 at x254..379 / y2..41) |
 | `--corner-title-off-a2` | `#848284` | an unlit title badge: top corner, the second shade (p113-1 at x254..379 / y2..41) |
 | `--corner-title-off-a3` | `#bdbabd` | an unlit title badge: top corner, the third shade (p113-1 at x254..379 / y2..41) |

@@ -1318,7 +1318,8 @@ USER DEFINED KNOBS の割り当てのシートの行 (wide/p040-1)、MONITOR の
 交換 (`--pb-*`) と題札 (`--pt-*`) の角は同じ 46 か所を、それぞれ自分の混色で描く。46 レイヤの並びが 2 つの規則に分かれて
 いるのは、1 つの規則が持てるレイヤの並び順が 1 通りだけで、どちらかを並べ替えると隣の角丸のコントロールで画素が動く
 ため (実測: ch.eq で 21 画素が各チャンネル ±1、1-knob 点灯時は ch.comp で 3 画素)。並びが一致していることは
-`src/style/columns.test.ts` の「the two corner maps」が見る。
+`src/style/columns.test.ts` の「the two corner maps」が見る。点灯した [1 1-knob] は 1-knob のパネルを地に、交換と同じ並びを
+`--corner-oneknob-lit-*` で描く (p104-2)。
 
 箱の角も同じ描き方で、形は箱の種類で決まる。
 
