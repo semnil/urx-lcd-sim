@@ -275,6 +275,11 @@
   overflow-clip-margin: 2px;
 }
 
+/* The 1-knob panel reaches a row further up, over the toolbar's foot (p104-2). */
+.main:has(.oneknob-panel) {
+  overflow-clip-margin: 3px;
+}
+
 /* A screen that puts tabs or a meter down the right edge hands that strip over. */
 .lcd.has-side .main {
   right: 62px;

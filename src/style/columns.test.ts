@@ -3059,6 +3059,9 @@ describe("the channel, monitor and microSD parts measured against the guide's fi
     expect(declarations(CSS, ".lcd .oneknob-panel::after")["background"]).toBe(cell["background"]);
     expect(declarations(CSS, ".oneknob-panel")["border-radius"]).toBeUndefined();
     expect(placed).toContain(".oneknob-panel");
+    // Its top row is y47 in p104-2, three rows over the main area's top at y50.
+    expect(px(declarations(CSS, ".main:has(.oneknob-panel)")["overflow-clip-margin"])).toBe(3);
+    expect(px(declarations(CSS, ".main")["overflow-clip-margin"]), "every other screen keeps its margin").toBe(2);
     const knobPanel = declarations(CSS, ".lcd .oneknob-panel::after");
     expect([knobPanel["--pc-a"], knobPanel["--pc-b"], knobPanel["--pc-c"]]).toEqual(["var(--corner-oneknob-panel-a)", "var(--corner-oneknob-panel-b)", "var(--corner-oneknob-panel-c)"]);
     const tokens = declarations(TOKENS, ":root");
