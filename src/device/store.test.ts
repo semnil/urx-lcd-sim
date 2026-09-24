@@ -94,6 +94,19 @@ describe("DeviceStore", () => {
     expect([store.num("ch.ch1.level"), store.num("ch.ch2.level")]).toEqual([-4, -9]);
   });
 
+  it("puts a restored value back alone, without the writes a rule names", async () => {
+    const { store, transport } = simStore([
+      ["ch.ch1.level", 0],
+      ["ch.ch2.level", 0],
+    ]);
+    await store.attach(transport);
+    store.setWriteRule((path, value) => (path === "ch.ch1.level" ? [["ch.ch2.level", value]] : []));
+
+    await store.restore("ch.ch1.level", -9);
+    expect([store.num("ch.ch1.level"), store.num("ch.ch2.level")]).toEqual([-9, 0]);
+    expect(transport.peek("ch.ch1.level"), "and it reached the device").toBe(-9);
+  });
+
   it("settles rather than looping when a rule points back at the write", async () => {
     const { store, transport } = simStore([
       ["a", 0],

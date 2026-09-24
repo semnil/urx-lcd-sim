@@ -63,7 +63,9 @@ the unit is asynchronous, which is why the values are held twice.
   brings a connector's A.Gain down to +40 dB when its HI-Z goes on, `src/model/effects.ts` sets a
   delay's time from the note value and the tempo while its Sync is on, and `src/screens/channel.ts`
   sets the four bands from 1-knob EQ's curve and level. The rule runs on edits
-  alone and not on device-side notifies, because the unit does its own mirroring.
+  alone and not on device-side notifies, because the unit does its own mirroring. Nor does it run on
+  `store.restore(path, value)`, which a scene recall and a settings file Load use to put stored values
+  back, because those values already hold what the rule decided.
 - **Changes on the device side** — arrive as notifies from the transport. Scene recall, turning a
   knob on the unit, and Auto Gain completing all take this path. A notify with `echo: false` is
   always taken.

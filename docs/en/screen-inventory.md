@@ -72,7 +72,7 @@ Which screen leads to which is drawn in [screen-map.md](screen-map.md).
 | Input source picker | `ch.source` | p100 | Built (p100's figures are a mono pair's sheet; the bus sheet has no figure) |
 | GATE | `ch.gate` | p103 | Built |
 | COMP | `ch.comp` | p99, p104-105 | Built |
-| EQ | `ch.eq` | p106-107 | Built (parameters of the 4 bands; the curve is simplified) |
+| EQ | `ch.eq` | p106-107 | Built (parameters and curve of the 4 bands) |
 | SSMCS main | `ch.ssmcs` | p108-109 | Built |
 | SSMCS COMP | `ch.ssmcs.comp` | p110 | Built |
 | SSMCS COMP Side Chain | `ch.ssmcs.sc` | p111 | Built |
@@ -351,7 +351,9 @@ stands on its output's sunk panel at x350..389 / y99..138 and turns its corners 
 
 On the unit the bar is a readout, and values are turned by the physical knobs below it. There are no
 physical knobs here, so a cell holding a value is itself the knob (drag, wheel, arrow keys). An empty
-cell turns nothing.
+cell turns nothing. USER DEFINED KNOBS mode is the same: a cell with an assignment turns that parameter,
+and a `---` cell turns nothing. On a screen with 1-knob on, the USER DEFINED KNOBS cells do not turn either
+(confirmed by the operator on 2026-09-24: with 1-knob on in CH 1's EQ screen, knob A's Phones 1 does not turn).
 
 There are four cells, so when a screen passes five or more parameters they are shown four at a time,
 and `‹` / `›` appears at the end of the label band on the side where more follow (COMP in p099-1).
@@ -570,9 +572,10 @@ graph's ground `--graph-bg`, that picks nothing. The curve's line turns from the
 1-knob's Level rewrites the EQ's four bands ("How 1-knob EQ works" in the user guide). It takes the four gains as they
 stand when 1-knob goes on, or when Intensity is chosen while it is on, and Intensity's Level sets each gain to that gain
 times Level / 50 (as set at 50, flat at 0, twice at 100). Choosing Loudness sets LOW to Bell, Q 0.56, 90 Hz, L-MID to
-Q 1.00, 400 Hz, H-MID to Q 1.00, 2 kHz and HIGH to H.Shelf, Q 1.00, 6 kHz with no gain, and its Level gives each percent
+Q 1.00, 400 Hz, H-MID to Q 1.00, 2 kHz and HIGH to H.Shelf, Q 1.00, 6 kHz with every band on and no gain, and its Level gives each percent
 +0.20 dB to LOW, −0.20 dB to L-MID, +0.02 dB to H-MID and +0.10 dB to HIGH. Choosing Vocal sets LOW to HPF, 80 Hz, L-MID
-to 335 Hz, H-MID to 3 kHz and HIGH to Bell, 8 kHz (Q 0.71 on all four) with no gain, and switches LOW off. Its Level
+to 335 Hz, H-MID to 3 kHz and HIGH to Bell, 8 kHz (Q 0.71 on all four) with no gain, and switches LOW off and the other
+three on. Neither keeps the band switches it found. Its Level
 follows a table a percent at a time: LOW comes on and its corner climbs from 80 Hz to 140 Hz, L-MID falls to −6.0 dB,
 H-MID rises to +2.0 dB, and HIGH rises to +2.0 dB at 77% and is back at 0 by 93%. Every gain lands on a tenth of a dB
 (an exact half toward +) and stops at ±18.0 dB. Switching 1-knob off leaves the bands where the Level put them.
@@ -839,7 +842,12 @@ climbs from the bottom left to x13 and runs flat from there; H.Shelf and LPF are
 column of buttons the size of the box, 94x38, each carrying an outline alone, the chosen shape cyan and the others the list's
 `--surface`. Below them is the 416x138 graph (x2..417 / y93..230): the horizontal axis
 is 20 Hz..20 kHz logarithmic, the vertical axis ±20 dB. The rules are at 100 Hz / 1 kHz / 10 kHz and
-±10 dB / 0 dB. The handles of the four bands stand at their own frequency and gain, and pressing one
+±10 dB / 0 dB. The curve is the four bands' responses added in dB (`src/model/eq-response.ts`). Bell is a
+peaking filter of half the Q the screen shows; HPF / LPF are second-order filters 3 dB down at their
+frequency that read no Q and no gain; L.Shelf / H.Shelf are shelves whose frequency is the point 3 dB short
+of the plateau and read no Q. The Bell's width matches p106-1 this way (HIGH at Q 1.06, 11.8 kHz, +8.0 dB;
+with LM's Q, which the figure does not show, put at 1.10, the curve is 1.41 px RMS off the figure's line over
+287 columns). The channel view's EQ block draws the same response. The handles of the four bands stand at their own frequency and gain, and pressing one
 puts that band on the knobs. Dragging one moves its frequency across the graph and its gain up it, and puts that
 band on the knobs too (e under "EQ screen" in the user guide). A handle's name is 13.5px in the regular weight in the middle of its ring (p106-1). The handle of the band on
 the knobs carries a 6x8 triangle on either side, 3px outside its ring and level with its middle (y130..137 in p106-1).

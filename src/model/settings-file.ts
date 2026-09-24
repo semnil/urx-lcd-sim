@@ -28,6 +28,6 @@ export function captureSettings(store: DeviceStore): Record<string, ParamValue> 
 export async function applySettings(store: DeviceStore, state: Record<string, ParamValue>): Promise<void> {
   for (const [path, value] of Object.entries(state)) {
     if (!inSettingsFile(path)) continue;
-    await store.set(path, value);
+    await store.restore(path, value);
   }
 }

@@ -352,6 +352,20 @@ export class Shell {
     });
   }
 
+  /** Make a division the knob that turns `spec`: dragging it, the wheel over it and the arrow keys. */
+  private turnCell(cell: HTMLElement, spec: NumericSpec, name: string, onEngage?: () => void): void {
+    const v = this.ctx.store.num(spec.path, spec.fallback);
+    cell.tabIndex = 0;
+    cell.setAttribute("role", "slider");
+    cell.setAttribute("aria-label", name);
+    cell.setAttribute("aria-valuenow", String(v));
+    cell.setAttribute("aria-valuemin", String(spec.min));
+    cell.setAttribute("aria-valuemax", String(spec.max));
+    cell.setAttribute("aria-valuetext", formatValue(spec, v));
+    if (spec.locked === true) cell.setAttribute("aria-disabled", "true");
+    attachSpin(this.ctx, cell, spec, onEngage);
+  }
+
   private buildKnobStrip(udk: boolean): void {
     if (udk) {
       const bank = this.ctx.store.num("setup.udk.bank", 1);
@@ -361,7 +375,10 @@ export class Shell {
         // an empty name band.
         const spec = assign.spec;
         const value = spec ? formatValue(spec, this.ctx.store.num(spec.path, spec.fallback)) : "---";
-        this.knobStripNode.appendChild(this.knobCell(value, spec ? assign.short : "", "is-udk"));
+        const cell = this.knobCell(value, spec ? assign.short : "", "is-udk");
+        // A knob with something on it turns that, as a division does in the ordinary bar.
+        if (spec) this.turnCell(cell, spec, assign.value);
+        this.knobStripNode.appendChild(cell);
       }
       // The page number sits astride the bar's top edge, and each end of the bar
       // is the step to the page beside it.
@@ -398,18 +415,13 @@ export class Shell {
       // On the unit this is a readout and the knob under it does the turning.
       // Nothing here draws those knobs, so the division is the knob: dragging
       // it, the wheel over it and the arrow keys move the value it names.
-      const v = this.ctx.store.num(spec.path, spec.fallback);
       // A division the unit is holding itself reads out and does not turn.
-      const cell = this.knobCell(formatValue(spec, v), spec.label, spec.locked === true ? "is-driven" : "");
-      cell.tabIndex = 0;
-      cell.setAttribute("role", "slider");
-      cell.setAttribute("aria-label", spec.label);
-      cell.setAttribute("aria-valuenow", String(v));
-      cell.setAttribute("aria-valuemin", String(spec.min));
-      cell.setAttribute("aria-valuemax", String(spec.max));
-      cell.setAttribute("aria-valuetext", formatValue(spec, v));
-      if (spec.locked === true) cell.setAttribute("aria-disabled", "true");
-      attachSpin(this.ctx, cell, spec, spec.locked === true ? undefined : () => this.ctx.focus.take(spec));
+      const cell = this.knobCell(
+        formatValue(spec, this.ctx.store.num(spec.path, spec.fallback)),
+        spec.label,
+        spec.locked === true ? "is-driven" : "",
+      );
+      this.turnCell(cell, spec, spec.label, spec.locked === true ? undefined : () => this.ctx.focus.take(spec));
       this.knobStripNode.appendChild(cell);
     }
     // More parameters than divisions: a step sits in the label band at each end

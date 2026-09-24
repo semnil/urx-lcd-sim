@@ -2522,6 +2522,42 @@ describe("EQ's shape list and Operation Mode's previews", () => {
     ]);
   });
 
+  it("draws the filter shape each outer band holds on the curve", async () => {
+    const shell = await mount();
+    const store = shell.ctx.store;
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    shell.ctx.nav.push({ id: "ch.eq", strip: "ch1" });
+    await flush();
+    // The plot's 0 dB line is y 68; the first point is 20 Hz and the last 20 kHz.
+    const heights = (): number[] =>
+      (shell.root.querySelector(".eq-curve-line")?.getAttribute("points") ?? "").split(" ").map((p) => Number(p.split(",")[1]));
+    const ends = (): [number, number] => {
+      const h = heights();
+      return [h[0] ?? NaN, h[h.length - 1] ?? NaN];
+    };
+    for (const band of ["low", "high"] as const) {
+      await store.set(`ch.ch1.eq.${band}.gain`, 6);
+      await store.set(`ch.ch1.eq.${band}.shape`, "Bell");
+      await flush();
+      const bell = heights().join(" ");
+      await store.set(`ch.ch1.eq.${band}.shape`, band === "low" ? "L.Shelf" : "H.Shelf");
+      await flush();
+      expect(heights().join(" "), `${band}: a shelf is not the bell`).not.toBe(bell);
+      const [lowEnd, highEnd] = ends();
+      expect(band === "low" ? lowEnd : highEnd, `${band}: the shelf holds its gain out to the end of the plot`).toBeLessThan(68 - 15);
+      await store.set(`ch.ch1.eq.${band}.gain`, 0);
+      await store.set(`ch.ch1.eq.${band}.shape`, band === "low" ? "HPF" : "LPF");
+      await flush();
+      const [lowCut, highCut] = ends();
+      expect([band === "low" ? lowCut : highCut, band === "low" ? highCut : lowCut], `${band}: the pass filter cuts its own end at no gain`).toEqual([
+        expect.any(Number),
+        68,
+      ]);
+      expect(band === "low" ? lowCut : highCut).toBeGreaterThan(68 + 15);
+      await store.set(`ch.ch1.eq.${band}.shape`, "Bell");
+    }
+  });
+
   it("names the knobs of the middle bands L-MID and H-MID, as the band box does", async () => {
     const shell = await mount();
     const labels = async (band: string): Promise<string[]> => {
@@ -2541,11 +2577,22 @@ describe("EQ's shape list and Operation Mode's previews", () => {
     await shell.ctx.store.set("ch.ch1.eq.low.gain", 12);
     shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
     await flush();
-    const first = (): string => shell.root.querySelector(".eq-thumb .eq-thumb-edge")?.getAttribute("points")?.split(" ")[0] ?? "";
-    const boosted = first();
+    // The thumbnail's 0 dB line runs across its middle, y 21.
+    const heights = (): number[] =>
+      (shell.root.querySelector(".eq-thumb .eq-thumb-edge")?.getAttribute("points") ?? "")
+        .split(" ")
+        .map((p) => Number(p.split(",")[1]));
+    expect(Math.min(...heights()), "the boosted LOW lifts the curve above 0 dB").toBeLessThan(21);
     await shell.ctx.store.set("ch.ch1.eq.low.on", false);
     await flush();
-    expect([boosted, first()]).toEqual(["0.0,9.7", "0.0,21.0"]);
+    expect(new Set(heights()), "switched off, it adds nothing").toEqual(new Set([21]));
+    // It draws the shape the band holds, as the EQ screen does: an HPF at no gain
+    // takes the low end below 0 dB.
+    await shell.ctx.store.set("ch.ch1.eq.low.on", true);
+    await shell.ctx.store.set("ch.ch1.eq.low.gain", 0);
+    await shell.ctx.store.set("ch.ch1.eq.low.shape", "HPF");
+    await flush();
+    expect(heights()[0], "an HPF cuts the low end").toBeGreaterThan(21);
   });
 
   it("previews Standard Mode with a still of HOME and leaves Simple Mode's frame empty", async () => {

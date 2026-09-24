@@ -3,6 +3,7 @@ import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
+import { UDK_BANKS, UDK_KNOBS, UDK_UNASSIGNED, udkAssignment, udkPath } from "../model/udk";
 import { buildRegistry } from "../screens";
 import type { NumericSpec } from "../ui/param-spec";
 import { Shell } from "./shell";
@@ -192,6 +193,63 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     await flush();
     expect(page()).toBe("3");
     expect(store.num("setup.udk.bank", 1)).toBe(3);
+  });
+
+  it("turns what each user-defined knob holds from its division, and nothing from an empty one", async () => {
+    const { shell, store } = await mount();
+    await store.set("phones.1.level", 5);
+    await store.set("ui.userDefinedKnobs", true);
+    await flush();
+    for (const bank of UDK_BANKS) {
+      await store.set("setup.udk.bank", bank);
+      await flush();
+      const cells = [...shell.root.querySelectorAll<HTMLElement>(".knob-cell")];
+      expect(cells.length).toBe(UDK_KNOBS.length);
+      for (const [i, knob] of UDK_KNOBS.entries()) {
+        const spec = udkAssignment(store.str(udkPath(bank, knob), UDK_UNASSIGNED)).spec;
+        const cell = cells[i];
+        if (!cell) throw new Error(`no division for ${bank}.${knob}`);
+        const watched = ["phones.1.level", "phones.2.level", "monitor.1.level", "monitor.2.level", "osc.level", "setup.brightness"];
+        const before = new Map(watched.map((p) => [p, store.num(p, 0)]));
+        cell.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
+        const moved = watched.filter((p) => store.num(p, 0) !== before.get(p));
+        expect([cell.getAttribute("role"), moved], `${bank}.${knob}`).toEqual(spec ? ["slider", [spec.path]] : [null, []]);
+      }
+    }
+
+    // Bank 1's A as it ships: Phones 1, by the wheel and by a drag as well.
+    await store.set("setup.udk.bank", 1);
+    await store.set("phones.1.level", 5);
+    await flush();
+    const phones = (): HTMLElement => {
+      const cell = shell.root.querySelector<HTMLElement>(".knob-cell");
+      if (!cell) throw new Error("no division");
+      return cell;
+    };
+    phones().dispatchEvent(new WheelEvent("wheel", { deltaY: -1, bubbles: true, cancelable: true }));
+    expect(store.num("phones.1.level", 0)).toBeGreaterThan(5);
+    const afterWheel = store.num("phones.1.level", 0);
+    phones().dispatchEvent(new MouseEvent("pointerdown", { clientX: 100, clientY: 100, bubbles: true }));
+    window.dispatchEvent(new MouseEvent("pointermove", { clientX: 100, clientY: 60, bubbles: true }));
+    window.dispatchEvent(new MouseEvent("pointerup", { clientX: 100, clientY: 60, bubbles: true }));
+    expect(store.num("phones.1.level", 0)).toBeGreaterThan(afterWheel);
+    await flush();
+    expect(phones().querySelector(".knob-cell-value")?.textContent, "and the division reads the new value").not.toBe("5.0");
+  });
+
+  it("holds the user-defined knobs still while 1-knob holds the screen's focus", async () => {
+    const { shell, store } = await mount();
+    const turn = async (oneKnob: boolean): Promise<number> => {
+      await store.set("phones.1.level", 5);
+      await store.set("ch.ch1.eq.oneKnob.on", oneKnob);
+      await open(shell, { id: "ch.eq", strip: "ch1" });
+      await store.set("ui.userDefinedKnobs", true);
+      await flush();
+      shell.root.querySelector<HTMLElement>(".knob-cell.is-udk")?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true, cancelable: true }));
+      return store.num("phones.1.level", 0);
+    };
+    expect(await turn(false), "with 1-knob off, Phones 1 turns").toBeGreaterThan(5);
+    expect(await turn(true), "with 1-knob on, it stays").toBe(5);
   });
 
   it("makes each filled division of the strip the knob under it", async () => {

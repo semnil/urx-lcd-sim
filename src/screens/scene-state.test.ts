@@ -6,7 +6,9 @@ import { factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
 import { applyScene, inScene } from "../model/scene-state";
+import { applySettings, captureSettings } from "../model/settings-file";
 import { recallScene, storeScene } from "./scene";
+import { setSignalType } from "./stereo-link";
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -169,4 +171,62 @@ describe("storing and recalling a scene", () => {
     expect(shell.ctx.store.num("ch.ch3.level", 99)).toBe(-7);
     expect(shell.ctx.store.num("ch.ch1.ssmcs.comp.ratio", 0), "a ratio at the top of its travel too").toBe(Number.POSITIVE_INFINITY);
   });
+});
+
+describe("a recall puts back what the stored copy holds", () => {
+  // An edit carries other writes with it (Sync's delay time, a linked pair's
+  // partner). Putting a stored copy back is not an edit: every value comes back
+  // as it was stored, whatever order the copy holds them in.
+  const targets = [
+    ["scene", async (shell: Shell, apply: () => Promise<void>) => {
+      await shell.ctx.store.set("scene.Standard.1.title", "take one");
+      await storeScene(shell.ctx, "Standard", 1);
+      await apply();
+      await recallScene(shell.ctx, 1);
+    }],
+    ["settings file", async (shell: Shell, apply: () => Promise<void>) => {
+      const saved = captureSettings(shell.ctx.store);
+      await apply();
+      await applySettings(shell.ctx.store, saved);
+    }],
+  ] as const;
+
+  for (const [target, roundTrip] of targets) {
+    for (const type of ["Mono Delay", "Ping Pong"]) {
+      it(`keeps a ${type} time turned by hand under Sync (${target})`, async () => {
+        const shell = await mount();
+        const store = shell.ctx.store;
+        await store.set("ch.fx2.effect.type", type);
+        await store.set("ch.fx2.effect.bpm", 120);
+        await store.set("ch.fx2.effect.note", "1/4");
+        await store.set("ch.fx2.effect.sync", true);
+        expect(store.num("ch.fx2.effect.delay", 0), "Sync set the time from the note").toBe(500);
+        await store.set("ch.fx2.effect.delay", 505);
+        await roundTrip(shell, async () => {
+          await store.set("ch.fx2.effect.sync", false);
+          await store.set("ch.fx2.effect.delay", 600);
+        });
+        expect([store.num("ch.fx2.effect.delay", 0), store.bool("ch.fx2.effect.sync", false)]).toEqual([505, true]);
+      });
+    }
+
+    it(`keeps two channels stored apart over a linked pair (${target})`, async () => {
+      const shell = await mount();
+      const store = shell.ctx.store;
+      await store.set("ch.ch1.level", -10);
+      await store.set("ch.ch2.level", -20);
+      const strip = unitById("URX44V").inputs[0];
+      if (!strip) throw new Error("no CH 1");
+      await roundTrip(shell, async () => {
+        setSignalType(shell.ctx, strip, "STEREO");
+        await flush();
+        expect(store.num("ch.ch2.level", 0), "linking put the pair on CH 1's values").toBe(-10);
+      });
+      expect([store.num("ch.ch1.level", 0), store.num("ch.ch2.level", 0), store.str("ch.ch2.signalType", "")]).toEqual([
+        -10,
+        -20,
+        "MONO x 2",
+      ]);
+    });
+  }
 });

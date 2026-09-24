@@ -24,8 +24,8 @@ front of you. It is a standalone project, and it talks to no hardware by itself.
   browser between visits; [Reset the unit] starts again from the unit as it ships
 
 The unit's physical controls are not reproduced. Every value is reached on the glass: drag it,
-turn the wheel over it, or use the arrow keys. The knob strip along the bottom of the screen
-stays a readout, as it is on the unit.
+turn the wheel over it, or use the arrow keys. The knob strip along the bottom of the screen is a
+readout on the unit; here a cell holding a value turns it the same way.
 
 Meters show a synthetic signal, which follows the faders, the oscillator, what is in CUE and the A.Gain. The
 simulator carries no audio, and a take it records carries none either.
