@@ -6656,7 +6656,7 @@
 .source-popup {
   width: 100%;
   height: 100%;
-  background: #bdbebd;
+  background: var(--dialog-sheet);
   border-radius: var(--radius-md);
   box-shadow: 1px 1px 0 var(--sheet-shadow-near), 2px 2px 0 var(--sheet-shadow-far);
   padding: 5px 6px;

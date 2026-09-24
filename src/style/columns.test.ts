@@ -3430,6 +3430,7 @@ describe("a picker sheet's silhouette", () => {
   // right and bottom sides by 0.82 and the second by 0.35, and leaves the pixels
   // to its left and above it as they are.
   it("drops a two pixel shadow to its right and below", () => {
+    expect(declarations(CSS, ".source-popup")["background"], "on the sheet every other picker opens").toBe("var(--dialog-sheet)");
     expect(declarations(CSS, ".source-popup")["box-shadow"]).toBe("1px 1px 0 var(--sheet-shadow-near), 2px 2px 0 var(--sheet-shadow-far)");
     const tokens = declarations(TOKENS, ":root");
     expect([tokens["--sheet-shadow-near"], tokens["--sheet-shadow-far"]]).toEqual(["#000000b8", "#00000059"]);
