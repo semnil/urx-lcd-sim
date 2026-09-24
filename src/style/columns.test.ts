@@ -3135,6 +3135,8 @@ describe("the channel, monitor and microSD parts measured against the guide's fi
     expect(declarations(TOKENS, ":root")["--rec-copy-mark"]).toBe("#eff3ef");
     // INPUT's source button draws the mark paler than the chip does (p100-1).
     expect(declarations(CSS, ".input-source-btn .ch-chip-copy")["color"]).toBe("var(--tab-ink)");
+    // The time zone's box stands a pixel right of the date's (p064-1: x145..366 under x144..365).
+    expect(px(declarations(CSS, ".dt-screen .dt-value.dt-value-single")["margin-left"])).toBe(1);
     expect(declarations(CSS, ".mode-caption")["font-weight"], "Operation Mode's caption").toBe("500");
     expect(declarations(CSS, ".chs-mark-edit")["color"], "CH SETTING's rename mark darker than its copy marks").toBe("var(--text-muted)");
     expect(declarations(CSS, ".side-tab-label")["font-weight"], "a side tab's name").toBe("600");

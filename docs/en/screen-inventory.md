@@ -1215,7 +1215,7 @@ the start of its track (x357..359 / y223..225 in p063-1); a channel screen's kno
 
 DATE / TIME sets the date and the time on [Date/Time] at 12px, the city on [Time Zone] at 13.5px in the middle of its box,
 and the format lists' values at 12.5px, and stands the `Date` / `Time` headings over the two lists at 13px, 2px above
-them (p064-1).
+them (p064-1). The [Time Zone] box stands a pixel right of the [Date/Time] box (x145..366 and x144..365 in p064-1).
 
 The clock keeps a moment that runs with the computer's clock and shows it in the time zone [Time Zone] is set to,
 so a new zone moves the date and time on the button; a unit as it ships is on Tokyo. A zone keeps its standard
