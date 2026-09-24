@@ -122,9 +122,8 @@ export class DeviceStore {
 
   /**
    * Put back a value stored together with every value it depends on (a scene,
-   * a settings file), writing many in order. The writes an edit carries are not
-   * carried: the stored copy already holds them, and carrying them would move
-   * values it holds.
+   * a settings file), writing many in order. It carries none of the writes an
+   * edit carries.
    */
   restore(path: ParamPath, value: ParamValue): Promise<void> {
     return this.write(path, value, false);

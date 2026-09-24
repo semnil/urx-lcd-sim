@@ -32,9 +32,7 @@ describe("the EQ's response", () => {
     // Short of 6 dB the point 3 dB short of the plateau would lie inside the
     // frequency; the shelf stays designed at it and stands at half its gain there.
     expect(within(band("H.Shelf", 1000, 4), [[1000, 2], [2000, 3], [4000, 4]])).toEqual([]);
-    // Read at 1 kHz to a tenth of a dB, averaging the meters over a walk of the
-    // tone's level across one of their steps (all bands off read 0.00 and a
-    // +12 dB shelf +9.20 the same way): each is held to within 0.75 dB.
+    // Read at 1 kHz to a tenth of a dB: each is held to within 0.75 dB.
     for (const [shape, gain, db] of [["H.Shelf", 4, 2.4], ["H.Shelf", 5, 3.1], ["H.Shelf", -4, -2.5], ["L.Shelf", 4, 2.4]] as const) {
       expect(Math.abs(band(shape, 1000, gain)(1000) - db), `${shape} ${gain} dB`).toBeLessThanOrEqual(0.75);
     }
