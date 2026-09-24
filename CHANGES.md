@@ -8,3 +8,8 @@
 - Draw the corners of the effect screens' panels and of Cho / Off / Vib, Gate and Sync in the same pixels as the other screens' cells and buttons, with Cho / Off / Vib set at 59 / 60 / 59 pixels wide.
 - Draw the corners of the GATE, COMP and DUCKER settings panels in the sunk cells' pixels, as the guide's figures draw them, and so the same panels on the effect and SSMCS screens.
 - Draw the corners of Pitch Fix's [Correction] and M.B.Comp's [Bypass] in the same pixels as the other buttons.
+- Recall a scene or load a settings file with every stored value as it was stored: a Mono Delay or Ping Pong time turned by hand under Sync, and two channels stored apart and recalled over a linked pair, came back changed.
+- Set every EQ band's switch when a 1-knob curve is chosen, as the unit does: Loudness switches all four bands on, and Vocal switches LOW off and the other three on.
+- Turn the value a user-defined knob holds by dragging, scrolling or using the arrow keys on its cell of the knob bar. The cells stay still while 1-knob is on, as on the unit.
+- Draw the EQ curve with each band's filter shape (Bell, L.Shelf, H.Shelf, HPF, LPF) on the EQ screen and in the channel view's EQ block.
+- Correct the README, which described the knob bar as read-only.
