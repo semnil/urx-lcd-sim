@@ -845,7 +845,9 @@ is 20 Hz..20 kHz logarithmic, the vertical axis ±20 dB. The rules are at 100 Hz
 ±10 dB / 0 dB. The curve is the four bands' responses added in dB (`src/model/eq-response.ts`). Bell is a
 peaking filter of half the Q the screen shows; HPF / LPF are second-order filters 3 dB down at their
 frequency that read no Q and no gain; L.Shelf / H.Shelf are shelves whose frequency is the point 3 dB short
-of the plateau and read no Q. The channel view's EQ block draws the same response. The handles of the four bands stand at their own frequency and gain, and pressing one
+of the plateau and read no Q. The Bell's width matches p106-1 this way (HIGH at Q 1.06, 11.8 kHz, +8.0 dB;
+with LM's Q, which the figure does not show, put at 1.10, the curve is 1.41 px RMS off the figure's line over
+287 columns). The channel view's EQ block draws the same response. The handles of the four bands stand at their own frequency and gain, and pressing one
 puts that band on the knobs. Dragging one moves its frequency across the graph and its gain up it, and puts that
 band on the knobs too (e under "EQ screen" in the user guide). A handle's name is 13.5px in the regular weight in the middle of its ring (p106-1). The handle of the band on
 the knobs carries a 6x8 triangle on either side, 3px outside its ring and level with its middle (y130..137 in p106-1).
