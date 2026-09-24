@@ -1,4 +1,5 @@
-// The 4-band EQ's frequency response, the curve the EQ screen draws.
+// The 4-band EQ's frequency response, the curve the EQ screen draws, and the
+// biquad filters it is made of, which the SSMCS strip's EQ draws with too.
 //
 // Each band is a biquad at 48 kHz and the bands add in dB. A Bell is a peaking
 // filter whose biquad Q is half the Q the screen shows. HPF and LPF are fixed
@@ -18,7 +19,8 @@ export interface EqBandResponse {
   gain: number;
 }
 
-interface Coefs {
+/** A biquad's coefficients. */
+export interface Biquad {
   b0: number;
   b1: number;
   b2: number;
@@ -27,63 +29,61 @@ interface Coefs {
   a2: number;
 }
 
-/** A biquad's magnitude at `hz`, in dB. */
-function magDb(c: Coefs, hz: number): number {
+/** A biquad's level at `hz`, in dB. */
+export function biquadDb(c: Biquad, hz: number): number {
   const w = (2 * Math.PI * hz) / EQ_RESPONSE_RATE;
-  const cw = Math.cos(w);
-  const sw = Math.sin(w);
-  const c2 = Math.cos(2 * w);
-  const s2 = Math.sin(2 * w);
-  const nRe = c.b0 + c.b1 * cw + c.b2 * c2;
-  const nIm = -(c.b1 * sw + c.b2 * s2);
-  const dRe = c.a0 + c.a1 * cw + c.a2 * c2;
-  const dIm = -(c.a1 * sw + c.a2 * s2);
-  const num = nRe * nRe + nIm * nIm;
-  const den = dRe * dRe + dIm * dIm;
-  if (num === 0 || den === 0) return 0;
-  return 10 * Math.log10(num / den);
+  const [cos1, sin1, cos2, sin2] = [Math.cos(w), Math.sin(w), Math.cos(2 * w), Math.sin(2 * w)];
+  const zeroReal = c.b0 + c.b1 * cos1 + c.b2 * cos2;
+  const zeroImag = -(c.b1 * sin1 + c.b2 * sin2);
+  const poleReal = c.a0 + c.a1 * cos1 + c.a2 * cos2;
+  const poleImag = -(c.a1 * sin1 + c.a2 * sin2);
+  const zeros = zeroReal * zeroReal + zeroImag * zeroImag;
+  const poles = poleReal * poleReal + poleImag * poleImag;
+  return poles === 0 || zeros === 0 ? 0 : 10 * Math.log10(zeros / poles);
 }
 
-function bellCoefs(hz: number, q: number, gain: number): Coefs {
+/** A peaking filter at `hz` with the biquad Q `q`. */
+export function peakingBiquad(hz: number, q: number, gain: number): Biquad {
   const a = 10 ** (gain / 40);
   const w0 = (2 * Math.PI * hz) / EQ_RESPONSE_RATE;
-  const cw = Math.cos(w0);
-  const alpha = Math.sin(w0) / (2 * (q / 2));
-  return { b0: 1 + alpha * a, b1: -2 * cw, b2: 1 - alpha * a, a0: 1 + alpha / a, a1: -2 * cw, a2: 1 - alpha / a };
+  const cos0 = Math.cos(w0);
+  const alpha = Math.sin(w0) / (2 * q);
+  return { b0: 1 + alpha * a, b1: -2 * cos0, b2: 1 - alpha * a, a0: 1 + alpha / a, a1: -2 * cos0, a2: 1 - alpha / a };
 }
 
-function passCoefs(hz: number, highPass: boolean): Coefs {
+function passBiquad(hz: number, highPass: boolean): Biquad {
   const w0 = (2 * Math.PI * hz) / EQ_RESPONSE_RATE;
-  const cw = Math.cos(w0);
+  const cos0 = Math.cos(w0);
   const alpha = Math.sin(w0) / Math.SQRT2;
-  const den = { a0: 1 + alpha, a1: -2 * cw, a2: 1 - alpha };
+  const poles = { a0: 1 + alpha, a1: -2 * cos0, a2: 1 - alpha };
   return highPass
-    ? { b0: (1 + cw) / 2, b1: -(1 + cw), b2: (1 + cw) / 2, ...den }
-    : { b0: (1 - cw) / 2, b1: 1 - cw, b2: (1 - cw) / 2, ...den };
+    ? { b0: (1 + cos0) / 2, b1: -(1 + cos0), b2: (1 + cos0) / 2, ...poles }
+    : { b0: (1 - cos0) / 2, b1: 1 - cos0, b2: (1 - cos0) / 2, ...poles };
 }
 
-function shelfCoefs(hz: number, gain: number, high: boolean): Coefs {
+/** A shelf of slope 1 designed at `hz`. */
+export function shelfBiquad(hz: number, gain: number, high: boolean): Biquad {
   const a = 10 ** (gain / 40);
   const w0 = (2 * Math.PI * hz) / EQ_RESPONSE_RATE;
-  const cw = Math.cos(w0);
-  const tsa = 2 * Math.sqrt(a) * (Math.sin(w0) / Math.SQRT2);
+  const cos0 = Math.cos(w0);
+  const rootTerm = 2 * Math.sqrt(a) * (Math.sin(w0) / Math.SQRT2);
   if (high) {
     return {
-      b0: a * (a + 1 + (a - 1) * cw + tsa),
-      b1: -2 * a * (a - 1 + (a + 1) * cw),
-      b2: a * (a + 1 + (a - 1) * cw - tsa),
-      a0: a + 1 - (a - 1) * cw + tsa,
-      a1: 2 * (a - 1 - (a + 1) * cw),
-      a2: a + 1 - (a - 1) * cw - tsa,
+      b0: a * (a + 1 + (a - 1) * cos0 + rootTerm),
+      b1: -2 * a * (a - 1 + (a + 1) * cos0),
+      b2: a * (a + 1 + (a - 1) * cos0 - rootTerm),
+      a0: a + 1 - (a - 1) * cos0 + rootTerm,
+      a1: 2 * (a - 1 - (a + 1) * cos0),
+      a2: a + 1 - (a - 1) * cos0 - rootTerm,
     };
   }
   return {
-    b0: a * (a + 1 - (a - 1) * cw + tsa),
-    b1: 2 * a * (a - 1 - (a + 1) * cw),
-    b2: a * (a + 1 - (a - 1) * cw - tsa),
-    a0: a + 1 + (a - 1) * cw + tsa,
-    a1: -2 * (a - 1 + (a + 1) * cw),
-    a2: a + 1 + (a - 1) * cw - tsa,
+    b0: a * (a + 1 - (a - 1) * cos0 + rootTerm),
+    b1: 2 * a * (a - 1 - (a + 1) * cos0),
+    b2: a * (a + 1 - (a - 1) * cos0 - rootTerm),
+    a0: a + 1 + (a - 1) * cos0 + rootTerm,
+    a1: -2 * (a - 1 + (a + 1) * cos0),
+    a2: a + 1 + (a - 1) * cos0 - rootTerm,
   };
 }
 
@@ -94,7 +94,7 @@ function shelfCoefs(hz: number, gain: number, high: boolean): Coefs {
 export function shelfDesignFreq(nominal: number, gain: number, high: boolean): number {
   const target = Math.abs(gain) - 3;
   if (target <= 0) return nominal;
-  const at = (f: number): number => Math.abs(magDb(shelfCoefs(f, gain, high), nominal));
+  const at = (f: number): number => Math.abs(biquadDb(shelfBiquad(f, gain, high), nominal));
   let lo = nominal / 20;
   let hi = Math.min(nominal * 20, EQ_RESPONSE_RATE / 2 - 1);
   const rising = at(hi) > at(lo);
@@ -111,17 +111,17 @@ export function shelfDesignFreq(nominal: number, gain: number, high: boolean): n
 export function bandResponse(b: EqBandResponse): (hz: number) => number {
   if (!b.on) return () => 0;
   if (b.shape === "HPF" || b.shape === "LPF") {
-    const c = passCoefs(b.freq, b.shape === "HPF");
-    return (hz) => magDb(c, hz);
+    const c = passBiquad(b.freq, b.shape === "HPF");
+    return (hz) => biquadDb(c, hz);
   }
   if (b.gain === 0) return () => 0;
   if (b.shape === "L.Shelf" || b.shape === "H.Shelf") {
     const high = b.shape === "H.Shelf";
-    const c = shelfCoefs(shelfDesignFreq(b.freq, b.gain, high), b.gain, high);
-    return (hz) => magDb(c, hz);
+    const c = shelfBiquad(shelfDesignFreq(b.freq, b.gain, high), b.gain, high);
+    return (hz) => biquadDb(c, hz);
   }
-  const c = bellCoefs(b.freq, b.q, b.gain);
-  return (hz) => magDb(c, hz);
+  const c = peakingBiquad(b.freq, b.q / 2, b.gain);
+  return (hz) => biquadDb(c, hz);
 }
 
 /** The four bands' response in dB: the sum of each band's. */

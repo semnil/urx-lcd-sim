@@ -20,6 +20,7 @@ import type { Route } from "../app/navigator";
 import type { Strip } from "../model/types";
 import { clamp } from "../device/store";
 import { SSMCS_DEFAULTS } from "../model/defaults";
+import { biquadDb, peakingBiquad, shelfBiquad } from "../model/eq-response";
 import { el, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
@@ -242,65 +243,8 @@ function transfer(ctx: AppContext, b: string): (db: number) => number {
   return (db) => (drive === 0 ? db : curve(db));
 }
 
-interface Coefs {
-  b0: number;
-  b1: number;
-  b2: number;
-  a0: number;
-  a1: number;
-  a2: number;
-}
-
-/** A biquad's magnitude at a frequency, in dB. */
-function magDb(c: Coefs, hz: number): number {
-  const w = (2 * Math.PI * hz) / RESPONSE_FS;
-  const [cw, sw, c2, s2] = [Math.cos(w), Math.sin(w), Math.cos(2 * w), Math.sin(2 * w)];
-  const nRe = c.b0 + c.b1 * cw + c.b2 * c2;
-  const nIm = -(c.b1 * sw + c.b2 * s2);
-  const dRe = c.a0 + c.a1 * cw + c.a2 * c2;
-  const dIm = -(c.a1 * sw + c.a2 * s2);
-  const num = nRe * nRe + nIm * nIm;
-  const den = dRe * dRe + dIm * dIm;
-  return den === 0 || num === 0 ? 0 : 10 * Math.log10(num / den);
-}
-
-const RESPONSE_FS = 48000;
-
 /** The bell the strip draws for its MID band stands wider than the number it is set by. */
 const BELL_Q_SCALE = 0.696;
-
-function peaking(hz: number, q: number, gainDb: number): Coefs {
-  const A = 10 ** (gainDb / 40);
-  const w0 = (2 * Math.PI * hz) / RESPONSE_FS;
-  const cw = Math.cos(w0);
-  const alpha = Math.sin(w0) / (2 * q * BELL_Q_SCALE);
-  return { b0: 1 + alpha * A, b1: -2 * cw, b2: 1 - alpha * A, a0: 1 + alpha / A, a1: -2 * cw, a2: 1 - alpha / A };
-}
-
-function shelf(hz: number, gainDb: number, high: boolean): Coefs {
-  const A = 10 ** (gainDb / 40);
-  const w0 = (2 * Math.PI * hz) / RESPONSE_FS;
-  const cw = Math.cos(w0);
-  const alpha = (Math.sin(w0) / 2) * Math.SQRT2;
-  const tsa = 2 * Math.sqrt(A) * alpha;
-  return high
-    ? {
-        b0: A * (A + 1 + (A - 1) * cw + tsa),
-        b1: -2 * A * (A - 1 + (A + 1) * cw),
-        b2: A * (A + 1 + (A - 1) * cw - tsa),
-        a0: A + 1 - (A - 1) * cw + tsa,
-        a1: 2 * (A - 1 - (A + 1) * cw),
-        a2: A + 1 - (A - 1) * cw - tsa,
-      }
-    : {
-        b0: A * (A + 1 - (A - 1) * cw + tsa),
-        b1: 2 * A * (A - 1 - (A + 1) * cw),
-        b2: A * (A + 1 - (A - 1) * cw - tsa),
-        a0: A + 1 + (A - 1) * cw + tsa,
-        a1: -2 * (A - 1 + (A + 1) * cw),
-        a2: A + 1 + (A - 1) * cw - tsa,
-      };
-}
 
 /** One band's own values. */
 interface BandState {
@@ -326,8 +270,8 @@ function eqResponse(ctx: AppContext, b: string): (hz: number) => number {
   const parts = SSMCS_BANDS.map((band) => {
     const s = bandState(ctx, b, band);
     if (!s.on || s.gain === 0) return null;
-    const coefs = band.key === "mid" ? peaking(s.freq, s.q, s.gain) : shelf(s.freq, s.gain, band.key === "high");
-    return (hz: number) => magDb(coefs, hz);
+    const filter = band.key === "mid" ? peakingBiquad(s.freq, s.q * BELL_Q_SCALE, s.gain) : shelfBiquad(s.freq, s.gain, band.key === "high");
+    return (hz: number) => biquadDb(filter, hz);
   });
   return (hz) => parts.reduce((sum, part) => sum + (part ? part(hz) : 0), 0);
 }
