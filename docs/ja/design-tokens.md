@@ -111,6 +111,7 @@ PY
 | `--caption-pale` | `#cecace` | Operation Mode の箱の見出し (p041-1 の x38..88 / y8..15) |
 | `--drop-mark` | `#dedbde` | 一覧を開くボタンの下向きの印 (p047-1 のバンクボタン x205..213 / y9..14、[Sends] x468..476 / y65..70) |
 | `--field-mark` | `#848a8c` | CH SETTING の欄の複製の印 (p093-2 の x124..133 / y58..67)。名前変更の印は `--text-muted` |
+| `--ssmcs-data-mark` | `#8c9694` | SSMCS の Sweet Spot Data のボタンの複製の印 (p108-1 の x387..396 / y172..181) |
 | `--knob-card-mark` | `#adaead` | USER DEFINED KNOBS のカードの複製の印 (p057-1 の x80..89 / y104..113) |
 | `--rec-copy-mark` | `#dedfde` | RECORDER のスロットの Source ボタンの複製の印 (p079-2 の x378..387 / y185..194) |
 | `--strip-id-other` | `#000000` | HOME のステレオの入力の名前の 1 行目で、チャンネルの画面が開かないほうの番号 (操作者の指定) |

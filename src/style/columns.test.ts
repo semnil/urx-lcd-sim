@@ -2817,6 +2817,9 @@ describe("corners the unit draws a pixel at a time", () => {
     expect(declarations(CSS, ".pick-dialog-row::after")["background"]).toBe("none");
     expect(declarations(CSS, ".pick-dialog-row.is-empty")["border-radius"], "no curve of the browser's under the cut").toBeUndefined();
     expect(declarations(CSS, ".mon-source")["translate"], "MONITOR's Source stands at x6 as p068-1 has it").toBeUndefined();
+    const sourceMark = declarations(CSS, ".mon-source-copy");
+    expect(sourceMark["color"], "its copy mark white, as p068-1 draws it").toBe("var(--text)");
+    expect(declarations(CSS, ".mon-source-copy svg")["shape-rendering"]).toBe("crispEdges");
     // The chip's band climbs each side over three rows, in shares of the band and of black
     // fitted to a blue band (p090-1) and an orange one (p093-2).
     const chip = declarations(CSS, ".ch-chip::after");

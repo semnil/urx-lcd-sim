@@ -320,6 +320,7 @@
   --strip-id-other: #000000; /* the number of the channel a stereo input's screens do not open on */
   --rec-copy-mark: #dedfde; /* RECORDER's copy mark on a slot's source button */
   --field-mark: #848a8c; /* the copy and rename marks in CH SETTING's fields */
+  --ssmcs-data-mark: #8c9694; /* the copy mark on SSMCS's Sweet Spot Data button */
   --knob-card-mark: #adaead; /* the copy mark on a USER DEFINED KNOBS card */
   --ink-on-lit: #3a3d3a; /* the name on a chosen option, and on USB Storage Mode while it is lit */
   --test-pass: #01ff00; /* what a card test passes, and the grade it gives */

@@ -3712,7 +3712,7 @@
   width: 10px;
   height: 10px;
   display: flex;
-  color: var(--tab-ink);
+  color: var(--text);
 }
 
 .mon-source-copy svg {
@@ -9691,11 +9691,17 @@
 
 .ssmcs-data-mark {
   position: absolute;
-  right: 4px;
+  right: 5px;
   top: 5px;
-  width: 11px;
-  height: 11px;
-  color: var(--field-mark);
+  width: 10px;
+  height: 10px;
+  color: var(--ssmcs-data-mark);
+}
+
+/* The mark's strokes stand on whole pixels, their ends square (p108-1, p068-1). */
+.ssmcs-data-mark svg,
+.mon-source-copy svg {
+  shape-rendering: crispEdges;
 }
 
 .ssmcs-data-mark svg {

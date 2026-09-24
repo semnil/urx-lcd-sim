@@ -888,7 +888,7 @@ reduction meter (x155/y14). Two panels below (face `--surface-sunk`, corner `--r
 Drive 86x84 at x10/y94 and Morphing 300x84 at x114/y94. The name, the value and the knob line up on
 the 86px column at the panel's left: the name 13px, two pixels left of centre (y2), the value box 52x22 (x17/y19), the
 knob at x20/y46. The Morphing panel carries the Sweet Spot Data button beside them (202x40: 37 rows of face over a 3px band `--btn-bevel-sunk`, x198/y117,
-face `--surface-on-sunk`, its copy mark 11x11 4px from the right and 5px from the top). A press drops
+face `--surface-on-sunk`, its copy mark 10x10 5px from the right and 5px from the top, in `--ssmcs-data-mark`). A press drops
 a sheet of the 34 names, two to a row.
 
 COMP (measured on p110-1). The [Comp] title box at the top left (93x38, x0/y-1: 35 rows of face over

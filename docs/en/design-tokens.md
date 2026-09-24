@@ -114,6 +114,7 @@ PY
 | `--caption-pale` | `#cecace` | The caption of the Operation Mode box (x38..88 / y8..15 in p041-1) |
 | `--drop-mark` | `#dedbde` | The down mark on a button that drops a list (the bank button's x205..213 / y9..14 and [Sends]'s x468..476 / y65..70 in p047-1) |
 | `--field-mark` | `#848a8c` | The copy marks in CH SETTING's fields (x124..133 / y58..67 in p093-2); the rename mark takes `--text-muted` |
+| `--ssmcs-data-mark` | `#8c9694` | The copy mark on SSMCS's Sweet Spot Data button (x387..396 / y172..181 in p108-1) |
 | `--knob-card-mark` | `#adaead` | The copy mark on a USER DEFINED KNOBS card (x80..89 / y104..113 in p057-1) |
 | `--rec-copy-mark` | `#dedfde` | The copy mark on a RECORDER slot's Source button (x378..387 / y185..194 in p079-2) |
 | `--strip-id-other` | `#000000` | On a HOME stereo input's first name line, the number of the channel its screens do not open on (as the operator specified) |
