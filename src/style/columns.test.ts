@@ -1296,7 +1296,9 @@ describe("the compressor screen", () => {
     // the foot of the plot on all three.
     const stack = declarations(CSS, ".dyn-sets");
     expect(stack["flex-direction"]).toBe("column");
-    expect(px(stack["bottom"])).toBeGreaterThan(0);
+    // The plot runs y51..223 and the lowest setting ends on y223 in p099-1, p103-1 and p114-1:
+    // the dynamics screen's box ends on y232, nine rows below it.
+    expect(px(stack["bottom"])).toBe(9);
     expect(stack["top"], "nothing pins the top, so the stack grows upward").toBeUndefined();
     expect(px(declarations(CSS, ".dyn-set")["height"])).toBeGreaterThan(0);
   });
@@ -3596,8 +3598,10 @@ describe("BUS Type's own list", () => {
 
 describe("a list of choices over the screen", () => {
   it("keeps its choices inside its own panel, 4px in at the top and the foot", () => {
-    // p079-3, the Track Count list: the panel runs y54..233, its first tile
-    // starts at y58 and its last ends at y229 — the padding the panel declares.
+    // p079-3, the Track Count list: the panel runs y46..225, its first tile
+    // starts at y50 and its last ends at y221 — the padding the panel declares.
+    // The figure's canvas carries eight white rows over the screen.
+    expect(px(declarations(CSS, ".rec-track-list")["top"])).toBe(46);
     const list = declarations(CSS, ".dropdown-list");
     expect([list["padding"], list["gap"]]).toEqual(["4px", "4px"]);
     expect(

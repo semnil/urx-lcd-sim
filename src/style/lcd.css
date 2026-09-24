@@ -1372,7 +1372,7 @@
 
 .rec-track-list {
   left: 7px;
-  top: 54px;
+  top: 46px;
   grid-template-columns: repeat(2, 124px);
 }
 
@@ -5836,7 +5836,7 @@
   position: absolute;
   left: 248px;
   /* Level with the foot of the plot beside them. */
-  bottom: 8px;
+  bottom: 9px;
   display: flex;
   flex-direction: column;
   gap: 8px;

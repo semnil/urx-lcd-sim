@@ -1561,7 +1561,7 @@ picked. It is not a control that sends one value per tap. The glass holds five o
 opens on the sheet the unit opens a long list on (DUCKER's Ducker Source and DELAY's Frame rate).
 
 A list's panel sets its choices 4px inside it on every edge, with 4px between them (measured on
-p079-3: the panel runs y54..233, its first tile starts at y58 and its last ends at y229).
+p079-3: the panel runs y46..225, its first tile starts at y50 and its last ends at y221).
 
 The box has face `--surface`, a 3px shadow band at the bottom and 12px padding on the left. A white 9x8
 downward triangle stands 6px in from the right edge, its tip a pixel wide (measured on p092-1 and p099-1).
