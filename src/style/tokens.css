@@ -98,6 +98,8 @@
   --corner-raised-a: #212021; /* a raised panel's top corner on the glass (a strip's name, MONITOR's head): the outer shade */
   --corner-raised-b: #42454a; /* the same, the shade after it */
   --corner-raised-c: #42494a; /* the same, the diagonal shade */
+  --corner-source-step-a: #4a595a; /* MONITOR's Source: the face's shade at the ends of the step onto its band */
+  --corner-source-step-b: #526163; /* the same, the shade in the step's middle row */
   --corner-mon-foot-a: #101419; /* a MONITOR strip's band where it meets the glass: the outer shade */
   --corner-mon-foot-b: #212831; /* the same, the shade after it */
   --corner-mon-foot-c: #212d31; /* the same, the diagonal shade */

@@ -228,6 +228,8 @@ PY
 | `--corner-raised-a` | `#212021` | 一段明るい面 (HOME のストリップの名前、MONITOR の見出し) の上の角の混色。外側から 1 つめ (p047-1 のストリップ 2 の x108..112 / y50..54、p067-1) |
 | `--corner-raised-b` | `#42454a` | 同、2 つめ |
 | `--corner-raised-c` | `#42494a` | 同、斜めの画素 |
+| `--corner-source-step-a` | `#4a595a` | MONITOR の [Source] の面が帯へ曲がる段の、両端の混色 (p068-1 の x8 / y148、x6 / y146) |
+| `--corner-source-step-b` | `#526163` | 同、段の中の行の混色 (p068-1 の x7 / y147) |
 | `--corner-mon-foot-a` | `#101419` | MONITOR のストリップの帯がガラスに接する角の混色。外側から 1 つめ (p067-1 の x2..6 / y264..268) |
 | `--corner-mon-foot-b` | `#212831` | 同、2 つめ |
 | `--corner-mon-foot-c` | `#212d31` | 同、斜めの画素 |

@@ -2422,10 +2422,6 @@
   font-size: var(--fs-lg);
 }
 
-.pick-dialog-row.is-empty {
-  border-radius: var(--radius-md);
-}
-
 .pick-dialog-row + .pick-dialog-row {
   margin-top: 2px;
 }
@@ -3678,7 +3674,6 @@
   top: 62px;
   background: var(--surface-on-sunk);
   box-shadow: inset 0 -3px 0 var(--btn-bevel-sunk);
-  translate: -1px 0;
 }
 
 .mon-cue {
@@ -5587,12 +5582,11 @@
   position: absolute;
   left: 137px;
   /* The panel's foot stands level with the foot of the Scale list beside it. */
-  top: 43.5px;
+  top: 42px;
   width: 287px;
   height: 135px;
   box-sizing: border-box;
   padding: 4px;
-  border-radius: 6px;
   background: var(--surface-dim);
   display: flex;
   gap: 3px;
@@ -7914,7 +7908,7 @@
  * band repeats the shape where the face meets the band and where the band meets
  * what the button stands on. The shades depend on the face, the band and that
  * ground, so each set is a group of tokens. */
-:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass, .oneknob.is-on) {
+:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass, .ch-chip, .pick-dialog-row, .mon-source, .dropdown-list, .pitch-keys, .oneknob.is-on) {
   position: relative;
   --px-ground: var(--lcd-bg);
   /* The three pixels at each corner are cut away and the two beside them let the
@@ -7999,16 +7993,21 @@
 .mode-box,
 .efx-button,
 .pitch-corner,
-.mbc-bypass) {
+.mbc-bypass,
+.ch-chip,
+.pick-dialog-row,
+.mon-source,
+.dropdown-list,
+.pitch-keys) {
   border-radius: 0;
 }
 
-:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass) {
+:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass, .ch-chip, .pick-dialog-row, .mon-source, .dropdown-list, .pitch-keys) {
   mask: var(--px-mask-left), var(--px-mask-right), linear-gradient(#000, #000);
   mask-composite: exclude;
 }
 
-:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass)::after {
+:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass, .pick-dialog-row)::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -8109,6 +8108,54 @@
 .panbal-btn:last-child::after,
 .efx-button:last-child::after {
   background: var(--px-right);
+}
+
+/* The rows of a picking dialog carry no band, so nothing steps onto one. */
+.pick-dialog-row::after {
+  background: none;
+}
+
+/* MONITOR's Source steps from its face onto its band up three rows in shades of its
+ * own (p068-1). */
+.mon-source::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--btn-bevel-sunk), var(--btn-bevel-sunk)) left 0px bottom 3px / 2px 1px no-repeat,
+    linear-gradient(var(--corner-source-step-a), var(--corner-source-step-a)) left 2px bottom 3px / 1px 1px no-repeat,
+    linear-gradient(var(--btn-bevel-sunk), var(--btn-bevel-sunk)) left 0px bottom 4px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-source-step-b), var(--corner-source-step-b)) left 1px bottom 4px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-source-step-a), var(--corner-source-step-a)) left 0px bottom 5px / 1px 1px no-repeat,
+    linear-gradient(var(--btn-bevel-sunk), var(--btn-bevel-sunk)) right 0px bottom 3px / 2px 1px no-repeat,
+    linear-gradient(var(--corner-source-step-a), var(--corner-source-step-a)) right 2px bottom 3px / 1px 1px no-repeat,
+    linear-gradient(var(--btn-bevel-sunk), var(--btn-bevel-sunk)) right 0px bottom 4px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-source-step-b), var(--corner-source-step-b)) right 1px bottom 4px / 1px 1px no-repeat,
+    linear-gradient(var(--corner-source-step-a), var(--corner-source-step-a)) right 0px bottom 5px / 1px 1px no-repeat;
+}
+
+/* The channel's colour band turns up each side of the chip over three rows, in
+ * shares of the band's colour and of black over the face (p090-1, p093-2). */
+.ch-chip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  --chip-step-3: color-mix(in srgb, color-mix(in srgb, var(--rail, transparent) 87%, #000) 45%, transparent);
+  --chip-step-4: color-mix(in srgb, color-mix(in srgb, var(--rail, transparent) 67%, #000) 9%, transparent);
+  --chip-step-5: color-mix(in srgb, color-mix(in srgb, var(--rail, transparent) 57%, #000) 42%, transparent);
+  background:
+    linear-gradient(var(--rail, transparent), var(--rail, transparent)) left 0px bottom 0px / 2px 1px no-repeat,
+    linear-gradient(var(--chip-step-3), var(--chip-step-3)) left 2px bottom 0px / 1px 1px no-repeat,
+    linear-gradient(var(--rail, transparent), var(--rail, transparent)) left 0px bottom 1px / 1px 1px no-repeat,
+    linear-gradient(var(--chip-step-4), var(--chip-step-4)) left 1px bottom 1px / 1px 1px no-repeat,
+    linear-gradient(var(--chip-step-5), var(--chip-step-5)) left 0px bottom 2px / 1px 1px no-repeat,
+    linear-gradient(var(--rail, transparent), var(--rail, transparent)) right 0px bottom 0px / 2px 1px no-repeat,
+    linear-gradient(var(--chip-step-3), var(--chip-step-3)) right 2px bottom 0px / 1px 1px no-repeat,
+    linear-gradient(var(--rail, transparent), var(--rail, transparent)) right 0px bottom 1px / 1px 1px no-repeat,
+    linear-gradient(var(--chip-step-4), var(--chip-step-4)) right 1px bottom 1px / 1px 1px no-repeat,
+    linear-gradient(var(--chip-step-5), var(--chip-step-5)) right 0px bottom 2px / 1px 1px no-repeat;
 }
 
 /* An effect's Gate and Sync stand alone rather than in a row, so they turn at both ends. */

@@ -231,6 +231,8 @@ PY
 | `--corner-raised-a` | `#212021` | A raised panel's top corner shade (a HOME strip's name, MONITOR's head), the first from the outside (x108..112 / y50..54 in p047-1, p067-1) |
 | `--corner-raised-b` | `#42454a` | The same, the second |
 | `--corner-raised-c` | `#42494a` | The same, the diagonal pixel |
+| `--corner-source-step-a` | `#4a595a` | MONITOR's [Source], the shade at each end of the step from its face onto its band (x8 / y148 and x6 / y146 in p068-1) |
+| `--corner-source-step-b` | `#526163` | The same, the shade in the step's middle row (x7 / y147 in p068-1) |
 | `--corner-mon-foot-a` | `#101419` | A MONITOR strip's corner where its band meets the glass, the first shade from the outside (x2..6 / y264..268 in p067-1) |
 | `--corner-mon-foot-b` | `#212831` | The same, the second |
 | `--corner-mon-foot-c` | `#212d31` | The same, the diagonal pixel |

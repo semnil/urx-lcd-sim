@@ -2080,7 +2080,6 @@ describe("the type each control sets", () => {
       [".osc-caption", "-3px 0px"],
       [".sendto-name", "8px 1px"],
       [".sendto-bal-caption", "-1px 0px"],
-      [".mon-source", "-1px 0"],
       [".flag.is-phase svg", "0 1px"],
       [".sd-list .list-head .list-cell:nth-child(2)", "-1px 0"],
       [".sd-transport-meta", "0 1px"],
@@ -2789,6 +2788,41 @@ describe("corners the unit draws a pixel at a time", () => {
       [".osc-mode::after", ".osc-mode:first-child::after", ".osc-mode:last-child::after"].map((s) => declarations(CSS, s)["background"]),
       "OSCILLATOR's three modes join into one row (p070-1)",
     ).toEqual(["none", "var(--px-left)", "var(--px-right)"]);
+  });
+
+  it("turns the chip, a picking dialog's rows, MONITOR's Source and a list's tray in the buttons' pixels", () => {
+    const cut = blocks.find((b) => b.body.includes("mask: var(--px-mask-left), var(--px-mask-right)"));
+    const cast = blocks.find((b) => b.sel.endsWith("::after") && b.sel.includes(".menu-btn"));
+    const listed = (rule: { sel: string } | undefined, sel: string): boolean => (rule?.sel ?? "").includes(`, ${sel},`) || (rule?.sel ?? "").includes(`, ${sel})`);
+    // p090-1, wide/p040-1, p068-1 and p079-3 cut each corner the way every other button does.
+    for (const sel of [".ch-chip", ".pick-dialog-row", ".mon-source", ".dropdown-list"]) {
+      expect(listed(cut, sel), sel).toBe(true);
+    }
+    // Pitch Fix's keyboard panel has no figure and takes the same cut, on a whole pixel
+    // (2026-09-24): its foot ends on y226, the Scale list's last row beside it, 177 rows
+    // down the screen's body from y50.
+    expect([listed(cut, ".pitch-keys"), listed(cast, ".pitch-keys")]).toEqual([true, false]);
+    expect(declarations(CSS, ".pitch-keys")["border-radius"]).toBeUndefined();
+    const keys = declarations(CSS, ".pitch-keys");
+    expect(px(keys["top"]) + px(keys["height"])).toBe(177);
+    // None of them steps onto a band in the buttons' own cast: the rows and the tray have no
+    // band, the chip's band is its channel's colour, and MONITOR's Source steps in shades of its own.
+    expect([".ch-chip", ".pick-dialog-row", ".mon-source", ".dropdown-list"].map((sel) => listed(cast, sel))).toEqual([false, true, false, false]);
+    const source = cellsOf(declarations(CSS, ".mon-source::after")["background"] ?? "");
+    expect(corner(source, "left", "bottom")).toEqual(["0,3,2,--btn-bevel-sunk", "2,3,1,--corner-source-step-a", "0,4,1,--btn-bevel-sunk", "1,4,1,--corner-source-step-b", "0,5,1,--corner-source-step-a"]);
+    expect(corner(source, "right", "bottom")).toEqual(corner(source, "left", "bottom"));
+    expect(["a", "b"].map((k) => declarations(TOKENS, ":root")[`--corner-source-step-${k}`])).toEqual(["#4a595a", "#526163"]);
+    expect(declarations(CSS, ".pick-dialog-row::after")["background"]).toBe("none");
+    expect(declarations(CSS, ".pick-dialog-row.is-empty")["border-radius"], "no curve of the browser's under the cut").toBeUndefined();
+    expect(declarations(CSS, ".mon-source")["translate"], "MONITOR's Source stands at x6 as p068-1 has it").toBeUndefined();
+    // The chip's band climbs each side over three rows, in shares of the band and of black
+    // fitted to a blue band (p090-1) and an orange one (p093-2).
+    const chip = declarations(CSS, ".ch-chip::after");
+    const shares = (v: string | undefined): number[] => [...(v ?? "").matchAll(/(\d+)%/g)].map((m) => Number(m[1]));
+    expect([chip["--chip-step-3"], chip["--chip-step-4"], chip["--chip-step-5"]].map(shares)).toEqual([[87, 45], [67, 9], [57, 42]]);
+    const layers = cellsOf((chip["background"] ?? "").replace(/var\(--rail, transparent\)/g, "var(--rail)"));
+    expect(corner(layers, "left", "bottom")).toEqual(["0,0,2,--rail", "2,0,1,--chip-step-3", "0,1,1,--rail", "1,1,1,--chip-step-4", "0,2,1,--chip-step-5"]);
+    expect(corner(layers, "right", "bottom")).toEqual(corner(layers, "left", "bottom"));
   });
 
   it("ends RECORDER's progress bars and their played part in half-rounds drawn a pixel at a time", () => {

@@ -690,8 +690,9 @@ Coarse is in semitones and Fine in cents, and the unit prints neither unit, in t
 bar alone spells the first row `Coarce`.
 
 Page two uses no panels: MIDI Control / Key / Scale stand down the left as a caption over a pulldown
-(100 wide, 36 high, at y5, y67 and y128), and an octave of a keyboard stands beside them (x141..420 /
-y90..219, seven white keys and five black). All twelve notes carry a 26px circle with the note's name,
+(100 wide, 36 high, the pulldowns at x21 / y71, y131 and y191), and an octave of a keyboard stands beside them (x143..421 /
+y96..222, seven white keys and five black) on a panel (x139..425 / y92..226, face `--surface-dim`) whose foot is level
+with the Scale pulldown's. All twelve notes carry a 26px circle with the note's name,
 drawn in [1 1-knob]'s lit face where the correction takes the note and in the face of the pulldowns
 beside it where it does not. Touching a circle turns that note over and takes the Scale to `Custom`.
 Choosing a named scale fills the twelve in, and so does changing the Key while one is named. While the
@@ -1497,6 +1498,15 @@ frequencies of SAMPLING FREQUENCY and CH SETTING's PAN and BAL join into one row
 p093-1). An effect's Cho, Off and Vib are such a row too, and Gate and Sync, each standing alone, turn all four corners in
 the same pixels. The ends of RECORDER's
 progress bars, and of their played part, are 12-row half-rounds drawn a pixel at a time too (p079-2, p081-1).
+The rows of USER DEFINED KNOBS' assignment sheet (wide/p040-1), MONITOR's [Source] (p068-1) and the panel a dropdown's list
+stands on (p079-3) round with the same radius-4 cut. The rows and the panel carry no band, so no step onto one either.
+[Source] steps onto its band over three rows, its outer two pixels in the band's colour and those inside them in
+`--corner-source-step-*` (p068-1). Pitch Fix's keyboard panel has no figure and takes the same cut (the operator's
+instruction, 2026-09-24). The toolbar's channel box turns its top corners and its band's foot with the same cut, and
+the channel's colour band climbs both sides of the box over three rows. The row just above the band carries the band's
+colour on its outer two pixels and lays a mix of 87% band and 13% black at 45% on the third; the next carries the band's
+colour on its outer pixel and lays 67% band and 33% black at 9% on the second; the one above lays 57% band and 43% black
+at 42% on its outer pixel (shares fitted to the blue band of p090-1 and the orange one of p093-2).
 
 The switch (`--pb-*`) and the title badge (`--pt-*`) draw their corners in the same 46 places, each from shades of its own.
 The list of 46 layers stands in two rules because one rule can hold only one order of layers, and reordering either one moves
