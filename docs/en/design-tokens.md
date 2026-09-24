@@ -235,7 +235,7 @@ PY
 | `--corner-oneknob-panel-a` | `#101418` | The 1-knob panel's corner on the glass, the outer shade (x314 / y47 in p104-2) |
 | `--corner-oneknob-panel-b` | `#292c31` | The same, the shade after it (x315 / y47 in p104-2) |
 | `--corner-oneknob-panel-c` | `#293031` | The same, the diagonal pixel (x313 / y48 in p104-2) |
-| `--corner-source-step-a` | `#4a595a` | MONITOR's [Source], the shade at each end of the step from its face onto its band (x8 / y148 and x6 / y146 in p068-1) |
+| `--corner-source-step-a` | `#4a595a` | MONITOR's [Source] and a RECORDER slot's Source button, the shade at each end of the step from the face onto the band (x8 / y148 and x6 / y146 in p068-1) |
 | `--corner-source-step-b` | `#526163` | The same, the shade in the step's middle row (x7 / y147 in p068-1) |
 | `--corner-data-a` | `#3a494a` | SSMCS's Sweet Spot Data button, the outer shade of its top corner (x203 / y167 in p108-1) |
 | `--corner-data-b` | `#4a595a` | The same, the shade after it, and the face's last pixel above the step (x204 / y167 and x200 / y199 in p108-1) |

@@ -1499,10 +1499,10 @@ frequencies of SAMPLING FREQUENCY and CH SETTING's PAN and BAL join into one row
 p093-1). An effect's Cho, Off and Vib are such a row too, and Gate and Sync, each standing alone, turn all four corners in
 the same pixels. The ends of RECORDER's
 progress bars, and of their played part, are 12-row half-rounds drawn a pixel at a time too (p079-2, p081-1).
-The rows of USER DEFINED KNOBS' assignment sheet (wide/p040-1), MONITOR's [Source] (p068-1) and the panel a dropdown's list
-stands on (p079-3) round with the same radius-4 cut. The rows and the panel carry no band, so no step onto one either.
-[Source] steps onto its band over three rows, its outer two pixels in the band's colour and those inside them in
-`--corner-source-step-*` (p068-1). Pitch Fix's keyboard panel has no figure and takes the same cut (the operator's
+The rows of USER DEFINED KNOBS' assignment sheet (wide/p040-1), MONITOR's [Source] (p068-1), a RECORDER slot's Source
+button (p079-2) and the panel a dropdown's list stands on (p079-3) round with the same radius-4 cut. The rows and the panel
+carry no band, so no step onto one either. Both Source buttons step onto their band over three rows, the outer two pixels
+in the band's colour and those inside them in `--corner-source-step-*` (p068-1, p079-2). Pitch Fix's keyboard panel has no figure and takes the same cut (the operator's
 instruction, 2026-09-24). The toolbar's channel box turns its top corners and its band's foot with the same cut, and
 the channel's colour band climbs both sides of the box over three rows. The row just above the band carries the band's
 colour on its outer two pixels and lays a mix of 87% band and 13% black at 45% on the third; the next carries the band's

@@ -6255,6 +6255,7 @@
   min-height: 0;
   padding: 0 4px;
   background: var(--surface-on-sunk);
+  box-shadow: inset 0 -3px 0 var(--btn-bevel-sunk);
 }
 
 .rec-slot-copy {
@@ -7909,7 +7910,7 @@
  * band repeats the shape where the face meets the band and where the band meets
  * what the button stands on. The shades depend on the face, the band and that
  * ground, so each set is a group of tokens. */
-:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass, .ch-chip, .pick-dialog-row, .mon-source, .dropdown-list, .pitch-keys) {
+:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass, .ch-chip, .pick-dialog-row, .mon-source, .dropdown-list, .pitch-keys, .btn.rec-slot-src) {
   position: relative;
   --px-ground: var(--lcd-bg);
   /* The three pixels at each corner are cut away and the two beside them let the
@@ -7999,11 +8000,12 @@
 .pick-dialog-row,
 .mon-source,
 .dropdown-list,
-.pitch-keys) {
+.pitch-keys,
+.btn.rec-slot-src) {
   border-radius: 0;
 }
 
-:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass, .ch-chip, .pick-dialog-row, .mon-source, .dropdown-list, .pitch-keys) {
+:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass, .ch-chip, .pick-dialog-row, .mon-source, .dropdown-list, .pitch-keys, .btn.rec-slot-src) {
   mask: var(--px-mask-left), var(--px-mask-right), linear-gradient(#000, #000);
   mask-composite: exclude;
 }
@@ -8116,9 +8118,10 @@
   background: none;
 }
 
-/* MONITOR's Source steps from its face onto its band up three rows in shades of its
- * own (p068-1). */
-.mon-source::after {
+/* MONITOR's Source and a RECORDER slot's source button step from the face onto
+ * the band up three rows in shades of their own (p068-1, p079-2). */
+.mon-source::after,
+.btn.rec-slot-src::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -8858,11 +8861,11 @@
  * [AUTO] / [SAFE] — and each one gives the map its own shades. Face, band and
  * shades go together for each colour a switch lights in. GATE and DUCKER stand
  * a pixel further left in their block than the rest. */
-:where(.badge.badge-switch, .cv-gain-buttons .btn, .cv-sendto, .btn.input-flag, .btn.follow-usb, .btn.rec-slot-src, .btn.wizard-btn, .eq-screen > .eq-band, .oneknob) {
+:where(.badge.badge-switch, .cv-gain-buttons .btn, .cv-sendto, .btn.input-flag, .btn.follow-usb, .btn.wizard-btn, .eq-screen > .eq-band, .oneknob) {
   position: relative;
 }
 
-.lcd :is(.badge.badge-switch, .cv-gain-buttons .btn, .cv-sendto, .btn.input-flag, .btn.follow-usb, .btn.rec-slot-src, .btn.wizard-btn, .eq-screen > .eq-band, .oneknob) {
+.lcd :is(.badge.badge-switch, .cv-gain-buttons .btn, .cv-sendto, .btn.input-flag, .btn.follow-usb, .btn.wizard-btn, .eq-screen > .eq-band, .oneknob) {
   border-radius: 0;
   box-shadow: inset 0 -3px 0 var(--pb-band);
   /* The step where the face meets the band is one pixel wide and nothing more. */
@@ -8890,7 +8893,7 @@
 /* Sunk, that step is the switch's foot, so it turns there over four pixels in
  * the shades the top corner turns in: the block's face outside the turn and
  * three of the switch's own inside it. */
-.lcd :is(.badge.badge-switch, .cv-gain-buttons .btn, .cv-sendto, .btn.input-flag, .btn.follow-usb, .btn.rec-slot-src, .btn.wizard-btn, .eq-screen > .eq-band, .oneknob).is-pressed {
+.lcd :is(.badge.badge-switch, .cv-gain-buttons .btn, .cv-sendto, .btn.input-flag, .btn.follow-usb, .btn.wizard-btn, .eq-screen > .eq-band, .oneknob).is-pressed {
   --pb-step: var(--pb-ground);
   --pb-step-a: var(--pb-a);
   --pb-step-b: var(--pb-b);
@@ -8964,11 +8967,10 @@
 }
 
 /* [Follow USB] carries the same face and band as [SEND TO], so it turns the
- * same corners; the record source and the wizard's buttons take the shades of
- * the switch nearest their own face. */
+ * same corners; the wizard's buttons take the shades of the switch nearest
+ * their own face. */
 .lcd .cv-sendto,
-.lcd .btn.follow-usb,
-.lcd .btn.rec-slot-src {
+.lcd .btn.follow-usb {
   --pb-a: var(--corner-sendto-a);
   --pb-b: var(--corner-sendto-b);
   --pb-c: var(--corner-sendto-c);
@@ -8980,11 +8982,6 @@
 .lcd .btn.follow-usb {
   --pb-ground: var(--lcd-bg);
   --pb-band: var(--btn-bevel-plain);
-}
-
-.lcd .btn.rec-slot-src {
-  --pb-ground: var(--surface-sunken);
-  --pb-band: var(--btn-bevel-sunk);
 }
 
 .lcd .btn.wizard-btn {
@@ -9050,7 +9047,7 @@
   --pb-band: var(--badge-band-fx);
 }
 
-.lcd :is(.badge.badge-switch, .cv-gain-buttons .btn, .cv-sendto, .btn.input-flag, .btn.follow-usb, .btn.rec-slot-src, .btn.wizard-btn, .eq-screen > .eq-band, .oneknob)::after {
+.lcd :is(.badge.badge-switch, .cv-gain-buttons .btn, .cv-sendto, .btn.input-flag, .btn.follow-usb, .btn.wizard-btn, .eq-screen > .eq-band, .oneknob)::after {
   content: "";
   position: absolute;
   inset: 0;

@@ -11,7 +11,7 @@ const TOKENS = readStyle("tokens.css");
 
 /** The rule that draws the unit's switch: a block's name, and the head amp's AUTO / SAFE. */
 const SWITCH =
-  ".lcd :is(.badge.badge-switch, .cv-gain-buttons .btn, .cv-sendto, .btn.input-flag, .btn.follow-usb, .btn.rec-slot-src, .btn.wizard-btn, .eq-screen > .eq-band, .oneknob)";
+  ".lcd :is(.badge.badge-switch, .cv-gain-buttons .btn, .cv-sendto, .btn.input-flag, .btn.follow-usb, .btn.wizard-btn, .eq-screen > .eq-band, .oneknob)";
 /** The shades a switch on a block's face takes while it is unlit. */
 const SWITCH_OFF = ".lcd .badge.badge-switch";
 
@@ -2494,8 +2494,7 @@ describe("the bands and marks the card screens draw", () => {
 
   it("gives a source button on the sunk face, a plain button and a user defined knob's card bands of their own", () => {
     expect(band(".mon-source"), ".mon-source").toBe("inset 0 -3px 0 var(--btn-bevel-sunk)");
-    // The record source is on the switch's list, which draws its band from --pb-band.
-    expect(declarations(CSS, ".lcd .btn.rec-slot-src")["--pb-band"], ".rec-slot-src").toBe("var(--btn-bevel-sunk)");
+    expect(band(".rec-slot-src"), ".rec-slot-src").toBe("inset 0 -3px 0 var(--btn-bevel-sunk)");
     expect(band(".udk-knob"), ".udk-knob").toBe("inset 0 -3px 0 var(--btn-bevel-plain)");
     // [Follow USB] is on the switch's list, which draws its band from --pb-band.
     expect(declarations(CSS, ".lcd .btn.follow-usb")["--pb-band"], ".follow-usb").toBe("var(--btn-bevel-plain)");
@@ -2797,7 +2796,7 @@ describe("corners the unit draws a pixel at a time", () => {
     const cast = blocks.find((b) => b.sel.endsWith("::after") && b.sel.includes(".menu-btn"));
     const listed = (rule: { sel: string } | undefined, sel: string): boolean => (rule?.sel ?? "").includes(`, ${sel},`) || (rule?.sel ?? "").includes(`, ${sel})`);
     // p090-1, wide/p040-1, p068-1 and p079-3 cut each corner the way the shared button corners do.
-    for (const sel of [".ch-chip", ".pick-dialog-row", ".mon-source", ".dropdown-list"]) {
+    for (const sel of [".ch-chip", ".pick-dialog-row", ".mon-source", ".dropdown-list", ".btn.rec-slot-src"]) {
       expect(listed(cut, sel), sel).toBe(true);
     }
     // Pitch Fix's keyboard panel has no figure and takes the same cut, on a whole pixel
@@ -2811,6 +2810,9 @@ describe("corners the unit draws a pixel at a time", () => {
     // band, the chip's band is its channel's colour, and MONITOR's Source steps in shades of its own.
     expect([".ch-chip", ".pick-dialog-row", ".mon-source", ".dropdown-list"].map((sel) => listed(cast, sel))).toEqual([false, true, false, false]);
     const source = cellsOf(declarations(CSS, ".mon-source::after")["background"] ?? "");
+    // A RECORDER slot's source button stands on the same faces and turns the same way (p079-2).
+    expect(declarations(CSS, ".btn.rec-slot-src::after")["background"]).toBe(declarations(CSS, ".mon-source::after")["background"]);
+    expect(listed(cast, ".btn.rec-slot-src"), "and not in the buttons' own cast").toBe(false);
     expect(corner(source, "left", "bottom")).toEqual(["0,3,2,--btn-bevel-sunk", "2,3,1,--corner-source-step-a", "0,4,1,--btn-bevel-sunk", "1,4,1,--corner-source-step-b", "0,5,1,--corner-source-step-a"]);
     expect(corner(source, "right", "bottom")).toEqual(corner(source, "left", "bottom"));
     expect(["a", "b"].map((k) => declarations(TOKENS, ":root")[`--corner-source-step-${k}`])).toEqual(["#4a595a", "#526163"]);
