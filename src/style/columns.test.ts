@@ -2970,6 +2970,12 @@ describe("the channel, monitor and microSD parts measured against the guide's fi
     expect([cell["--pc-g"], cell["--pc-a"], cell["--pc-b"], cell["--pc-c"]]).toEqual(["var(--lcd-bg)", "var(--corner-sunk-a)", "var(--corner-sunk-b)", "var(--corner-sunk-c)"]);
     expect(cell["background"], "the ground on three pixels of the edge row").toContain("linear-gradient(var(--pc-g), var(--pc-g)) left 0px top 0px / 3px 1px no-repeat");
     expect(cell["background"], "then the outer shade").toContain("linear-gradient(var(--pc-a), var(--pc-a)) left 3px top 0px / 1px 1px no-repeat");
+    // An effect's panels turn as DELAY's cells do; a control on the glass has no panel to turn.
+    expect(declarations(CSS, ".lcd .efx-cell:not(.is-bare)::after")["background"]).toBe(cell["background"]);
+    expect(declarations(CSS, ".lcd .efx-cell:not(.is-bare)")["border-radius"]).toBe("0");
+    expect(declarations(CSS, ".efx-cell")["border-radius"], "no curve of the browser's under the pixels").toBeUndefined();
+    const placed = CSS.match(/:where\(\.param-cell[^{]*\{\s*position: relative;/)?.[0] ?? "";
+    expect(placed, "each panel is the box its overlay is placed in").toContain(".efx-cell:not(.is-bare)");
     const block = declarations(CSS, ".lcd .cv-block::after");
     expect([block["--pc-a"], block["--pc-foot-a"], block["--pc-band"]]).toEqual(["var(--corner-block-a)", "var(--corner-sunk-a)", "var(--btn-bevel)"]);
     expect(block["background"], "the step onto the band").toContain("linear-gradient(var(--corner-block-band-top), var(--corner-block-band-top)) right 0px bottom 7px / 1px 1px no-repeat");

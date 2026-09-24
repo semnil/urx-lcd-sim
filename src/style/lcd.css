@@ -7514,7 +7514,6 @@
   width: 86px;
   height: 82px;
   box-sizing: border-box;
-  border-radius: var(--radius-md);
   background: var(--surface-sunk);
   display: flex;
   flex-direction: column;
@@ -8113,7 +8112,7 @@
 
 /* These draw their corners on an overlay, so each stands as the box its overlay
  * is placed in. */
-:where(.param-cell:not(.osc-output .param-cell), .cv-param, .delay-cell, .cv-block, .cv-gain, .value-box, .cv-block-value:not(.cv-delay-value), .strip-level-value, .scene-box-static, .udk-toggle, .sd-path-field) {
+:where(.param-cell:not(.osc-output .param-cell), .cv-param, .delay-cell, .efx-cell:not(.is-bare), .cv-block, .cv-gain, .value-box, .cv-block-value:not(.cv-delay-value), .strip-level-value, .scene-box-static, .udk-toggle, .sd-path-field) {
   position: relative;
 }
 
@@ -8121,6 +8120,7 @@
 .lcd .osc-output,
 .lcd .cv-param,
 .lcd .delay-cell,
+.lcd .efx-cell:not(.is-bare),
 .lcd .cv-block,
 .lcd .cv-gain,
 .lcd .value-box,
@@ -8138,13 +8138,14 @@
 }
 
 /* A sunk cell on the glass (the parameter cells, OSC's output, the channel view's
- * PAN / LEVEL cells, DELAY's cells) rounds each corner over five pixels: the
- * ground on the first three of the edge row and two of the next, and three
- * shades between it and the face. */
+ * PAN / LEVEL cells, DELAY's cells, an effect's panels) rounds each corner over
+ * five pixels: the ground on the first three of the edge row and two of the next,
+ * and three shades between it and the face. */
 .lcd .param-cell:not(.osc-output .param-cell)::after,
 .lcd .osc-output::after,
 .lcd .cv-param::after,
 .lcd .delay-cell::after,
+.lcd .efx-cell:not(.is-bare)::after,
 .lcd .input-panel::after {
   content: "";
   position: absolute;

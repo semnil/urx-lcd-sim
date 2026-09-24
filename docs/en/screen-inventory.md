@@ -1494,7 +1494,7 @@ pixels on the rounded controls beside it (measured: 21 pixels on ch.eq, one step
 
 A box's corners are drawn the same way, in a shape set by the kind of box.
 
-- A sunk cell (the parameter cells, OSC's output, the channel view's PAN / LEVEL cells, DELAY's cells) and a channel view block
+- A sunk cell (the parameter cells, OSC's output, the channel view's PAN / LEVEL cells, DELAY's cells, an effect's panels) and a channel view block
   round each corner over five pixels, in the ground and three shades. A block's bottom corners are drawn twice: the foot where
   the band meets the ground, and the step where the face turns onto the band (p056-1, p090-1). INPUT's panels take the same shape
   in two shades of their own (p100-1).
