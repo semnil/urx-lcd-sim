@@ -15,3 +15,4 @@
 - Correct the README, which described the knob bar as read-only.
 - Draw the corners of the toolbar's channel box, the rows of USER DEFINED KNOBS' assignment sheet, MONITOR's Source, a dropdown list's panel, Pitch Fix's keyboard panel, the 1-knob panel and SSMCS's Sweet Spot Data in the pixels the guide's figures draw, and give Sweet Spot Data its band.
 - Stand MONITOR's Source, the dynamics screens' settings and the RECORDER's Track Count list where the guide's figures have them, and Pitch Fix's keyboard panel level with the Scale list beside it.
+- Draw lit [1-knob]'s corners over its panel, and the copy marks on Sweet Spot Data and MONITOR's Source, in the pixels and colours of the guide's figures.
