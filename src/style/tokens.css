@@ -318,7 +318,7 @@
   --caption-pale: #cecace; /* the caption over Operation Mode's value */
   --drop-mark: #dedbde; /* the down mark beside a name that drops a list */
   --strip-id-other: #000000; /* the number of the channel a stereo input's screens do not open on */
-  --rec-copy-mark: #dedfde; /* RECORDER's copy mark on a slot's source button */
+  --rec-copy-mark: #eff3ef; /* RECORDER's copy mark on a slot's source button, at its brightest */
   --field-mark: #848a8c; /* the copy and rename marks in CH SETTING's fields */
   --ssmcs-data-mark: #8c9694; /* the copy mark on SSMCS's Sweet Spot Data button */
   --knob-card-mark: #adaead; /* the copy mark on a USER DEFINED KNOBS card */

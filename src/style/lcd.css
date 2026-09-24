@@ -4216,10 +4216,11 @@
   height: 10px;
 }
 
-/* The source button draws it closer in than a channel chip does. */
+/* The source button draws it closer in than a channel chip does, and paler (p100-1). */
 .input-source-btn .ch-chip-copy {
   right: 3px;
   top: 3px;
+  color: var(--tab-ink);
 }
 
 .ch-chip-labels {
@@ -6267,10 +6268,6 @@
 .rec-slot-copy svg {
   width: 10px;
   height: 10px;
-}
-
-.rec-slot-copy svg path {
-  stroke-width: 1.5;
 }
 
 .rec-slot-meter {
@@ -9696,12 +9693,6 @@
   width: 10px;
   height: 10px;
   color: var(--ssmcs-data-mark);
-}
-
-/* The mark's strokes stand on whole pixels, their ends square (p108-1, p068-1). */
-.ssmcs-data-mark svg,
-.mon-source-copy svg {
-  shape-rendering: crispEdges;
 }
 
 .ssmcs-data-mark svg {

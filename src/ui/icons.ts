@@ -3,6 +3,20 @@
 
 const NS = "http://www.w3.org/2000/svg";
 
+/** The share of the mark's colour each pixel of a RECORDER slot's copy mark shows (p079-2). */
+const COPY_SOFT: readonly (readonly number[])[] = [
+  [0, 0, 0.12, 0.26, 0.26, 0.26, 0.26, 0.26, 0.26, 0.01],
+  [0, 0, 0.55, 0.87, 0.82, 0.82, 0.82, 0.82, 1.0, 0.26],
+  [0.12, 0.39, 0.55, 0.26, 0, 0, 0, 0, 0.82, 0.26],
+  [0.26, 0.82, 0.55, 0.26, 0, 0, 0, 0, 0.82, 0.26],
+  [0.26, 0.82, 0.55, 0.26, 0, 0, 0, 0, 0.82, 0.26],
+  [0.26, 0.82, 0.55, 0.26, 0, 0, 0, 0, 0.82, 0.26],
+  [0.26, 0.82, 0.55, 0.45, 0.26, 0.26, 0.26, 0.26, 0.87, 0.26],
+  [0.26, 0.82, 0.26, 0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 0.12],
+  [0.26, 1.0, 0.82, 0.82, 0.82, 0.82, 0.82, 0.39, 0, 0],
+  [0.06, 0.26, 0.26, 0.26, 0.26, 0.26, 0.26, 0.12, 0, 0],
+];
+
 /**
  * `fit` scales the drawing about the middle of the box and nudges it, for a
  * glyph whose path was drawn smaller than the unit draws it.
@@ -387,14 +401,41 @@ export const Icons = {
     ),
   /**
    * Copy the channel's settings: a square with the corner of the one behind it
-   * showing. Drawn at its own size, so the strokes land on whole pixels.
+   * showing. Drawn at its own size, so the strokes land on whole pixels, and
+   * without smoothing, so their ends and corners fill whole pixels too.
    */
   copy: (): SVGSVGElement => {
     const node = svg("0 0 10 10", ["M2.5 0.5H9.5V7.5H2.5Z", "M0.5 2.5V9.5H7.5"]);
+    node.setAttribute("shape-rendering", "crispEdges");
     for (const p of node.querySelectorAll("path")) {
       p.setAttribute("stroke-width", "1");
       p.setAttribute("stroke-linejoin", "miter");
     }
+    return node;
+  },
+  /**
+   * The same mark as a RECORDER slot's source button draws it, softened: each
+   * pixel takes the mark's colour at the share of it the unit shows over the face.
+   */
+  copySoft: (): SVGSVGElement => {
+    const node = document.createElementNS(NS, "svg");
+    node.setAttribute("viewBox", "0 0 10 10");
+    node.setAttribute("aria-hidden", "true");
+    node.setAttribute("focusable", "false");
+    node.setAttribute("shape-rendering", "crispEdges");
+    COPY_SOFT.forEach((row, y) =>
+      row.forEach((share, x) => {
+        if (share === 0) return;
+        const px = document.createElementNS(NS, "rect");
+        px.setAttribute("x", String(x));
+        px.setAttribute("y", String(y));
+        px.setAttribute("width", "1");
+        px.setAttribute("height", "1");
+        px.setAttribute("fill", "currentColor");
+        px.setAttribute("fill-opacity", String(share));
+        node.appendChild(px);
+      }),
+    );
     return node;
   },
   // A knob seen from above: a filled dial with its mark cut out at the top.

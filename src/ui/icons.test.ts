@@ -21,6 +21,22 @@ function pathData(icon: SVGSVGElement): string[] {
 
 
 
+describe("the copy mark", () => {
+  it("fills whole pixels at its ends and corners", () => {
+    expect(Icons.copy().getAttribute("shape-rendering")).toBe("crispEdges");
+  });
+
+  it("draws RECORDER's softened mark a pixel at a time, in shares of the mark's colour (p079-2)", () => {
+    const icon = Icons.copySoft();
+    expect(icon.getAttribute("shape-rendering")).toBe("crispEdges");
+    expect(icon.querySelectorAll("path")).toHaveLength(0);
+    const share = (x: number, y: number): number => Number(icon.querySelector(`rect[x="${x}"][y="${y}"]`)?.getAttribute("fill-opacity") ?? 0);
+    // The front square's top edge, its brightest corner, the back square's corner, and the hollow middle.
+    expect([share(3, 1), share(8, 1), share(1, 8), share(5, 4), share(0, 0)]).toEqual([0.87, 1, 1, 0, 0]);
+    expect(icon.querySelectorAll("rect")).toHaveLength(76);
+  });
+});
+
 describe("the card-eject mark", () => {
   const icon = Icons.eject();
 

@@ -113,7 +113,7 @@ PY
 | `--field-mark` | `#848a8c` | CH SETTING の欄の複製の印 (p093-2 の x124..133 / y58..67)。名前変更の印は `--text-muted` |
 | `--ssmcs-data-mark` | `#8c9694` | SSMCS の Sweet Spot Data のボタンの複製の印 (p108-1 の x387..396 / y172..181) |
 | `--knob-card-mark` | `#adaead` | USER DEFINED KNOBS のカードの複製の印 (p057-1 の x80..89 / y104..113) |
-| `--rec-copy-mark` | `#dedfde` | RECORDER のスロットの Source ボタンの複製の印 (p079-2 の x378..387 / y185..194) |
+| `--rec-copy-mark` | `#eff3ef` | RECORDER のスロットの Source ボタンの複製の印。印は画素ごとにこの色を面に混ぜて描き、この値はいちばん明るい画素 (p079-2 の x378..387 / y185..194、最も明るいのは x80 / y96) |
 | `--strip-id-other` | `#000000` | HOME のステレオの入力の名前の 1 行目で、チャンネルの画面が開かないほうの番号 (操作者の指定) |
 | `--ink-on-lit` | `#3a3d3a` | 点灯した [USB Storage Mode] の名前 (p078-1)。選んだ選択肢の名前 — 言語 (p055-1)、SAMPLING FREQUENCY の周波数 (p058-1)、Peripheral (p061-1 / p062-1)、入力ソース・出力ソースのシート (p100-2 / p060-2)、割り当てのダイアログ (p040-1)、OSCILLATOR のモード (p070-1)、PAN / BALANCE (p093-1)、USER DEFINED KNOBS のバンク。点灯した [ON] や HDCP の [Enable] などの入切のスイッチは黒 (`--text-inverse`。HDCP の [Enable] は点灯した図が無く、実機で確認) |
 | `--test-pass` | `#01ff00` | カードのテストの評価と録音の行 (p088-2) |

@@ -115,6 +115,13 @@ describe("the record-track source sheet", () => {
     expect(shell.root.querySelector(".source-title")?.textContent).toBe("REC Track 1/2");
   });
 
+  it("marks each track's source button with the softened copy mark", async () => {
+    const shell = await mount();
+    const marks = [...shell.root.querySelectorAll(".rec-slot-copy svg")];
+    expect(marks.length).toBeGreaterThan(0);
+    for (const m of marks) expect(m.querySelectorAll("rect").length, "drawn a pixel at a time").toBeGreaterThan(0);
+  });
+
   it("lists the stereo pairs three rows deep, with the two that stand apart on the first", async () => {
     const shell = await mount();
     shell.root.querySelector<HTMLElement>(".rec-slot-src")?.click();

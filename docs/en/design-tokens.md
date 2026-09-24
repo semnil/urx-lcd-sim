@@ -116,7 +116,7 @@ PY
 | `--field-mark` | `#848a8c` | The copy marks in CH SETTING's fields (x124..133 / y58..67 in p093-2); the rename mark takes `--text-muted` |
 | `--ssmcs-data-mark` | `#8c9694` | The copy mark on SSMCS's Sweet Spot Data button (x387..396 / y172..181 in p108-1) |
 | `--knob-card-mark` | `#adaead` | The copy mark on a USER DEFINED KNOBS card (x80..89 / y104..113 in p057-1) |
-| `--rec-copy-mark` | `#dedfde` | The copy mark on a RECORDER slot's Source button (x378..387 / y185..194 in p079-2) |
+| `--rec-copy-mark` | `#eff3ef` | The copy mark on a RECORDER slot's Source button, drawn by mixing this colour into the face pixel by pixel; the value is the brightest pixel (x378..387 / y185..194 in p079-2, brightest at x80 / y96) |
 | `--strip-id-other` | `#000000` | On a HOME stereo input's first name line, the number of the channel its screens do not open on (as the operator specified) |
 | `--ink-on-lit` | `#3a3d3a` | The name on [USB Storage Mode] while it is lit (p078-1). The name on a chosen option — a language (p055-1), SAMPLING FREQUENCY's rate (p058-1), Peripheral (p061-1 / p062-1), the input and output source sheets (p100-2 / p060-2), the assignment dialog (p040-1), OSCILLATOR's mode (p070-1), PAN / BALANCE (p093-1) and USER DEFINED KNOBS' bank. A lit on/off switch such as [ON] or HDCP's [Enable] keeps black (`--text-inverse`; no figure shows HDCP's [Enable] lit, and the unit was checked) |
 | `--test-pass` | `#01ff00` | The grade and the recording lines of a card test (p088-2) |
