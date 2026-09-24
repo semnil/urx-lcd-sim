@@ -266,6 +266,37 @@ describe("the EQ 1-knob's chain", () => {
     }
   });
 
+  it("sets every band's switch when a curve is taken, whatever the bands held", async () => {
+    const { shell, store } = await mount();
+    await open(shell, "channel-view", "ch1");
+    await open(shell, "ch.eq", "ch1");
+    shell.root.querySelector<HTMLElement>(".oneknob")?.click();
+    await flush();
+    const take = async (type: string): Promise<void> => {
+      panel(shell)?.querySelector<HTMLElement>(".pulldown")?.click();
+      await flush();
+      [...shell.root.querySelectorAll<HTMLElement>(".dropdown-option")].find((o) => o.textContent === type)?.click();
+      await flush();
+    };
+    const switches = (): boolean[] => bands.map((b) => store.bool(`ch.ch1.eq.${b}.on`, false));
+    const allOff = async (): Promise<void> => {
+      for (const b of bands) await store.set(`ch.ch1.eq.${b}.on`, false);
+    };
+
+    await allOff();
+    await take("Loudness");
+    expect(switches(), "Loudness takes all four on").toEqual([true, true, true, true]);
+    // Loudness at 0% and Vocal at 0% hold the same level, so nothing but the
+    // curve taken can move LOW.
+    await take("Vocal");
+    expect(switches(), "Vocal from Loudness at 0% takes LOW off").toEqual([false, true, true, true]);
+    await take("Loudness");
+    expect(switches(), "and Loudness puts it back on").toEqual([true, true, true, true]);
+    await allOff();
+    await take("Vocal");
+    expect(switches(), "Vocal takes the other three on").toEqual([false, true, true, true]);
+  });
+
   it("leaves the COMP 1-knob writing its own switch alone", async () => {
     const { shell, store } = await mount();
     await store.set("ch.ch1.comp.oneKnob.level", 30);

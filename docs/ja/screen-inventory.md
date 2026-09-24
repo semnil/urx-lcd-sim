@@ -512,9 +512,9 @@ x315..369 / y54..83)、線 `--oneknob-link` (x373..382 / y68..69)、点灯した
 1-knob の Level は EQ の 4 バンドの値を書き換える (ユーザーガイド「How 1-knob EQ works」)。1-knob を入れたとき、または
 入のあいだに Intensity を選んだときの 4 バンドのゲインを基準に取り、Intensity の Level は各ゲインを基準 × Level / 50 にする
 (50 で設定どおり、0 で平ら、100 で 2 倍)。Loudness を選ぶと 4 バンドを LOW が Bell・Q 0.56・90 Hz、L-MID が Q 1.00・400 Hz、
-H-MID が Q 1.00・2 kHz、HIGH が H.Shelf・Q 1.00・6 kHz にしてゲインを 0 にし、その Level は 1% あたり LOW に +0.20 dB、
+H-MID が Q 1.00・2 kHz、HIGH が H.Shelf・Q 1.00・6 kHz にして 4 バンドとも入・ゲインを 0 にし、その Level は 1% あたり LOW に +0.20 dB、
 L-MID に −0.20 dB、H-MID に +0.02 dB、HIGH に +0.10 dB を与える。Vocal を選ぶと LOW を HPF・80 Hz、L-MID を 335 Hz、H-MID を
-3 kHz、HIGH を Bell・8 kHz (Q はどれも 0.71) にしてゲインを 0 にし、LOW を切る。その Level は 1% ごとの表で、LOW を入にして
+3 kHz、HIGH を Bell・8 kHz (Q はどれも 0.71) にしてゲインを 0 にし、LOW を切って残りの 3 バンドを入にする。どちらも選ぶ前のバンドの入切を引き継がない。その Level は 1% ごとの表で、LOW を入にして
 コーナーを 80 Hz から 140 Hz まで上げ、L-MID を −6.0 dB まで下げ、H-MID を +2.0 dB まで上げ、HIGH を 77% の +2.0 dB まで上げて
 93% で 0 に戻す。ゲインはどれも 0.1 dB に揃い (ちょうど半分は + 側へ)、±18.0 dB で止まる。1-knob を切ってもバンドは Level が
 置いた値のまま。

@@ -1653,20 +1653,20 @@ function setEqOneKnob(ctx: AppContext, base: string, on: boolean): void {
 /** Where a band keeps the gain the Intensity level scales. */
 const eqOneKnobBase = (base: string, band: string): ParamPath => `${base}.eq.oneKnob.base.${band}`;
 
-/** Loudness's curve: each band's shape, and the hundredths of a dB each percent of the level gives it. */
-const EQ_LOUDNESS: Record<(typeof EQ_BANDS)[number]["key"], { shape: string; q: number; freq: number; perPercent: number }> = {
-  low: { shape: "Bell", q: 0.56, freq: 90, perPercent: 20 },
-  lowMid: { shape: "Bell", q: 1, freq: 400, perPercent: -20 },
-  highMid: { shape: "Bell", q: 1, freq: 2000, perPercent: 2 },
-  high: { shape: "H.Shelf", q: 1, freq: 6000, perPercent: 10 },
+/** Loudness's curve: each band's switch and shape, and the hundredths of a dB each percent of the level gives it. */
+const EQ_LOUDNESS: Record<(typeof EQ_BANDS)[number]["key"], { on: boolean; shape: string; q: number; freq: number; perPercent: number }> = {
+  low: { on: true, shape: "Bell", q: 0.56, freq: 90, perPercent: 20 },
+  lowMid: { on: true, shape: "Bell", q: 1, freq: 400, perPercent: -20 },
+  highMid: { on: true, shape: "Bell", q: 1, freq: 2000, perPercent: 2 },
+  high: { on: true, shape: "H.Shelf", q: 1, freq: 6000, perPercent: 10 },
 };
 
-/** Vocal's curve: each band's shape. LOW is a high-pass filter, off at 0% and on above it. */
-const EQ_VOCAL: Record<(typeof EQ_BANDS)[number]["key"], { shape: string; q: number; freq: number }> = {
-  low: { shape: "HPF", q: 0.71, freq: 80 },
-  lowMid: { shape: "Bell", q: 0.71, freq: 335 },
-  highMid: { shape: "Bell", q: 0.71, freq: 3000 },
-  high: { shape: "Bell", q: 0.71, freq: 8000 },
+/** Vocal's curve: each band's switch and shape. LOW is a high-pass filter, off at 0% and on above it. */
+const EQ_VOCAL: Record<(typeof EQ_BANDS)[number]["key"], { on: boolean; shape: string; q: number; freq: number }> = {
+  low: { on: false, shape: "HPF", q: 0.71, freq: 80 },
+  lowMid: { on: true, shape: "Bell", q: 0.71, freq: 335 },
+  highMid: { on: true, shape: "Bell", q: 0.71, freq: 3000 },
+  high: { on: true, shape: "Bell", q: 0.71, freq: 8000 },
 };
 
 /** Where Vocal's LOW corner stands from each level on, in Hz. */
@@ -1709,9 +1709,10 @@ const EQ_ONE_KNOB_GAIN_MAX = 1800;
  * What 1-knob EQ does to the four bands. Switching it on, and taking Intensity
  * while it is on, keep the gains as they stand; the Intensity level then sets
  * each band to that gain times level / 50. Taking Loudness or Vocal sets that
- * curve's own shapes with no gain. Loudness's level sets each band's gain at
- * the band's own rate per percent; Vocal's sets the gains, and LOW's switch and
- * corner, from its own table. Every gain lands on a tenth of a dB.
+ * curve's own switches and shapes with no gain, whatever the bands held.
+ * Loudness's level sets each band's gain at the band's own rate per percent;
+ * Vocal's sets the gains, and LOW's switch and corner, from its own table.
+ * Every gain lands on a tenth of a dB.
  */
 export function eqOneKnobWriteRule(store: DeviceStore): WriteRule {
   return (path) => {
@@ -1732,7 +1733,7 @@ export function eqOneKnobWriteRule(store: DeviceStore): WriteRule {
       return EQ_BANDS.flatMap((b): [ParamPath, ParamValue][] => {
         const c = curve[b.key];
         const p = `${base}.eq.${b.key}`;
-        return [[`${p}.shape`, c.shape], [`${p}.q`, c.q], [`${p}.freq`, c.freq], [`${p}.gain`, 0]];
+        return [[`${p}.on`, c.on], [`${p}.shape`, c.shape], [`${p}.q`, c.q], [`${p}.freq`, c.freq], [`${p}.gain`, 0]];
       });
     }
     const level = store.num(`${base}.eq.oneKnob.level`, 50);

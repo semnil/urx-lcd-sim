@@ -570,9 +570,10 @@ graph's ground `--graph-bg`, that picks nothing. The curve's line turns from the
 1-knob's Level rewrites the EQ's four bands ("How 1-knob EQ works" in the user guide). It takes the four gains as they
 stand when 1-knob goes on, or when Intensity is chosen while it is on, and Intensity's Level sets each gain to that gain
 times Level / 50 (as set at 50, flat at 0, twice at 100). Choosing Loudness sets LOW to Bell, Q 0.56, 90 Hz, L-MID to
-Q 1.00, 400 Hz, H-MID to Q 1.00, 2 kHz and HIGH to H.Shelf, Q 1.00, 6 kHz with no gain, and its Level gives each percent
+Q 1.00, 400 Hz, H-MID to Q 1.00, 2 kHz and HIGH to H.Shelf, Q 1.00, 6 kHz with every band on and no gain, and its Level gives each percent
 +0.20 dB to LOW, −0.20 dB to L-MID, +0.02 dB to H-MID and +0.10 dB to HIGH. Choosing Vocal sets LOW to HPF, 80 Hz, L-MID
-to 335 Hz, H-MID to 3 kHz and HIGH to Bell, 8 kHz (Q 0.71 on all four) with no gain, and switches LOW off. Its Level
+to 335 Hz, H-MID to 3 kHz and HIGH to Bell, 8 kHz (Q 0.71 on all four) with no gain, and switches LOW off and the other
+three on. Neither keeps the band switches it found. Its Level
 follows a table a percent at a time: LOW comes on and its corner climbs from 80 Hz to 140 Hz, L-MID falls to −6.0 dB,
 H-MID rises to +2.0 dB, and HIGH rises to +2.0 dB at 77% and is back at 0 by 93%. Every gain lands on a tenth of a dB
 (an exact half toward +) and stops at ±18.0 dB. Switching 1-knob off leaves the bands where the Level put them.
