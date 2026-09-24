@@ -689,7 +689,7 @@ Page one carries Coarse / Fine / Formant in the lower row's first three places, 
 Coarse is in semitones and Fine in cents, and the unit prints neither unit, in the box or on the bar; the
 bar alone spells the first row `Coarce`.
 
-Page two uses no panels: MIDI Control / Key / Scale stand down the left as a caption over a pulldown
+Page two stands none of its controls in the 86x82 panels page one uses: MIDI Control / Key / Scale stand down the left as a caption over a pulldown
 (100 wide, 36 high, the pulldowns at x21 / y71, y131 and y191), and an octave of a keyboard stands beside them (x143..421 /
 y96..222, seven white keys and five black) on a panel (x139..425 / y92..226, face `--surface-dim`) whose foot is level
 with the Scale pulldown's. All twelve notes carry a 26px circle with the note's name,
