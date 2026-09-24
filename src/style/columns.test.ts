@@ -3218,6 +3218,13 @@ describe("the marks on the control holding the focus", () => {
     const osc = declarations(CSS, ".osc-on");
     expect([osc["width"], osc["height"], osc["min-height"]], "OSCILLATOR's switch keeps the shared 40px square").toEqual([undefined, undefined, undefined]);
     expect(declarations(CSS, ".btn.btn-switch.osc-on")["--px-ground"]).toBe("var(--surface-sunk)");
+    // An effect's [ON] stands on its panel as OSCILLATOR's stands on the output's, and keeps the
+    // shared switch's corners and band, its name on the face above the band.
+    expect(declarations(CSS, ".btn.btn-switch.efx-switch")).toEqual(declarations(CSS, ".btn.btn-switch.osc-on"));
+    expect(declarations(CSS, ".btn.btn-switch.efx-switch.is-on")).toEqual(declarations(CSS, ".btn.btn-switch.osc-on.is-on"));
+    const inPanel = declarations(CSS, ".efx-cell .btn.btn-switch");
+    expect([inPanel["border-radius"], inPanel["box-shadow"]]).toEqual([undefined, undefined]);
+    expect(inPanel["padding"]).toBe(`0 0 ${-px(declarations(CSS, ".btn.btn-switch")["box-shadow"]?.split(" ")[2])}px`);
   });
 
   it("marks a held mid band above and below, and keeps the band box to one line", () => {

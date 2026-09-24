@@ -7586,9 +7586,7 @@
 }
 
 .efx-cell .btn.btn-switch {
-  padding: 0 0 3px;
-  border-radius: 3px;
-  box-shadow: inset 0 -3px 0 var(--switch-band);
+  padding: 0 0 4px;
 }
 
 /* A list the unit sets out as buttons takes two panels, the first two tracks and
@@ -9352,8 +9350,10 @@
   --px-foot-c: var(--corner-switch-lit-foot-c);
 }
 
-/* OSCILLATOR stands its [ON] on the output's sunk panel. */
-.btn.btn-switch.osc-on {
+/* OSCILLATOR stands its [ON] on the output's sunk panel, and an effect its [ON] on
+ * the panel it names. */
+.btn.btn-switch.osc-on,
+.btn.btn-switch.efx-switch {
   --px-ground: var(--surface-sunk);
   --px-a: var(--corner-switch-sunk-a);
   --px-b: var(--corner-switch-sunk-b);
@@ -9363,7 +9363,8 @@
   --px-foot-c: var(--corner-switch-sunk-foot-c);
 }
 
-.btn.btn-switch.osc-on.is-on {
+.btn.btn-switch.osc-on.is-on,
+.btn.btn-switch.efx-switch.is-on {
   --px-a: var(--corner-switch-lit-sunk-a);
   --px-b: var(--corner-switch-lit-sunk-b);
   --px-c: var(--corner-switch-lit-sunk-c);
