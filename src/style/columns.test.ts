@@ -2993,6 +2993,11 @@ describe("the channel, monitor and microSD parts measured against the guide's fi
     expect(declarations(CSS, ".efx-cell")["border-radius"], "no curve of the browser's under the pixels").toBeUndefined();
     const placed = CSS.match(/:where\(\.param-cell[^{]*\{\s*position: relative;/)?.[0] ?? "";
     expect(placed, "each panel is the box its overlay is placed in").toContain(".efx-cell:not(.is-bare)");
+    // The dynamics screens' settings stand on the same sunk panel (p099-1, p103-1, p114-1).
+    expect(declarations(CSS, ".lcd .dyn-set::after")["background"]).toBe(cell["background"]);
+    expect(declarations(CSS, ".lcd .dyn-set")["border-radius"]).toBe("0");
+    expect(declarations(CSS, ".dyn-set")["border-radius"], "no curve of the browser's under the pixels").toBeUndefined();
+    expect(placed).toContain(".dyn-set");
     const block = declarations(CSS, ".lcd .cv-block::after");
     expect([block["--pc-a"], block["--pc-foot-a"], block["--pc-band"]]).toEqual(["var(--corner-block-a)", "var(--corner-sunk-a)", "var(--btn-bevel)"]);
     expect(block["background"], "the step onto the band").toContain("linear-gradient(var(--corner-block-band-top), var(--corner-block-band-top)) right 0px bottom 7px / 1px 1px no-repeat");
