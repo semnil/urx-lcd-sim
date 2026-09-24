@@ -558,7 +558,7 @@ export const recorderScreen: ScreenDef = {
       const src = el("button", {
         class: "btn rec-slot-src",
         onTap: () => (busy ? undefined : void recordSourceSheet(ctx, i)),
-        children: [el("span", { text: source }), el("span", { class: "rec-slot-copy", children: [Icons.copy()] })],
+        children: [el("span", { text: source }), el("span", { class: "rec-slot-copy", children: [Icons.copySoft()] })],
       });
       return el("div", {
         class: "rec-slot",

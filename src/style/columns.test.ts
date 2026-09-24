@@ -11,7 +11,7 @@ const TOKENS = readStyle("tokens.css");
 
 /** The rule that draws the unit's switch: a block's name, and the head amp's AUTO / SAFE. */
 const SWITCH =
-  ".lcd :is(.badge.badge-switch, .cv-gain-buttons .btn, .cv-sendto, .btn.input-flag, .btn.follow-usb, .btn.rec-slot-src, .btn.wizard-btn, .eq-screen > .eq-band, .oneknob)";
+  ".lcd :is(.badge.badge-switch, .cv-gain-buttons .btn, .cv-sendto, .btn.input-flag, .btn.follow-usb, .btn.wizard-btn, .eq-screen > .eq-band, .oneknob)";
 /** The shades a switch on a block's face takes while it is unlit. */
 const SWITCH_OFF = ".lcd .badge.badge-switch";
 
@@ -1296,7 +1296,9 @@ describe("the compressor screen", () => {
     // the foot of the plot on all three.
     const stack = declarations(CSS, ".dyn-sets");
     expect(stack["flex-direction"]).toBe("column");
-    expect(px(stack["bottom"])).toBeGreaterThan(0);
+    // The plot runs y51..223 and the lowest setting ends on y223 in p099-1, p103-1 and p114-1:
+    // the dynamics screen's box ends on y232, nine rows below it.
+    expect(px(stack["bottom"])).toBe(9);
     expect(stack["top"], "nothing pins the top, so the stack grows upward").toBeUndefined();
     expect(px(declarations(CSS, ".dyn-set")["height"])).toBeGreaterThan(0);
   });
@@ -2080,7 +2082,6 @@ describe("the type each control sets", () => {
       [".osc-caption", "-3px 0px"],
       [".sendto-name", "8px 1px"],
       [".sendto-bal-caption", "-1px 0px"],
-      [".mon-source", "-1px 0"],
       [".flag.is-phase svg", "0 1px"],
       [".sd-list .list-head .list-cell:nth-child(2)", "-1px 0"],
       [".sd-transport-meta", "0 1px"],
@@ -2493,8 +2494,7 @@ describe("the bands and marks the card screens draw", () => {
 
   it("gives a source button on the sunk face, a plain button and a user defined knob's card bands of their own", () => {
     expect(band(".mon-source"), ".mon-source").toBe("inset 0 -3px 0 var(--btn-bevel-sunk)");
-    // The record source is on the switch's list, which draws its band from --pb-band.
-    expect(declarations(CSS, ".lcd .btn.rec-slot-src")["--pb-band"], ".rec-slot-src").toBe("var(--btn-bevel-sunk)");
+    expect(band(".rec-slot-src"), ".rec-slot-src").toBe("inset 0 -3px 0 var(--btn-bevel-sunk)");
     expect(band(".udk-knob"), ".udk-knob").toBe("inset 0 -3px 0 var(--btn-bevel-plain)");
     // [Follow USB] is on the switch's list, which draws its band from --pb-band.
     expect(declarations(CSS, ".lcd .btn.follow-usb")["--pb-band"], ".follow-usb").toBe("var(--btn-bevel-plain)");
@@ -2791,6 +2791,68 @@ describe("corners the unit draws a pixel at a time", () => {
     ).toEqual(["none", "var(--px-left)", "var(--px-right)"]);
   });
 
+  it("turns the chip, a picking dialog's rows, MONITOR's Source and a list's tray in the buttons' pixels", () => {
+    const cut = blocks.find((b) => b.body.includes("mask: var(--px-mask-left), var(--px-mask-right)"));
+    const cast = blocks.find((b) => b.sel.endsWith("::after") && b.sel.includes(".menu-btn"));
+    const listed = (rule: { sel: string } | undefined, sel: string): boolean => (rule?.sel ?? "").includes(`, ${sel},`) || (rule?.sel ?? "").includes(`, ${sel})`);
+    // p090-1, wide/p040-1, p068-1 and p079-3 cut each corner the way the shared button corners do.
+    for (const sel of [".ch-chip", ".pick-dialog-row", ".mon-source", ".dropdown-list", ".btn.rec-slot-src"]) {
+      expect(listed(cut, sel), sel).toBe(true);
+    }
+    // Pitch Fix's keyboard panel has no figure and takes the same cut, on a whole pixel
+    // (2026-09-24): its foot ends on y226, the Scale list's last row beside it, 177 rows
+    // down the screen's body from y50.
+    expect([listed(cut, ".pitch-keys"), listed(cast, ".pitch-keys")]).toEqual([true, false]);
+    expect(declarations(CSS, ".pitch-keys")["border-radius"]).toBeUndefined();
+    const keys = declarations(CSS, ".pitch-keys");
+    expect(px(keys["top"]) + px(keys["height"])).toBe(177);
+    // None of them steps onto a band in the buttons' own cast: the rows and the tray have no
+    // band, the chip's band is its channel's colour, and MONITOR's Source steps in shades of its own.
+    expect([".ch-chip", ".pick-dialog-row", ".mon-source", ".dropdown-list"].map((sel) => listed(cast, sel))).toEqual([false, true, false, false]);
+    const source = cellsOf(declarations(CSS, ".mon-source::after")["background"] ?? "");
+    // A RECORDER slot's source button stands on the same faces and turns the same way (p079-2).
+    expect(declarations(CSS, ".btn.rec-slot-src::after")["background"]).toBe(declarations(CSS, ".mon-source::after")["background"]);
+    expect(listed(cast, ".btn.rec-slot-src"), "and not in the buttons' own cast").toBe(false);
+    expect(corner(source, "left", "bottom")).toEqual(["0,3,2,--btn-bevel-sunk", "2,3,1,--corner-source-step-a", "0,4,1,--btn-bevel-sunk", "1,4,1,--corner-source-step-b", "0,5,1,--corner-source-step-a"]);
+    expect(corner(source, "right", "bottom")).toEqual(corner(source, "left", "bottom"));
+    expect(["a", "b"].map((k) => declarations(TOKENS, ":root")[`--corner-source-step-${k}`])).toEqual(["#4a595a", "#526163"]);
+    expect(declarations(CSS, ".pick-dialog-row::after")["background"]).toBe("none");
+    expect(declarations(CSS, ".pick-dialog-row.is-empty")["border-radius"], "no curve of the browser's under the cut").toBeUndefined();
+    expect(declarations(CSS, ".mon-source")["translate"], "MONITOR's Source stands at x6 as p068-1 has it").toBeUndefined();
+    const sourceMark = declarations(CSS, ".mon-source-copy");
+    expect(sourceMark["color"], "its copy mark white, as p068-1 draws it").toBe("var(--text)");
+    // The chip's band climbs each side over three rows, in shares of the band and of black
+    // fitted to a blue band (p090-1) and an orange one (p093-2).
+    const chip = declarations(CSS, ".ch-chip::after");
+    const shares = (v: string | undefined): number[] => [...(v ?? "").matchAll(/(\d+)%/g)].map((m) => Number(m[1]));
+    expect([chip["--chip-step-3"], chip["--chip-step-4"], chip["--chip-step-5"]].map(shares)).toEqual([[87, 45], [67, 9], [57, 42]]);
+    const layers = cellsOf((chip["background"] ?? "").replace(/var\(--rail, transparent\)/g, "var(--rail)"));
+    expect(corner(layers, "left", "bottom")).toEqual(["0,0,2,--rail", "2,0,1,--chip-step-3", "0,1,1,--rail", "1,1,1,--chip-step-4", "0,2,1,--chip-step-5"]);
+    expect(corner(layers, "right", "bottom")).toEqual(corner(layers, "left", "bottom"));
+  });
+
+  it("turns SSMCS's Sweet Spot Data in the pixels p108-1 draws on the Morphing panel", () => {
+    const data = cellsOf(declarations(CSS, ".lcd .ssmcs-data::after")["background"] ?? "");
+    expect(corner(data, "left", "top")).toEqual(["0,0,3,--sd-g", "3,0,1,--corner-data-a", "4,0,1,--corner-data-b", "0,1,2,--sd-g", "2,1,1,--corner-data-c", "0,2,1,--sd-g", "1,2,1,--corner-data-c", "0,3,1,--corner-data-a", "0,4,1,--corner-data-b"]);
+    // The band's foot turns over four pixels, and the face steps onto the band up five rows.
+    expect(corner(data, "left", "bottom")).toEqual([
+      "0,0,2,--sd-g", "2,0,1,--corner-data-foot-a", "3,0,1,--corner-data-foot-b",
+      "0,1,1,--sd-g", "1,1,1,--corner-data-foot-b",
+      "0,2,1,--corner-data-foot-a",
+      "0,3,1,--corner-data-foot-b", "1,3,2,--btn-bevel-sunk", "3,3,1,--corner-data-step-a", "4,3,1,--corner-data-step-b",
+      "0,4,2,--btn-bevel-sunk", "2,4,1,--corner-data-step-b",
+      "0,5,1,--btn-bevel-sunk", "1,5,1,--corner-data-step-b",
+      "0,6,1,--corner-data-step-c",
+      "0,7,1,--corner-data-b",
+    ]);
+    for (const edge of ["top", "bottom"]) expect(corner(data, "right", edge), edge).toEqual(corner(data, "left", edge));
+    expect(declarations(CSS, ".lcd .ssmcs-data::after")["--sd-g"]).toBe("var(--surface-sunk)");
+    const root = declarations(TOKENS, ":root");
+    expect(["a", "b", "c", "foot-a", "foot-b", "step-a", "step-b", "step-c"].map((k) => root[`--corner-data-${k}`])).toEqual([
+      "#3a494a", "#4a595a", "#52595a", "#313d3a", "#3a4142", "#4a5152", "#525d63", "#424d4a",
+    ]);
+  });
+
   it("ends RECORDER's progress bars and their played part in half-rounds drawn a pixel at a time", () => {
     const vars = declarations(CSS, ".sd-progress");
     const rows = (cells: Cell[], side: string): number[] => [...new Set(cells.filter((c) => c.side === side).map((c) => c.y))].sort((a, b) => a - b);
@@ -2997,6 +3059,22 @@ describe("the channel, monitor and microSD parts measured against the guide's fi
     expect(declarations(CSS, ".efx-cell")["border-radius"], "no curve of the browser's under the pixels").toBeUndefined();
     const placed = CSS.match(/:where\(\.param-cell[^{]*\{\s*position: relative;/)?.[0] ?? "";
     expect(placed, "each panel is the box its overlay is placed in").toContain(".efx-cell:not(.is-bare)");
+    // The panel 1-knob stands its row on turns the same way in shades of its own face (p104-2).
+    expect(declarations(CSS, ".lcd .oneknob-panel::after")["background"]).toBe(cell["background"]);
+    expect(declarations(CSS, ".oneknob-panel")["border-radius"]).toBeUndefined();
+    expect(placed).toContain(".oneknob-panel");
+    // Its top row is y47 in p104-2, three rows over the main area's top at y50.
+    expect(px(declarations(CSS, ".main:has(.oneknob-panel)")["overflow-clip-margin"])).toBe(3);
+    expect(px(declarations(CSS, ".main")["overflow-clip-margin"]), "every other screen keeps its margin").toBe(2);
+    const knobPanel = declarations(CSS, ".lcd .oneknob-panel::after");
+    expect([knobPanel["--pc-a"], knobPanel["--pc-b"], knobPanel["--pc-c"]]).toEqual(["var(--corner-oneknob-panel-a)", "var(--corner-oneknob-panel-b)", "var(--corner-oneknob-panel-c)"]);
+    const tokens = declarations(TOKENS, ":root");
+    expect(["a", "b", "c"].map((k) => tokens[`--corner-oneknob-panel-${k}`])).toEqual(["#101418", "#292c31", "#293031"]);
+    // EQ's panel runs square into the right edge: the same left corners and no right ones (p106-2).
+    const eqPanel = declarations(CSS, ".lcd .eq-screen > .oneknob-panel::after")["background"] ?? "";
+    expect(eqPanel.includes("right "), "no right corner").toBe(false);
+    const sides = (bg: string, side: string): string[] => bg.split("no-repeat").filter((l) => l.includes(` ${side} `)).map((l) => l.trim().replace(/^,\s*/, ""));
+    expect(sides(eqPanel, "left")).toEqual(sides(cell["background"] ?? "", "left"));
     // The dynamics screens' settings stand on the same sunk panel (p099-1, p103-1, p114-1).
     expect(declarations(CSS, ".lcd .dyn-set::after")["background"]).toBe(cell["background"]);
     expect(declarations(CSS, ".lcd .dyn-set")["border-radius"]).toBe("0");
@@ -3053,8 +3131,12 @@ describe("the channel, monitor and microSD parts measured against the guide's fi
 
   it("sets the marks and names measured last against the guide at their weights, shades and places", () => {
     expect(declarations(CSS, ".rec-slot-copy")["color"], "RECORDER's copy mark in pale grey").toBe("var(--rec-copy-mark)");
-    expect(declarations(CSS, ".rec-slot-copy svg path")["stroke-width"], "on a heavier stroke").toBe("1.5");
-    expect(declarations(TOKENS, ":root")["--rec-copy-mark"]).toBe("#dedfde");
+    // The glyph carries its own shares of the colour, so its brightest pixel is the colour itself (p079-2).
+    expect(declarations(TOKENS, ":root")["--rec-copy-mark"]).toBe("#eff3ef");
+    // INPUT's source button draws the mark paler than the chip does (p100-1).
+    expect(declarations(CSS, ".input-source-btn .ch-chip-copy")["color"]).toBe("var(--tab-ink)");
+    // The time zone's box stands a pixel right of the date's (p064-1: x145..366 under x144..365).
+    expect(px(declarations(CSS, ".dt-screen .dt-value.dt-value-single")["margin-left"])).toBe(1);
     expect(declarations(CSS, ".mode-caption")["font-weight"], "Operation Mode's caption").toBe("500");
     expect(declarations(CSS, ".chs-mark-edit")["color"], "CH SETTING's rename mark darker than its copy marks").toBe("var(--text-muted)");
     expect(declarations(CSS, ".side-tab-label")["font-weight"], "a side tab's name").toBe("600");
@@ -3374,6 +3456,13 @@ describe("the marks on the control holding the focus", () => {
     expect(declarations(CSS, ".cv-oneknob > .cv-block-value")["background"]).toBe("var(--accent-focus-fill)");
     const lit = declarations(CSS, ".lcd .oneknob.is-on");
     expect([lit["background"], lit["box-shadow"]]).toEqual(["var(--oneknob-lit)", "inset 0 -3px 0 var(--oneknob-lit-band)"]);
+    // Lit, it turns the switch's pixels over the panel it stands on, its band square to the foot (p104-2).
+    const pb = declarations(CSS, ".lcd .oneknob.is-on");
+    expect(["ground", "a", "b", "c", "in", "d", "e", "f"].map((k) => pb[`--pb-${k}`])).toEqual([
+      "var(--oneknob-panel)", "var(--corner-oneknob-lit-a)", "var(--corner-oneknob-lit-b)", "var(--corner-oneknob-lit-c)", "var(--corner-oneknob-lit-in)",
+      "var(--oneknob-lit-band)", "var(--oneknob-lit-band)", "var(--oneknob-lit-band)",
+    ]);
+    expect(declarations(CSS, ".lcd .oneknob.is-on::after")["background"], "no other corner laid over the switch's").toBeUndefined();
     const panel = declarations(CSS, ".oneknob-panel");
     expect([px(panel["height"]), panel["background"]]).toEqual([44, "var(--oneknob-panel)"]);
     const level = declarations(CSS, ".lcd .oneknob-panel > .oneknob-level");
@@ -3387,6 +3476,7 @@ describe("the marks on the control holding the focus", () => {
     expect(declarations(CSS, ".eq-plot.is-oneknob .eq-curve-line")["stroke"], "the curve in magenta while 1-knob drives it").toBe("var(--accent-focus)");
     const root = declarations(TOKENS, ":root");
     expect([root["--oneknob-lit"], root["--oneknob-lit-band"], root["--oneknob-panel"], root["--oneknob-link"], root["--oneknob-type"]]).toEqual(["#4aaa31", "#317529", "#393c42", "#4aa631", "#636973"]);
+    expect(["a", "b", "c", "in"].map((k) => root[`--corner-oneknob-lit-${k}`])).toEqual(["#395139", "#428239", "#42a231", "#42a631"]);
   });
 });
 
@@ -3532,8 +3622,10 @@ describe("BUS Type's own list", () => {
 
 describe("a list of choices over the screen", () => {
   it("keeps its choices inside its own panel, 4px in at the top and the foot", () => {
-    // p079-3, the Track Count list: the panel runs y54..233, its first tile
-    // starts at y58 and its last ends at y229 — the padding the panel declares.
+    // p079-3, the Track Count list: the panel runs y46..225, its first tile
+    // starts at y50 and its last ends at y221 — the padding the panel declares.
+    // The figure's canvas carries eight white rows over the screen.
+    expect(px(declarations(CSS, ".rec-track-list")["top"])).toBe(46);
     const list = declarations(CSS, ".dropdown-list");
     expect([list["padding"], list["gap"]]).toEqual(["4px", "4px"]);
     expect(

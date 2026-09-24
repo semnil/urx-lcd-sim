@@ -689,9 +689,10 @@ Page one carries Coarse / Fine / Formant in the lower row's first three places, 
 Coarse is in semitones and Fine in cents, and the unit prints neither unit, in the box or on the bar; the
 bar alone spells the first row `Coarce`.
 
-Page two uses no panels: MIDI Control / Key / Scale stand down the left as a caption over a pulldown
-(100 wide, 36 high, at y5, y67 and y128), and an octave of a keyboard stands beside them (x141..420 /
-y90..219, seven white keys and five black). All twelve notes carry a 26px circle with the note's name,
+Page two stands none of its controls in the 86x82 panels page one uses: MIDI Control / Key / Scale stand down the left as a caption over a pulldown
+(100 wide, 36 high, the pulldowns at x21 / y71, y131 and y191), and an octave of a keyboard stands beside them (x143..421 /
+y96..222, seven white keys and five black) on a panel (x139..425 / y92..226, face `--surface-dim`) whose foot is level
+with the Scale pulldown's. All twelve notes carry a 26px circle with the note's name,
 drawn in [1 1-knob]'s lit face where the correction takes the note and in the face of the pulldowns
 beside it where it does not. Touching a circle turns that note over and takes the Scale to `Custom`.
 Choosing a named scale fills the twelve in, and so does changing the Key while one is named. While the
@@ -886,8 +887,8 @@ own size and carries its own rules: the compressor's at 0.8 across and 0.2 down,
 reduction meter (x155/y14). Two panels below (face `--surface-sunk`, corner `--radius-lg`): Comp
 Drive 86x84 at x10/y94 and Morphing 300x84 at x114/y94. The name, the value and the knob line up on
 the 86px column at the panel's left: the name 13px, two pixels left of centre (y2), the value box 52x22 (x17/y19), the
-knob at x20/y46. The Morphing panel carries the Sweet Spot Data button beside them (202x37, x198/y117,
-face `--surface-on-sunk`, its copy mark 11x11 4px from the right and 5px from the top). A press drops
+knob at x20/y46. The Morphing panel carries the Sweet Spot Data button beside them (202x40: 37 rows of face over a 3px band `--btn-bevel-sunk`, x198/y117,
+face `--surface-on-sunk`, its copy mark 10x10 5px from the right and 5px from the top, in `--ssmcs-data-mark`). A press drops
 a sheet of the 34 names, two to a row.
 
 COMP (measured on p110-1). The [Comp] title box at the top left (93x38, x0/y-1: 35 rows of face over
@@ -1214,7 +1215,7 @@ the start of its track (x357..359 / y223..225 in p063-1); a channel screen's kno
 
 DATE / TIME sets the date and the time on [Date/Time] at 12px, the city on [Time Zone] at 13.5px in the middle of its box,
 and the format lists' values at 12.5px, and stands the `Date` / `Time` headings over the two lists at 13px, 2px above
-them (p064-1).
+them (p064-1). The [Time Zone] box stands a pixel right of the [Date/Time] box (x145..366 and x144..365 in p064-1).
 
 The clock keeps a moment that runs with the computer's clock and shows it in the time zone [Time Zone] is set to,
 so a new zone moves the date and time on the button; a unit as it ships is on Tokyo. A zone keeps its standard
@@ -1308,8 +1309,9 @@ by the sampling frequency — 16 at 44.1 / 48 kHz, 8 at 88.2 / 96 kHz and 2 at 1
 counts it cannot carry stay in the list, drawn on a face that takes nothing. **Raising the frequency
 lowers the count to that ceiling, and lowering the frequency again does not raise it back.** The drop
 happens when the frequency moves, and three paths move it — the SAMPLING FREQUENCY screen, a settings
-file being loaded, and a unit coming back from storage. This [Track Count] is the only way back up. The copy mark on a slot's Source button is drawn in 1.5px lines of
-`--rec-copy-mark`, 1px in from the button's top right (x378..387 / y185..194 in p079-2). A take
+file being loaded, and a unit coming back from storage. This [Track Count] is the only way back up. The copy mark on a slot's Source button is drawn the softened way the unit
+draws it, each pixel mixing `--rec-copy-mark` into the face at a share of its own (`Icons.copySoft`), 1px in from the
+button's top right (x378..387 / y185..194 in p079-2). A take
 moves through four states in turn. When the screen opens it is stopped, and the middle transport button carries the
 green triangle, which does nothing when pressed. A press on [●] arms the recorder, and the ● fades out and back in over
 two seconds (half the pace of a held EQ band's triangles). A press on the middle triangle while armed starts the take,
@@ -1497,18 +1499,30 @@ frequencies of SAMPLING FREQUENCY and CH SETTING's PAN and BAL join into one row
 p093-1). An effect's Cho, Off and Vib are such a row too, and Gate and Sync, each standing alone, turn all four corners in
 the same pixels. The ends of RECORDER's
 progress bars, and of their played part, are 12-row half-rounds drawn a pixel at a time too (p079-2, p081-1).
+The rows of USER DEFINED KNOBS' assignment sheet (wide/p040-1), MONITOR's [Source] (p068-1), a RECORDER slot's Source
+button (p079-2) and the panel a dropdown's list stands on (p079-3) round with the same radius-4 cut. The rows and the panel
+carry no band, so no step onto one either. Both Source buttons step onto their band over three rows, the outer two pixels
+in the band's colour and those inside them in `--corner-source-step-*` (p068-1, p079-2). Pitch Fix's keyboard panel has no figure and takes the same cut (the operator's
+instruction, 2026-09-24). The toolbar's channel box turns its top corners and its band's foot with the same cut, and
+the channel's colour band climbs both sides of the box over three rows. The row just above the band carries the band's
+colour on its outer two pixels and lays a mix of 87% band and 13% black at 45% on the third; the next carries the band's
+colour on its outer pixel and lays 67% band and 33% black at 9% on the second; the one above lays 57% band and 43% black
+at 42% on its outer pixel (shares fitted to the blue band of p090-1 and the orange one of p093-2).
 
 The switch (`--pb-*`) and the title badge (`--pt-*`) draw their corners in the same 46 places, each from shades of its own.
 The list of 46 layers stands in two rules because one rule can hold only one order of layers, and reordering either one moves
 pixels on the rounded controls beside it (measured: 21 pixels on ch.eq, one step per channel, and 3 pixels on ch.comp with
-1-knob lit). That the two agree on the places is guarded by "the two corner maps" in `src/style/columns.test.ts`.
+1-knob lit). That the two agree on the places is guarded by "the two corner maps" in `src/style/columns.test.ts`. [1 1-knob]
+lit draws the switch's places over the 1-knob panel in the `--corner-oneknob-lit-*` shades (p104-2).
 
 A box's corners are drawn the same way, in a shape set by the kind of box.
 
 - A sunk cell (the parameter cells, OSC's output, the channel view's PAN / LEVEL cells, DELAY's cells, an effect's panels, the dynamics screens' settings rows (p099-1)) and a channel view block
   round each corner over five pixels, in the ground and three shades. A block's bottom corners are drawn twice: the foot where
   the band meets the ground, and the step where the face turns onto the band (p056-1, p090-1). INPUT's panels take the same shape
-  in two shades of their own (p100-1).
+  in two shades of their own (p100-1), and the 1-knob panel in three of its own (`--corner-oneknob-panel-*`, p104-2).
+- SSMCS's Sweet Spot Data button rounds its top corners in the sunk cells' five-pixel shape, its band's foot over four
+  pixels and the step from the face onto the band over five rows, in the `--corner-data-*` shades (p108-1).
 - A value box and a well (RECORDER's slots, SCENE LIST's box, a box that only names its screen) round over three
   pixels, a well with one more shade inside the corner (p090-1, p067-1, p079-2). INPUT's value boxes carry no shade and
   turn in two steps of the panel alone (p100-1).
@@ -1549,7 +1563,7 @@ picked. It is not a control that sends one value per tap. The glass holds five o
 opens on the sheet the unit opens a long list on (DUCKER's Ducker Source and DELAY's Frame rate).
 
 A list's panel sets its choices 4px inside it on every edge, with 4px between them (measured on
-p079-3: the panel runs y54..233, its first tile starts at y58 and its last ends at y229).
+p079-3: the panel runs y46..225, its first tile starts at y50 and its last ends at y221).
 
 The box has face `--surface`, a 3px shadow band at the bottom and 12px padding on the left. A white 9x8
 downward triangle stands 6px in from the right edge, its tip a pixel wide (measured on p092-1 and p099-1).

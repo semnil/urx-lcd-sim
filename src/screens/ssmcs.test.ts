@@ -419,7 +419,14 @@ describe("where the strip puts its boxes", () => {
     expect(px(declarations(CSS, ".ssmcs-caption")["width"])).toBe(86);
     expect(declarations(CSS, ".ssmcs-caption")["text-align"]).toBe("center");
     expect(box(".lcd .ssmcs-knob-panel .value-box")).toEqual([17, 19, 52, 22]);
-    expect(box(".lcd .ssmcs-data")).toEqual([84, 23, 202, 37]);
+    // 37 rows of face over a 3px band, y167..206 in p108-1.
+    expect(box(".lcd .ssmcs-data")).toEqual([84, 23, 202, 40]);
+    expect(declarations(CSS, ".lcd .ssmcs-data")["box-shadow"]).toBe("inset 0 -3px 0 var(--btn-bevel-sunk)");
+    expect(declarations(CSS, ".lcd .ssmcs-data")["padding"], "the name centres on the face above the band").toBe("0 0 3px");
+    // The copy mark is 10x10 at x387..396 / y172..181, in a grey of its own.
+    const mark = declarations(CSS, ".ssmcs-data-mark");
+    expect([mark["width"], mark["height"], mark["right"], mark["top"], mark["color"]].map((v) => v ?? "")).toEqual(["10px", "10px", "5px", "5px", "var(--ssmcs-data-mark)"]);
+    expect(declarations(readStyle("tokens.css"), ":root")["--ssmcs-data-mark"]).toBe("#8c9694");
   });
 
   it("stands the compressor's plot and the side chain's switch where p110-1 and p111-1 have them", () => {

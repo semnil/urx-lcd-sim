@@ -13,3 +13,7 @@
 - USER DEFINED KNOBS の割り当てた値を、ノブのバーの区画のドラッグ・ホイール・矢印キーで回せるようにする。1-knob が入の間は実機と同じく回らない。
 - EQ 画面とチャンネルビューの EQ ブロックのカーブを、各バンドのフィルターの形 (Bell / L.Shelf / H.Shelf / HPF / LPF) どおりに描く。Bell の幅はガイドの図と同じにする。
 - ノブのバーを読み出しだけと書いていた README を直す。
+- ツールバーのチャンネルの箱、USER DEFINED KNOBS の割り当てのシートの行、MONITOR の [Source]、ドロップダウンの一覧の盆、Pitch Fix の鍵盤のパネル、1-knob のパネル、SSMCS の Sweet Spot Data の角を、ガイドの図と同じ画素で描く。Sweet Spot Data に帯を付ける。
+- MONITOR の [Source]、ダイナミクス画面の設定、RECORDER の Track Count の一覧をガイドの図の位置に置き、Pitch Fix の鍵盤のパネルを横の Scale の一覧と下端でそろえる。
+- 点灯した [1 1-knob] の角と、Sweet Spot Data と MONITOR の [Source] の複製の印を、ガイドの図と同じ画素と色で描く。
+- 複製の印をどれもガイドの図と同じ色で画素にそろえて描き (RECORDER の印は実機がぼかして描く形で)、RECORDER のスロットの Source ボタンの角を MONITOR の [Source] と同じにし、時刻帯の箱を日時の箱より 1px 右に置く。

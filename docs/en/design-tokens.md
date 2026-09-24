@@ -114,8 +114,9 @@ PY
 | `--caption-pale` | `#cecace` | The caption of the Operation Mode box (x38..88 / y8..15 in p041-1) |
 | `--drop-mark` | `#dedbde` | The down mark on a button that drops a list (the bank button's x205..213 / y9..14 and [Sends]'s x468..476 / y65..70 in p047-1) |
 | `--field-mark` | `#848a8c` | The copy marks in CH SETTING's fields (x124..133 / y58..67 in p093-2); the rename mark takes `--text-muted` |
+| `--ssmcs-data-mark` | `#8c9694` | The copy mark on SSMCS's Sweet Spot Data button (x387..396 / y172..181 in p108-1) |
 | `--knob-card-mark` | `#adaead` | The copy mark on a USER DEFINED KNOBS card (x80..89 / y104..113 in p057-1) |
-| `--rec-copy-mark` | `#dedfde` | The copy mark on a RECORDER slot's Source button (x378..387 / y185..194 in p079-2) |
+| `--rec-copy-mark` | `#eff3ef` | The copy mark on a RECORDER slot's Source button, drawn by mixing this colour into the face pixel by pixel; the value is the brightest pixel (x378..387 / y185..194 in p079-2, brightest at x80 / y96) |
 | `--strip-id-other` | `#000000` | On a HOME stereo input's first name line, the number of the channel its screens do not open on (as the operator specified) |
 | `--ink-on-lit` | `#3a3d3a` | The name on [USB Storage Mode] while it is lit (p078-1). The name on a chosen option — a language (p055-1), SAMPLING FREQUENCY's rate (p058-1), Peripheral (p061-1 / p062-1), the input and output source sheets (p100-2 / p060-2), the assignment dialog (p040-1), OSCILLATOR's mode (p070-1), PAN / BALANCE (p093-1) and USER DEFINED KNOBS' bank. A lit on/off switch such as [ON] or HDCP's [Enable] keeps black (`--text-inverse`; no figure shows HDCP's [Enable] lit, and the unit was checked) |
 | `--test-pass` | `#01ff00` | The grade and the recording lines of a card test (p088-2) |
@@ -231,6 +232,19 @@ PY
 | `--corner-raised-a` | `#212021` | A raised panel's top corner shade (a HOME strip's name, MONITOR's head), the first from the outside (x108..112 / y50..54 in p047-1, p067-1) |
 | `--corner-raised-b` | `#42454a` | The same, the second |
 | `--corner-raised-c` | `#42494a` | The same, the diagonal pixel |
+| `--corner-oneknob-panel-a` | `#101418` | The 1-knob panel's corner on the glass, the outer shade (x314 / y47 in p104-2) |
+| `--corner-oneknob-panel-b` | `#292c31` | The same, the shade after it (x315 / y47 in p104-2) |
+| `--corner-oneknob-panel-c` | `#293031` | The same, the diagonal pixel (x313 / y48 in p104-2) |
+| `--corner-source-step-a` | `#4a595a` | MONITOR's [Source] and a RECORDER slot's Source button, the shade at each end of the step from the face onto the band (x8 / y148 and x6 / y146 in p068-1) |
+| `--corner-source-step-b` | `#526163` | The same, the shade in the step's middle row (x7 / y147 in p068-1) |
+| `--corner-data-a` | `#3a494a` | SSMCS's Sweet Spot Data button, the outer shade of its top corner (x203 / y167 in p108-1) |
+| `--corner-data-b` | `#4a595a` | The same, the shade after it, and the face's last pixel above the step (x204 / y167 and x200 / y199 in p108-1) |
+| `--corner-data-c` | `#52595a` | The same, the diagonal pixel (x202 / y168 in p108-1) |
+| `--corner-data-foot-a` | `#313d3a` | The same button's band foot, the outer shade (x202 / y206 in p108-1) |
+| `--corner-data-foot-b` | `#3a4142` | The same, the shade inside it (x203 / y206 in p108-1) |
+| `--corner-data-step-a` | `#4a5152` | The same button's face where it meets the band's step (x203 / y203 in p108-1) |
+| `--corner-data-step-b` | `#525d63` | The same, the face's shade along the step (x204 / y203 in p108-1) |
+| `--corner-data-step-c` | `#424d4a` | The same, the face's pixel over the step's top (x200 / y200 in p108-1) |
 | `--corner-mon-foot-a` | `#101419` | A MONITOR strip's corner where its band meets the glass, the first shade from the outside (x2..6 / y264..268 in p067-1) |
 | `--corner-mon-foot-b` | `#212831` | The same, the second |
 | `--corner-mon-foot-c` | `#212d31` | The same, the diagonal pixel |
@@ -294,6 +308,10 @@ PY
 | `--corner-oneknob-b` | `#31353a` | [1-knob] while it is off: top corner, the second shade (p099-1 at x386..477 / y50..87) |
 | `--corner-oneknob-c` | `#4a4d52` | [1-knob] while it is off: top corner, the third shade (p099-1 at x386..477 / y50..87) |
 | `--corner-oneknob-in` | `#4a5152` | [1-knob] while it is off: the pixel inside the top turn (p099-1 at x386..477 / y50..87) |
+| `--corner-oneknob-lit-a` | `#395139` | [1-knob] lit on the 1-knob panel: the corner's outer shade (x387 / y50 in p104-2) |
+| `--corner-oneknob-lit-b` | `#428239` | The same, the shade after it (x388 / y50 in p104-2) |
+| `--corner-oneknob-lit-c` | `#42a231` | The same, the shade next to the face (x389 / y50 in p104-2) |
+| `--corner-oneknob-lit-in` | `#42a631` | The same, the pixel inside the turn (x387 / y51 in p104-2) |
 | `--corner-title-off-a1` | `#212421` | an unlit title badge: top corner, the outer shade (p113-1 at x254..379 / y2..41) |
 | `--corner-title-off-a2` | `#848284` | an unlit title badge: top corner, the second shade (p113-1 at x254..379 / y2..41) |
 | `--corner-title-off-a3` | `#bdbabd` | an unlit title badge: top corner, the third shade (p113-1 at x254..379 / y2..41) |

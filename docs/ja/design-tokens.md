@@ -111,8 +111,9 @@ PY
 | `--caption-pale` | `#cecace` | Operation Mode の箱の見出し (p041-1 の x38..88 / y8..15) |
 | `--drop-mark` | `#dedbde` | 一覧を開くボタンの下向きの印 (p047-1 のバンクボタン x205..213 / y9..14、[Sends] x468..476 / y65..70) |
 | `--field-mark` | `#848a8c` | CH SETTING の欄の複製の印 (p093-2 の x124..133 / y58..67)。名前変更の印は `--text-muted` |
+| `--ssmcs-data-mark` | `#8c9694` | SSMCS の Sweet Spot Data のボタンの複製の印 (p108-1 の x387..396 / y172..181) |
 | `--knob-card-mark` | `#adaead` | USER DEFINED KNOBS のカードの複製の印 (p057-1 の x80..89 / y104..113) |
-| `--rec-copy-mark` | `#dedfde` | RECORDER のスロットの Source ボタンの複製の印 (p079-2 の x378..387 / y185..194) |
+| `--rec-copy-mark` | `#eff3ef` | RECORDER のスロットの Source ボタンの複製の印。印は画素ごとにこの色を面に混ぜて描き、この値はいちばん明るい画素 (p079-2 の x378..387 / y185..194、最も明るいのは x80 / y96) |
 | `--strip-id-other` | `#000000` | HOME のステレオの入力の名前の 1 行目で、チャンネルの画面が開かないほうの番号 (操作者の指定) |
 | `--ink-on-lit` | `#3a3d3a` | 点灯した [USB Storage Mode] の名前 (p078-1)。選んだ選択肢の名前 — 言語 (p055-1)、SAMPLING FREQUENCY の周波数 (p058-1)、Peripheral (p061-1 / p062-1)、入力ソース・出力ソースのシート (p100-2 / p060-2)、割り当てのダイアログ (p040-1)、OSCILLATOR のモード (p070-1)、PAN / BALANCE (p093-1)、USER DEFINED KNOBS のバンク。点灯した [ON] や HDCP の [Enable] などの入切のスイッチは黒 (`--text-inverse`。HDCP の [Enable] は点灯した図が無く、実機で確認) |
 | `--test-pass` | `#01ff00` | カードのテストの評価と録音の行 (p088-2) |
@@ -228,6 +229,19 @@ PY
 | `--corner-raised-a` | `#212021` | 一段明るい面 (HOME のストリップの名前、MONITOR の見出し) の上の角の混色。外側から 1 つめ (p047-1 のストリップ 2 の x108..112 / y50..54、p067-1) |
 | `--corner-raised-b` | `#42454a` | 同、2 つめ |
 | `--corner-raised-c` | `#42494a` | 同、斜めの画素 |
+| `--corner-oneknob-panel-a` | `#101418` | 1-knob のパネルのガラスの上の角の外側の混色 (p104-2 の x314 / y47) |
+| `--corner-oneknob-panel-b` | `#292c31` | 同、その次の混色 (p104-2 の x315 / y47) |
+| `--corner-oneknob-panel-c` | `#293031` | 同、斜めの画素 (p104-2 の x313 / y48) |
+| `--corner-source-step-a` | `#4a595a` | MONITOR の [Source] と RECORDER のスロットの Source ボタンの、面が帯へ曲がる段の両端の混色 (p068-1 の x8 / y148、x6 / y146) |
+| `--corner-source-step-b` | `#526163` | 同、段の中の行の混色 (p068-1 の x7 / y147) |
+| `--corner-data-a` | `#3a494a` | SSMCS の Sweet Spot Data のボタンの上の角の外側の混色 (p108-1 の x203 / y167) |
+| `--corner-data-b` | `#4a595a` | 同、その次の混色と、段の上の面の最後の画素 (p108-1 の x204 / y167、x200 / y199) |
+| `--corner-data-c` | `#52595a` | 同、斜めの画素 (p108-1 の x202 / y168) |
+| `--corner-data-foot-a` | `#313d3a` | 同じボタンの帯の足の外側の混色 (p108-1 の x202 / y206) |
+| `--corner-data-foot-b` | `#3a4142` | 同、その内側の混色 (p108-1 の x203 / y206) |
+| `--corner-data-step-a` | `#4a5152` | 同じボタンの面が帯の段に接する混色 (p108-1 の x203 / y203) |
+| `--corner-data-step-b` | `#525d63` | 同、段に沿う面の混色 (p108-1 の x204 / y203) |
+| `--corner-data-step-c` | `#424d4a` | 同、段の上端の面の画素 (p108-1 の x200 / y200) |
 | `--corner-mon-foot-a` | `#101419` | MONITOR のストリップの帯がガラスに接する角の混色。外側から 1 つめ (p067-1 の x2..6 / y264..268) |
 | `--corner-mon-foot-b` | `#212831` | 同、2 つめ |
 | `--corner-mon-foot-c` | `#212d31` | 同、斜めの画素 |
@@ -291,6 +305,10 @@ PY
 | `--corner-oneknob-b` | `#31353a` | 消灯した [1-knob] の上の角、2 つめ (p099-1 の x386..477 / y50..87) |
 | `--corner-oneknob-c` | `#4a4d52` | 消灯した [1-knob] の上の角、3 つめ (p099-1 の x386..477 / y50..87) |
 | `--corner-oneknob-in` | `#4a5152` | 消灯した [1-knob] の上の角の内側の画素 (p099-1 の x386..477 / y50..87) |
+| `--corner-oneknob-lit-a` | `#395139` | 1-knob のパネルに立つ点灯した [1-knob] の角の外側の混色 (p104-2 の x387 / y50) |
+| `--corner-oneknob-lit-b` | `#428239` | 同、その次の混色 (p104-2 の x388 / y50) |
+| `--corner-oneknob-lit-c` | `#42a231` | 同、面に接する混色 (p104-2 の x389 / y50) |
+| `--corner-oneknob-lit-in` | `#42a631` | 同、角の内側の画素 (p104-2 の x387 / y51) |
 | `--corner-title-off-a1` | `#212421` | 消灯したタイトル札の上の角、外側の混色 (p113-1 の x254..379 / y2..41) |
 | `--corner-title-off-a2` | `#848284` | 消灯したタイトル札の上の角、2 つめ (p113-1 の x254..379 / y2..41) |
 | `--corner-title-off-a3` | `#bdbabd` | 消灯したタイトル札の上の角、3 つめ (p113-1 の x254..379 / y2..41) |
