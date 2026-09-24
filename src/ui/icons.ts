@@ -3,9 +3,13 @@
 
 const NS = "http://www.w3.org/2000/svg";
 
-/** The share of the mark's colour each pixel of a RECORDER slot's copy mark shows (p079-2). */
+/**
+ * The share of the mark's colour each pixel of a RECORDER slot's copy mark shows
+ * (p079-2). The top right pixel lies on the button's corner cut, and its share is
+ * the one that gives the figure's colour over the cut.
+ */
 const COPY_SOFT: readonly (readonly number[])[] = [
-  [0, 0, 0.12, 0.26, 0.26, 0.26, 0.26, 0.26, 0.26, 0.01],
+  [0, 0, 0.12, 0.26, 0.26, 0.26, 0.26, 0.26, 0.26, 0.04],
   [0, 0, 0.55, 0.87, 0.82, 0.82, 0.82, 0.82, 1.0, 0.26],
   [0.12, 0.39, 0.55, 0.26, 0, 0, 0, 0, 0.82, 0.26],
   [0.26, 0.82, 0.55, 0.26, 0, 0, 0, 0, 0.82, 0.26],
