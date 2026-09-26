@@ -24,3 +24,4 @@
 - Draw the COMP screen's reduction bar on the unit's scale, which reaches 11/21 of the bar at 18 dB and the foot of it at 50 dB.
 - Keep the reduction bar and the OUT meter of SSMCS and of an insert Compander moving with the signal, as GATE's and COMP's do; they held what they read when the screen was opened.
 - Keep the channel view's GATE and DUCKER lamps and COMP bars, M.B.Comp's band reduction bars and the RECORDER's track meters moving with the signal as well.
+- Draw every reduction bar on the scale the unit's COMP screen bar uses, 11/21 of the bar at 18 dB and full at 50 dB: the GATE, DUCKER and SSMCS screens, an insert Compander, M.B.Comp's bands and the channel view's COMP block. The COMP block's level bar and threshold mark use the same scale laid from 0 dB down.
