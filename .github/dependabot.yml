@@ -1,0 +1,20 @@
+version: 2
+updates:
+  # Dev dependencies (pnpm; Dependabot reads pnpm-lock.yaml).
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    ignore:
+      # @types/node is major-pinned to the Node 24 LTS runtime in .node-version.
+      # Allow 24.x minor bumps; block major jumps ahead of the runtime.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+
+  # The workflow actions. Actions are SHA-pinned with a version comment
+  # (`@<sha> # vX.Y.Z`); Dependabot bumps the pin and comment together.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
