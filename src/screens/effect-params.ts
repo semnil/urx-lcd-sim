@@ -57,11 +57,10 @@ import {
   plotX,
   plotY,
   routeStrip,
-  thresholdReduction,
   titleBadge,
   titleBox,
 } from "./channel";
-import { type GrSpec, blockReduction, grShare, laneNetDb } from "./meters";
+import { type GrSpec, blockReduction, grShare, laneNetDb, markReduction } from "./meters";
 import type { EffectChoice } from "./insert-fx";
 import { carriesInsert, effectSheet, insertBase, insertFxOptions, takeEffect, takeInsert } from "./insert-fx";
 import type { ScreenBody, ScreenDef } from "./types";
@@ -563,8 +562,27 @@ function mbcBandPage(
   };
 }
 
-/** The reduction each band is holding its own back by, the open band's bar lit. */
-function mbcGr(ctx: AppContext, strip: Strip, valueAt: (key: string) => number, lit?: string): HTMLElement {
+/**
+ * The reduction each band is holding its own back by, the open band's bar lit:
+ * how far the strip's level is over the band's threshold, kept moving with it.
+ */
+function mbcGr(ctx: AppContext, strip: Strip, base: string, fallbackOf: (key: string) => number, lit?: string): HTMLElement {
+  const bar = (key: string): HTMLElement => {
+    const gr: GrSpec = {
+      kind: "over",
+      base,
+      level: pairMeter(ctx, strip),
+      scale: COMP_GR_METER_DB,
+      makeup: 0,
+      threshold: { path: `${base}.${key}`, fallback: fallbackOf(key) },
+    };
+    const node = el("div", {
+      class: "dyn-gr",
+      children: [el("i", { style: { height: `${grShare(gr, blockReduction(ctx.store, gr)) * 100}%` } })],
+    });
+    markReduction(node, gr);
+    return node;
+  };
   return el("div", {
     class: "mbc-gr",
     children: [
@@ -580,16 +598,7 @@ function mbcGr(ctx: AppContext, strip: Strip, valueAt: (key: string) => number, 
             // The frame round the open band is the wrapper's, so the bar itself
             // keeps the corner shades its own rows draw.
             class: `mbc-gr-bar${band.key === lit ? " is-lit" : ""}`,
-            children: [
-              el("div", {
-                class: "dyn-gr",
-                children: [
-                  el("i", {
-                    style: { height: `${thresholdReduction(ctx, strip, valueAt(`${band.key}Threshold`)) * 100}%` },
-                  }),
-                ],
-              }),
-            ],
+            children: [bar(`${band.key}Threshold`)],
           }),
         ),
       }),
@@ -632,7 +641,7 @@ function mbcBody(
   return {
     main: el("div", {
       class: `dyn-screen mbc-screen${band ? "" : " is-bands"}`,
-      children: [page.plot, mbcGr(ctx, strip, valueAt, page.lit), top, ...page.rows, dynMeters(ctx, strip)],
+      children: [page.plot, mbcGr(ctx, strip, holder.base, (key) => spec(key)?.fallback ?? 0, page.lit), top, ...page.rows, dynMeters(ctx, strip)],
     }),
     knobs: oneKnob && level ? [level] : page.knobs,
     ...(oneKnob && level ? { boxed: level } : page.boxed ? { boxed: page.boxed } : {}),

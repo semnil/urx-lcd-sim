@@ -18,7 +18,7 @@ import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
 import { compRatioSpec, dbSpec, faderSpec, formatValue, freqSpec, intSpec, logFreqSpec, msSpec, panSpec } from "../ui/param-spec";
 import { attachDrag, attachSpin, followFocus, knobControl, markFocus, meter, panSlider, pickerSheet, pulldown, sideTab, toggle, unbuilt, valueBox } from "../ui/widgets";
-import { type GrSpec, blockReduction, detectorLevel, grShare, inputMeterId, laneNetDb, markClipSafe, markReduction, meterLevels, pairMeterId, simulatedInput, simulatedLevel } from "./meters";
+import { type GrSpec, type LampState, blockReduction, grShare, inputMeterId, laneNetDb, markBlockLamps, markClipSafe, markLevelBar, markReduction, meterLevels, pairMeterId, showBlockLamps, simulatedInput, simulatedLevel } from "./meters";
 import { PAN_BAL, SIGNAL_TYPES, carriesStereo, compDetectorShared, enterSsmcs, linkedPair, setPanBal, setSignalType, signalType, stripPosition } from "./stereo-link";
 import { BUS_TYPES, busType, panLinkOn, sendLocks, sendPanPath, setBusType, setPanLink } from "./mix-bus";
 import { homeSide, sceneBox } from "./home";
@@ -284,24 +284,22 @@ function eqThumb(ctx: AppContext, stripId: string): HTMLElement {
  * range, amber in the middle while it holds it part of the way, green on the
  * right while it leaves it alone. A block that is off lights none of them.
  */
-function blockLamps(lit: "shut" | "holding" | "open" | "off"): HTMLElement {
-  const lamps = ["shut", "holding", "open"].map((name) => {
-    if (name !== lit) return "";
-    return name === "open" ? " is-on" : ` is-${name}`;
-  });
-  return el("div", {
-    class: "block-lamps",
-    children: lamps.map((cls) => el("span", { class: `block-lamp${cls}` })),
-  });
+function blockLamps(lit: LampState): HTMLElement {
+  const node = el("div", { class: "block-lamps", children: [0, 1, 2].map(() => el("span", { class: "block-lamp" })) });
+  showBlockLamps(node, lit);
+  return node;
+}
+
+/** A block's lamps, lit as the block named by `spec` stands and kept so as the meters move. */
+function liveLamps(ctx: AppContext, spec: GrSpec): HTMLElement {
+  const node = blockLamps("off");
+  markBlockLamps(node, ctx.store, spec);
+  return node;
 }
 
 /** GATE opens for a signal over the threshold and shuts once it is a range under. */
 function gateLamps(ctx: AppContext, strip: Strip, base: string): HTMLElement {
-  const level = detectorLevel(ctx.store, pairMeter(ctx, strip));
-  const threshold = ctx.store.num(`${base}.gate.threshold`, GATE_DEFAULTS.threshold);
-  const range = ctx.store.num(`${base}.gate.range`, GATE_DEFAULTS.range);
-  if (!ctx.store.bool(`${base}.gate.on`, false)) return blockLamps("off");
-  return blockLamps(level > threshold ? "open" : level <= threshold + range ? "shut" : "holding");
+  return liveLamps(ctx, { kind: "gate", base, level: pairMeter(ctx, strip), scale: GR_METER_DB, makeup: 0 });
 }
 
 /** How many names the ducker's key list sets across. */
@@ -331,11 +329,9 @@ function duckerSources(ctx: AppContext): { label: string; boxed: string; strip: 
 function duckerLamps(ctx: AppContext, base: string): HTMLElement {
   const source = ctx.store.str(`${base}.ducker.source`, DUCKER_SOURCE_DEFAULT);
   const key = duckerSources(ctx).find((s) => s.label === source)?.strip;
-  const level = simulatedLevel(ctx, key, false)[0] ?? -96;
-  const threshold = ctx.store.num(`${base}.ducker.threshold`, -40);
-  const range = ctx.store.num(`${base}.ducker.range`, -24);
-  if (!ctx.store.bool(`${base}.ducker.on`, false)) return blockLamps("off");
-  return blockLamps(level <= threshold ? "open" : level >= threshold - range ? "shut" : "holding");
+  // A key that is not in the list is silent, which holds nothing down.
+  if (!key) return blockLamps(ctx.store.bool(`${base}.ducker.on`, false) ? "open" : "off");
+  return liveLamps(ctx, { kind: "ducker", base, level: key.id, scale: GR_METER_DB, makeup: 0 });
 }
 
 /**
@@ -345,17 +341,20 @@ function duckerLamps(ctx: AppContext, base: string): HTMLElement {
 function compMeters(ctx: AppContext, strip: Strip, base: string, marked: boolean): HTMLElement {
   const spec = compThreshold(base);
   const at = (db: number): number => clampFraction((db - spec.min) / (spec.max - spec.min));
-  const level = simulatedLevel(ctx, strip, false)[0] ?? -96;
   const bar = (extra: string, fraction: number): HTMLElement =>
     el("div", { class: `comp-bar ${extra}`.trim(), children: [el("i", { style: { width: `${fraction * 100}%` } })] });
+  // Both bars keep moving with the signal: the level against the threshold's
+  // range, and the reduction straight over the same 54 dB.
+  const level = bar("", 0);
+  markLevelBar(level, ctx.store, strip.id, spec.min, spec.max);
+  const gr: GrSpec = { ...compSpec(ctx, strip, base, ctx.store.num(`${base}.comp.gain`, COMP_DEFAULTS.gain)), row: true };
+  const reduce = bar("comp-reduce", grShare(gr, blockReduction(ctx.store, gr)));
+  markReduction(reduce, gr);
   return el("div", {
     class: "comp-meters",
     children: [
-      bar("", at(level)),
-      bar(
-        "comp-reduce",
-        blockReduction(ctx.store, compSpec(ctx, strip, base, ctx.store.num(`${base}.comp.gain`, COMP_DEFAULTS.gain))) / COMP_GR_METER_DB,
-      ),
+      level,
+      reduce,
       ...(marked ? [el("div", { class: "comp-thresh", style: { left: `${at(ctx.store.num(spec.path, spec.fallback)) * 100}%` } })] : []),
     ],
   });
@@ -1012,15 +1011,6 @@ export function plotHandle(
   layer.setAttribute("class", "dyn-handle-marks");
   layer.appendChild(marks);
   svg.append(grp, layer);
-}
-
-/**
- * How far a block that holds the channel down from `threshold` is holding it, as a
- * fraction of the meter it is drawn on. The meter covers the threshold's own range.
- */
-export function thresholdReduction(ctx: AppContext, strip: Strip, threshold: number): number {
-  const level = detectorLevel(ctx.store, pairMeter(ctx, strip));
-  return clampFraction(Math.max(0, level - threshold) / -COMP_THRESHOLD_MIN);
 }
 
 /**

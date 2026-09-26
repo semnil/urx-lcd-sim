@@ -12,7 +12,7 @@
 import type { AppContext } from "../app/context";
 import type { DeviceStore } from "../device/store";
 import { COMP_GR_METER_DB, COMP_KNEE_WIDTH, compGrShare, compReductionDb, duckerReductionDb, gateReductionDb, ssmcsCorner } from "../model/dynamics";
-import { SSMCS_DEFAULTS } from "../model/defaults";
+import { GATE_DEFAULTS, SSMCS_DEFAULTS } from "../model/defaults";
 import { OSC_TARGETS } from "../model/oscillator";
 import type { Strip } from "../model/types";
 import { monoStripId } from "../model/units";
@@ -231,8 +231,10 @@ export interface GrSpec {
    * are held down apart. Without it every lane is held down by `level`.
    */
   lanes?: string[];
-  /** How many dB the bar reads from top to bottom. A compressor's bar reads `compGrShare` instead. */
+  /** How many dB the bar reads from end to end. The COMP screen's bar reads `compGrShare` instead. */
   scale: number;
+  /** The bar lies across its block, filling left to right straight over `scale`. */
+  row?: boolean;
   /** What the block adds back after it, which the OUT meter reads higher by. */
   makeup: number;
   /** For `over`: where the threshold the level is held down over is kept, and its value when unset. */
@@ -248,7 +250,7 @@ export function detectorLevel(store: DeviceStore, id: string, at = Date.now()): 
 
 /** How far down its bar the block named by `spec` reads, for a reduction of `db`. */
 export function grShare(spec: GrSpec, db: number): number {
-  const share = spec.kind === "comp" ? compGrShare(db) : db / spec.scale;
+  const share = spec.kind === "comp" && !spec.row ? compGrShare(db) : db / spec.scale;
   return Number.isNaN(share) ? 0 : Math.min(1, Math.max(0, share));
 }
 
@@ -317,6 +319,63 @@ export function laneNetDb(store: DeviceStore, spec: GrSpec, at = Date.now()): nu
   return spec.lanes ? spec.lanes.map((level) => blockNetDb(store, { ...spec, level }, at)) : [blockNetDb(store, spec, at)];
 }
 
+/** How a block's lamps stand. */
+export type LampState = "off" | "open" | "holding" | "shut";
+
+/**
+ * How the lamps of the block named by `spec` stand: GATE opens over its threshold
+ * and shuts a range under it, DUCKER opens under its threshold on its key and
+ * shuts a range over it. A block that is off lights none.
+ */
+export function blockLampState(store: DeviceStore, spec: GrSpec, at = Date.now()): LampState {
+  const level = detectorLevel(store, spec.level, at);
+  const b = spec.base;
+  if (spec.kind === "gate") {
+    if (!store.bool(`${b}.gate.on`, false)) return "off";
+    const threshold = store.num(`${b}.gate.threshold`, GATE_DEFAULTS.threshold);
+    const range = store.num(`${b}.gate.range`, GATE_DEFAULTS.range);
+    return level > threshold ? "open" : level <= threshold + range ? "shut" : "holding";
+  }
+  if (spec.kind === "ducker") {
+    if (!store.bool(`${b}.ducker.on`, false)) return "off";
+    const threshold = store.num(`${b}.ducker.threshold`, -40);
+    const range = store.num(`${b}.ducker.range`, -24);
+    return level <= threshold ? "open" : level >= threshold - range ? "shut" : "holding";
+  }
+  return "off";
+}
+
+/** Light a block's three lamps, shut, holding and open from the left, as `state` stands. */
+export function showBlockLamps(node: HTMLElement, state: LampState): void {
+  const [shut, holding, open] = [...node.children];
+  shut?.classList.toggle("is-shut", state === "shut");
+  holding?.classList.toggle("is-holding", state === "holding");
+  open?.classList.toggle("is-on", state === "open");
+}
+
+/** Keep `node`, a block's lamps, lit as the block named by `spec` stands: now, and as the ticker runs. */
+export function markBlockLamps(node: HTMLElement, store: DeviceStore, spec: GrSpec): void {
+  markReduction(node, spec);
+  node.dataset["blockLamps"] = "";
+  showBlockLamps(node, blockLampState(store, spec));
+}
+
+/** Keep `node`, a bar of a strip's level filling left to right over `min`..`max` dB, lit: now, and as the ticker runs. */
+export function markLevelBar(node: HTMLElement, store: DeviceStore, source: string, min: number, max: number): void {
+  node.dataset["levelBar"] = source;
+  node.dataset["levelMin"] = String(min);
+  node.dataset["levelMax"] = String(max);
+  showLevelBar(node, store);
+}
+
+function showLevelBar(node: HTMLElement, store: DeviceStore): void {
+  const min = Number(node.dataset["levelMin"] ?? -60);
+  const max = Number(node.dataset["levelMax"] ?? 0);
+  const level = meterLevels(store, node.dataset["levelBar"] ?? "", 1)[0] ?? SILENT;
+  const lit = node.querySelector<HTMLElement>("i");
+  if (lit) lit.style.width = `${meterFraction(level, min, max) * 100}%`;
+}
+
 /** Put a reduction on a node, so the ticker can work it out again. */
 export function markReduction(node: HTMLElement, spec: GrSpec): void {
   node.dataset["grKind"] = spec.kind;
@@ -325,6 +384,7 @@ export function markReduction(node: HTMLElement, spec: GrSpec): void {
   if (spec.lanes) node.dataset["grLanes"] = spec.lanes.join(" ");
   node.dataset["grScale"] = String(spec.scale);
   node.dataset["grMakeup"] = String(spec.makeup);
+  if (spec.row) node.dataset["grRow"] = "1";
   if (spec.threshold) node.dataset["grThreshold"] = `${spec.threshold.fallback} ${spec.threshold.path}`;
   if (spec.on) node.dataset["grOn"] = `${spec.on.fallback ? 1 : 0} ${spec.on.path}`;
 }
@@ -342,6 +402,7 @@ export function readGrSpec(node: HTMLElement): GrSpec | null {
     ...(node.dataset["grLanes"] ? { lanes: node.dataset["grLanes"].split(" ") } : {}),
     scale: Number(node.dataset["grScale"] ?? 1),
     makeup: Number(node.dataset["grMakeup"] ?? 0),
+    ...(node.dataset["grRow"] ? { row: true } : {}),
     ...(threshold ? { threshold: { fallback: Number(threshold[0]), path: threshold[1] ?? "" } } : {}),
     ...(on ? { on: { fallback: on[0] === "1", path: on[1] ?? "" } } : {}),
   };
@@ -369,9 +430,13 @@ export function startMeterTicker(store: DeviceStore, root: HTMLElement, interval
     for (const node of root.querySelectorAll<HTMLElement>("[data-gr-kind]")) {
       const spec = readGrSpec(node);
       if (!spec) continue;
+      if (node.dataset["blockLamps"] !== undefined) {
+        showBlockLamps(node, blockLampState(store, spec));
+        continue;
+      }
       const db = blockReduction(store, spec);
       const lit = node.querySelector<HTMLElement>("i");
-      if (lit) lit.style.height = `${grShare(spec, db) * 100}%`;
+      if (lit) lit.style[spec.row ? "width" : "height"] = `${grShare(spec, db) * 100}%`;
       if (node.dataset["meterSource"] !== undefined) setMeterOffset(node, laneNetDb(store, spec));
     }
     for (const node of root.querySelectorAll<HTMLElement>("[data-meter-source]")) {
@@ -391,6 +456,7 @@ export function startMeterTicker(store: DeviceStore, root: HTMLElement, interval
         clips[i]?.classList.toggle("is-on", db >= max);
       });
     }
+    for (const node of root.querySelectorAll<HTMLElement>("[data-level-bar]")) showLevelBar(node, store);
     for (const node of root.querySelectorAll<HTMLElement>("[data-lamp-source]")) {
       const stripId = node.dataset["lampSource"];
       if (!stripId) continue;

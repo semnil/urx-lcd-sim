@@ -8,7 +8,6 @@ import { captureScene } from "../model/scene-state";
 import { captureSettings } from "../model/settings-file";
 import { findStrip } from "../model/types";
 import { unitById } from "../model/units";
-import { thresholdReduction } from "./channel";
 import { buildRegistry } from "./index";
 import { setMeterSource, startMeterTicker } from "./meters";
 import { recallScene, storeScene } from "./scene";
@@ -287,16 +286,6 @@ describe("what a stereo-linked pair's dynamics hear", () => {
     levels["ch2"] = -12;
     await open(shell, "ch.comp", "ch2");
     expect(grBar(shell)).toBe(one);
-  });
-
-  it("lets a pair's insert hear both channels", async () => {
-    const shell = await mount();
-    levels = { ch1: -96, ch2: -12 };
-    const ch1 = findStrip(shell.ctx.model, "ch1");
-    if (!ch1) throw new Error("CH 1");
-    expect(thresholdReduction(shell.ctx, ch1, -40), "apart, CH 1 hears nothing").toBe(0);
-    await pick(shell, "Signal Type", "STEREO");
-    expect(thresholdReduction(shell.ctx, ch1, -40), "linked, it hears CH 2").toBeGreaterThan(0);
   });
 
   it("holds each OUT lane of a pair in SSMCS down by its own channel", async () => {
