@@ -169,9 +169,10 @@ describe("the stereo link of a mono channel pair", () => {
     }
   });
 
-  it("meters the pair in stereo on the GATE, COMP, EQ and INS FX screens, CH 1 on the left", async () => {
+  it("meters the pair in stereo on the GATE, COMP, EQ, INS FX and SSMCS screens, CH 1 on the left", async () => {
     // Each channel reads a level of its own, so the lanes say which side is which.
-    const levels: Record<string, number> = { ch1: -12, ch2: -36 };
+    const levels: Record<string, number> = { ch1: -12, ch2: -36, ch3: -24 };
+    const ssmcsScreens = ["ch.ssmcs", "ch.ssmcs.comp", "ch.ssmcs.sc", "ch.ssmcs.eq"];
     setMeterSource((id, channels) => Array.from({ length: channels }, () => levels[id] ?? -96));
     const unlit = (db: number): string => `${(1 - (db + 60) / 60) * 100}%`;
     try {
@@ -190,6 +191,21 @@ describe("the stereo link of a mono channel pair", () => {
       await link(store, "ch1", "ch2");
       for (const id of ["ch1", "ch2"]) {
         for (const screen of ["ch.gate", "ch.comp", "ch.eq", "ch.insfx"]) {
+          await goHome(shell);
+          await open(shell, "channel-view", id);
+          await open(shell, screen, id);
+          expect([lanes(1).length, lanes(2).length], `${screen} on ${id}: IN and OUT in stereo`).toEqual([2, 2]);
+          expect(lanes(1), `${screen} on ${id}`).toEqual([unlit(-12), unlit(-36)]);
+        }
+      }
+
+      for (const id of ["ch1", "ch2", "ch3"]) await store.set(`ch.${id}.compEqOrder`, "SSMCS");
+      for (const screen of ssmcsScreens) {
+        await goHome(shell);
+        await open(shell, "channel-view", "ch3");
+        await open(shell, screen, "ch3");
+        expect([lanes(1).length, lanes(2).length], `${screen} on a mono channel`).toEqual([1, 1]);
+        for (const id of ["ch1", "ch2"]) {
           await goHome(shell);
           await open(shell, "channel-view", id);
           await open(shell, screen, id);
