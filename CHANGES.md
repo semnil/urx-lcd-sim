@@ -19,3 +19,5 @@
 - Draw every copy mark on whole pixels in the colours of the guide's figures, the RECORDER's in the softened form the unit shows, turn a RECORDER slot's source button as MONITOR's Source turns, and stand the time zone's box a pixel right of the date's.
 - Draw the top right pixel of a RECORDER slot's copy mark, where it lies on the button's corner, in the colour the guide's figure shows.
 - Meter a stereo-linked CH 1-4 pair in stereo on its GATE, COMP, EQ, INS FX and SSMCS screens: two bars each for IN and OUT, the lower-numbered channel on the left, as the unit does.
+- Hold a stereo-linked pair's dynamics down as the unit does: GATE and an insert Compander hear the louder of the two channels, COMP does so from the moment the pair is linked until the linked pair goes into SSMCS, and each OUT bar comes down by what is taken off its own channel.
+- Draw the COMP screen's reduction bar on the unit's scale, which reaches 11/21 of the bar at 18 dB and the foot of it at 50 dB.
