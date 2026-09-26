@@ -1,0 +1,54 @@
+name: Feature request
+description: Suggest a screen or an operation the simulator should reproduce
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        English or Japanese are both fine — 日本語で構いません。
+
+        The simulator reproduces what the unit's own screen shows and does. What it leaves out on
+        purpose is listed in [what this simulator does not build](https://github.com/semnil/urx-lcd-sim/blob/main/docs/en/known-issues.md),
+        and the screens already built are in the [screen inventory](https://github.com/semnil/urx-lcd-sim/blob/main/docs/en/screen-inventory.md).
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to walk through
+      description: The screen or operating procedure you want to try, rather than the solution you have in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: How you would expect it to work
+    validations:
+      required: true
+  - type: textarea
+    id: unit-behavior
+    attributes:
+      label: How the unit does it
+      description: What a unit you own shows (with its model and Total Version), or the user guide's language, revision and page.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - A screen the unit has that is not built yet
+        - A screen that is already built
+        - Keyboard operation, display scale or accessibility
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: model
+    attributes:
+      label: Device model this concerns
+      options:
+        - URX44V
+        - URX44
+        - URX22
+        - All models
+        - Not model-specific
+    validations:
+      required: true

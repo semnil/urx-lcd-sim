@@ -130,6 +130,13 @@ python3 scripts/ug-visible-ranges.py --pdf <ユーザーガイドの PDF>
 アプリケーションが供給する必要がある。その統合を作る場合、実機へのデータ送信には常にリスクが
 伴い、それを引き受けた上で使うことになる。
 
+## コントリビューション
+
+バグ報告・機能要望・プルリクエストを歓迎する — [CONTRIBUTING.ja.md](CONTRIBUTING.ja.md) を参照。
+画面はユーザーガイドの図から作っているため、手持ちの実機との比較は特に価値がある。
+セキュリティ上の問題は [SECURITY.ja.md](SECURITY.ja.md) の手順で報告すること。参加にあたっては
+[行動規範](CODE_OF_CONDUCT.ja.md)に従う。
+
 ## ライセンス
 
 [MIT](LICENSE) © semnil
