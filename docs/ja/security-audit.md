@@ -2,7 +2,7 @@
 
 ## 対象
 
-GitHub Pages の公開構成、依存関係、Git の追跡対象と本番ビルド成果物。
+GitHub Pages の公開構成、依存関係、Git の追跡対象、本番ビルド成果物と脆弱性の報告窓口。
 アプリケーション全体の侵入試験ではない。
 
 ## 確認結果
@@ -18,6 +18,8 @@ GitHub Pages の公開構成、依存関係、Git の追跡対象と本番ビル
 | タグと Release | ビルド成功後、Release 作成ジョブが検査済み SHA にタグとドラフト Release を作成する。競合タグは移動せず失敗し、再実行では既存 Release を保持する。作成失敗時は Pages 配信へ進まない | API 応答を模したテストで版形式・ドラフトとプレリリース指定・生成ノート・既存の軽量タグと注釈付きタグ・部分失敗からの復旧・API 失敗を確認。同じクライアントで workflow 内の作成スクリプトも実行 |
 | Actions | コミット SHA で固定し、チェックアウト後に認証情報を保持しない | 公式リリースのタグをコミットまで解決し、ワークフローと照合 |
 | 依存関係 | Vitest は修正版の 4.1.11 以降を使う | [公式アドバイザリ](https://github.com/vitest-dev/vitest/security/advisories/GHSA-82fw-gwwq-j7x9) と lockfile を照合し、`pnpm audit` が通過 |
+| 依存関係の更新 | Dependabot が npm の開発依存と SHA で固定した Actions の更新プルリクエストを毎週作成する。`@types/node` は `.node-version` の Node 24 のメジャーに留める | `.github/dependabot.yml` を構文解析 |
+| 脆弱性の報告 | 非公開の脆弱性報告を有効にし、[SECURITY.ja.md](../../SECURITY.ja.md) から報告をそこへ案内する | リポジトリの設定を GitHub API で読み取り |
 | 公開ファイル | 配信対象は `dist/` の HTML・JavaScript・CSS・favicon・リンクのプレビュー画像・フォントとフォントライセンス | `pnpm build` 後のファイルを列挙 |
 | 追跡対象 | `reference/`・`work/`・依存インストール先・ビルド出力を含まない | `git ls-files` と公開前の履歴を確認 |
 | 機密情報 | 秘密鍵・GitHub トークン・AWS アクセスキー・マシン識別子の検索パターンに該当なし | 追跡ファイルをパターン検索。パターン外の秘密情報が無いことを保証する検査ではない |
