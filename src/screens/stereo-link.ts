@@ -44,6 +44,11 @@ export function linkedPair(ctx: PairCtx, strip: Strip): [Strip, Strip] | undefin
   return (partner.channels[0] ?? 0) < (strip.channels[0] ?? 0) ? [partner, strip] : [strip, partner];
 }
 
+/** Whether this strip carries one stereo signal: a stereo strip, or a mono channel running as half of a pair. */
+export function carriesStereo(ctx: PairCtx, strip: Strip): boolean {
+  return isStereoLinked(ctx, strip) || strip.kind !== "monoIn";
+}
+
 /**
  * What a linked pair does not hold one of. Four kinds of name sit here: the
  * pair's own flags, which both channels are written directly; the head amp,

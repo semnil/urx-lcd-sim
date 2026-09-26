@@ -10,7 +10,7 @@ import { INPUT_INSERT_EFFECTS, NO_EFFECT, OUTPUT_INSERT_EFFECTS, effectParams } 
 import type { Strip } from "../model/types";
 import { allStrips } from "../model/types";
 import { pickerGrid, pickerSheet, toggle } from "../ui/widgets";
-import { isStereoLinked, linkedPair } from "./stereo-link";
+import { carriesStereo, linkedPair } from "./stereo-link";
 
 export { NO_EFFECT };
 
@@ -59,7 +59,7 @@ export interface EffectChoice {
  */
 export function insertFxOptions(ctx: AppContext, strip: Strip): EffectChoice[] {
   const rate = ctx.store.num("setup.samplingFrequency", 48000);
-  const stereo = isStereoLinked(ctx, strip) || strip.kind !== "monoIn";
+  const stereo = carriesStereo(ctx, strip);
   const held = holders(ctx);
   const mine = insertBase(ctx, strip);
   return insertEffects(strip).map((o) => {

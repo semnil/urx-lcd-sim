@@ -19,7 +19,7 @@ import type { NumericSpec } from "../ui/param-spec";
 import { compRatioSpec, dbSpec, faderSpec, formatValue, freqSpec, intSpec, logFreqSpec, msSpec, panSpec } from "../ui/param-spec";
 import { attachDrag, attachSpin, followFocus, knobControl, markFocus, meter, panSlider, pickerSheet, pulldown, sideTab, toggle, unbuilt, valueBox } from "../ui/widgets";
 import { type GrSpec, blockNetDb, blockReduction, inputMeterId, markClipSafe, markReduction, meterLevels, pairMeterId, simulatedInput, simulatedLevel } from "./meters";
-import { PAN_BAL, SIGNAL_TYPES, linkedPair, setPanBal, setSignalType, signalType, stripPosition } from "./stereo-link";
+import { PAN_BAL, SIGNAL_TYPES, carriesStereo, linkedPair, setPanBal, setSignalType, signalType, stripPosition } from "./stereo-link";
 import { BUS_TYPES, busType, panLinkOn, sendLocks, sendPanPath, setBusType, setPanLink } from "./mix-bus";
 import { homeSide, sceneBox } from "./home";
 import { headAmp, headAmpSwitch } from "./head-amp";
@@ -1036,7 +1036,7 @@ export function dynMeters(ctx: AppContext, strip: Strip, attenuationDb = 0, gr?:
   // A stereo-linked pair meters both of its channels, the lower-numbered one on the left.
   const linked = linkedPair(ctx, strip);
   const source = linked ? pairMeterId(linked[0].id, linked[1].id) : strip.id;
-  const stereo = linked !== undefined || strip.kind !== "monoIn";
+  const stereo = carriesStereo(ctx, strip);
   const column = (caption: string, offset: number, pair: boolean, mark?: GrSpec): HTMLElement => {
     const bars = meter({ levels: meterLevels(ctx.store, source, pair ? 2 : 1).map((db) => db - offset), source, offset });
     // The OUT meter's offset is what the block is taking off, so the ticker
