@@ -741,11 +741,8 @@ function effectGrid(
     }
     const on = ctx.store.bool(`${holder.base}.${p.key}`, p.fallback);
     const flip = (): void => void ctx.store.set(`${holder.base}.${p.key}`, !on);
-    // A switch on the glass carries its own name, on the button the row of buttons uses.
-    if (p.bare) return cell("", el("div", { class: "efx-buttons", children: [toggle(caption, on, flip, "efx-button")] }), undefined, "is-bare");
-    const node = toggle("ON", on, flip, "btn-switch btn-on efx-switch");
-    node.setAttribute("aria-label", caption);
-    return cell(caption, node);
+    // A switch stands on the glass and carries its own name, on the button the row of buttons uses.
+    return cell("", el("div", { class: "efx-buttons", children: [toggle(caption, on, flip, "efx-button")] }), undefined, "is-bare");
   }
 }
 

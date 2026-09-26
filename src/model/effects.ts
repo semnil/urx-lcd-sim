@@ -60,8 +60,6 @@ export interface EffectToggle {
   key: string;
   label: string;
   fallback: boolean;
-  /** The control stands on the glass, with no panel and no caption, its name on the button. */
-  bare?: boolean;
   /** The unit stands the switch in the top right corner of every page of the effect. */
   corner?: boolean;
 }
@@ -288,7 +286,7 @@ const pick = (
   fallback: string,
   extra: { name?: string; notes?: boolean; buttons?: boolean; foot?: boolean; bare?: boolean; division?: boolean } = {},
 ): EffectSelect => ({ kind: "select", key, label, options, fallback, ...extra });
-const flag = (key: string, label: string, fallback: boolean, extra: { bare?: boolean; corner?: boolean } = {}): EffectToggle => ({
+const flag = (key: string, label: string, fallback: boolean, extra: { corner?: boolean } = {}): EffectToggle => ({
   kind: "toggle",
   key,
   label,
@@ -479,7 +477,7 @@ function ampFaces(a: AmpSettings): readonly EffectFace[] {
     knob("treble", "Treble", a.treble),
     knob("presence", "Presence", a.presence),
     fixed("output", "Output", a.output, fadedGain(128, guitarOutputDb, 1)),
-    flag("gate", "Gate", false, { bare: true }),
+    flag("gate", "Gate", false),
     knob("gateLevel", "Gate Level", 2),
     pick("spType", "SP Type", SP_TYPES, a.spType, { foot: true, bare: true, division: true }),
     pick("micPosition", "Mic Position", MIC_POSITIONS, "Center", { foot: true, bare: true, division: true }),
@@ -604,7 +602,7 @@ function delayFaces(label: string, min: number, max: number, hpf: number, lpf: n
         fixed("delay", label, 500, even(min, max, 5, msReading, { ...MS_UNITS, fastStep: 50 })),
         fixed("feedback", "FB.Gain", feedback, PERCENT),
         fixed("hiRatio", "Hi.Ratio", hiRatio, RATIO_TENTHS(1)),
-        flag("sync", "Sync", false, { bare: true }),
+        flag("sync", "Sync", false),
         fixed("bpm", "BPM", 120, whole(25, 300)),
         pick("note", "Note", NOTE_VALUES, "1/4", { notes: true, foot: true, bare: true }),
       ],
