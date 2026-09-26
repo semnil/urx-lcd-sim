@@ -642,8 +642,8 @@ x12..411 / y53..224 on an 8px row gutter, the second row starting at y143. The c
 of the knob readout bar that reads it (x12, 116, 222 and 326, each within 0.5px of its division's
 middle). A cell carries a 15px caption over its control, and a value that moves continuously
 carries the 38px knob that turns it under the control. A value box is the 60x22 box the DELAY
-screen's cells use, corners and all; a pulldown and an on/off switch take a 78x22 box. An on/off switch is drawn as OSCILLATOR's [ON] is, its corners
-on the panel as their ground and a 4px band. Each page
+screen's cells use, corners and all; a pulldown takes a 78x22 box. A switch is a button with its own name on it
+(Gate and Sync, in the effects' paragraphs below). Each page
 fills in fours from the lower row up: a page of four or fewer stands in the lower row (the second
 page of Rev-X Hall, HPF and LPF), and a page of five to eight puts its first four in the upper row
 and the rest in the lower one. The knob readout bar reads a row at a time, the lower row first, then the
