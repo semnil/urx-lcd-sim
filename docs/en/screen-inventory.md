@@ -576,9 +576,8 @@ DUCKER, COMP and SSMCS screens, INS FX's Compander, M.B.Comp's bands and the cha
 (lit from the right) share it (2026-09-26: the lengths the operator read on the unit's LCD from these seven
 bars are each within 0.9 mm of this scale, the largest gap being the Compander's 0.8 mm at 19 dB). GATE grows by RANGE while the input is at or
 under the threshold. In p103-1, RANGE -20 dB lights y118..174; on this scale it reaches y118..177.
-The channel view's COMP block level bar is the same scale laid from 0 dB down: full at 0 dB, 10/21 of
-the bar at -18 dB, and empty from -60 dB. The threshold mark stands on that scale too. GATE's OUT
-meter reads that much lower than IN.
+The channel view's COMP block level bar and its threshold mark stand on the level meters' scale ("Meter
+scale"). GATE's OUT meter reads that much lower than IN.
 
 COMP and EQ have a [1 1-knob] button at the top right (x386..477 / y50..87, face `--surface-btn`, an
 18px round mark with its 1 cut out in the button's face, its band `--oneknob-band` while off, its name 14.5px at weight 600
@@ -1123,12 +1122,22 @@ of its name's ink, leaving out the tails of y and g.
 Output Patch's two tabs stand a pixel closer than the others, the second starting at y114 (p059-1,
 p060-2).
 
+## Meter scale
+
+A level meter's bar lights up to where the reduction bars' scale ("The three dynamics screens (GATE / COMP / DUCKER)") puts the
+level, laid from 0 dB down: the top at 0 dB, 10/21 of the bar at -18 dB, 3/14 at -36 dB, and empty from
+-60 dB (`levelBarShare`). The bars the meter part (`meter`) draws and the channel view's COMP block level
+bar use this scale. On 2026-09-26 the operator read the lengths of HOME's meters, the channel view's
+LEVEL, the GATE screen's IN, the COMP block's level bar and a RECORDER track's meter on the unit's LCD;
+each reading on these five is within 0.9 mm of this scale (the largest gap being the GATE screen's IN,
+0.9 mm at -48 dB). The clip dot lights when the level reaches the top of the bar, at 0 dB.
+
 ## Meter color zones
 
 A meter's bar is green over its lower half and yellow over its upper half, and the bar itself carries
 no red. What lights red is the clip dot above the bar, when the level reaches the top of that meter.
 The boundary sits at the middle of the bar (on a bar an odd number of rows tall the middle row is
-yellow) and does not move with the meter's length or min/max. Only the part below the level is lit and
+yellow) and does not move with the meter's length. Only the part below the level is lit and
 the boundary stays at the middle of the bar itself, so the zones do not move as the level moves and the
 unlit part carries none of their color. The level is taken to a whole row.
 

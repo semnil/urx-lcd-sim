@@ -3,6 +3,7 @@ import { Shell } from "../app/shell";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
+import { levelBarShare } from "../model/dynamics";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
 import { setMeterSource, startMeterTicker } from "./meters";
@@ -193,7 +194,7 @@ describe("the stereo link of a mono channel pair", () => {
     const levels: Record<string, number> = { ch1: -12, ch2: -36, ch3: -24 };
     const ssmcsScreens = ["ch.ssmcs", "ch.ssmcs.comp", "ch.ssmcs.sc", "ch.ssmcs.eq"];
     setMeterSource((id, channels) => Array.from({ length: channels }, () => levels[id] ?? -96));
-    const unlit = (db: number): string => `${(1 - (db + 60) / 60) * 100}%`;
+    const unlit = (db: number): string => `${(1 - levelBarShare(db)) * 100}%`;
     try {
       const { shell, store } = await mount();
       const lanes = (col: number): string[] =>

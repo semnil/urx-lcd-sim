@@ -4361,13 +4361,13 @@ describe("the head amp belongs to the connector a channel is on", () => {
         [...shell.root.querySelectorAll<HTMLElement>(`${selector} .meter-bar`)].map((b) => b.style.getPropertyValue("--unlit"));
       shell.ctx.nav.push({ id: "channel-view", strip: "ch3" });
       await flush();
-      expect(unlit(".cv-gain-row"), "the channel view's meter").toEqual(["50%"]);
+      expect(unlit(".cv-gain-row"), "the channel view's meter").toEqual([`${(1 - levelBarShare(-30)) * 100}%`]);
       shell.ctx.nav.push({ id: "ch.input", strip: "ch3" });
       await flush();
-      expect(unlit(".input-meter"), "INPUT's two").toEqual(["50%", "50%"]);
+      expect(unlit(".input-meter"), "INPUT's two").toEqual(Array(2).fill(`${(1 - levelBarShare(-30)) * 100}%`));
       shell.ctx.nav.replace({ id: "channel-view", strip: "bus.mix1" });
       await flush();
-      expect(unlit(".cv-gain-row"), "a bus reads its own level there").toEqual([`${(1 - 50 / 60) * 100}%`]);
+      expect(unlit(".cv-gain-row"), "a bus reads its own level there").toEqual([`${(1 - levelBarShare(-10)) * 100}%`]);
     } finally {
       setMeterSource(null);
     }

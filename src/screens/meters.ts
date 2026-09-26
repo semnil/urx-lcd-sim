@@ -16,7 +16,7 @@ import { GATE_DEFAULTS, SSMCS_DEFAULTS } from "../model/defaults";
 import { OSC_TARGETS } from "../model/oscillator";
 import type { Strip } from "../model/types";
 import { monoStripId } from "../model/units";
-import { meterFraction, setMeterOffset } from "../ui/widgets";
+import { setMeterOffset } from "../ui/widgets";
 import { jackParam, micLineJack } from "./head-amp";
 
 /** A meter reading nothing. */
@@ -34,7 +34,7 @@ const OSC_METER = "osc";
 /** What the pair of lamps at the top of a strip's indicator block reads. */
 export function lampState(levels: readonly number[]): { signal: boolean; clip: boolean } {
   const peak = Math.max(...levels);
-  return { signal: meterFraction(peak) > 0 && peak <= CLIP_DB, clip: peak >= CLIP_DB };
+  return { signal: levelBarShare(peak) > 0 && peak <= CLIP_DB, clip: peak >= CLIP_DB };
 }
 
 export type MeterSource = (stripId: string, channels: number) => number[];
@@ -435,12 +435,10 @@ export function startMeterTicker(store: DeviceStore, root: HTMLElement, interval
       const lane = node.dataset["meterLane"];
       const read = lane === undefined ? meterLevels(store, stripId, bars.length) : [meterLevels(store, stripId, 2)[Number(lane)] ?? SILENT];
       const levels = read.map((db, i) => db - (offsets[i] ?? offsets[0] ?? 0));
-      const min = Number(node.dataset["meterMin"] ?? -60);
-      const max = Number(node.dataset["meterMax"] ?? 0);
       bars.forEach((bar, i) => {
-        const db = levels[i] ?? SILENT;
-        bar.style.setProperty("--unlit", `${(1 - meterFraction(db, min, max)) * 100}%`);
-        clips[i]?.classList.toggle("is-on", db >= max);
+        const share = levelBarShare(levels[i] ?? SILENT);
+        bar.style.setProperty("--unlit", `${(1 - share) * 100}%`);
+        clips[i]?.classList.toggle("is-on", share >= 1);
       });
     }
     for (const node of root.querySelectorAll<HTMLElement>("[data-level-bar]")) showLevelBar(node, store);
