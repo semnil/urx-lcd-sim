@@ -17,19 +17,7 @@ urx-lcd-sim は単独メンテナーのプロジェクトだが、外部から�
 
 ## セットアップ
 
-Node.js は `.node-version`、pnpm は `package.json` に記載したバージョンを使う。
-
-```sh
-pnpm install
-pnpm dev
-```
-
-| コマンド | 内容 |
-| --- | --- |
-| `pnpm dev` | 開発サーバー |
-| `pnpm build` | 型チェックと本番ビルド |
-| `pnpm test` | ユニットテスト (Vitest + jsdom) |
-| `pnpm typecheck` | 型チェックのみ |
+使うツールとコマンドは README の「[動かす](README.ja.md#動かす)」にある。
 
 シミュレーター上の本体の状態はブラウザに残る。工場出荷時の状態から始めるときは、画面の上の
 [Reset the unit] を使う。

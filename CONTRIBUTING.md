@@ -19,19 +19,7 @@ Security problems go through [SECURITY.md](SECURITY.md), not the issue tracker.
 
 ## Setup
 
-Node.js from `.node-version` and the pnpm version in `package.json`.
-
-```sh
-pnpm install
-pnpm dev
-```
-
-| Command | What it does |
-| --- | --- |
-| `pnpm dev` | Development server |
-| `pnpm build` | Typecheck and production build |
-| `pnpm test` | Unit tests (Vitest + jsdom) |
-| `pnpm typecheck` | Typecheck only |
+The toolchain and the commands are in the README ([Running it](README.md#running-it)).
 
 The simulated unit is kept in the browser between visits. To start from the unit as it ships,
 use [Reset the unit] above the screen.
