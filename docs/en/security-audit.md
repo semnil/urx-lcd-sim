@@ -2,7 +2,8 @@
 
 ## Scope
 
-The GitHub Pages publishing configuration, dependencies, tracked Git files, and production build.
+The GitHub Pages publishing configuration, dependencies, tracked Git files, production build, and
+vulnerability reporting channel.
 This is not an application-wide penetration test.
 
 ## Results
@@ -18,6 +19,8 @@ This is not an application-wide penetration test.
 | Tags and Releases | After build success, the release job creates a tag at the tested SHA and a draft Release. Conflicting tags fail without being moved; retries preserve existing Releases. Release failure prevents Pages deployment | Validated version formats, draft/prerelease flags, generated notes, existing lightweight/annotated tags, partial failure recovery, and API failures with simulated API responses; executed the workflow's release script with that client |
 | Actions | Pinned to commit SHAs; checkout does not persist credentials | Resolved official release tags to commits and compared them with the workflow |
 | Dependencies | Vitest uses the patched 4.1.11 release or later | Compared the lockfile with the [official advisory](https://github.com/vitest-dev/vitest/security/advisories/GHSA-82fw-gwwq-j7x9); `pnpm audit` passed |
+| Dependency updates | Dependabot opens weekly pull requests for the npm dev dependencies and the SHA-pinned actions. `@types/node` stays on the Node 24 major of `.node-version` | Parsed `.github/dependabot.yml` |
+| Vulnerability reports | Private vulnerability reporting is enabled, and [SECURITY.md](../../SECURITY.md) sends reports there | Read the repository's setting through the GitHub API |
 | Published files | Deployment contains the HTML, JavaScript, CSS, favicon, link preview image, fonts and font license in `dist/` | Listed files after `pnpm build` |
 | Tracked files | Excludes `reference/`, `work/`, installed dependencies and build output | Inspected `git ls-files` and pre-publication history |
 | Sensitive data | No matches for the private-key, GitHub-token, AWS-access-key and machine-identifier search patterns | Scanned tracked files. Pattern matching does not establish the absence of secrets outside those patterns |
