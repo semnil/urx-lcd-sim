@@ -118,6 +118,12 @@ const INPUT_METER = "in:";
 /** The meter id of `stripId`'s level as it arrives, before its fader. */
 export const inputMeterId = (stripId: string): string => `${INPUT_METER}${stripId}`;
 
+/** What a meter reading two mono strips as the two sides of one stereo meter goes by. */
+const PAIR_METER = "pair:";
+
+/** The meter id of `left` and `right` read side by side: `left`'s level in the first lane, `right`'s in the second. */
+export const pairMeterId = (left: string, right: string): string => `${PAIR_METER}${left}+${right}`;
+
 /** Meter values in dB for one strip: one entry for mono, two for stereo. */
 export function simulatedLevel(ctx: AppContext, strip: Strip | undefined, stereo: boolean): number[] {
   const channels = stereo ? 2 : 1;
@@ -177,6 +183,13 @@ function cuedStrips(store: DeviceStore): string[] {
  * same instant.
  */
 export function meterLevels(store: DeviceStore, id: string, channels: number, at = Date.now()): number[] {
+  if (id.startsWith(PAIR_METER)) {
+    const members = id.slice(PAIR_METER.length).split("+");
+    return Array.from({ length: channels }, (_, c) => {
+      const member = members[c];
+      return member === undefined ? SILENT : (meterLevels(store, member, 1, at)[0] ?? SILENT);
+    });
+  }
   if (source) return source(id, channels);
   if (id === OSC_METER) return Array.from({ length: channels }, () => oscillatorLevel(store, at));
   if (id === CUE_METER) {

@@ -255,9 +255,13 @@ write are in one place, `src/screens/stereo-link.ts`.
   the edge the way the straight frame does, so its band straddles the edge of the notch (sticking out
   by half its own width). The heart shrinks by the arc's width. For the frame itself see
   [HOME strip layout](#home-strip-layout).
-- Paired or not, the meters stay one per channel, on HOME and in the channel view alike. The user
+- Paired or not, the meters on HOME and in the channel view stay one per channel. The user
   guide's description of the LEVEL meter on p97 says a stereo-linked channel has a stereo meter, but
   the unit has one per channel.
+- On the GATE, COMP, EQ, INS FX and SSMCS screens of a pair, the IN / OUT meters at the bottom right
+  are stereo, two bars for IN and two for OUT. The left bar reads the lower-numbered channel and the
+  right bar the other (confirmed by the operator on 2026-09-26; for the sides, a signal sent from USB
+  MAIN to the CH 3 / CH 4 pair showed CH 3 on the left and CH 4 on the right).
 - `PAN` / `BAL` buttons appear under Signal Type in CH SETTING while `STEREO` is chosen, and not
   otherwise (the capture is p093-1). Choosing `BAL` changes `PAN` in the channel view to `BALANCE`,
   and HOME's slider points at the same value. This choice is also written to both of the pair. The
@@ -582,7 +586,8 @@ H-MID rises to +2.0 dB, and HIGH rises to +2.0 dB at 77% and is back at 0 by 93%
 
 The figures disagree on the number of IN / OUT meters on the dynamics screens. For the same mono
 channel, p099-1 and p106-1 draw two, and p103-1 and p113-1 draw one. The unit draws one for a mono
-channel, so the count follows the strip's channel count. An FX channel is the one block whose two
+channel, so the count follows the strip's channel count. A stereo-linked mono channel draws two
+([Stereo link](#stereo-link-signal-type)). An FX channel is the one block whose two
 sides differ — one bar in and two out — because it is fed by one bus and returns a stereo pair.
 
 ## The effect screens

@@ -37,6 +37,13 @@ export function isStereoLinked(ctx: PairCtx, strip: Strip): boolean {
   return signalType(ctx, strip) === "STEREO" && linkPartner(ctx, strip) !== undefined;
 }
 
+/** The two channels of the stereo pair this channel is running in, lower-numbered first, or undefined off a pair. */
+export function linkedPair(ctx: PairCtx, strip: Strip): [Strip, Strip] | undefined {
+  const partner = isStereoLinked(ctx, strip) ? linkPartner(ctx, strip) : undefined;
+  if (!partner) return undefined;
+  return (partner.channels[0] ?? 0) < (strip.channels[0] ?? 0) ? [partner, strip] : [strip, partner];
+}
+
 /**
  * What a linked pair does not hold one of. Four kinds of name sit here: the
  * pair's own flags, which both channels are written directly; the head amp,

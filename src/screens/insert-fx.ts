@@ -10,7 +10,7 @@ import { INPUT_INSERT_EFFECTS, NO_EFFECT, OUTPUT_INSERT_EFFECTS, effectParams } 
 import type { Strip } from "../model/types";
 import { allStrips } from "../model/types";
 import { pickerGrid, pickerSheet, toggle } from "../ui/widgets";
-import { isStereoLinked, linkPartner } from "./stereo-link";
+import { isStereoLinked, linkedPair } from "./stereo-link";
 
 export { NO_EFFECT };
 
@@ -30,8 +30,7 @@ function insertEffects(strip: Strip): readonly EffectOption[] {
  * the same effect.
  */
 export function insertBase(ctx: AppContext, strip: Strip): string {
-  const partner = isStereoLinked(ctx, strip) ? linkPartner(ctx, strip) : undefined;
-  const first = partner && (partner.channels[0] ?? 0) < (strip.channels[0] ?? 0) ? partner : strip;
+  const first = linkedPair(ctx, strip)?.[0] ?? strip;
   return `ch.${first.id}.insFx`;
 }
 

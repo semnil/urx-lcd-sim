@@ -18,8 +18,8 @@ import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
 import { compRatioSpec, dbSpec, faderSpec, formatValue, freqSpec, intSpec, logFreqSpec, msSpec, panSpec } from "../ui/param-spec";
 import { attachDrag, attachSpin, followFocus, knobControl, markFocus, meter, panSlider, pickerSheet, pulldown, sideTab, toggle, unbuilt, valueBox } from "../ui/widgets";
-import { type GrSpec, blockNetDb, blockReduction, inputMeterId, markClipSafe, markReduction, meterLevels, simulatedInput, simulatedLevel } from "./meters";
-import { PAN_BAL, SIGNAL_TYPES, setPanBal, setSignalType, signalType, stripPosition } from "./stereo-link";
+import { type GrSpec, blockNetDb, blockReduction, inputMeterId, markClipSafe, markReduction, meterLevels, pairMeterId, simulatedInput, simulatedLevel } from "./meters";
+import { PAN_BAL, SIGNAL_TYPES, linkedPair, setPanBal, setSignalType, signalType, stripPosition } from "./stereo-link";
 import { BUS_TYPES, busType, panLinkOn, sendLocks, sendPanPath, setBusType, setPanLink } from "./mix-bus";
 import { homeSide, sceneBox } from "./home";
 import { headAmp, headAmpSwitch } from "./head-amp";
@@ -1033,9 +1033,12 @@ export function dynSetting(ctx: AppContext, spec: NumericSpec, caption = spec.la
 
 /** The block's own input and output, as the dynamics screens meter them. OUT reads `attenuationDb` lower. */
 export function dynMeters(ctx: AppContext, strip: Strip, attenuationDb = 0, gr?: GrSpec): HTMLElement {
-  const stereo = strip.kind !== "monoIn";
+  // A stereo-linked pair meters both of its channels, the lower-numbered one on the left.
+  const linked = linkedPair(ctx, strip);
+  const source = linked ? pairMeterId(linked[0].id, linked[1].id) : strip.id;
+  const stereo = linked !== undefined || strip.kind !== "monoIn";
   const column = (caption: string, offset: number, pair: boolean, mark?: GrSpec): HTMLElement => {
-    const bars = meter({ levels: simulatedLevel(ctx, strip, pair).map((db) => db - offset), source: strip.id, offset });
+    const bars = meter({ levels: meterLevels(ctx.store, source, pair ? 2 : 1).map((db) => db - offset), source, offset });
     // The OUT meter's offset is what the block is taking off, so the ticker
     // works it out again on every tick rather than keeping the built one.
     if (mark) markReduction(bars, mark);
