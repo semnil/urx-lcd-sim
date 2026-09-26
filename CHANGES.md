@@ -22,3 +22,4 @@
 - Hold a stereo-linked pair's dynamics down as the unit does: GATE and an insert Compander hear the louder of the two channels, COMP does so from the moment the pair is linked until the linked pair goes into SSMCS, and each OUT bar comes down by what is taken off its own channel.
 - Draw the COMP screen's reduction bar on the unit's scale, which reaches 11/21 of the bar at 18 dB and the foot of it at 50 dB.
 - Keep the reduction bar and the OUT meter of SSMCS and of an insert Compander moving with the signal, as GATE's and COMP's do; they held what they read when the screen was opened.
+- Keep the channel view's GATE and DUCKER lamps and COMP bars, M.B.Comp's band reduction bars and the RECORDER's track meters moving with the signal as well.
