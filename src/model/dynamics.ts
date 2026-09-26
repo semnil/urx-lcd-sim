@@ -7,31 +7,37 @@
 /** The deepest reduction a block that holds its channel down over a threshold reports: the threshold's range. */
 export const OVER_REDUCTION_MAX_DB = 54;
 
-/** The reduction every reduction bar bends at, and the share of the bar it reaches there. */
-const GR_BAR_BEND_DB = 18;
-const GR_BAR_BEND_SHARE = 11 / 21;
-
-/** The reduction that reaches the far end of every reduction bar. */
-const GR_BAR_FULL_DB = 50;
+/**
+ * Where every reduction bar bends: a reduction in dB and the share of the bar it
+ * reaches, from empty to full. The bar runs straight between them.
+ */
+const GR_BAR_POINTS: readonly (readonly [number, number])[] = [
+  [0, 0],
+  [18, 11 / 21],
+  [36, 11 / 14],
+  [60, 1],
+];
 
 /**
  * How far along a reduction bar a reduction of `db` reaches, as a share of the
- * bar: straight to 18 dB at 11/21 of it, then straight on at a shallower slope to
- * 50 dB at its far end. Every block's reduction bar reads on this scale.
+ * bar: 11/21 of it at 18 dB, 11/14 at 36 dB and its far end at 60 dB, straight
+ * between. Every block's reduction bar reads on this scale.
  */
 export function grBarShare(db: number): number {
   if (!(db > 0)) return 0;
-  const share =
-    db <= GR_BAR_BEND_DB
-      ? (db / GR_BAR_BEND_DB) * GR_BAR_BEND_SHARE
-      : GR_BAR_BEND_SHARE + ((db - GR_BAR_BEND_DB) / (GR_BAR_FULL_DB - GR_BAR_BEND_DB)) * (1 - GR_BAR_BEND_SHARE);
-  return Math.min(1, share);
+  for (let i = 1; i < GR_BAR_POINTS.length; i++) {
+    const [fromDb, fromShare] = GR_BAR_POINTS[i - 1] ?? [0, 0];
+    const [toDb, toShare] = GR_BAR_POINTS[i] ?? [0, 0];
+    if (db <= toDb) return fromShare + ((db - fromDb) / (toDb - fromDb)) * (toShare - fromShare);
+  }
+  return 1;
 }
 
 /**
- * How far along the channel view's COMP level bar a level of `db` reaches: the
- * reduction bars' scale laid from 0 dB down, so 0 dB fills it and each dB under
- * takes off what a dB of reduction would add. The threshold is marked on it the same way.
+ * How far up a level meter a level of `db` reaches, the meters' bars and the
+ * channel view's COMP level bar alike: the reduction bars' scale laid from 0 dB
+ * down, so 0 dB fills it and each dB under takes off what a dB of reduction
+ * would add. The COMP threshold is marked on it the same way.
  */
 export function levelBarShare(db: number): number {
   if (Number.isNaN(db)) return 0;
