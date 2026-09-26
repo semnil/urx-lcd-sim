@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Feedback without a GitHub account / GitHub アカウント不要の窓口
+    url: https://github.com/semnil/urx-lcd-sim/issues/1
+    about: Send a report or question through a form — no sign-in required. ログイン不要のフォームです。
+  - name: Documentation
+    url: https://github.com/semnil/urx-lcd-sim/tree/main/docs/en
+    about: Architecture, the screen inventory and map, where the appearance comes from, and what is not built.
+  - name: Open the simulator
+    url: https://urx-lcd-sim.semnil.com
+    about: Reproduce or try something out without installing anything.

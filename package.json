@@ -16,10 +16,10 @@
     "extract-screens": "node scripts/extract-ug-screens.mjs"
   },
   "devDependencies": {
-    "@types/node": "^26.4.1",
-    "jsdom": "^26.1.0",
-    "typescript": "^5.9.2",
-    "vite": "^7.1.3",
-    "vitest": "^4.1.11"
+    "@types/node": "^24.19.0",
+    "jsdom": "^30.1.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
   }
 }

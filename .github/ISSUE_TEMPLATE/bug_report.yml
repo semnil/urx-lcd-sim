@@ -1,0 +1,98 @@
+name: Bug report
+description: Something in the simulator behaves incorrectly, or differs from the unit
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. English or Japanese are both fine — 日本語で構いません。
+
+        **Security problems** go through the [security policy](https://github.com/semnil/urx-lcd-sim/security/policy)
+        instead, not this form.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened
+      description: What you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Say whether it still happens after [Reset the unit], above the screen.
+      placeholder: |
+        1. Choose URX44V
+        2. Open SETUP, then ...
+    validations:
+      required: true
+  - type: dropdown
+    id: expected-from
+    attributes:
+      label: Where the expected behavior comes from
+      options:
+        - A unit I own (give its model and Total Version below)
+        - The user guide (give the page below)
+        - The simulator itself (an error, a stuck screen, a lost value)
+    validations:
+      required: true
+  - type: dropdown
+    id: model
+    attributes:
+      label: Model chosen in the simulator
+      options:
+        - URX44V
+        - URX44
+        - URX22
+        - Not model-specific
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Simulator version
+      description: Shown as APP Version on the simulator's SETUP → Version screen.
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and OS
+      description: Name and version of each.
+    validations:
+      required: true
+  - type: dropdown
+    id: zoom
+    attributes:
+      label: Display scale
+      description: Only if the problem is in how the screen is drawn.
+      options:
+        - 50%
+        - 75%
+        - 100%
+        - 150%
+        - 200%
+  - type: input
+    id: unit
+    attributes:
+      label: Your unit's model and Total Version
+      description: Only if you compared with a unit you own. Total Version is on the unit's SETUP → Version screen.
+  - type: input
+    id: guide-page
+    attributes:
+      label: User guide page
+      description: Only if the expected behavior comes from the user guide. Give the language, revision and page rather than attaching a copy of the figure.
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots of the simulator
+      description: Optional. Attach them as files.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues
+          required: true
+        - label: I checked [what this simulator does not build](https://github.com/semnil/urx-lcd-sim/blob/main/docs/en/known-issues.md)
+          required: true

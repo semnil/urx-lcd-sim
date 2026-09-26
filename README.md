@@ -130,6 +130,14 @@ writes to a unit on its own: the binding table ships empty, and driving hardware
 application that supplies both a validated catalog and a device link. Building that integration
 means sending data to hardware, which always carries some risk.
 
+## Contributing
+
+Bug reports, feature requests, and pull requests are welcome — see
+[CONTRIBUTING.md](CONTRIBUTING.md). Comparisons with a unit you own are especially valuable,
+since the screens are built from the user guide's figures. Security problems go through
+[SECURITY.md](SECURITY.md), and participation follows the
+[code of conduct](CODE_OF_CONDUCT.md).
+
 ## License
 
 [MIT](LICENSE) © semnil
