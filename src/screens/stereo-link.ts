@@ -39,9 +39,7 @@ export function isStereoLinked(ctx: PairCtx, strip: Strip): boolean {
 
 /** The two channels of the stereo pair this channel is running in, lower-numbered first, or undefined off a pair. */
 export function linkedPair(ctx: PairCtx, strip: Strip): [Strip, Strip] | undefined {
-  const partner = isStereoLinked(ctx, strip) ? linkPartner(ctx, strip) : undefined;
-  if (!partner) return undefined;
-  return (partner.channels[0] ?? 0) < (strip.channels[0] ?? 0) ? [partner, strip] : [strip, partner];
+  return isStereoLinked(ctx, strip) ? pairMembers(ctx, strip) : undefined;
 }
 
 /** Whether this strip carries one stereo signal: a stereo strip, or a mono channel running as half of a pair. */
@@ -94,6 +92,57 @@ function panPaths(ctx: PairCtx, strip: Strip): ParamPath[] {
     `${base}.balance`,
     ...ctx.store.pathsUnder(`${base}.send`).filter((p) => p.endsWith(".balance")),
   ];
+}
+
+/**
+ * Where a pair keeps that its compressors each hear their own channel rather than
+ * the pair: set once the linked pair is taken into SSMCS, cleared when the pair is
+ * linked. It stands outside the mixer, so a scene does not carry it, and a
+ * settings file leaves it out.
+ */
+const compSplitPath = (first: Strip): string => `pair.${first.id}.compSplit`;
+
+/** Whether a linked pair's compressor hears the louder of its two channels rather than each channel its own. */
+export function compDetectorShared(ctx: PairCtx, strip: Strip): boolean {
+  const pair = linkedPair(ctx, strip);
+  return pair !== undefined && !ctx.store.bool(compSplitPath(pair[0]), false);
+}
+
+/** Taking a linked pair into SSMCS leaves each of its compressors hearing its own channel. */
+export function enterSsmcs(ctx: PairCtx, strip: Strip): void {
+  const pair = linkedPair(ctx, strip);
+  if (pair) void ctx.store.set(compSplitPath(pair[0]), true);
+}
+
+/** What `followRecall` compares: each pair's link and whether it is in SSMCS, by its lower-numbered channel. */
+export type PairStates = Map<string, { linked: boolean; ssmcs: boolean }>;
+
+/** Each mono pair's link and COMP / EQ type as they stand. */
+export function pairStates(ctx: PairCtx): PairStates {
+  const states: PairStates = new Map();
+  for (const strip of ctx.model.inputs) {
+    const members = pairMembers(ctx, strip);
+    if (!members || members[0] !== strip) continue;
+    states.set(strip.id, { linked: isStereoLinked(ctx, strip), ssmcs: ctx.store.str(`ch.${strip.id}.compEqOrder`, "COMP->EQ") === "SSMCS" });
+  }
+  return states;
+}
+
+/**
+ * Carry a scene recall or a settings file load, which puts every value back
+ * without the writes an edit carries, onto the compressors of each pair: a pair
+ * it links hears the pair, SSMCS or not, and a linked pair it takes into SSMCS
+ * hears each channel its own.
+ */
+export function followRecall(ctx: PairCtx, before: PairStates): void {
+  for (const [id, was] of before) {
+    const strip = findStrip(ctx.model, id);
+    if (!strip) continue;
+    const now = pairStates(ctx).get(id);
+    if (!now) continue;
+    if (now.linked && !was.linked) void ctx.store.set(compSplitPath(strip), false);
+    else if (now.linked && now.ssmcs && !was.ssmcs) void ctx.store.set(compSplitPath(strip), true);
+  }
 }
 
 /** The pair's two channels, lower number first. */
@@ -154,8 +203,8 @@ export function pairWriteRule(store: DeviceStore, model: UnitModel): WriteRule {
  * One setting over both channels of the pair, so it is written to both. The
  * insert goes with it: the unit takes the effect off both channels whichever way
  * the Signal Type moves. The pair comes up on its balance, both channels are
- * placed, and linking puts the pair on the lower-numbered channel's values;
- * unlinking puts nothing back.
+ * placed, and linking puts the pair on the lower-numbered channel's values and
+ * its compressors on the pair's louder channel; unlinking puts nothing back.
  */
 export function setSignalType(ctx: PairCtx, strip: Strip, value: string): void {
   if (signalType(ctx, strip) === value) return;
@@ -167,7 +216,10 @@ export function setSignalType(ctx: PairCtx, strip: Strip, value: string): void {
   }
   writePair(ctx, strip, "panBal", value === "STEREO" ? "BAL" : "PAN");
   placePair(ctx, strip);
-  if (value === "STEREO") collapsePair(ctx, strip);
+  if (value !== "STEREO") return;
+  collapsePair(ctx, strip);
+  const first = pairMembers(ctx, strip)?.[0];
+  if (first) void ctx.store.set(compSplitPath(first), false);
 }
 
 /** Whether the pair is positioned by its L/R balance rather than by two pans. */

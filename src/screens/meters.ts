@@ -223,12 +223,22 @@ export interface GrSpec {
   kind: "gate" | "comp" | "ducker" | "held";
   /** The block's own values live under this path. */
   base: string;
-  /** The strip whose level the detector hears. */
+  /** The meter whose level the detector hears; a pair meter's louder side. */
   level: string;
+  /**
+   * The meter each OUT lane's own detector hears, where the two channels of a pair
+   * are held down apart. Without it every lane is held down by `level`.
+   */
+  lanes?: string[];
   /** How many dB the bar reads from top to bottom. */
   scale: number;
   /** What the block adds back after it, which the OUT meter reads higher by. */
   makeup: number;
+}
+
+/** The level a detector hears on meter `id`: the louder side of a pair meter, the one level of anything else. */
+export function detectorLevel(store: DeviceStore, id: string, at = Date.now()): number {
+  return Math.max(...meterLevels(store, id, id.startsWith(PAIR_METER) ? 2 : 1, at));
 }
 
 /**
@@ -237,7 +247,7 @@ export interface GrSpec {
  * nothing off.
  */
 export function blockReduction(store: DeviceStore, spec: GrSpec, at = Date.now()): number {
-  const level = meterLevels(store, spec.level, 1, at)[0] ?? SILENT;
+  const level = detectorLevel(store, spec.level, at);
   const b = spec.base;
   if (spec.kind === "gate") {
     if (!store.bool(`${b}.gate.on`, false)) return 0;
@@ -278,11 +288,17 @@ export function blockNetDb(store: DeviceStore, spec: GrSpec, at = Date.now()): n
   return blockReduction(store, spec, at) - (blockOn(store, spec) ? spec.makeup : 0);
 }
 
+/** `blockNetDb` for each OUT lane: one figure for every lane, or one per lane where `spec.lanes` holds them apart. */
+export function laneNetDb(store: DeviceStore, spec: GrSpec, at = Date.now()): number[] {
+  return spec.lanes ? spec.lanes.map((level) => blockNetDb(store, { ...spec, level }, at)) : [blockNetDb(store, spec, at)];
+}
+
 /** Put a reduction on a node, so the ticker can work it out again. */
 export function markReduction(node: HTMLElement, spec: GrSpec): void {
   node.dataset["grKind"] = spec.kind;
   node.dataset["grBase"] = spec.base;
   node.dataset["grLevel"] = spec.level;
+  if (spec.lanes) node.dataset["grLanes"] = spec.lanes.join(" ");
   node.dataset["grScale"] = String(spec.scale);
   node.dataset["grMakeup"] = String(spec.makeup);
 }
@@ -295,6 +311,7 @@ export function readGrSpec(node: HTMLElement): GrSpec | null {
     kind,
     base: node.dataset["grBase"] ?? "",
     level: node.dataset["grLevel"] ?? "",
+    ...(node.dataset["grLanes"] ? { lanes: node.dataset["grLanes"].split(" ") } : {}),
     scale: Number(node.dataset["grScale"] ?? 1),
     makeup: Number(node.dataset["grMakeup"] ?? 0),
   };
@@ -325,17 +342,17 @@ export function startMeterTicker(store: DeviceStore, root: HTMLElement, interval
       const db = blockReduction(store, spec);
       const lit = node.querySelector<HTMLElement>("i");
       if (lit) lit.style.height = `${Math.min(1, Math.max(0, db / spec.scale)) * 100}%`;
-      if (node.dataset["meterSource"] !== undefined) node.dataset["meterOffset"] = String(blockNetDb(store, spec));
+      if (node.dataset["meterSource"] !== undefined) node.dataset["meterOffset"] = laneNetDb(store, spec).join(" ");
     }
     for (const node of root.querySelectorAll<HTMLElement>("[data-meter-source]")) {
       const stripId = node.dataset["meterSource"];
       if (!stripId) continue;
       const bars = node.querySelectorAll<HTMLElement>(".meter-bar");
       const clips = node.querySelectorAll<HTMLElement>(".meter-clip");
-      const offset = Number(node.dataset["meterOffset"] ?? 0);
+      const offsets = (node.dataset["meterOffset"] ?? "0").split(" ").map(Number);
       const lane = node.dataset["meterLane"];
       const read = lane === undefined ? meterLevels(store, stripId, bars.length) : [meterLevels(store, stripId, 2)[Number(lane)] ?? SILENT];
-      const levels = read.map((db) => db - offset);
+      const levels = read.map((db, i) => db - (offsets[i] ?? offsets[0] ?? 0));
       const min = Number(node.dataset["meterMin"] ?? -60);
       const max = Number(node.dataset["meterMax"] ?? 0);
       bars.forEach((bar, i) => {

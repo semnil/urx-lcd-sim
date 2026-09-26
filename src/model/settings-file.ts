@@ -2,15 +2,15 @@
 //
 // It holds the unit as it stands — the mixer, the monitor and phones buses, the
 // oscillator, the scene memories and the unit's own settings — and leaves out
-// the screen's own state, the card and the clock, which follow the unit rather
-// than the file.
+// the screen's own state, the card, the clock and what a linked pair's
+// compressors hear, which follow the unit rather than the file.
 
 import type { ParamPath, ParamValue } from "../device/path";
 import type { DeviceStore } from "../device/store";
 import { isClockPath } from "./clock";
 
 /** What stays behind when a settings file is written. */
-const NOT_SAVED = ["ui.", "sd."];
+const NOT_SAVED = ["ui.", "sd.", "pair."];
 
 /** Whether a settings file carries the value at this path. */
 export function inSettingsFile(path: ParamPath): boolean {

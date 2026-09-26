@@ -519,6 +519,20 @@ deeper than the reduction, OUT reads above IN. A block that holds nothing down (
 [No Effect]) meters IN and OUT alike. The bar and the OUT offset are worked out again by the ticker
 that keeps the meters moving without redrawing the screen.
 
+On a stereo-linked pair, what each block's detector hears differs by block (confirmed on the unit on
+2026-09-26).
+
+- GATE and INS FX (Compander) hear the louder of the pair's two channels, without adding them. Either
+  channel's screen reads the same reduction, and both OUT bars come down by it.
+- COMP hears the pair's louder channel from the moment the pair is linked. Once the linked pair goes
+  into SSMCS (by `COMP / EQ` in CH SETTING, a scene recall or a settings file load alike), each channel
+  hears its own channel. Leaving SSMCS does not undo this; linking the pair again does. A recall or a
+  load that links the pair and takes it into SSMCS at once leaves it hearing the pair. While each
+  channel hears its own, a screen's bar reads its own channel's reduction and each OUT bar comes down by
+  its own channel's. Neither a scene nor a settings file carries this state.
+- SSMCS's compressor hears each channel's own, and each OUT bar comes down by its own channel's
+  reduction. DUCKER hears the strip named as Ducker Source.
+
 The settings panels (x250..418 / 36px high / 8px apart) stack up from the bottom of the screen. The
 bottom one is level with the foot of the curve panel: DUCKER has one (Threshold), COMP two (Attack /
 Release), GATE three (Attack / Hold / Decay). Value boxes are 52x22, 7px in from the right edge.

@@ -701,8 +701,8 @@ export interface MeterOptions {
   /** The meter's floor. The channel meters read -60 dB to 0 dB. */
   min?: number;
   max?: number;
-  /** dB taken off what the source meters, for a meter after a gain stage. */
-  offset?: number;
+  /** dB taken off what the source meters, for a meter after a gain stage: one figure, or one per lane. */
+  offset?: number | readonly number[];
   height?: number;
   /**
    * Strip this meter belongs to. The meter ticker refreshes how much of each
@@ -748,7 +748,8 @@ export function meter(options: MeterOptions): HTMLElement {
     node.dataset["meterSource"] = options.source;
     node.dataset["meterMin"] = String(min);
     node.dataset["meterMax"] = String(max);
-    if (options.offset) node.dataset["meterOffset"] = String(options.offset);
+    const offset = typeof options.offset === "number" ? [options.offset] : (options.offset ?? []);
+    if (offset.some((db) => db !== 0)) node.dataset["meterOffset"] = offset.join(" ");
     if (options.lane !== undefined) node.dataset["meterLane"] = String(options.lane);
   }
   return node;

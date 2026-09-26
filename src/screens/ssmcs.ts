@@ -47,6 +47,7 @@ import {
   titleBadge,
 } from "./channel";
 import { simulatedLevel } from "./meters";
+import { linkedPair } from "./stereo-link";
 import type { ScreenBody, ScreenDef } from "./types";
 
 /** How far the compressor is driven, in hundredths over its 201 stops. */
@@ -415,6 +416,11 @@ function reduction(ctx: AppContext, strip: Parameters<typeof dynMeters>[1], b: s
   return clamp(Math.max(0, over) / -CORNER_FLOOR_DB, 0, 1);
 }
 
+/** How many dB the strip takes off each OUT lane: each channel of a linked pair by its own level. */
+function outAttenuation(ctx: AppContext, strip: Parameters<typeof dynMeters>[1], b: string): number[] {
+  return (linkedPair(ctx, strip) ?? [strip]).map((s) => reduction(ctx, s, b) * -CORNER_FLOOR_DB);
+}
+
 const reductionMeter = (share: number): HTMLElement =>
   el("div", { class: "dyn-gr ssmcs-gr", children: [el("i", { style: { height: `${share * 100}%` } })] });
 
@@ -562,7 +568,7 @@ export const ssmcsScreen: ScreenDef = {
             }),
           ]),
           pageArrow("next", () => ctx.nav.replace({ id: "ch.ssmcs.comp", strip: strip.id })),
-          dynMeters(ctx, strip, reduction(ctx, strip, b) * -CORNER_FLOOR_DB),
+          dynMeters(ctx, strip, outAttenuation(ctx, strip, b)),
         ],
       }),
       headerLeft: channelSelector(ctx, strip, route, true),
@@ -636,7 +642,7 @@ function compFace(ctx: AppContext, route: Route, sideChain: boolean): ScreenBody
         sideChain
           ? pageArrow("next", () => ctx.nav.replace({ id: "ch.ssmcs.eq", strip: strip.id }))
           : pageArrow("next", () => ctx.nav.replace({ id: "ch.ssmcs.sc", strip: strip.id })),
-        dynMeters(ctx, strip, reduction(ctx, strip, b) * -CORNER_FLOOR_DB),
+        dynMeters(ctx, strip, outAttenuation(ctx, strip, b)),
       ],
     }),
     headerLeft: channelSelector(ctx, strip, route, true),

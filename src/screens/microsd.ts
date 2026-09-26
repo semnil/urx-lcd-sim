@@ -12,6 +12,7 @@ import { CARD_ROOT, cardStamp, folderPath, formatFree, formatRate, freeBytes, pa
 import { applySettings, captureSettings } from "../model/settings-file";
 import { TRACK_COUNTS, dropTracksOverRate, trackCountCeiling } from "../model/track-count";
 import { dropInsertsOverRate } from "./insert-fx";
+import { followRecall, pairStates } from "./stereo-link";
 import { allStrips, channelPairs } from "../model/types";
 import { el, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
@@ -390,7 +391,9 @@ function loadSettings(ctx: AppContext, name: string): void {
   const held = ctx.store.str(filePath(name), "");
   if (!held) return;
   const before = ctx.store.num("setup.samplingFrequency", 48000);
+  const pairs = pairStates(ctx);
   void applySettings(ctx.store, fromJson(held) as Record<string, ParamValue>).then(() => {
+    followRecall(ctx, pairs);
     const rate = ctx.store.num("setup.samplingFrequency", 48000);
     dropInsertsOverRate(ctx, rate);
     dropTracksOverRate(ctx.store, rate);
