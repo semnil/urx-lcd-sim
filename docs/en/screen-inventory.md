@@ -255,13 +255,15 @@ write are in one place, `src/screens/stereo-link.ts`.
   the edge the way the straight frame does, so its band straddles the edge of the notch (sticking out
   by half its own width). The heart shrinks by the arc's width. For the frame itself see
   [HOME strip layout](#home-strip-layout).
-- Paired or not, the meters on HOME and in the channel view stay one per channel. The user
-  guide's description of the LEVEL meter on p97 says a stereo-linked channel has a stereo meter, but
-  the unit has one per channel.
+- Paired or not, the meters on HOME and in the channel view stay one per channel. How this differs
+  from the user guide's p97 is under "What the unit itself does not do" in
+  [known-issues.md](known-issues.md).
 - On the GATE, COMP, EQ, INS FX and SSMCS screens of a pair, the IN / OUT meters at the bottom right
   are stereo, two bars for IN and two for OUT. The left bar reads the lower-numbered channel and the
   right bar the other (confirmed by the operator on 2026-09-26; for the sides, a signal sent from USB
   MAIN to the CH 3 / CH 4 pair showed CH 3 on the left and CH 4 on the right).
+- The INPUT screen's meter, and the side-chain meter on the left of the SSMCS COMP and COMP Side Chain
+  screens, stay one bar on a pair (confirmed by the operator on 2026-09-26).
 - `PAN` / `BAL` buttons appear under Signal Type in CH SETTING while `STEREO` is chosen, and not
   otherwise (the capture is p093-1). Choosing `BAL` changes `PAN` in the channel view to `BALANCE`,
   and HOME's slider points at the same value. This choice is also written to both of the pair. The

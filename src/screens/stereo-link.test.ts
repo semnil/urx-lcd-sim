@@ -167,6 +167,25 @@ describe("the stereo link of a mono channel pair", () => {
       await open(shell, "channel-view", id);
       expect(shell.root.querySelectorAll(".cv-onoff .meter-lane"), id).toHaveLength(1);
     }
+
+    // So do the INPUT screen's meters and the SSMCS side-chain meter.
+    for (const id of ["ch1", "ch2"]) {
+      await goHome(shell);
+      await open(shell, "channel-view", id);
+      await open(shell, "ch.input", id);
+      const inputs = [...shell.root.querySelectorAll(".input-meter")];
+      expect(inputs.length, `${id} INPUT screen draws its meters`).toBeGreaterThan(0);
+      expect(inputs.map((m) => m.querySelectorAll(".meter-lane").length), `${id} INPUT screen`).toEqual(inputs.map(() => 1));
+    }
+    for (const id of ["ch1", "ch2"]) await store.set(`ch.${id}.compEqOrder`, "SSMCS");
+    for (const screen of ["ch.ssmcs.comp", "ch.ssmcs.sc"]) {
+      for (const id of ["ch1", "ch2"]) {
+        await goHome(shell);
+        await open(shell, "channel-view", id);
+        await open(shell, screen, id);
+        expect(shell.root.querySelectorAll(".ssmcs-sc-meter .meter-lane"), `${screen} on ${id}`).toHaveLength(1);
+      }
+    }
   });
 
   it("meters the pair in stereo on the GATE, COMP, EQ, INS FX and SSMCS screens, CH 1 on the left", async () => {
