@@ -7,8 +7,29 @@
 /** How many dB a dynamics screen's reduction bar reads from its top to its bottom. */
 export const GR_METER_DB = 38;
 
-/** The same, for the compressor's own bar, which runs the threshold's range. */
+/** The same, for the channel view's COMP bar and an insert's reduction bar, which run the threshold's range. */
 export const COMP_GR_METER_DB = 54;
+
+/** The reduction the COMP screen's bar bends at, and the share of the bar it reaches there. */
+const COMP_GR_BEND_DB = 18;
+const COMP_GR_BEND_SHARE = 11 / 21;
+
+/** The reduction that reaches the foot of the COMP screen's bar. */
+const COMP_GR_FULL_DB = 50;
+
+/**
+ * How far down the COMP screen's reduction bar a reduction of `db` reaches, as a
+ * share of the bar: straight to 18 dB at 11/21 of it, then straight on at a
+ * shallower slope to 50 dB at its foot.
+ */
+export function compGrShare(db: number): number {
+  if (!(db > 0)) return 0;
+  const share =
+    db <= COMP_GR_BEND_DB
+      ? (db / COMP_GR_BEND_DB) * COMP_GR_BEND_SHARE
+      : COMP_GR_BEND_SHARE + ((db - COMP_GR_BEND_DB) / (COMP_GR_FULL_DB - COMP_GR_BEND_DB)) * (1 - COMP_GR_BEND_SHARE);
+  return Math.min(1, share);
+}
 
 /** How wide Knee rounds the compressor's corner, in dB of input. */
 export const COMP_KNEE_WIDTH: Record<string, number> = { Soft: 52, Medium: 16, Hard: 0 };

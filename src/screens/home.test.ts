@@ -3674,16 +3674,18 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
       await flush();
       const bar = (): string | undefined => shell.root.querySelector<HTMLElement>(".dyn-gr i")?.style.height;
       const share = (): number => Number.parseFloat(bar() ?? "0");
-      // How far the curve sits under unity at the level going in, on a meter
-      // that runs the threshold's own 54: at 3:1 with a Medium knee that is the
-      // 14 dB over the threshold less what the ratio lets through.
-      expect(bar()).toBe(`${((-6 + 2 - (-20 + 14 / 3 + 2)) / 54) * 100}%`);
+      // How far the curve sits under unity at the level going in: at 3:1 with a
+      // Medium knee that is the 14 dB over the threshold less what the ratio lets
+      // through. The bar draws it on its own scale, 11/21 of the bar at 18 dB.
+      const reduction = -6 + 2 - (-20 + 14 / 3 + 2);
+      expect(reduction).toBeLessThan(18);
+      expect(bar()).toBe(`${(reduction / 18) * (11 / 21) * 100}%`);
 
       await shell.ctx.store.set("ch.ch1.comp.ratio", 1);
       await flush();
       expect(bar(), "a compressor at 1:1 takes nothing off").toBe("0%");
 
-      const at3 = ((-6 + 2 - (-20 + 14 / 3 + 2)) / 54) * 100;
+      const at3 = (reduction / 18) * (11 / 21) * 100;
       await shell.ctx.store.set("ch.ch1.comp.ratio", 20);
       await flush();
       expect(share(), "and a steeper ratio takes more").toBeGreaterThan(at3);

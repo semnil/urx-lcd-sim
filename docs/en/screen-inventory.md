@@ -512,7 +512,7 @@ are shared with HOME's STEREO/CUE meter. A meter draws as many bars as the strip
 
 The reduction bar reads what the screen's own block is holding down. GATE reads its RANGE while the
 signal is at or under the threshold (38 dB from the bar's top to its bottom); COMP reads how far the
-curve it is drawing sits under unity (54 dB, the threshold's own range); DUCKER compares the level of
+curve it is drawing sits under unity; DUCKER compares the level of
 the strip named as Ducker Source against the threshold and stops at the RANGE. The OUT meter reads
 that far below IN, less what the block adds back after it (COMP's makeup) — where the makeup is
 deeper than the reduction, OUT reads above IN. A block that holds nothing down (DELAY, INS FX on
@@ -570,8 +570,11 @@ The transfer curve panels are -80..+20 dB on both axes, with one vertical and on
 covers one whole column or row of pixels (x180 and y86 in p103-1 and p099-1). The envelope panel is -100..+20 dB vertically, with a horizontal rule at the RANGE height and
 vertical rules at A and D.
 
-The reduction bar grows from the top down. COMP takes the threshold's travel (54 dB) as its full
-length. GATE grows by RANGE while the input is at or under the threshold, on a 38 dB full length
+The reduction bar grows from the top down. COMP reaches 11/21 of the bar at 18 dB and goes on at a
+shallower slope to the full length at 50 dB (within 0.6 mm of each of the 8 lengths from 4 dB to 34 dB
+the operator read on the unit's LCD on 2026-09-26). The channel view's COMP block bar takes the
+threshold's travel (54 dB) as its full length. GATE grows by RANGE while the input is at or under the
+threshold, on a 38 dB full length
 (RANGE -20 dB reaches y118..174 in p103-1), and GATE's OUT meter reads that much lower than IN.
 
 COMP and EQ have a [1 1-knob] button at the top right (x386..477 / y50..87, face `--surface-btn`, an

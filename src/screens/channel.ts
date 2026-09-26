@@ -18,7 +18,7 @@ import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
 import { compRatioSpec, dbSpec, faderSpec, formatValue, freqSpec, intSpec, logFreqSpec, msSpec, panSpec } from "../ui/param-spec";
 import { attachDrag, attachSpin, followFocus, knobControl, markFocus, meter, panSlider, pickerSheet, pulldown, sideTab, toggle, unbuilt, valueBox } from "../ui/widgets";
-import { type GrSpec, blockReduction, detectorLevel, inputMeterId, laneNetDb, markClipSafe, markReduction, meterLevels, pairMeterId, simulatedInput, simulatedLevel } from "./meters";
+import { type GrSpec, blockReduction, detectorLevel, grShare, inputMeterId, laneNetDb, markClipSafe, markReduction, meterLevels, pairMeterId, simulatedInput, simulatedLevel } from "./meters";
 import { PAN_BAL, SIGNAL_TYPES, carriesStereo, compDetectorShared, enterSsmcs, linkedPair, setPanBal, setSignalType, signalType, stripPosition } from "./stereo-link";
 import { BUS_TYPES, busType, panLinkOn, sendLocks, sendPanPath, setBusType, setPanLink } from "./mix-bus";
 import { homeSide, sceneBox } from "./home";
@@ -1094,7 +1094,7 @@ function dynScreen(
   // The OUT meter reads as far below IN as the bar beside it reads, less what
   // the block adds back after it.
   const db = blockReduction(ctx.store, gr);
-  return dynFrame(plot, db / gr.scale, [...right, dynMeters(ctx, strip, laneNetDb(ctx.store, gr), gr)], gr);
+  return dynFrame(plot, grShare(gr, db), [...right, dynMeters(ctx, strip, laneNetDb(ctx.store, gr), gr)], gr);
 }
 
 /**

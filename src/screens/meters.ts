@@ -11,7 +11,7 @@
 
 import type { AppContext } from "../app/context";
 import type { DeviceStore } from "../device/store";
-import { COMP_KNEE_WIDTH, compReductionDb, duckerReductionDb, gateReductionDb } from "../model/dynamics";
+import { COMP_KNEE_WIDTH, compGrShare, compReductionDb, duckerReductionDb, gateReductionDb } from "../model/dynamics";
 import { OSC_TARGETS } from "../model/oscillator";
 import type { Strip } from "../model/types";
 import { monoStripId } from "../model/units";
@@ -230,7 +230,7 @@ export interface GrSpec {
    * are held down apart. Without it every lane is held down by `level`.
    */
   lanes?: string[];
-  /** How many dB the bar reads from top to bottom. */
+  /** How many dB the bar reads from top to bottom. A compressor's bar reads `compGrShare` instead. */
   scale: number;
   /** What the block adds back after it, which the OUT meter reads higher by. */
   makeup: number;
@@ -239,6 +239,12 @@ export interface GrSpec {
 /** The level a detector hears on meter `id`: the louder side of a pair meter, the one level of anything else. */
 export function detectorLevel(store: DeviceStore, id: string, at = Date.now()): number {
   return Math.max(...meterLevels(store, id, id.startsWith(PAIR_METER) ? 2 : 1, at));
+}
+
+/** How far down its bar the block named by `spec` reads, for a reduction of `db`. */
+export function grShare(spec: GrSpec, db: number): number {
+  const share = spec.kind === "comp" ? compGrShare(db) : db / spec.scale;
+  return Number.isNaN(share) ? 0 : Math.min(1, Math.max(0, share));
 }
 
 /**
@@ -341,7 +347,7 @@ export function startMeterTicker(store: DeviceStore, root: HTMLElement, interval
       if (!spec) continue;
       const db = blockReduction(store, spec);
       const lit = node.querySelector<HTMLElement>("i");
-      if (lit) lit.style.height = `${Math.min(1, Math.max(0, db / spec.scale)) * 100}%`;
+      if (lit) lit.style.height = `${grShare(spec, db) * 100}%`;
       if (node.dataset["meterSource"] !== undefined) node.dataset["meterOffset"] = laneNetDb(store, spec).join(" ");
     }
     for (const node of root.querySelectorAll<HTMLElement>("[data-meter-source]")) {
