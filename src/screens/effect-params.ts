@@ -49,6 +49,7 @@ import {
   noChannel,
   oneKnobButton,
   oneKnobPanel,
+  pairMeter,
   plotCurve,
   plotHandle,
   plotPanel,
@@ -60,6 +61,7 @@ import {
   titleBadge,
   titleBox,
 } from "./channel";
+import { type GrSpec, blockReduction, grShare, laneNetDb } from "./meters";
 import type { EffectChoice } from "./insert-fx";
 import { carriesInsert, effectSheet, insertBase, insertFxOptions, takeEffect, takeInsert } from "./insert-fx";
 import type { ScreenBody, ScreenDef } from "./types";
@@ -362,9 +364,19 @@ function companderBody(ctx: AppContext, strip: Strip, holder: EffectHolder): { m
   });
   const sets = [attack, release, ratio].filter((s): s is NumericSpec => s !== undefined);
   const rows = el("div", { class: "dyn-sets", children: sets.map((spec) => dynSetting(ctx, inShort(spec))) });
-  const held = ctx.store.bool(holder.onPath, holder.onFallback) ? thresholdReduction(ctx, strip, at(threshold)) : 0;
-  // The OUT meter reads as far below IN as the bar beside it is holding down.
-  return { main: dynFrame(plot, held, [rows, dynMeters(ctx, strip, held * COMP_GR_METER_DB)]), knobs: specs };
+  // The compander hears the pair's louder channel on a linked pair, and the OUT
+  // meter reads as far below IN as the bar beside it is holding down.
+  const gr: GrSpec = {
+    kind: "over",
+    base: holder.base,
+    level: pairMeter(ctx, strip),
+    scale: COMP_GR_METER_DB,
+    makeup: 0,
+    ...(threshold ? { threshold: { path: threshold.path, fallback: threshold.fallback } } : {}),
+    ...(holder.onPath ? { on: { path: holder.onPath, fallback: holder.onFallback } } : {}),
+  };
+  const held = grShare(gr, blockReduction(ctx.store, gr));
+  return { main: dynFrame(plot, held, [rows, dynMeters(ctx, strip, laneNetDb(ctx.store, gr), gr)], gr), knobs: specs };
 }
 
 /** The bands the multi-band compressor gives a page each, after the page they are set up on. */

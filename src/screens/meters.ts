@@ -11,11 +11,12 @@
 
 import type { AppContext } from "../app/context";
 import type { DeviceStore } from "../device/store";
-import { COMP_KNEE_WIDTH, compGrShare, compReductionDb, duckerReductionDb, gateReductionDb } from "../model/dynamics";
+import { COMP_GR_METER_DB, COMP_KNEE_WIDTH, compGrShare, compReductionDb, duckerReductionDb, gateReductionDb, ssmcsCorner } from "../model/dynamics";
+import { SSMCS_DEFAULTS } from "../model/defaults";
 import { OSC_TARGETS } from "../model/oscillator";
 import type { Strip } from "../model/types";
 import { monoStripId } from "../model/units";
-import { meterFraction } from "../ui/widgets";
+import { meterFraction, setMeterOffset } from "../ui/widgets";
 import { jackParam, micLineJack } from "./head-amp";
 
 /** A meter reading nothing. */
@@ -220,7 +221,7 @@ export function meterLevels(store: DeviceStore, id: string, channels: number, at
 
 /** What a screen's reduction bar is reading, and from which strip's level. */
 export interface GrSpec {
-  kind: "gate" | "comp" | "ducker" | "held";
+  kind: "gate" | "comp" | "ducker" | "ssmcs" | "over" | "held";
   /** The block's own values live under this path. */
   base: string;
   /** The meter whose level the detector hears; a pair meter's louder side. */
@@ -234,6 +235,10 @@ export interface GrSpec {
   scale: number;
   /** What the block adds back after it, which the OUT meter reads higher by. */
   makeup: number;
+  /** For `over`: where the threshold the level is held down over is kept, and its value when unset. */
+  threshold?: { path: string; fallback: number };
+  /** For `over`: where the switch that turns the block on is kept, and its value when unset. Without it the block is on. */
+  on?: { path: string; fallback: boolean };
 }
 
 /** The level a detector hears on meter `id`: the louder side of a pair meter, the one level of anything else. */
@@ -273,6 +278,17 @@ export function blockReduction(store: DeviceStore, spec: GrSpec, at = Date.now()
     if (!store.bool(`${b}.ducker.on`, false)) return 0;
     return duckerReductionDb(level, store.num(`${b}.ducker.threshold`, -40), store.num(`${b}.ducker.range`, -24));
   }
+  // SSMCS holds the channel down by how far it is over the corner Comp Drive sets.
+  if (spec.kind === "ssmcs") {
+    if (!blockOn(store, spec)) return 0;
+    const over = level - ssmcsCorner(store.num(`${b}.ssmcs.compDrive`, SSMCS_DEFAULTS.compDrive));
+    return Math.min(spec.scale, Math.max(0, over));
+  }
+  // An insert's compressor holds the channel down by how far it is over its threshold.
+  if (spec.kind === "over") {
+    if (!blockOn(store, spec) || !spec.threshold) return 0;
+    return Math.min(COMP_GR_METER_DB, Math.max(0, level - store.num(spec.threshold.path, spec.threshold.fallback)));
+  }
   // A block that carries its reading rather than working one out from its own
   // values hands it over on the node itself.
   return 0;
@@ -283,6 +299,8 @@ export function blockOn(store: DeviceStore, spec: GrSpec): boolean {
   if (spec.kind === "gate") return store.bool(`${spec.base}.gate.on`, false);
   if (spec.kind === "comp") return store.bool(`${spec.base}.comp.on`, false);
   if (spec.kind === "ducker") return store.bool(`${spec.base}.ducker.on`, false);
+  if (spec.kind === "ssmcs") return store.bool(`${spec.base}.comp.on`, false) && store.bool(`${spec.base}.ssmcs.on`, SSMCS_DEFAULTS.on);
+  if (spec.kind === "over") return spec.on ? store.bool(spec.on.path, spec.on.fallback) : true;
   return true;
 }
 
@@ -307,12 +325,16 @@ export function markReduction(node: HTMLElement, spec: GrSpec): void {
   if (spec.lanes) node.dataset["grLanes"] = spec.lanes.join(" ");
   node.dataset["grScale"] = String(spec.scale);
   node.dataset["grMakeup"] = String(spec.makeup);
+  if (spec.threshold) node.dataset["grThreshold"] = `${spec.threshold.fallback} ${spec.threshold.path}`;
+  if (spec.on) node.dataset["grOn"] = `${spec.on.fallback ? 1 : 0} ${spec.on.path}`;
 }
 
 /** Read a reduction back off a node the ticker has found. */
 export function readGrSpec(node: HTMLElement): GrSpec | null {
   const kind = node.dataset["grKind"];
-  if (kind !== "gate" && kind !== "comp" && kind !== "ducker" && kind !== "held") return null;
+  if (kind !== "gate" && kind !== "comp" && kind !== "ducker" && kind !== "ssmcs" && kind !== "over" && kind !== "held") return null;
+  const threshold = node.dataset["grThreshold"]?.split(" ");
+  const on = node.dataset["grOn"]?.split(" ");
   return {
     kind,
     base: node.dataset["grBase"] ?? "",
@@ -320,6 +342,8 @@ export function readGrSpec(node: HTMLElement): GrSpec | null {
     ...(node.dataset["grLanes"] ? { lanes: node.dataset["grLanes"].split(" ") } : {}),
     scale: Number(node.dataset["grScale"] ?? 1),
     makeup: Number(node.dataset["grMakeup"] ?? 0),
+    ...(threshold ? { threshold: { fallback: Number(threshold[0]), path: threshold[1] ?? "" } } : {}),
+    ...(on ? { on: { fallback: on[0] === "1", path: on[1] ?? "" } } : {}),
   };
 }
 
@@ -348,7 +372,7 @@ export function startMeterTicker(store: DeviceStore, root: HTMLElement, interval
       const db = blockReduction(store, spec);
       const lit = node.querySelector<HTMLElement>("i");
       if (lit) lit.style.height = `${grShare(spec, db) * 100}%`;
-      if (node.dataset["meterSource"] !== undefined) node.dataset["meterOffset"] = laneNetDb(store, spec).join(" ");
+      if (node.dataset["meterSource"] !== undefined) setMeterOffset(node, laneNetDb(store, spec));
     }
     for (const node of root.querySelectorAll<HTMLElement>("[data-meter-source]")) {
       const stripId = node.dataset["meterSource"];

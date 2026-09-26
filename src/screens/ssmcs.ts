@@ -20,6 +20,7 @@ import type { Route } from "../app/navigator";
 import type { Strip } from "../model/types";
 import { clamp } from "../device/store";
 import { SSMCS_DEFAULTS } from "../model/defaults";
+import { SSMCS_CORNER_FLOOR_DB, ssmcsCorner } from "../model/dynamics";
 import { biquadDb, peakingBiquad, shelfBiquad } from "../model/eq-response";
 import { el, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
@@ -46,7 +47,7 @@ import {
   routeStrip,
   titleBadge,
 } from "./channel";
-import { simulatedLevel } from "./meters";
+import { type GrSpec, blockReduction, grShare, laneNetDb, markReduction, simulatedLevel } from "./meters";
 import { linkedPair } from "./stereo-link";
 import type { ScreenBody, ScreenDef } from "./types";
 
@@ -208,15 +209,7 @@ function bandSpecs(b: string, band: (typeof SSMCS_BANDS)[number]): NumericSpec[]
 // ---------------------------------------------------------------- the curves
 
 /** Where the compressor's corner sits, in dB, for a Comp Drive setting. */
-const CORNER_RAMP_DRIVE = 1.55;
-const CORNER_FLOOR_DB = -54;
-const CORNER_AT_FACTORY_DB = -20;
-
-function corner(drive: number): number {
-  const full = CORNER_AT_FACTORY_DB - 0.2 * (drive * 20 - 100);
-  const ramped = drive >= CORNER_RAMP_DRIVE ? full : (drive / CORNER_RAMP_DRIVE) * (CORNER_AT_FACTORY_DB - 0.2 * (CORNER_RAMP_DRIVE * 20 - 100));
-  return Math.max(CORNER_FLOOR_DB, ramped);
-}
+const corner = ssmcsCorner;
 
 /**
  * How far the knee reaches over the corner and under it, in dB of input, by knee
@@ -408,21 +401,22 @@ function sideChainMeter(ctx: AppContext, strip: Parameters<typeof dynMeters>[1],
   });
 }
 
-/** How far the strip is holding the channel down, as a fraction of the reduction meter. */
-function reduction(ctx: AppContext, strip: Parameters<typeof dynMeters>[1], b: string): number {
-  if (!ctx.store.bool(`${b}.comp.on`, false) || !ctx.store.bool(`${b}.ssmcs.on`, SSMCS_DEFAULTS.on)) return 0;
-  const level = simulatedLevel(ctx, strip, false)[0] ?? -96;
-  const over = level - corner(ctx.store.num(`${b}.ssmcs.compDrive`, SSMCS_DEFAULTS.compDrive));
-  return clamp(Math.max(0, over) / -CORNER_FLOOR_DB, 0, 1);
+/**
+ * What the strip's compressor is read from: the channel's own level, with each OUT
+ * lane of a linked pair held down by its own channel.
+ */
+function compSpec(ctx: AppContext, strip: Parameters<typeof dynMeters>[1], b: string): GrSpec {
+  const linked = linkedPair(ctx, strip);
+  return { kind: "ssmcs", base: b, level: strip.id, ...(linked ? { lanes: linked.map((s) => s.id) } : {}), scale: -SSMCS_CORNER_FLOOR_DB, makeup: 0 };
 }
 
-/** How many dB the strip takes off each OUT lane: each channel of a linked pair by its own level. */
-function outAttenuation(ctx: AppContext, strip: Parameters<typeof dynMeters>[1], b: string): number[] {
-  return (linkedPair(ctx, strip) ?? [strip]).map((s) => reduction(ctx, s, b) * -CORNER_FLOOR_DB);
+/** The reduction meter, marked so the ticker keeps it moving. */
+function reductionMeter(ctx: AppContext, spec: GrSpec): HTMLElement {
+  const share = grShare(spec, blockReduction(ctx.store, spec));
+  const node = el("div", { class: "dyn-gr ssmcs-gr", children: [el("i", { style: { height: `${share * 100}%` } })] });
+  markReduction(node, spec);
+  return node;
 }
-
-const reductionMeter = (share: number): HTMLElement =>
-  el("div", { class: "dyn-gr ssmcs-gr", children: [el("i", { style: { height: `${share * 100}%` } })] });
 
 /**
  * The switch a block carries at the top left of a screen that sets it: the small
@@ -549,7 +543,7 @@ export const ssmcsScreen: ScreenDef = {
             children: [
               blockSwitch(ctx, "COMP", "comp", `${b}.comp.on`, true),
               el("div", { class: "ssmcs-thumb ssmcs-comp-thumb", children: [compThumb as unknown as HTMLElement] }),
-              reductionMeter(reduction(ctx, strip, b)),
+              reductionMeter(ctx, compSpec(ctx, strip, b)),
             ],
           }),
           el("div", {
@@ -568,7 +562,7 @@ export const ssmcsScreen: ScreenDef = {
             }),
           ]),
           pageArrow("next", () => ctx.nav.replace({ id: "ch.ssmcs.comp", strip: strip.id })),
-          dynMeters(ctx, strip, outAttenuation(ctx, strip, b)),
+          dynMeters(ctx, strip, laneNetDb(ctx.store, compSpec(ctx, strip, b)), compSpec(ctx, strip, b)),
         ],
       }),
       headerLeft: channelSelector(ctx, strip, route, true),
@@ -612,7 +606,7 @@ function compFace(ctx: AppContext, route: Route, sideChain: boolean): ScreenBody
         blockSwitch(ctx, "Comp", "comp", `${b}.comp.on`),
         sideChainMeter(ctx, strip, b),
         plot,
-        reductionMeter(reduction(ctx, strip, b)),
+        reductionMeter(ctx, compSpec(ctx, strip, b)),
         ...(sideChain
           ? [
               litSwitch("Side Chain", "ssmcs-sc-switch", scOn, () => void ctx.store.set(`${b}.ssmcs.sc.on`, !scOn)),
@@ -642,7 +636,7 @@ function compFace(ctx: AppContext, route: Route, sideChain: boolean): ScreenBody
         sideChain
           ? pageArrow("next", () => ctx.nav.replace({ id: "ch.ssmcs.eq", strip: strip.id }))
           : pageArrow("next", () => ctx.nav.replace({ id: "ch.ssmcs.sc", strip: strip.id })),
-        dynMeters(ctx, strip, outAttenuation(ctx, strip, b)),
+        dynMeters(ctx, strip, laneNetDb(ctx.store, compSpec(ctx, strip, b)), compSpec(ctx, strip, b)),
       ],
     }),
     headerLeft: channelSelector(ctx, strip, route, true),

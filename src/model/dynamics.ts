@@ -31,6 +31,18 @@ export function compGrShare(db: number): number {
   return Math.min(1, share);
 }
 
+/** Where the SSMCS compressor's corner sits, in dB, for a Comp Drive setting, and the lowest it goes. */
+const SSMCS_CORNER_RAMP_DRIVE = 1.55;
+export const SSMCS_CORNER_FLOOR_DB = -54;
+const SSMCS_CORNER_AT_FACTORY_DB = -20;
+
+export function ssmcsCorner(drive: number): number {
+  const full = SSMCS_CORNER_AT_FACTORY_DB - 0.2 * (drive * 20 - 100);
+  const ramped =
+    drive >= SSMCS_CORNER_RAMP_DRIVE ? full : (drive / SSMCS_CORNER_RAMP_DRIVE) * (SSMCS_CORNER_AT_FACTORY_DB - 0.2 * (SSMCS_CORNER_RAMP_DRIVE * 20 - 100));
+  return Math.max(SSMCS_CORNER_FLOOR_DB, ramped);
+}
+
 /** How wide Knee rounds the compressor's corner, in dB of input. */
 export const COMP_KNEE_WIDTH: Record<string, number> = { Soft: 52, Medium: 16, Hard: 0 };
 

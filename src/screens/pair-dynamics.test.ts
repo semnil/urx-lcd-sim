@@ -310,3 +310,89 @@ describe("what a stereo-linked pair's dynamics hear", () => {
     expect([Number(left) > 0, right]).toEqual([true, 0]);
   });
 });
+
+describe("SSMCS's and a Compander's reduction as the signal moves", () => {
+  /** The reduction bar and the OUT offsets the screen open now shows. */
+  const reading = (shell: Shell): { gr: string | undefined; out: number[] } => ({
+    gr: shell.root.querySelector<HTMLElement>(".dyn-gr i")?.style.height,
+    out: outOffsets(shell),
+  });
+
+  /**
+   * Take the screen from silence to CH 1 at 0 dB and back, reading it after the
+   * ticker has run and again after the screen is opened afresh: the two agree.
+   */
+  async function follow(shell: Shell, screen: string): Promise<void> {
+    levels = { ch1: -96, ch2: -96 };
+    await open(shell, screen, "ch1");
+    const silent = reading(shell);
+    for (const [step, db] of [["over the threshold", 0], ["back under it", -96]] as const) {
+      levels["ch1"] = db;
+      const stop = startMeterTicker(shell.ctx.store, shell.root, 20);
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      stop();
+      const ticked = reading(shell);
+      await open(shell, screen, "ch1");
+      expect(ticked, `${screen} ${step}: the ticker reads what the screen reads when opened`).toEqual(reading(shell));
+      if (db === 0) expect(ticked.out.some((d) => d > 0), `${screen} ${step}: OUT comes down`).toBe(true);
+      else expect(ticked, `${screen} ${step}: as it read in silence`).toEqual(silent);
+    }
+  }
+
+  async function ssmcs(shell: Shell): Promise<void> {
+    await pick(shell, "COMP / EQ", "SSMCS");
+    await shell.ctx.store.set("ch.ch1.ssmcs.compDrive", 10);
+    await shell.ctx.store.set("ch.ch2.ssmcs.compDrive", 10);
+  }
+
+  async function compander(shell: Shell): Promise<void> {
+    await shell.ctx.store.set("ch.ch1.insFx.effect", "Compander-S");
+    await shell.ctx.store.set("ch.ch1.insFx.on", true);
+    await shell.ctx.store.set("ch.ch1.insFx.threshold", -40);
+  }
+
+  it("keeps SSMCS's reduction and OUT moving on a mono channel", async () => {
+    const shell = await mount();
+    await ssmcs(shell);
+    await follow(shell, "ch.ssmcs");
+    await follow(shell, "ch.ssmcs.comp");
+  });
+
+  it("keeps SSMCS's reduction and each OUT lane moving on a linked pair", async () => {
+    const shell = await mount();
+    await pick(shell, "Signal Type", "STEREO");
+    await ssmcs(shell);
+    await follow(shell, "ch.ssmcs");
+    await follow(shell, "ch.ssmcs.comp");
+  });
+
+  it("keeps a Compander's reduction and OUT moving on a mono channel", async () => {
+    const shell = await mount();
+    await compander(shell);
+    await follow(shell, "ch.insfx");
+  });
+
+  it("lets a Compander that is switched off stop holding the signal down as the meters move", async () => {
+    const shell = await mount();
+    await compander(shell);
+    levels = { ch1: 0, ch2: -96 };
+    await open(shell, "ch.insfx", "ch1");
+    expect(reading(shell).out.some((d) => d > 0), "on, it holds CH 1 down").toBe(true);
+    await shell.ctx.store.set("ch.ch1.insFx.on", false);
+    const stop = startMeterTicker(shell.ctx.store, shell.root, 20);
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    stop();
+    expect(reading(shell), "off, the ticker lets go").toEqual({ gr: "0%", out: [0] });
+  });
+
+  it("keeps a Compander's reduction and OUT moving on a linked pair", async () => {
+    const shell = await mount();
+    await pick(shell, "Signal Type", "STEREO");
+    await compander(shell);
+    await follow(shell, "ch.insfx");
+    // CH 2 alone holds the pair down too, on CH 1's screen.
+    levels = { ch1: -96, ch2: 0 };
+    await open(shell, "ch.insfx", "ch1");
+    expect(reading(shell).out.every((d) => d > 0), "CH 2's signal holds both lanes down").toBe(true);
+  });
+});
