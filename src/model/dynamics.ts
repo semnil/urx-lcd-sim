@@ -4,31 +4,38 @@
 // ticker that keeps them moving all read these, so a block's reading is the
 // same wherever it is drawn.
 
-/** How many dB a dynamics screen's reduction bar reads from its top to its bottom. */
-export const GR_METER_DB = 38;
+/** The deepest reduction a block that holds its channel down over a threshold reports: the threshold's range. */
+export const OVER_REDUCTION_MAX_DB = 54;
 
-/** The same, for the channel view's COMP bar and an insert's reduction bar, which run the threshold's range. */
-export const COMP_GR_METER_DB = 54;
+/** The reduction every reduction bar bends at, and the share of the bar it reaches there. */
+const GR_BAR_BEND_DB = 18;
+const GR_BAR_BEND_SHARE = 11 / 21;
 
-/** The reduction the COMP screen's bar bends at, and the share of the bar it reaches there. */
-const COMP_GR_BEND_DB = 18;
-const COMP_GR_BEND_SHARE = 11 / 21;
-
-/** The reduction that reaches the foot of the COMP screen's bar. */
-const COMP_GR_FULL_DB = 50;
+/** The reduction that reaches the far end of every reduction bar. */
+const GR_BAR_FULL_DB = 50;
 
 /**
- * How far down the COMP screen's reduction bar a reduction of `db` reaches, as a
- * share of the bar: straight to 18 dB at 11/21 of it, then straight on at a
- * shallower slope to 50 dB at its foot.
+ * How far along a reduction bar a reduction of `db` reaches, as a share of the
+ * bar: straight to 18 dB at 11/21 of it, then straight on at a shallower slope to
+ * 50 dB at its far end. Every block's reduction bar reads on this scale.
  */
-export function compGrShare(db: number): number {
+export function grBarShare(db: number): number {
   if (!(db > 0)) return 0;
   const share =
-    db <= COMP_GR_BEND_DB
-      ? (db / COMP_GR_BEND_DB) * COMP_GR_BEND_SHARE
-      : COMP_GR_BEND_SHARE + ((db - COMP_GR_BEND_DB) / (COMP_GR_FULL_DB - COMP_GR_BEND_DB)) * (1 - COMP_GR_BEND_SHARE);
+    db <= GR_BAR_BEND_DB
+      ? (db / GR_BAR_BEND_DB) * GR_BAR_BEND_SHARE
+      : GR_BAR_BEND_SHARE + ((db - GR_BAR_BEND_DB) / (GR_BAR_FULL_DB - GR_BAR_BEND_DB)) * (1 - GR_BAR_BEND_SHARE);
   return Math.min(1, share);
+}
+
+/**
+ * How far along the channel view's COMP level bar a level of `db` reaches: the
+ * reduction bars' scale laid from 0 dB down, so 0 dB fills it and each dB under
+ * takes off what a dB of reduction would add. The threshold is marked on it the same way.
+ */
+export function levelBarShare(db: number): number {
+  if (Number.isNaN(db)) return 0;
+  return 1 - grBarShare(-db);
 }
 
 /** Where the SSMCS compressor's corner sits, in dB, for a Comp Drive setting, and the lowest it goes. */

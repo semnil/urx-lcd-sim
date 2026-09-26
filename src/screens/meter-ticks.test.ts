@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { Shell } from "../app/shell";
+import { grBarShare, levelBarShare } from "../model/dynamics";
 import type { Route } from "../app/navigator";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
@@ -85,8 +86,8 @@ describe("views that follow the signal as the meters move", () => {
     await shell.ctx.store.set("ch.ch1.comp.threshold", -40);
     await follow(shell, [{ id: "channel-view", strip: "ch1" }], "ch1", () => widths(shell, ".comp-meters .comp-bar i"));
 
-    // At 0 dB the level bar is full, and the reduction bar reads straight over 54 dB
-    // what the COMP screen's OUT takes off before the makeup.
+    // At 0 dB the level bar is full, and the reduction bar reads on the reduction
+    // bars' scale what the COMP screen's OUT takes off before the makeup.
     levels["ch1"] = 0;
     await open(shell, [{ id: "channel-view", strip: "ch1" }]);
     const [level, reduce] = widths(shell, ".comp-meters .comp-bar i");
@@ -95,7 +96,12 @@ describe("views that follow the signal as the meters move", () => {
     const reduction = out + shell.ctx.store.num("ch.ch1.comp.gain", 0);
     expect(level).toBe("100%");
     expect(reduction).toBeGreaterThan(0);
-    expect(Number.parseFloat(reduce ?? "NaN")).toBeCloseTo((reduction / 54) * 100, 6);
+    expect(Number.parseFloat(reduce ?? "NaN")).toBeCloseTo(grBarShare(reduction) * 100, 6);
+
+    // At -20 dB the level bar reaches where its own scale puts -20 dB.
+    levels["ch1"] = -20;
+    await open(shell, [{ id: "channel-view", strip: "ch1" }]);
+    expect(widths(shell, ".comp-meters .comp-bar i")[0]).toBe(`${levelBarShare(-20) * 100}%`);
   });
 
   it("moves each M.B.Comp band's reduction bar", async () => {

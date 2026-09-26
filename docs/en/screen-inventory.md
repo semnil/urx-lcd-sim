@@ -511,7 +511,7 @@ the bar body y127..225, three rows of the unit's corner shades at each end of a 
 are shared with HOME's STEREO/CUE meter. A meter draws as many bars as the strip has channels.
 
 The reduction bar reads what the screen's own block is holding down. GATE reads its RANGE while the
-signal is at or under the threshold (38 dB from the bar's top to its bottom); COMP reads how far the
+signal is at or under the threshold; COMP reads how far the
 curve it is drawing sits under unity; DUCKER compares the level of
 the strip named as Ducker Source against the threshold and stops at the RANGE. The OUT meter reads
 that far below IN, less what the block adds back after it (COMP's makeup) — where the makeup is
@@ -570,12 +570,16 @@ The transfer curve panels are -80..+20 dB on both axes, with one vertical and on
 covers one whole column or row of pixels (x180 and y86 in p103-1 and p099-1). The envelope panel is -100..+20 dB vertically, with a horizontal rule at the RANGE height and
 vertical rules at A and D.
 
-The reduction bar grows from the top down. COMP reaches 11/21 of the bar at 18 dB and goes on at a
-shallower slope to the full length at 50 dB (within 0.6 mm of each of the 8 lengths from 4 dB to 34 dB
-the operator read on the unit's LCD on 2026-09-26). The channel view's COMP block bar takes the
-threshold's travel (54 dB) as its full length. GATE grows by RANGE while the input is at or under the
-threshold, on a 38 dB full length
-(RANGE -20 dB reaches y118..174 in p103-1), and GATE's OUT meter reads that much lower than IN.
+The reduction bar grows from the top down. Every block's reduction bar reads on one scale: 11/21 of the
+bar at 18 dB, then on at a shallower slope to the full length at 50 dB. The GATE, DUCKER, COMP and SSMCS
+screens, INS FX's Compander, M.B.Comp's bands and the channel view's COMP block bar (lit from the right)
+share it (2026-09-26: the lengths the operator read on the unit's LCD are within 1.4 mm of this scale,
+the largest gap being GATE's at 48 dB; on the COMP screen, 8 lengths from 4 dB to 34 dB within 0.6 mm
+each). GATE grows by RANGE while the input is at or
+under the threshold. In p103-1, RANGE -20 dB lights y118..174; on this scale it reaches y118..177.
+The channel view's COMP block level bar is the same scale laid from 0 dB down: full at 0 dB, 10/21 of
+the bar at -18 dB, and empty from -50 dB. The threshold mark stands on that scale too. GATE's OUT
+meter reads that much lower than IN.
 
 COMP and EQ have a [1 1-knob] button at the top right (x386..477 / y50..87, face `--surface-btn`, an
 18px round mark with its 1 cut out in the button's face, its band `--oneknob-band` while off, its name 14.5px at weight 600
