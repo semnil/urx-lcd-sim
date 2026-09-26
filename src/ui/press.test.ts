@@ -56,10 +56,11 @@ describe("a pressed control", () => {
     banded.style.borderBottomRightRadius = "3px";
     banded.style.borderBottomLeftRadius = "2px";
     down(banded.firstElementChild);
-    expect([banded.classList.contains("is-pressed"), banded.style.getPropertyValue("--press"), banded.style.getPropertyValue("--press-radius"), banded.style.translate]).toEqual([
+    // The corner it leaves square reads back as `0px` in the browser and as `0` in jsdom.
+    expect([banded.classList.contains("is-pressed"), banded.style.getPropertyValue("--press"), banded.style.getPropertyValue("--press-radius").split(" "), banded.style.translate]).toEqual([
       true,
       "3px",
-      "4px 0px 3px 2px",
+      ["4px", expect.stringMatching(/^0(px)?$/), "3px", "2px"],
       "2px calc(-1px + 3px)",
     ]);
     window.dispatchEvent(new MouseEvent("pointerup"));
