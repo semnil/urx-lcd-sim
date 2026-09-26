@@ -7,7 +7,7 @@ import type { ParamPath, ParamValue } from "../device/path";
 import type { DeviceStore, WriteRule } from "../device/store";
 import { clamp } from "../device/store";
 import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, GATE_DEFAULTS, compEqBankDefaults, ssmcsBankDefaults } from "../model/defaults";
-import { COMP_GR_METER_DB, COMP_KNEE_WIDTH, GR_METER_DB, compResponse } from "../model/dynamics";
+import { COMP_KNEE_WIDTH, compResponse, grBarShare, levelBarShare } from "../model/dynamics";
 import { eqResponse } from "../model/eq-response";
 import type { Strip } from "../model/types";
 import { findStrip, sendsTo } from "../model/types";
@@ -18,7 +18,7 @@ import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
 import { compRatioSpec, dbSpec, faderSpec, formatValue, freqSpec, intSpec, logFreqSpec, msSpec, panSpec } from "../ui/param-spec";
 import { attachDrag, attachSpin, followFocus, knobControl, markFocus, meter, panSlider, pickerSheet, pulldown, sideTab, toggle, unbuilt, valueBox } from "../ui/widgets";
-import { type GrSpec, type LampState, blockReduction, grShare, inputMeterId, laneNetDb, markBlockLamps, markClipSafe, markLevelBar, markReduction, meterLevels, pairMeterId, showBlockLamps, simulatedInput, simulatedLevel } from "./meters";
+import { type GrSpec, type LampState, blockReduction, inputMeterId, laneNetDb, markBlockLamps, markClipSafe, markLevelBar, markReduction, meterLevels, pairMeterId, showBlockLamps, simulatedInput, simulatedLevel } from "./meters";
 import { PAN_BAL, SIGNAL_TYPES, carriesStereo, compDetectorShared, enterSsmcs, linkedPair, setPanBal, setSignalType, signalType, stripPosition } from "./stereo-link";
 import { BUS_TYPES, busType, panLinkOn, sendLocks, sendPanPath, setBusType, setPanLink } from "./mix-bus";
 import { homeSide, sceneBox } from "./home";
@@ -299,7 +299,7 @@ function liveLamps(ctx: AppContext, spec: GrSpec): HTMLElement {
 
 /** GATE opens for a signal over the threshold and shuts once it is a range under. */
 function gateLamps(ctx: AppContext, strip: Strip, base: string): HTMLElement {
-  return liveLamps(ctx, { kind: "gate", base, level: pairMeter(ctx, strip), scale: GR_METER_DB, makeup: 0 });
+  return liveLamps(ctx, { kind: "gate", base, level: pairMeter(ctx, strip), makeup: 0 });
 }
 
 /** How many names the ducker's key list sets across. */
@@ -331,7 +331,7 @@ function duckerLamps(ctx: AppContext, base: string): HTMLElement {
   const key = duckerSources(ctx).find((s) => s.label === source)?.strip;
   // A key that is not in the list is silent, which holds nothing down.
   if (!key) return blockLamps(ctx.store.bool(`${base}.ducker.on`, false) ? "open" : "off");
-  return liveLamps(ctx, { kind: "ducker", base, level: key.id, scale: GR_METER_DB, makeup: 0 });
+  return liveLamps(ctx, { kind: "ducker", base, level: key.id, makeup: 0 });
 }
 
 /**
@@ -340,22 +340,22 @@ function duckerLamps(ctx: AppContext, base: string): HTMLElement {
  */
 function compMeters(ctx: AppContext, strip: Strip, base: string, marked: boolean): HTMLElement {
   const spec = compThreshold(base);
-  const at = (db: number): number => clampFraction((db - spec.min) / (spec.max - spec.min));
   const bar = (extra: string, fraction: number): HTMLElement =>
     el("div", { class: `comp-bar ${extra}`.trim(), children: [el("i", { style: { width: `${fraction * 100}%` } })] });
-  // Both bars keep moving with the signal: the level against the threshold's
-  // range, and the reduction straight over the same 54 dB.
+  // Both bars keep moving with the signal: the level on the level bar's scale,
+  // with the threshold marked on the same scale, and the reduction on the
+  // reduction bars' own.
   const level = bar("", 0);
-  markLevelBar(level, ctx.store, strip.id, spec.min, spec.max);
+  markLevelBar(level, ctx.store, strip.id);
   const gr: GrSpec = { ...compSpec(ctx, strip, base, ctx.store.num(`${base}.comp.gain`, COMP_DEFAULTS.gain)), row: true };
-  const reduce = bar("comp-reduce", grShare(gr, blockReduction(ctx.store, gr)));
+  const reduce = bar("comp-reduce", grBarShare(blockReduction(ctx.store, gr)));
   markReduction(reduce, gr);
   return el("div", {
     class: "comp-meters",
     children: [
       level,
       reduce,
-      ...(marked ? [el("div", { class: "comp-thresh", style: { left: `${at(ctx.store.num(spec.path, spec.fallback)) * 100}%` } })] : []),
+      ...(marked ? [el("div", { class: "comp-thresh", style: { left: `${levelBarShare(ctx.store.num(spec.path, spec.fallback)) * 100}%` } })] : []),
     ],
   });
 }
@@ -1026,7 +1026,6 @@ function compSpec(ctx: AppContext, strip: Strip, base: string, makeup: number): 
     base,
     level: shared ? pairMeter(ctx, strip) : strip.id,
     ...(linked && !shared ? { lanes: linked.map((s) => s.id) } : {}),
-    scale: COMP_GR_METER_DB,
     makeup,
   };
 }
@@ -1084,7 +1083,7 @@ function dynScreen(
   // The OUT meter reads as far below IN as the bar beside it reads, less what
   // the block adds back after it.
   const db = blockReduction(ctx.store, gr);
-  return dynFrame(plot, grShare(gr, db), [...right, dynMeters(ctx, strip, laneNetDb(ctx.store, gr), gr)], gr);
+  return dynFrame(plot, grBarShare(db), [...right, dynMeters(ctx, strip, laneNetDb(ctx.store, gr), gr)], gr);
 }
 
 /**
@@ -1148,7 +1147,7 @@ export const gateScreen: ScreenDef = {
             children: [attack, hold, decay].map((s) => dynSetting(ctx, s)),
           }),
         ],
-        { kind: "gate", base: b, level: pairMeter(ctx, strip), scale: GR_METER_DB, makeup: 0 },
+        { kind: "gate", base: b, level: pairMeter(ctx, strip), makeup: 0 },
       ),
       headerLeft: channelSelector(ctx, strip, route, true),
       headerCenter: titleBadge("GATE", "gate", on, () => void ctx.store.set(`${b}.gate.on`, !on)),
@@ -1331,7 +1330,6 @@ export const duckerScreen: ScreenDef = {
           kind: "ducker",
           base: b,
           level: duckerSources(ctx).find((s) => s.label === ctx.store.str(`${b}.ducker.source`, DUCKER_SOURCE_DEFAULT))?.strip.id ?? strip.id,
-          scale: GR_METER_DB,
           makeup: 0,
         },
       ),

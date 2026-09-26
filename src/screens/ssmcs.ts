@@ -20,7 +20,7 @@ import type { Route } from "../app/navigator";
 import type { Strip } from "../model/types";
 import { clamp } from "../device/store";
 import { SSMCS_DEFAULTS } from "../model/defaults";
-import { SSMCS_CORNER_FLOOR_DB, ssmcsCorner } from "../model/dynamics";
+import { grBarShare, ssmcsCorner } from "../model/dynamics";
 import { biquadDb, peakingBiquad, shelfBiquad } from "../model/eq-response";
 import { el, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
@@ -47,7 +47,7 @@ import {
   routeStrip,
   titleBadge,
 } from "./channel";
-import { type GrSpec, blockReduction, grShare, laneNetDb, markReduction, simulatedLevel } from "./meters";
+import { type GrSpec, blockReduction, laneNetDb, markReduction, simulatedLevel } from "./meters";
 import { linkedPair } from "./stereo-link";
 import type { ScreenBody, ScreenDef } from "./types";
 
@@ -407,12 +407,12 @@ function sideChainMeter(ctx: AppContext, strip: Parameters<typeof dynMeters>[1],
  */
 function compSpec(ctx: AppContext, strip: Parameters<typeof dynMeters>[1], b: string): GrSpec {
   const linked = linkedPair(ctx, strip);
-  return { kind: "ssmcs", base: b, level: strip.id, ...(linked ? { lanes: linked.map((s) => s.id) } : {}), scale: -SSMCS_CORNER_FLOOR_DB, makeup: 0 };
+  return { kind: "ssmcs", base: b, level: strip.id, ...(linked ? { lanes: linked.map((s) => s.id) } : {}), makeup: 0 };
 }
 
 /** The reduction meter, marked so the ticker keeps it moving. */
 function reductionMeter(ctx: AppContext, spec: GrSpec): HTMLElement {
-  const share = grShare(spec, blockReduction(ctx.store, spec));
+  const share = grBarShare(blockReduction(ctx.store, spec));
   const node = el("div", { class: "dyn-gr ssmcs-gr", children: [el("i", { style: { height: `${share * 100}%` } })] });
   markReduction(node, spec);
   return node;

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { Shell } from "../app/shell";
+import { grBarShare, levelBarShare } from "../model/dynamics";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
@@ -889,6 +890,7 @@ describe("what a channel view's blocks draw", () => {
     await shell.ctx.store.set("ch.ch1.comp.threshold", -4);
     await flush();
     expect(parseFloat(at()), "a higher threshold stands further right").toBeGreaterThan(parseFloat(low));
+    expect(at(), "on the level bar's own scale, where a level of -4 dB would reach").toBe(`${levelBarShare(-4) * 100}%`);
     expect(shell.root.querySelectorAll(".comp-bar"), "over the level and the reduction").toHaveLength(2);
   });
 });
@@ -3521,7 +3523,7 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
     await shell.ctx.store.set("ch.ch1.gate.threshold", 0);
     await shell.ctx.store.set("ch.ch1.gate.range", -19);
     await flush();
-    expect(shell.root.querySelector<HTMLElement>(".dyn-gr i")?.style.height, "19 of the meter's 38 dB").toBe("50%");
+    expect(shell.root.querySelector<HTMLElement>(".dyn-gr i")?.style.height, "19 dB on the reduction bars' scale").toBe(`${grBarShare(19) * 100}%`);
     const out = shell.root.querySelectorAll<HTMLElement>(".dyn-io .meter")[1];
     expect(out?.dataset["meterOffset"], "OUT reads the range lower").toBe("19");
     await shell.ctx.store.set("ch.ch1.gate.threshold", -96);
@@ -3601,11 +3603,11 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
       await flush();
       const bar = (): string | undefined => shell.root.querySelector<HTMLElement>(".dyn-gr i")?.style.height;
       // The key stands 34 dB over, so the ducker is closed to its whole range.
-      expect(bar()).toBe(`${(24 / 38) * 100}%`);
+      expect(bar()).toBe(`${grBarShare(24) * 100}%`);
 
       await shell.ctx.store.set("ch.ch_9_10.ducker.range", -10);
       await flush();
-      expect(bar(), "and no further than the range it is given").toBe(`${(10 / 38) * 100}%`);
+      expect(bar(), "and no further than the range it is given").toBe(`${grBarShare(10) * 100}%`);
 
       await shell.ctx.store.set("ch.ch_9_10.ducker.threshold", 0);
       await flush();
@@ -4359,13 +4361,13 @@ describe("the head amp belongs to the connector a channel is on", () => {
         [...shell.root.querySelectorAll<HTMLElement>(`${selector} .meter-bar`)].map((b) => b.style.getPropertyValue("--unlit"));
       shell.ctx.nav.push({ id: "channel-view", strip: "ch3" });
       await flush();
-      expect(unlit(".cv-gain-row"), "the channel view's meter").toEqual(["50%"]);
+      expect(unlit(".cv-gain-row"), "the channel view's meter").toEqual([`${(1 - levelBarShare(-30)) * 100}%`]);
       shell.ctx.nav.push({ id: "ch.input", strip: "ch3" });
       await flush();
-      expect(unlit(".input-meter"), "INPUT's two").toEqual(["50%", "50%"]);
+      expect(unlit(".input-meter"), "INPUT's two").toEqual(Array(2).fill(`${(1 - levelBarShare(-30)) * 100}%`));
       shell.ctx.nav.replace({ id: "channel-view", strip: "bus.mix1" });
       await flush();
-      expect(unlit(".cv-gain-row"), "a bus reads its own level there").toEqual([`${(1 - 50 / 60) * 100}%`]);
+      expect(unlit(".cv-gain-row"), "a bus reads its own level there").toEqual([`${(1 - levelBarShare(-10)) * 100}%`]);
     } finally {
       setMeterSource(null);
     }

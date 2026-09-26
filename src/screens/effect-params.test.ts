@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Route } from "../app/navigator";
+import { grBarShare } from "../model/dynamics";
 import { Shell } from "../app/shell";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
@@ -1009,8 +1010,8 @@ describe("a compander", () => {
     try {
       const shell = await openParams("ch1", "Compander-H");
       const bar = (): string | undefined => shell.root.querySelector<HTMLElement>(".dyn-gr i")?.style.height;
-      // 4 dB over the threshold, on a meter that runs the threshold's own 54.
-      expect(bar()).toBe(`${(4 / 54) * 100}%`);
+      // 4 dB over the threshold, on the reduction bars' scale.
+      expect(bar()).toBe(`${grBarShare(4) * 100}%`);
       await shell.ctx.store.set("ch.ch1.insFx.threshold", -3);
       await flush();
       expect(bar(), "under the threshold it holds nothing down").toBe("0%");
@@ -1418,7 +1419,7 @@ describe("the compander's own meters", () => {
         Number([...shell.root.querySelectorAll<HTMLElement>(".dyn-io .meter")][1]?.dataset["meterOffset"] ?? 0);
       const bar = (): number => Number.parseFloat(shell.root.querySelector<HTMLElement>(".dyn-gr i")?.style.height ?? "0");
       expect(bar(), "the bar is holding the channel down").toBeGreaterThan(0);
-      expect(out(), "and OUT reads that much lower").toBeCloseTo((bar() / 100) * 54, 6);
+      expect(bar() / 100, "and OUT reads that much lower").toBeCloseTo(grBarShare(out()), 6);
 
       await shell.ctx.store.set("ch.ch1.insFx.on", false);
       await flush();

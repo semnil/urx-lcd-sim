@@ -7,6 +7,7 @@
 
 import type { AppContext } from "../app/context";
 import { clamp } from "../device/store";
+import { levelBarShare } from "../model/dynamics";
 import { OFF_MARK, el, makeTappable, setPressed } from "./dom";
 import { Icons } from "./icons";
 import type { NumericSpec } from "./param-spec";
@@ -698,9 +699,6 @@ export function fractionOf(spec: NumericSpec, value: number): number {
 export interface MeterOptions {
   /** Segment levels in dB; one bar per entry, so two entries is a stereo meter. */
   levels: number[];
-  /** The meter's floor. The channel meters read -60 dB to 0 dB. */
-  min?: number;
-  max?: number;
   /** dB taken off what the source meters, for a meter after a gain stage: one figure, or one per lane. */
   offset?: number | readonly number[];
   height?: number;
@@ -714,27 +712,17 @@ export interface MeterOptions {
   lane?: number;
 }
 
-/**
- * dB → the lit share of a bar, shared by the builder and the meter ticker. A
- * level that is not a number reads as silence.
- */
-export function meterFraction(db: number, min = -60, max = 0): number {
-  if (Number.isNaN(db)) return 0;
-  return clamp((db - min) / (max - min), 0, 1);
-}
-
 export function meter(options: MeterOptions): HTMLElement {
-  const min = options.min ?? -60;
-  const max = options.max ?? 0;
   // The colour bands belong to the bar, so they are laid over it whole and cut
   // off at the level (`--unlit`, the share of the bar above it); nothing is
   // painted over them to hide the unlit part. Filling upward with a gradient
   // instead would end every level in the top band's colour.
-  // Each lane is a clip dot over a bar: the dot lights when the level reaches
-  // the top of the meter's scale.
+  // Each lane is a clip dot over a bar, lit on `levelBarShare`: the dot lights
+  // when the level reaches the top of the bar.
   const bars = options.levels.map((db) => {
-    const bar = el("div", { class: "meter-bar", style: { "--unlit": `${(1 - meterFraction(db, min, max)) * 100}%` } });
-    const clip = el("div", { class: `meter-clip${db >= max ? " is-on" : ""}` });
+    const share = levelBarShare(db);
+    const bar = el("div", { class: "meter-bar", style: { "--unlit": `${(1 - share) * 100}%` } });
+    const clip = el("div", { class: `meter-clip${share >= 1 ? " is-on" : ""}` });
     return el("div", { class: "meter-lane", children: [clip, bar] });
   });
   const node = el("div", {
@@ -744,10 +732,7 @@ export function meter(options: MeterOptions): HTMLElement {
     children: bars,
   });
   if (options.source) {
-    // The ticker redraws the meter on the scale it was built on.
     node.dataset["meterSource"] = options.source;
-    node.dataset["meterMin"] = String(min);
-    node.dataset["meterMax"] = String(max);
     setMeterOffset(node, options.offset ?? 0);
     if (options.lane !== undefined) node.dataset["meterLane"] = String(options.lane);
   }

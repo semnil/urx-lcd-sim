@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { levelBarShare } from "../model/dynamics";
 import { meter } from "./widgets";
 import { declarations, readStyle } from "../style/css-read";
 
@@ -42,7 +43,7 @@ describe("a meter", () => {
     expect(yellow + (green["background"] ?? ""), "the bar carries no red").not.toContain("--meter-red");
     expect(declarations(CSS, ".meter-clip.is-on")["--meter-face"], "the clip dot does").toBe("var(--meter-clip-lit)");
     expect(declarations(CSS, ".meter-clip")["background"], "on its face").toBe("var(--meter-rows), var(--meter-face)");
-    for (const node of [meter({ levels: [-20] }), meter({ levels: [-20], min: -30, max: 0 })]) {
+    for (const node of [meter({ levels: [-20] }), meter({ levels: [-20, -40] })]) {
       expect(node.getAttribute("style") ?? "", "no meter moves the halves").not.toContain("zone");
     }
   });
@@ -59,7 +60,7 @@ describe("a meter", () => {
     }
     expect(CSS, "nothing is drawn over the bands to hide them").not.toContain("meter-shade");
     const bars = [...meter({ levels: [-60, -30, 0, 6] }).querySelectorAll<HTMLElement>(".meter-bar")];
-    expect(bars.map((b) => b.style.getPropertyValue("--unlit"))).toEqual(["100%", "50%", "0%", "0%"]);
+    expect(bars.map((b) => b.style.getPropertyValue("--unlit"))).toEqual(["100%", `${(1 - levelBarShare(-30)) * 100}%`, "0%", "0%"]);
     expect(bars.every((b) => b.children.length === 0), "and the bar holds no element of its own").toBe(true);
   });
 
@@ -86,11 +87,12 @@ describe("a meter", () => {
     expect(at).toEqual([0, 1].map((k) => `calc(${k}px + clamp(0px, (100cqh - 100% - 1px) * 1000, 1000px))`));
   });
 
-  it("puts the lit share on the meter's own scale", () => {
-    const unlit = (node: HTMLElement): string[] =>
-      [...node.querySelectorAll<HTMLElement>(".meter-bar")].map((b) => b.style.getPropertyValue("--unlit"));
-    expect(unlit(meter({ levels: [-15], min: -30, max: 0 }))).toEqual(["50%"]);
-    expect(unlit(meter({ levels: [-33], min: -60, max: -6 })), "a scale that stops short of 0 dB").toEqual(["50%"]);
+  it("lights each bar on the level scale: 10/21 of it at -18 dB, 3/14 at -36 dB", () => {
+    const unlit = (node: HTMLElement): number[] =>
+      [...node.querySelectorAll<HTMLElement>(".meter-bar")].map((b) => Number.parseFloat(b.style.getPropertyValue("--unlit")));
+    const [at18, at36] = unlit(meter({ levels: [-18, -36] }));
+    expect(at18).toBeCloseTo((11 / 21) * 100, 9);
+    expect(at36).toBeCloseTo((11 / 14) * 100, 9);
   });
 
   it("reads a level that is not a number as silence", () => {
@@ -99,9 +101,7 @@ describe("a meter", () => {
     expect(lit(node)).toEqual([false]);
   });
 
-  it("follows a scale that does not end at 0 dB", () => {
-    // The channel meters run to 0, but the option exists, and the indicator has
-    // to mean "the top of this meter" rather than a hard-coded level.
-    expect(lit(meter({ levels: [-6], min: -60, max: -6 }))).toEqual([true]);
+  it("lights the clip dot when the level reaches the top of the bar, at 0 dB", () => {
+    expect(lit(meter({ levels: [-0.5, 0, 3] }))).toEqual([false, true, true]);
   });
 });

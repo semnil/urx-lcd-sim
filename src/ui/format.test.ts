@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { formatDb, formatGain, formatPan } from "./dom";
 import { FocusController } from "./focus";
 import { dbSpec, faderSpec, formatValue, freqSpec, intSpec, panSpec } from "./param-spec";
-import { fractionOf, meterFraction } from "./widgets";
+import { fractionOf } from "./widgets";
 
 describe("value formatting", () => {
   it("prints a level to two decimals, as the unit's value boxes do", () => {
@@ -78,13 +78,6 @@ describe("control geometry", () => {
     const spec = dbSpec("p", "LEVEL", -96.5, 10);
     expect(fractionOf(spec, -96.5)).toBe(0);
     expect(fractionOf(spec, 10)).toBe(1);
-  });
-
-  it("clamps meter fill to the -60..0 dB scale the channel meters use", () => {
-    expect(meterFraction(-60)).toBe(0);
-    expect(meterFraction(0)).toBe(1);
-    expect(meterFraction(-120)).toBe(0);
-    expect(meterFraction(12)).toBe(1);
   });
 });
 

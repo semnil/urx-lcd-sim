@@ -467,7 +467,7 @@ function sourceMeterView(ctx: AppContext, source: string): HTMLElement {
 }
 
 /** What RECORDER's OUT meter reads while a file plays, until the store carries a level. */
-const OUT_LEVELS_DB = [-27.3, -23.6];
+const OUT_LEVELS_DB = [-15.6, -13.5];
 
 /** The meter beside RECORDER's list: the file playing, in stereo, and unlit while nothing plays. */
 function outMeter(ctx: AppContext, playing: boolean): HTMLElement {

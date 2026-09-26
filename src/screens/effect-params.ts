@@ -29,7 +29,7 @@ import {
 import type { Strip } from "../model/types";
 import { el } from "../ui/dom";
 import { Icons } from "../ui/icons";
-import { COMP_GR_METER_DB, compResponse } from "../model/dynamics";
+import { compResponse, grBarShare } from "../model/dynamics";
 import type { NumericSpec } from "../ui/param-spec";
 import { unitOf } from "../ui/param-spec";
 import { knobControl, pulldown, toggle, valueBox } from "../ui/widgets";
@@ -60,7 +60,7 @@ import {
   titleBadge,
   titleBox,
 } from "./channel";
-import { type GrSpec, blockReduction, grShare, laneNetDb, markReduction } from "./meters";
+import { type GrSpec, blockReduction, laneNetDb, markReduction } from "./meters";
 import type { EffectChoice } from "./insert-fx";
 import { carriesInsert, effectSheet, insertBase, insertFxOptions, takeEffect, takeInsert } from "./insert-fx";
 import type { ScreenBody, ScreenDef } from "./types";
@@ -369,12 +369,11 @@ function companderBody(ctx: AppContext, strip: Strip, holder: EffectHolder): { m
     kind: "over",
     base: holder.base,
     level: pairMeter(ctx, strip),
-    scale: COMP_GR_METER_DB,
     makeup: 0,
     ...(threshold ? { threshold: { path: threshold.path, fallback: threshold.fallback } } : {}),
     ...(holder.onPath ? { on: { path: holder.onPath, fallback: holder.onFallback } } : {}),
   };
-  const held = grShare(gr, blockReduction(ctx.store, gr));
+  const held = grBarShare(blockReduction(ctx.store, gr));
   return { main: dynFrame(plot, held, [rows, dynMeters(ctx, strip, laneNetDb(ctx.store, gr), gr)], gr), knobs: specs };
 }
 
@@ -572,13 +571,12 @@ function mbcGr(ctx: AppContext, strip: Strip, base: string, fallbackOf: (key: st
       kind: "over",
       base,
       level: pairMeter(ctx, strip),
-      scale: COMP_GR_METER_DB,
       makeup: 0,
       threshold: { path: `${base}.${key}`, fallback: fallbackOf(key) },
     };
     const node = el("div", {
       class: "dyn-gr",
-      children: [el("i", { style: { height: `${grShare(gr, blockReduction(ctx.store, gr)) * 100}%` } })],
+      children: [el("i", { style: { height: `${grBarShare(blockReduction(ctx.store, gr)) * 100}%` } })],
     });
     markReduction(node, gr);
     return node;

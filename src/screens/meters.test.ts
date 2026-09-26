@@ -50,16 +50,16 @@ describe("the meter ticker", () => {
     stop();
   });
 
-    it("keeps the scale a meter was built on", () => {
+    it("redraws a meter on the level scale the widget builds it on", () => {
     level = -60;
-    const { root, stop } = run(meter({ levels: [-60], min: -60, max: -6, source: "probe" }));
-    level = -33;
+    const { root, stop } = run(meter({ levels: [-60], source: "probe" }));
+    level = -18;
     vi.advanceTimersByTime(60);
-    expect(unlit(root), "half way up a -60..-6 scale").toEqual(["50%"]);
+    expect(Number.parseFloat(unlit(root)[0] ?? ""), "10/21 of the bar lit at -18 dB").toBeCloseTo((11 / 21) * 100, 9);
     expect(dots(root)).toEqual([false]);
-    level = -6;
+    level = 0;
     vi.advanceTimersByTime(60);
-    expect([unlit(root), dots(root)], "the top of that scale lights the dot").toEqual([["0%"], [true]]);
+    expect([unlit(root), dots(root)], "the top of the bar lights the dot").toEqual([["0%"], [true]]);
     stop();
   });
 });

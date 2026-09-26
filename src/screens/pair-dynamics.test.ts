@@ -4,6 +4,7 @@ import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { readCard } from "../model/card";
 import { factoryState } from "../model/defaults";
+import { levelBarShare } from "../model/dynamics";
 import { captureScene } from "../model/scene-state";
 import { captureSettings } from "../model/settings-file";
 import { findStrip } from "../model/types";
@@ -63,8 +64,8 @@ const grBar = (shell: Shell): number => Number.parseFloat(shell.root.querySelect
 const outUnlit = (shell: Shell): string[] =>
   [...shell.root.querySelectorAll<HTMLElement>(".dyn-io .dyn-io-col:nth-child(2) .meter-bar")].map((b) => b.style.getPropertyValue("--unlit"));
 
-/** What a meter running -60 dB to 0 dB leaves unlit at `db`. */
-const unlitAt = (db: number): string => `${(1 - Math.min(1, Math.max(0, (db + 60) / 60))) * 100}%`;
+/** What a level meter leaves unlit at `db`. */
+const unlitAt = (db: number): string => `${(1 - levelBarShare(db)) * 100}%`;
 
 /** The OUT meter's offset for each lane on the screen open now, in dB. */
 const outOffsets = (shell: Shell): number[] =>
