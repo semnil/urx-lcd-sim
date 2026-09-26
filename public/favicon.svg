@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- The stereo meter pair on the glass: track, green body, yellow head, peak dots. -->
+  <rect width="32" height="32" rx="7" fill="#000000" />
+  <g fill="#4a4d5a">
+    <circle cx="12" cy="5.5" r="2" />
+    <circle cx="20" cy="5.5" r="2" />
+    <rect x="9.5" y="9" width="5" height="19" rx="1" />
+    <rect x="17.5" y="9" width="5" height="19" rx="1" />
+  </g>
+  <g fill="#3aeb73">
+    <rect x="9.5" y="16" width="5" height="12" rx="1" />
+    <rect x="17.5" y="14" width="5" height="14" rx="1" />
+  </g>
+  <g fill="#fffb42">
+    <rect x="9.5" y="14" width="5" height="2.5" />
+    <rect x="17.5" y="12" width="5" height="2.5" />
+  </g>
+</svg>
