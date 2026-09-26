@@ -5,6 +5,7 @@ import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
+import { setMeterSource, startMeterTicker } from "./meters";
 
 // Signal Type is a setting of a channel PAIR. Both channels have to agree about
 // it, the pair has to be the adjacent one, and the screens have to say which two
@@ -165,6 +166,82 @@ describe("the stereo link of a mono channel pair", () => {
     for (const id of ["ch1", "ch2"]) {
       await open(shell, "channel-view", id);
       expect(shell.root.querySelectorAll(".cv-onoff .meter-lane"), id).toHaveLength(1);
+    }
+
+    // So do the INPUT screen's meters and the SSMCS side-chain meter.
+    for (const id of ["ch1", "ch2"]) {
+      await goHome(shell);
+      await open(shell, "channel-view", id);
+      await open(shell, "ch.input", id);
+      const inputs = [...shell.root.querySelectorAll(".input-meter")];
+      expect(inputs.length, `${id} INPUT screen draws its meters`).toBeGreaterThan(0);
+      expect(inputs.map((m) => m.querySelectorAll(".meter-lane").length), `${id} INPUT screen`).toEqual(inputs.map(() => 1));
+    }
+    for (const id of ["ch1", "ch2"]) await store.set(`ch.${id}.compEqOrder`, "SSMCS");
+    for (const screen of ["ch.ssmcs.comp", "ch.ssmcs.sc"]) {
+      for (const id of ["ch1", "ch2"]) {
+        await goHome(shell);
+        await open(shell, "channel-view", id);
+        await open(shell, screen, id);
+        expect(shell.root.querySelectorAll(".ssmcs-sc-meter .meter-lane"), `${screen} on ${id}`).toHaveLength(1);
+      }
+    }
+  });
+
+  it("meters the pair in stereo on the GATE, COMP, EQ, INS FX and SSMCS screens, CH 1 on the left", async () => {
+    // Each channel reads a level of its own, so the lanes say which side is which.
+    const levels: Record<string, number> = { ch1: -12, ch2: -36, ch3: -24 };
+    const ssmcsScreens = ["ch.ssmcs", "ch.ssmcs.comp", "ch.ssmcs.sc", "ch.ssmcs.eq"];
+    setMeterSource((id, channels) => Array.from({ length: channels }, () => levels[id] ?? -96));
+    const unlit = (db: number): string => `${(1 - (db + 60) / 60) * 100}%`;
+    try {
+      const { shell, store } = await mount();
+      const lanes = (col: number): string[] =>
+        [...shell.root.querySelectorAll<HTMLElement>(`.dyn-io .dyn-io-col:nth-child(${col}) .meter-bar`)].map((b) =>
+          b.style.getPropertyValue("--unlit"),
+        );
+      for (const screen of ["ch.gate", "ch.comp", "ch.eq", "ch.insfx"]) {
+        await goHome(shell);
+        await open(shell, "channel-view", "ch1");
+        await open(shell, screen, "ch1");
+        expect([lanes(1).length, lanes(2).length], `${screen} on a mono channel`).toEqual([1, 1]);
+      }
+
+      await link(store, "ch1", "ch2");
+      for (const id of ["ch1", "ch2"]) {
+        for (const screen of ["ch.gate", "ch.comp", "ch.eq", "ch.insfx"]) {
+          await goHome(shell);
+          await open(shell, "channel-view", id);
+          await open(shell, screen, id);
+          expect([lanes(1).length, lanes(2).length], `${screen} on ${id}: IN and OUT in stereo`).toEqual([2, 2]);
+          expect(lanes(1), `${screen} on ${id}`).toEqual([unlit(-12), unlit(-36)]);
+        }
+      }
+
+      for (const id of ["ch1", "ch2", "ch3"]) await store.set(`ch.${id}.compEqOrder`, "SSMCS");
+      for (const screen of ssmcsScreens) {
+        await goHome(shell);
+        await open(shell, "channel-view", "ch3");
+        await open(shell, screen, "ch3");
+        expect([lanes(1).length, lanes(2).length], `${screen} on a mono channel`).toEqual([1, 1]);
+        for (const id of ["ch1", "ch2"]) {
+          await goHome(shell);
+          await open(shell, "channel-view", id);
+          await open(shell, screen, id);
+          expect([lanes(1).length, lanes(2).length], `${screen} on ${id}: IN and OUT in stereo`).toEqual([2, 2]);
+          expect(lanes(1), `${screen} on ${id}`).toEqual([unlit(-12), unlit(-36)]);
+        }
+      }
+
+      // The ticker keeps both sides moving, each from its own channel.
+      levels["ch1"] = -48;
+      levels["ch2"] = -6;
+      const stop = startMeterTicker(store, shell.root, 20);
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      stop();
+      expect(lanes(1), "after a tick").toEqual([unlit(-48), unlit(-6)]);
+    } finally {
+      setMeterSource(null);
     }
   });
 });

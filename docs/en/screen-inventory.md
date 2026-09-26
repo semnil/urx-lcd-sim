@@ -255,9 +255,15 @@ write are in one place, `src/screens/stereo-link.ts`.
   the edge the way the straight frame does, so its band straddles the edge of the notch (sticking out
   by half its own width). The heart shrinks by the arc's width. For the frame itself see
   [HOME strip layout](#home-strip-layout).
-- Paired or not, the meters stay one per channel, on HOME and in the channel view alike. The user
-  guide's description of the LEVEL meter on p97 says a stereo-linked channel has a stereo meter, but
-  the unit has one per channel.
+- Paired or not, the meters on HOME and in the channel view stay one per channel. How this differs
+  from the user guide's p97 is under "What the unit itself does not do" in
+  [known-issues.md](known-issues.md).
+- On the GATE, COMP, EQ, INS FX and SSMCS screens of a pair, the IN / OUT meters at the bottom right
+  are stereo, two bars for IN and two for OUT. The left bar reads the lower-numbered channel and the
+  right bar the other (confirmed by the operator on 2026-09-26; for the sides, a signal sent from USB
+  MAIN to the CH 3 / CH 4 pair showed CH 3 on the left and CH 4 on the right).
+- The INPUT screen's meter, and the side-chain meter on the left of the SSMCS COMP and COMP Side Chain
+  screens, stay one bar on a pair (confirmed by the operator on 2026-09-26).
 - `PAN` / `BAL` buttons appear under Signal Type in CH SETTING while `STEREO` is chosen, and not
   otherwise (the capture is p093-1). Choosing `BAL` changes `PAN` in the channel view to `BALANCE`,
   and HOME's slider points at the same value. This choice is also written to both of the pair. The
@@ -506,12 +512,26 @@ are shared with HOME's STEREO/CUE meter. A meter draws as many bars as the strip
 
 The reduction bar reads what the screen's own block is holding down. GATE reads its RANGE while the
 signal is at or under the threshold (38 dB from the bar's top to its bottom); COMP reads how far the
-curve it is drawing sits under unity (54 dB, the threshold's own range); DUCKER compares the level of
+curve it is drawing sits under unity; DUCKER compares the level of
 the strip named as Ducker Source against the threshold and stops at the RANGE. The OUT meter reads
 that far below IN, less what the block adds back after it (COMP's makeup) — where the makeup is
 deeper than the reduction, OUT reads above IN. A block that holds nothing down (DELAY, INS FX on
 [No Effect]) meters IN and OUT alike. The bar and the OUT offset are worked out again by the ticker
 that keeps the meters moving without redrawing the screen.
+
+On a stereo-linked pair, what each block's detector hears differs by block (confirmed on the unit on
+2026-09-26).
+
+- GATE and INS FX (Compander) hear the louder of the pair's two channels, without adding them. Either
+  channel's screen reads the same reduction, and both OUT bars come down by it.
+- COMP hears the pair's louder channel from the moment the pair is linked. Once the linked pair goes
+  into SSMCS (by `COMP / EQ` in CH SETTING, a scene recall or a settings file load alike), each channel
+  hears its own channel. Leaving SSMCS does not undo this; linking the pair again does. A recall or a
+  load that links the pair and takes it into SSMCS at once leaves it hearing the pair. While each
+  channel hears its own, a screen's bar reads its own channel's reduction and each OUT bar comes down by
+  its own channel's. Neither a scene nor a settings file carries this state.
+- SSMCS's compressor hears each channel's own, and each OUT bar comes down by its own channel's
+  reduction. DUCKER hears the strip named as Ducker Source.
 
 The settings panels (x250..418 / 36px high / 8px apart) stack up from the bottom of the screen. The
 bottom one is level with the foot of the curve panel: DUCKER has one (Threshold), COMP two (Attack /
@@ -550,8 +570,11 @@ The transfer curve panels are -80..+20 dB on both axes, with one vertical and on
 covers one whole column or row of pixels (x180 and y86 in p103-1 and p099-1). The envelope panel is -100..+20 dB vertically, with a horizontal rule at the RANGE height and
 vertical rules at A and D.
 
-The reduction bar grows from the top down. COMP takes the threshold's travel (54 dB) as its full
-length. GATE grows by RANGE while the input is at or under the threshold, on a 38 dB full length
+The reduction bar grows from the top down. COMP reaches 11/21 of the bar at 18 dB and goes on at a
+shallower slope to the full length at 50 dB (within 0.6 mm of each of the 8 lengths from 4 dB to 34 dB
+the operator read on the unit's LCD on 2026-09-26). The channel view's COMP block bar takes the
+threshold's travel (54 dB) as its full length. GATE grows by RANGE while the input is at or under the
+threshold, on a 38 dB full length
 (RANGE -20 dB reaches y118..174 in p103-1), and GATE's OUT meter reads that much lower than IN.
 
 COMP and EQ have a [1 1-knob] button at the top right (x386..477 / y50..87, face `--surface-btn`, an
@@ -582,7 +605,8 @@ H-MID rises to +2.0 dB, and HIGH rises to +2.0 dB at 77% and is back at 0 by 93%
 
 The figures disagree on the number of IN / OUT meters on the dynamics screens. For the same mono
 channel, p099-1 and p106-1 draw two, and p103-1 and p113-1 draw one. The unit draws one for a mono
-channel, so the count follows the strip's channel count. An FX channel is the one block whose two
+channel, so the count follows the strip's channel count. A stereo-linked mono channel draws two
+([Stereo link](#stereo-link-signal-type)). An FX channel is the one block whose two
 sides differ — one bar in and two out — because it is fed by one bus and returns a stereo pair.
 
 ## The effect screens

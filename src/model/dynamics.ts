@@ -7,8 +7,41 @@
 /** How many dB a dynamics screen's reduction bar reads from its top to its bottom. */
 export const GR_METER_DB = 38;
 
-/** The same, for the compressor's own bar, which runs the threshold's range. */
+/** The same, for the channel view's COMP bar and an insert's reduction bar, which run the threshold's range. */
 export const COMP_GR_METER_DB = 54;
+
+/** The reduction the COMP screen's bar bends at, and the share of the bar it reaches there. */
+const COMP_GR_BEND_DB = 18;
+const COMP_GR_BEND_SHARE = 11 / 21;
+
+/** The reduction that reaches the foot of the COMP screen's bar. */
+const COMP_GR_FULL_DB = 50;
+
+/**
+ * How far down the COMP screen's reduction bar a reduction of `db` reaches, as a
+ * share of the bar: straight to 18 dB at 11/21 of it, then straight on at a
+ * shallower slope to 50 dB at its foot.
+ */
+export function compGrShare(db: number): number {
+  if (!(db > 0)) return 0;
+  const share =
+    db <= COMP_GR_BEND_DB
+      ? (db / COMP_GR_BEND_DB) * COMP_GR_BEND_SHARE
+      : COMP_GR_BEND_SHARE + ((db - COMP_GR_BEND_DB) / (COMP_GR_FULL_DB - COMP_GR_BEND_DB)) * (1 - COMP_GR_BEND_SHARE);
+  return Math.min(1, share);
+}
+
+/** Where the SSMCS compressor's corner sits, in dB, for a Comp Drive setting, and the lowest it goes. */
+const SSMCS_CORNER_RAMP_DRIVE = 1.55;
+export const SSMCS_CORNER_FLOOR_DB = -54;
+const SSMCS_CORNER_AT_FACTORY_DB = -20;
+
+export function ssmcsCorner(drive: number): number {
+  const full = SSMCS_CORNER_AT_FACTORY_DB - 0.2 * (drive * 20 - 100);
+  const ramped =
+    drive >= SSMCS_CORNER_RAMP_DRIVE ? full : (drive / SSMCS_CORNER_RAMP_DRIVE) * (SSMCS_CORNER_AT_FACTORY_DB - 0.2 * (SSMCS_CORNER_RAMP_DRIVE * 20 - 100));
+  return Math.max(SSMCS_CORNER_FLOOR_DB, ramped);
+}
 
 /** How wide Knee rounds the compressor's corner, in dB of input. */
 export const COMP_KNEE_WIDTH: Record<string, number> = { Soft: 52, Medium: 16, Hard: 0 };

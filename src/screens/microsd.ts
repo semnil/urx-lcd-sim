@@ -12,11 +12,12 @@ import { CARD_ROOT, cardStamp, folderPath, formatFree, formatRate, freeBytes, pa
 import { applySettings, captureSettings } from "../model/settings-file";
 import { TRACK_COUNTS, dropTracksOverRate, trackCountCeiling } from "../model/track-count";
 import { dropInsertsOverRate } from "./insert-fx";
+import { followRecall, pairStates } from "./stereo-link";
 import { allStrips, channelPairs } from "../model/types";
 import { el, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { LIST_THUMB_MIN_PX, button, dialog, dropdown, listView, loadingDialog, menuButton, menuGrid, meter, pickerGrid, pickerSheet, scrollbar, sideTab, toggle } from "../ui/widgets";
-import { meterLevels } from "./meters";
+import { meterLevels, pairMeterId } from "./meters";
 import { formatClock, holdsFile, pausePlayback, pauseTake, playedSeconds, recState, recordMode, recordTake, releaseOnRateChange, startPlayback, stopPlayback, stopTake, takeOpen, takeSeconds } from "./recording";
 import type { TitleDraft } from "./title-entry";
 import { draftTitle, titleEntryScreen } from "./title-entry";
@@ -390,7 +391,9 @@ function loadSettings(ctx: AppContext, name: string): void {
   const held = ctx.store.str(filePath(name), "");
   if (!held) return;
   const before = ctx.store.num("setup.samplingFrequency", 48000);
+  const pairs = pairStates(ctx);
   void applySettings(ctx.store, fromJson(held) as Record<string, ParamValue>).then(() => {
+    followRecall(ctx, pairs);
     const rate = ctx.store.num("setup.samplingFrequency", 48000);
     dropInsertsOverRate(ctx, rate);
     dropTracksOverRate(ctx.store, rate);
@@ -441,18 +444,26 @@ function recFileIcon(playingRow: number): (entry: CardEntry, row: number) => Ele
   };
 }
 
-/** What a record track's meter shows: the two channels of a pair, a bus in stereo, and nothing for None. */
-function sourceLevels(ctx: AppContext, source: string): number[] {
+/**
+ * The meter a record track's source is read on: a bus in stereo, the two channels
+ * of a pair (a stereo channel's own two, or two mono channels side by side), and
+ * none for None.
+ */
+function sourceMeter(ctx: AppContext, source: string): string | undefined {
   const strips = allStrips(ctx.model);
   const bus = strips.find((s) => s.side === "output" && s.label === source);
-  if (bus) return meterLevels(ctx.store, bus.id, 2);
+  if (bus) return bus.id;
   const pair = /^CH (\d+)\/(\d+)$/.exec(source);
-  if (!pair) return [-96, -96];
-  return [Number(pair[1]), Number(pair[2])].map((n) => {
-    const strip = strips.find((s) => s.side === "input" && s.channels.includes(n));
-    if (!strip) return -96;
-    return meterLevels(ctx.store, strip.id, strip.channels.length)[strip.channels.indexOf(n)] ?? -96;
-  });
+  if (!pair) return undefined;
+  const [left, right] = [Number(pair[1]), Number(pair[2])].map((n) => strips.find((s) => s.side === "input" && s.channels.includes(n)));
+  if (!left || !right) return undefined;
+  return left === right ? left.id : pairMeterId(left.id, right.id);
+}
+
+/** What a record track's meter shows, kept moving with its source: silence for None. */
+function sourceMeterView(ctx: AppContext, source: string): HTMLElement {
+  const id = sourceMeter(ctx, source);
+  return id ? meter({ levels: meterLevels(ctx.store, id, 2), source: id }) : meter({ levels: [-96, -96] });
 }
 
 /** What RECORDER's OUT meter reads while a file plays, until the store carries a level. */
@@ -569,7 +580,7 @@ export const recorderScreen: ScreenDef = {
           // What the source is carrying, recording or not, down the right edge of the slot.
           el("div", {
             class: "rec-slot-meter",
-            children: [meter({ levels: sourceLevels(ctx, source) })],
+            children: [sourceMeterView(ctx, source)],
           }),
         ],
       });

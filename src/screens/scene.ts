@@ -6,6 +6,7 @@ import type { ParamValue } from "../device/path";
 import { factoryState } from "../model/defaults";
 import { applyScene, captureScene, inScene, readScene } from "../model/scene-state";
 import { dropInsertsOverRate } from "./insert-fx";
+import { followRecall, pairStates } from "./stereo-link";
 import { el } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { LIST_THUMB_MIN_PX, button, dialog, listView, menuButton, menuGrid, scrollbar, sideTab, toggle } from "../ui/widgets";
@@ -80,12 +81,14 @@ function statePath(bank: string, no: number): string {
 export async function recallScene(ctx: AppContext, no: number): Promise<void> {
   const bank = storedBank(ctx, no);
   const stored = bank ? readScene(ctx.store, statePath(bank, no)) : undefined;
+  const pairs = pairStates(ctx);
   if (stored) await applyScene(ctx.store, stored);
   else if (no === 0) {
     const factory: Record<string, ParamValue> = {};
     for (const [path, value] of factoryState(ctx.model)) if (inScene(path)) factory[path] = value;
     await applyScene(ctx.store, factory);
   }
+  followRecall(ctx, pairs);
   await ctx.store.set("scene.current", no);
   // A scene carries the mixer and not the sampling frequency, so a stored insert
   // can come back onto a unit that is running too fast for it.

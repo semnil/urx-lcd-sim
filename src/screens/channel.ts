@@ -18,8 +18,8 @@ import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
 import { compRatioSpec, dbSpec, faderSpec, formatValue, freqSpec, intSpec, logFreqSpec, msSpec, panSpec } from "../ui/param-spec";
 import { attachDrag, attachSpin, followFocus, knobControl, markFocus, meter, panSlider, pickerSheet, pulldown, sideTab, toggle, unbuilt, valueBox } from "../ui/widgets";
-import { type GrSpec, blockNetDb, blockReduction, inputMeterId, markClipSafe, markReduction, meterLevels, simulatedInput, simulatedLevel } from "./meters";
-import { PAN_BAL, SIGNAL_TYPES, setPanBal, setSignalType, signalType, stripPosition } from "./stereo-link";
+import { type GrSpec, type LampState, blockReduction, grShare, inputMeterId, laneNetDb, markBlockLamps, markClipSafe, markLevelBar, markReduction, meterLevels, pairMeterId, showBlockLamps, simulatedInput, simulatedLevel } from "./meters";
+import { PAN_BAL, SIGNAL_TYPES, carriesStereo, compDetectorShared, enterSsmcs, linkedPair, setPanBal, setSignalType, signalType, stripPosition } from "./stereo-link";
 import { BUS_TYPES, busType, panLinkOn, sendLocks, sendPanPath, setBusType, setPanLink } from "./mix-bus";
 import { homeSide, sceneBox } from "./home";
 import { headAmp, headAmpSwitch } from "./head-amp";
@@ -100,6 +100,7 @@ function setCompEq(ctx: AppContext, strip: Strip, value: string): void {
   const base = `ch.${strip.id}`;
   if (ctx.store.str(`${base}.compEqOrder`, "COMP->EQ") === value) return;
   void ctx.store.set(`${base}.compEqOrder`, value);
+  if (value === COMP_EQ_SSMCS) enterSsmcs(ctx, strip);
   if (value === COMP_EQ_SSMCS && ctx.store.str(`${base}.recPoint`, REC_POINT_DEFAULT) === "PRE EQ") {
     void ctx.store.set(`${base}.recPoint`, "PRE COMP");
   }
@@ -283,24 +284,22 @@ function eqThumb(ctx: AppContext, stripId: string): HTMLElement {
  * range, amber in the middle while it holds it part of the way, green on the
  * right while it leaves it alone. A block that is off lights none of them.
  */
-function blockLamps(lit: "shut" | "holding" | "open" | "off"): HTMLElement {
-  const lamps = ["shut", "holding", "open"].map((name) => {
-    if (name !== lit) return "";
-    return name === "open" ? " is-on" : ` is-${name}`;
-  });
-  return el("div", {
-    class: "block-lamps",
-    children: lamps.map((cls) => el("span", { class: `block-lamp${cls}` })),
-  });
+function blockLamps(lit: LampState): HTMLElement {
+  const node = el("div", { class: "block-lamps", children: [0, 1, 2].map(() => el("span", { class: "block-lamp" })) });
+  showBlockLamps(node, lit);
+  return node;
+}
+
+/** A block's lamps, lit as the block named by `spec` stands and kept so as the meters move. */
+function liveLamps(ctx: AppContext, spec: GrSpec): HTMLElement {
+  const node = blockLamps("off");
+  markBlockLamps(node, ctx.store, spec);
+  return node;
 }
 
 /** GATE opens for a signal over the threshold and shuts once it is a range under. */
 function gateLamps(ctx: AppContext, strip: Strip, base: string): HTMLElement {
-  const level = simulatedLevel(ctx, strip, false)[0] ?? -96;
-  const threshold = ctx.store.num(`${base}.gate.threshold`, GATE_DEFAULTS.threshold);
-  const range = ctx.store.num(`${base}.gate.range`, GATE_DEFAULTS.range);
-  if (!ctx.store.bool(`${base}.gate.on`, false)) return blockLamps("off");
-  return blockLamps(level > threshold ? "open" : level <= threshold + range ? "shut" : "holding");
+  return liveLamps(ctx, { kind: "gate", base, level: pairMeter(ctx, strip), scale: GR_METER_DB, makeup: 0 });
 }
 
 /** How many names the ducker's key list sets across. */
@@ -330,11 +329,9 @@ function duckerSources(ctx: AppContext): { label: string; boxed: string; strip: 
 function duckerLamps(ctx: AppContext, base: string): HTMLElement {
   const source = ctx.store.str(`${base}.ducker.source`, DUCKER_SOURCE_DEFAULT);
   const key = duckerSources(ctx).find((s) => s.label === source)?.strip;
-  const level = simulatedLevel(ctx, key, false)[0] ?? -96;
-  const threshold = ctx.store.num(`${base}.ducker.threshold`, -40);
-  const range = ctx.store.num(`${base}.ducker.range`, -24);
-  if (!ctx.store.bool(`${base}.ducker.on`, false)) return blockLamps("off");
-  return blockLamps(level <= threshold ? "open" : level >= threshold - range ? "shut" : "holding");
+  // A key that is not in the list is silent, which holds nothing down.
+  if (!key) return blockLamps(ctx.store.bool(`${base}.ducker.on`, false) ? "open" : "off");
+  return liveLamps(ctx, { kind: "ducker", base, level: key.id, scale: GR_METER_DB, makeup: 0 });
 }
 
 /**
@@ -344,18 +341,20 @@ function duckerLamps(ctx: AppContext, base: string): HTMLElement {
 function compMeters(ctx: AppContext, strip: Strip, base: string, marked: boolean): HTMLElement {
   const spec = compThreshold(base);
   const at = (db: number): number => clampFraction((db - spec.min) / (spec.max - spec.min));
-  const level = simulatedLevel(ctx, strip, false)[0] ?? -96;
   const bar = (extra: string, fraction: number): HTMLElement =>
     el("div", { class: `comp-bar ${extra}`.trim(), children: [el("i", { style: { width: `${fraction * 100}%` } })] });
+  // Both bars keep moving with the signal: the level against the threshold's
+  // range, and the reduction straight over the same 54 dB.
+  const level = bar("", 0);
+  markLevelBar(level, ctx.store, strip.id, spec.min, spec.max);
+  const gr: GrSpec = { ...compSpec(ctx, strip, base, ctx.store.num(`${base}.comp.gain`, COMP_DEFAULTS.gain)), row: true };
+  const reduce = bar("comp-reduce", grShare(gr, blockReduction(ctx.store, gr)));
+  markReduction(reduce, gr);
   return el("div", {
     class: "comp-meters",
     children: [
-      bar("", at(level)),
-      bar(
-        "comp-reduce",
-        blockReduction(ctx.store, { kind: "comp", base, level: strip.id, scale: COMP_GR_METER_DB, makeup: ctx.store.num(`${base}.comp.gain`, COMP_DEFAULTS.gain) }) /
-          COMP_GR_METER_DB,
-      ),
+      level,
+      reduce,
       ...(marked ? [el("div", { class: "comp-thresh", style: { left: `${at(ctx.store.num(spec.path, spec.fallback)) * 100}%` } })] : []),
     ],
   });
@@ -1015,12 +1014,21 @@ export function plotHandle(
 }
 
 /**
- * How far a block that holds the channel down from `threshold` is holding it, as a
- * fraction of the meter it is drawn on. The meter covers the threshold's own range.
+ * What the compressor's reduction is read from: a linked pair's louder channel
+ * while its compressors hear the pair, and otherwise the channel itself, with
+ * each OUT lane of a pair held down by its own channel.
  */
-export function thresholdReduction(ctx: AppContext, strip: Strip, threshold: number): number {
-  const level = simulatedLevel(ctx, strip, false)[0] ?? -96;
-  return clampFraction(Math.max(0, level - threshold) / -COMP_THRESHOLD_MIN);
+function compSpec(ctx: AppContext, strip: Strip, base: string, makeup: number): GrSpec {
+  const linked = linkedPair(ctx, strip);
+  const shared = compDetectorShared(ctx, strip);
+  return {
+    kind: "comp",
+    base,
+    level: shared ? pairMeter(ctx, strip) : strip.id,
+    ...(linked && !shared ? { lanes: linked.map((s) => s.id) } : {}),
+    scale: COMP_GR_METER_DB,
+    makeup,
+  };
 }
 
 /** A caption over a value box, as the dynamics screens stack them down the right. */
@@ -1031,11 +1039,22 @@ export function dynSetting(ctx: AppContext, spec: NumericSpec, caption = spec.la
   });
 }
 
-/** The block's own input and output, as the dynamics screens meter them. OUT reads `attenuationDb` lower. */
-export function dynMeters(ctx: AppContext, strip: Strip, attenuationDb = 0, gr?: GrSpec): HTMLElement {
-  const stereo = strip.kind !== "monoIn";
-  const column = (caption: string, offset: number, pair: boolean, mark?: GrSpec): HTMLElement => {
-    const bars = meter({ levels: simulatedLevel(ctx, strip, pair).map((db) => db - offset), source: strip.id, offset });
+/** The meter of a strip's own level: both channels of a stereo-linked pair, the lower-numbered one first. */
+export function pairMeter(ctx: AppContext, strip: Strip): string {
+  const linked = linkedPair(ctx, strip);
+  return linked ? pairMeterId(linked[0].id, linked[1].id) : strip.id;
+}
+
+/**
+ * The block's own input and output, as the dynamics screens meter them. OUT reads
+ * `attenuationDb` lower: one figure for every lane, or one per lane.
+ */
+export function dynMeters(ctx: AppContext, strip: Strip, attenuationDb: number | readonly number[] = 0, gr?: GrSpec): HTMLElement {
+  const source = pairMeter(ctx, strip);
+  const stereo = carriesStereo(ctx, strip);
+  const column = (caption: string, offset: number | readonly number[], pair: boolean, mark?: GrSpec): HTMLElement => {
+    const offsetAt = (i: number): number => (typeof offset === "number" ? offset : (offset[i] ?? offset[0] ?? 0));
+    const bars = meter({ levels: meterLevels(ctx.store, source, pair ? 2 : 1).map((db, i) => db - offsetAt(i)), source, offset });
     // The OUT meter's offset is what the block is taking off, so the ticker
     // works it out again on every tick rather than keeping the built one.
     if (mark) markReduction(bars, mark);
@@ -1065,7 +1084,7 @@ function dynScreen(
   // The OUT meter reads as far below IN as the bar beside it reads, less what
   // the block adds back after it.
   const db = blockReduction(ctx.store, gr);
-  return dynFrame(plot, db / gr.scale, [...right, dynMeters(ctx, strip, blockNetDb(ctx.store, gr), gr)], gr);
+  return dynFrame(plot, grShare(gr, db), [...right, dynMeters(ctx, strip, laneNetDb(ctx.store, gr), gr)], gr);
 }
 
 /**
@@ -1129,7 +1148,7 @@ export const gateScreen: ScreenDef = {
             children: [attack, hold, decay].map((s) => dynSetting(ctx, s)),
           }),
         ],
-        { kind: "gate", base: b, level: strip.id, scale: GR_METER_DB, makeup: 0 },
+        { kind: "gate", base: b, level: pairMeter(ctx, strip), scale: GR_METER_DB, makeup: 0 },
       ),
       headerLeft: channelSelector(ctx, strip, route, true),
       headerCenter: titleBadge("GATE", "gate", on, () => void ctx.store.set(`${b}.gate.on`, !on)),
@@ -1228,7 +1247,7 @@ export const compScreen: ScreenDef = {
           }),
           el("div", { class: "dyn-sets", children: [attack, release].map((s) => dynSetting(ctx, s)) }),
         ],
-        { kind: "comp", base: b, level: strip.id, scale: COMP_GR_METER_DB, makeup: g },
+        compSpec(ctx, strip, b, g),
       ),
       headerLeft: channelSelector(ctx, strip, route, true),
       headerCenter: titleBadge("COMP", "comp", on, () => void ctx.store.set(`${b}.comp.on`, !on)),

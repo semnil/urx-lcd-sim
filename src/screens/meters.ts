@@ -11,11 +11,12 @@
 
 import type { AppContext } from "../app/context";
 import type { DeviceStore } from "../device/store";
-import { COMP_KNEE_WIDTH, compReductionDb, duckerReductionDb, gateReductionDb } from "../model/dynamics";
+import { COMP_GR_METER_DB, COMP_KNEE_WIDTH, compGrShare, compReductionDb, duckerReductionDb, gateReductionDb, ssmcsCorner } from "../model/dynamics";
+import { GATE_DEFAULTS, SSMCS_DEFAULTS } from "../model/defaults";
 import { OSC_TARGETS } from "../model/oscillator";
 import type { Strip } from "../model/types";
 import { monoStripId } from "../model/units";
-import { meterFraction } from "../ui/widgets";
+import { meterFraction, setMeterOffset } from "../ui/widgets";
 import { jackParam, micLineJack } from "./head-amp";
 
 /** A meter reading nothing. */
@@ -118,6 +119,12 @@ const INPUT_METER = "in:";
 /** The meter id of `stripId`'s level as it arrives, before its fader. */
 export const inputMeterId = (stripId: string): string => `${INPUT_METER}${stripId}`;
 
+/** What a meter reading two mono strips as the two sides of one stereo meter goes by. */
+const PAIR_METER = "pair:";
+
+/** The meter id of `left` and `right` read side by side: `left`'s level in the first lane, `right`'s in the second. */
+export const pairMeterId = (left: string, right: string): string => `${PAIR_METER}${left}+${right}`;
+
 /** Meter values in dB for one strip: one entry for mono, two for stereo. */
 export function simulatedLevel(ctx: AppContext, strip: Strip | undefined, stereo: boolean): number[] {
   const channels = stereo ? 2 : 1;
@@ -177,6 +184,13 @@ function cuedStrips(store: DeviceStore): string[] {
  * same instant.
  */
 export function meterLevels(store: DeviceStore, id: string, channels: number, at = Date.now()): number[] {
+  if (id.startsWith(PAIR_METER)) {
+    const members = id.slice(PAIR_METER.length).split("+");
+    return Array.from({ length: channels }, (_, c) => {
+      const member = members[c];
+      return member === undefined ? SILENT : (meterLevels(store, member, 1, at)[0] ?? SILENT);
+    });
+  }
   if (source) return source(id, channels);
   if (id === OSC_METER) return Array.from({ length: channels }, () => oscillatorLevel(store, at));
   if (id === CUE_METER) {
@@ -207,15 +221,37 @@ export function meterLevels(store: DeviceStore, id: string, channels: number, at
 
 /** What a screen's reduction bar is reading, and from which strip's level. */
 export interface GrSpec {
-  kind: "gate" | "comp" | "ducker" | "held";
+  kind: "gate" | "comp" | "ducker" | "ssmcs" | "over" | "held";
   /** The block's own values live under this path. */
   base: string;
-  /** The strip whose level the detector hears. */
+  /** The meter whose level the detector hears; a pair meter's louder side. */
   level: string;
-  /** How many dB the bar reads from top to bottom. */
+  /**
+   * The meter each OUT lane's own detector hears, where the two channels of a pair
+   * are held down apart. Without it every lane is held down by `level`.
+   */
+  lanes?: string[];
+  /** How many dB the bar reads from end to end. The COMP screen's bar reads `compGrShare` instead. */
   scale: number;
+  /** The bar lies across its block, filling left to right straight over `scale`. */
+  row?: boolean;
   /** What the block adds back after it, which the OUT meter reads higher by. */
   makeup: number;
+  /** For `over`: where the threshold the level is held down over is kept, and its value when unset. */
+  threshold?: { path: string; fallback: number };
+  /** For `over`: where the switch that turns the block on is kept, and its value when unset. Without it the block is on. */
+  on?: { path: string; fallback: boolean };
+}
+
+/** The level a detector hears on meter `id`: the louder side of a pair meter, the one level of anything else. */
+export function detectorLevel(store: DeviceStore, id: string, at = Date.now()): number {
+  return Math.max(...meterLevels(store, id, id.startsWith(PAIR_METER) ? 2 : 1, at));
+}
+
+/** How far down its bar the block named by `spec` reads, for a reduction of `db`. */
+export function grShare(spec: GrSpec, db: number): number {
+  const share = spec.kind === "comp" && !spec.row ? compGrShare(db) : db / spec.scale;
+  return Number.isNaN(share) ? 0 : Math.min(1, Math.max(0, share));
 }
 
 /**
@@ -224,7 +260,7 @@ export interface GrSpec {
  * nothing off.
  */
 export function blockReduction(store: DeviceStore, spec: GrSpec, at = Date.now()): number {
-  const level = meterLevels(store, spec.level, 1, at)[0] ?? SILENT;
+  const level = detectorLevel(store, spec.level, at);
   const b = spec.base;
   if (spec.kind === "gate") {
     if (!store.bool(`${b}.gate.on`, false)) return 0;
@@ -244,6 +280,17 @@ export function blockReduction(store: DeviceStore, spec: GrSpec, at = Date.now()
     if (!store.bool(`${b}.ducker.on`, false)) return 0;
     return duckerReductionDb(level, store.num(`${b}.ducker.threshold`, -40), store.num(`${b}.ducker.range`, -24));
   }
+  // SSMCS holds the channel down by how far it is over the corner Comp Drive sets.
+  if (spec.kind === "ssmcs") {
+    if (!blockOn(store, spec)) return 0;
+    const over = level - ssmcsCorner(store.num(`${b}.ssmcs.compDrive`, SSMCS_DEFAULTS.compDrive));
+    return Math.min(spec.scale, Math.max(0, over));
+  }
+  // An insert's compressor holds the channel down by how far it is over its threshold.
+  if (spec.kind === "over") {
+    if (!blockOn(store, spec) || !spec.threshold) return 0;
+    return Math.min(COMP_GR_METER_DB, Math.max(0, level - store.num(spec.threshold.path, spec.threshold.fallback)));
+  }
   // A block that carries its reading rather than working one out from its own
   // values hands it over on the node itself.
   return 0;
@@ -254,6 +301,8 @@ export function blockOn(store: DeviceStore, spec: GrSpec): boolean {
   if (spec.kind === "gate") return store.bool(`${spec.base}.gate.on`, false);
   if (spec.kind === "comp") return store.bool(`${spec.base}.comp.on`, false);
   if (spec.kind === "ducker") return store.bool(`${spec.base}.ducker.on`, false);
+  if (spec.kind === "ssmcs") return store.bool(`${spec.base}.comp.on`, false) && store.bool(`${spec.base}.ssmcs.on`, SSMCS_DEFAULTS.on);
+  if (spec.kind === "over") return spec.on ? store.bool(spec.on.path, spec.on.fallback) : true;
   return true;
 }
 
@@ -265,25 +314,97 @@ export function blockNetDb(store: DeviceStore, spec: GrSpec, at = Date.now()): n
   return blockReduction(store, spec, at) - (blockOn(store, spec) ? spec.makeup : 0);
 }
 
+/** `blockNetDb` for each OUT lane: one figure for every lane, or one per lane where `spec.lanes` holds them apart. */
+export function laneNetDb(store: DeviceStore, spec: GrSpec, at = Date.now()): number[] {
+  return spec.lanes ? spec.lanes.map((level) => blockNetDb(store, { ...spec, level }, at)) : [blockNetDb(store, spec, at)];
+}
+
+/** How a block's lamps stand. */
+export type LampState = "off" | "open" | "holding" | "shut";
+
+/**
+ * How the lamps of the block named by `spec` stand: GATE opens over its threshold
+ * and shuts a range under it, DUCKER opens under its threshold on its key and
+ * shuts a range over it. A block that is off lights none.
+ */
+export function blockLampState(store: DeviceStore, spec: GrSpec, at = Date.now()): LampState {
+  const level = detectorLevel(store, spec.level, at);
+  const b = spec.base;
+  if (spec.kind === "gate") {
+    if (!store.bool(`${b}.gate.on`, false)) return "off";
+    const threshold = store.num(`${b}.gate.threshold`, GATE_DEFAULTS.threshold);
+    const range = store.num(`${b}.gate.range`, GATE_DEFAULTS.range);
+    return level > threshold ? "open" : level <= threshold + range ? "shut" : "holding";
+  }
+  if (spec.kind === "ducker") {
+    if (!store.bool(`${b}.ducker.on`, false)) return "off";
+    const threshold = store.num(`${b}.ducker.threshold`, -40);
+    const range = store.num(`${b}.ducker.range`, -24);
+    return level <= threshold ? "open" : level >= threshold - range ? "shut" : "holding";
+  }
+  return "off";
+}
+
+/** Light a block's three lamps, shut, holding and open from the left, as `state` stands. */
+export function showBlockLamps(node: HTMLElement, state: LampState): void {
+  const [shut, holding, open] = [...node.children];
+  shut?.classList.toggle("is-shut", state === "shut");
+  holding?.classList.toggle("is-holding", state === "holding");
+  open?.classList.toggle("is-on", state === "open");
+}
+
+/** Keep `node`, a block's lamps, lit as the block named by `spec` stands: now, and as the ticker runs. */
+export function markBlockLamps(node: HTMLElement, store: DeviceStore, spec: GrSpec): void {
+  markReduction(node, spec);
+  node.dataset["blockLamps"] = "";
+  showBlockLamps(node, blockLampState(store, spec));
+}
+
+/** Keep `node`, a bar of a strip's level filling left to right over `min`..`max` dB, lit: now, and as the ticker runs. */
+export function markLevelBar(node: HTMLElement, store: DeviceStore, source: string, min: number, max: number): void {
+  node.dataset["levelBar"] = source;
+  node.dataset["levelMin"] = String(min);
+  node.dataset["levelMax"] = String(max);
+  showLevelBar(node, store);
+}
+
+function showLevelBar(node: HTMLElement, store: DeviceStore): void {
+  const min = Number(node.dataset["levelMin"] ?? -60);
+  const max = Number(node.dataset["levelMax"] ?? 0);
+  const level = meterLevels(store, node.dataset["levelBar"] ?? "", 1)[0] ?? SILENT;
+  const lit = node.querySelector<HTMLElement>("i");
+  if (lit) lit.style.width = `${meterFraction(level, min, max) * 100}%`;
+}
+
 /** Put a reduction on a node, so the ticker can work it out again. */
 export function markReduction(node: HTMLElement, spec: GrSpec): void {
   node.dataset["grKind"] = spec.kind;
   node.dataset["grBase"] = spec.base;
   node.dataset["grLevel"] = spec.level;
+  if (spec.lanes) node.dataset["grLanes"] = spec.lanes.join(" ");
   node.dataset["grScale"] = String(spec.scale);
   node.dataset["grMakeup"] = String(spec.makeup);
+  if (spec.row) node.dataset["grRow"] = "1";
+  if (spec.threshold) node.dataset["grThreshold"] = `${spec.threshold.fallback} ${spec.threshold.path}`;
+  if (spec.on) node.dataset["grOn"] = `${spec.on.fallback ? 1 : 0} ${spec.on.path}`;
 }
 
 /** Read a reduction back off a node the ticker has found. */
 export function readGrSpec(node: HTMLElement): GrSpec | null {
   const kind = node.dataset["grKind"];
-  if (kind !== "gate" && kind !== "comp" && kind !== "ducker" && kind !== "held") return null;
+  if (kind !== "gate" && kind !== "comp" && kind !== "ducker" && kind !== "ssmcs" && kind !== "over" && kind !== "held") return null;
+  const threshold = node.dataset["grThreshold"]?.split(" ");
+  const on = node.dataset["grOn"]?.split(" ");
   return {
     kind,
     base: node.dataset["grBase"] ?? "",
     level: node.dataset["grLevel"] ?? "",
+    ...(node.dataset["grLanes"] ? { lanes: node.dataset["grLanes"].split(" ") } : {}),
     scale: Number(node.dataset["grScale"] ?? 1),
     makeup: Number(node.dataset["grMakeup"] ?? 0),
+    ...(node.dataset["grRow"] ? { row: true } : {}),
+    ...(threshold ? { threshold: { fallback: Number(threshold[0]), path: threshold[1] ?? "" } } : {}),
+    ...(on ? { on: { fallback: on[0] === "1", path: on[1] ?? "" } } : {}),
   };
 }
 
@@ -309,20 +430,24 @@ export function startMeterTicker(store: DeviceStore, root: HTMLElement, interval
     for (const node of root.querySelectorAll<HTMLElement>("[data-gr-kind]")) {
       const spec = readGrSpec(node);
       if (!spec) continue;
+      if (node.dataset["blockLamps"] !== undefined) {
+        showBlockLamps(node, blockLampState(store, spec));
+        continue;
+      }
       const db = blockReduction(store, spec);
       const lit = node.querySelector<HTMLElement>("i");
-      if (lit) lit.style.height = `${Math.min(1, Math.max(0, db / spec.scale)) * 100}%`;
-      if (node.dataset["meterSource"] !== undefined) node.dataset["meterOffset"] = String(blockNetDb(store, spec));
+      if (lit) lit.style[spec.row ? "width" : "height"] = `${grShare(spec, db) * 100}%`;
+      if (node.dataset["meterSource"] !== undefined) setMeterOffset(node, laneNetDb(store, spec));
     }
     for (const node of root.querySelectorAll<HTMLElement>("[data-meter-source]")) {
       const stripId = node.dataset["meterSource"];
       if (!stripId) continue;
       const bars = node.querySelectorAll<HTMLElement>(".meter-bar");
       const clips = node.querySelectorAll<HTMLElement>(".meter-clip");
-      const offset = Number(node.dataset["meterOffset"] ?? 0);
+      const offsets = (node.dataset["meterOffset"] ?? "0").split(" ").map(Number);
       const lane = node.dataset["meterLane"];
       const read = lane === undefined ? meterLevels(store, stripId, bars.length) : [meterLevels(store, stripId, 2)[Number(lane)] ?? SILENT];
-      const levels = read.map((db) => db - offset);
+      const levels = read.map((db, i) => db - (offsets[i] ?? offsets[0] ?? 0));
       const min = Number(node.dataset["meterMin"] ?? -60);
       const max = Number(node.dataset["meterMax"] ?? 0);
       bars.forEach((bar, i) => {
@@ -331,6 +456,7 @@ export function startMeterTicker(store: DeviceStore, root: HTMLElement, interval
         clips[i]?.classList.toggle("is-on", db >= max);
       });
     }
+    for (const node of root.querySelectorAll<HTMLElement>("[data-level-bar]")) showLevelBar(node, store);
     for (const node of root.querySelectorAll<HTMLElement>("[data-lamp-source]")) {
       const stripId = node.dataset["lampSource"];
       if (!stripId) continue;
