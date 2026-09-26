@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { attachFocusRing, drawnCorners } from "./focus-ring";
 
 // The glass is 480 wide on the page here, so a length on it is a length in its own pixels.
@@ -15,6 +15,11 @@ const frame = (): Promise<void> => new Promise((resolve) => requestAnimationFram
 
 describe("the ring marking where the keys are", () => {
   const cleanups: (() => void)[] = [];
+  // jsdom follows how the focus arrived, which `:focus-visible` reads, only from the
+  // first selector it matches in the document on: match one before any control takes the focus.
+  beforeAll(() => {
+    document.body.matches(":focus-visible");
+  });
   afterEach(() => {
     for (const c of cleanups.splice(0)) c();
     document.body.innerHTML = "";
@@ -82,13 +87,16 @@ describe("the ring marking where the keys are", () => {
 
   it("cuts the ring to the list the control scrolls inside of, and leaves a box that only holds it alone", async () => {
     const root = glass();
+    // jsdom computes the longhands only from themselves, not from the `overflow` shorthand.
     const list = document.createElement("div");
-    list.style.overflow = "hidden";
+    list.style.overflowX = "hidden";
+    list.style.overflowY = "hidden";
     Object.defineProperty(list, "scrollHeight", { value: 400, configurable: true });
     Object.defineProperty(list, "clientHeight", { value: 100, configurable: true });
     stub(list, { x: 90, y: 60, w: 300, h: 100 });
     const tight = document.createElement("div");
-    tight.style.overflow = "hidden";
+    tight.style.overflowX = "hidden";
+    tight.style.overflowY = "hidden";
     stub(tight, { x: 100, y: 130, w: 80, h: 40 });
     const row = document.createElement("button");
     row.style.setProperty("--ring-corners", "0 0 0 0");
