@@ -119,7 +119,7 @@ describe("the ring marking where the keys are", () => {
     stub(button, { x: 100, y: 60, w: 80, h: 40 });
     // A control touched with a pointer holds the focus without showing it.
     const matches = button.matches.bind(button);
-    button.matches = (sel: string) => (sel === ":focus-visible" ? false : matches(sel));
+    button.matches = ((sel: string) => (sel === ":focus-visible" ? false : matches(sel))) as typeof button.matches;
     cleanups.push(attachFocusRing(root));
     button.focus();
     await frame();
