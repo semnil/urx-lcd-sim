@@ -18,3 +18,4 @@
 - Draw lit [1-knob]'s corners over its panel, and the copy marks on Sweet Spot Data and MONITOR's Source, in the pixels and colours of the guide's figures.
 - Draw every copy mark on whole pixels in the colours of the guide's figures, the RECORDER's in the softened form the unit shows, turn a RECORDER slot's source button as MONITOR's Source turns, and stand the time zone's box a pixel right of the date's.
 - Draw the top right pixel of a RECORDER slot's copy mark, where it lies on the button's corner, in the colour the guide's figure shows.
+- Meter a stereo-linked CH 1-4 pair in stereo on its GATE, COMP, EQ, INS FX and SSMCS screens: two bars each for IN and OUT, the lower-numbered channel on the left, as the unit does.
