@@ -21,7 +21,7 @@
 - Give the page a favicon, a search description, and a title, description and preview image for links shared to social media and chat. The page is marked as English, the language it is written in.
 - Meter a stereo-linked CH 1-4 pair in stereo on its GATE, COMP, EQ, INS FX and SSMCS screens: two bars each for IN and OUT, the lower-numbered channel on the left, as the unit does.
 - Hold a stereo-linked pair's dynamics down as the unit does: GATE and an insert Compander hear the louder of the two channels, COMP does so from the moment the pair is linked until the linked pair goes into SSMCS, and each OUT bar comes down by what is taken off its own channel.
-- Draw the COMP screen's reduction bar on the unit's scale, which reaches 11/21 of the bar at 18 dB and the foot of it at 50 dB.
 - Keep the reduction bar and the OUT meter of SSMCS and of an insert Compander moving with the signal, as GATE's and COMP's do; they held what they read when the screen was opened.
 - Keep the channel view's GATE and DUCKER lamps and COMP bars, M.B.Comp's band reduction bars and the RECORDER's track meters moving with the signal as well.
-- Draw every reduction bar on the scale the unit's COMP screen bar uses, 11/21 of the bar at 18 dB and full at 50 dB: the GATE, DUCKER and SSMCS screens, an insert Compander, M.B.Comp's bands and the channel view's COMP block. The COMP block's level bar and threshold mark use the same scale laid from 0 dB down.
+- Draw every reduction bar on the unit's scale, 11/21 of the bar at 18 dB, 11/14 at 36 dB and full at 60 dB: the GATE, DUCKER, COMP and SSMCS screens, an insert Compander, M.B.Comp's bands and the channel view's COMP block.
+- Light every level meter on the same scale laid from 0 dB down, 10/21 of the bar at -18 dB, 3/14 at -36 dB and empty from -60 dB, where the meters lit in a straight line over -60 dB to 0 dB. The channel view's COMP block level bar and threshold mark use it too.
