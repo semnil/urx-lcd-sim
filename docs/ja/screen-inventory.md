@@ -1266,7 +1266,7 @@ SCENE の題と同じ入力シートを開く。TOOLS の [Format] はカード�
 
 Standard と Simple のタブは、SAMPLING FREQUENCY の周波数と同じく両端だけを丸めた 1 本のグループボタンになる。
 Standard タブは 00 Initial Data と 01〜63 の番号を並べ、Simple タブは工場プリセットの P01〜P03 と、Standard にシーンが保存されて
-いない番号を並べる (ユーザーガイド「SCENE screen」の Scene list と NOTE)。保存の無い番号の題は `No Scene`。バーのつまみは
+いない番号を並べる (ユーザーガイド「SCENE screen」の Scene list と NOTE)。保存の無い番号の題は空欄。バーのつまみは
 短くても 15px (p073-1・p074-1 とも y110..124)。HOME の箱は呼び出したシーンの番号と題を一覧と同じ規則で出し、工場出荷の
 状態では `00 Initial Data`。SCENE LIST の左上の箱は、一覧で選んでいるシーンの番号と題を同じ規則で出す (p074-1 は選んでいる 02)。
 選んでいる行が呼び出し中のシーン (▶ の行) でないあいだは、番号が 2 秒周期で徐々に消えて戻り、題は常に出す (操作者確認)。
@@ -1282,6 +1282,9 @@ Standard タブは 00 Initial Data と 01〜63 の番号を並べ、Simple タ�
 保存済みの番号では `Store to "Scene Memory #05"?` (番号は選んでいるシーン) を [Cancel] / [OK] で尋ね、[OK] で上書きして
 そのシーンを呼び出し中にする。
 
+[Recall] は保存の無い番号では使えず、押しても何も尋ねない。保存済みの番号と工場出荷のシーンでは `Recall scene "Band"?`
+(題は選んでいるシーン) を [Cancel] / [OK] で尋ね、[OK] でそのシーンのミキサーを戻して呼び出し中にする。
+
 Edit タブ (p074-1) は下端の [Store] / [Recall] に代えて、字形だけのボタン [Protect]・[Delete]・[Title] を並べる (面は
 x6..95・x149..238・x291..380、字形は錠 16x21・ごみ箱 16x18・名前変更 20x20)。
 
@@ -1289,6 +1292,7 @@ x6..95・x149..238・x291..380、字形は錠 16x21・ごみ箱 16x18・名前�
   `--list-selected-mark` の錠を載せる (p074-1 の 01、欄 x327..380 / y110..145、錠 x346..361 / y117..137)。保護中は
   [Delete]・[Title] と Store/Recall タブの [Store] が使えない。
 - [Delete] は `Delete "Scene Memory #05"?` (番号は選んでいるシーン) を [Cancel] / [OK] で尋ね、[OK] でシーンを消す。
+  呼び出し中のシーンも消せ、シーンの箱には番号だけが残って題が空になる。
 - [Title] は題の入力シートを開く。
 - 保存の無い番号と工場出荷のシーンでは、[Protect]・[Delete]・[Title] が使えない。
 - Operation Mode が Standard Mode のあいだ、Simple タブの一覧は呼び出しだけができ、[Store] と Edit タブは使えない

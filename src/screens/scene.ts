@@ -54,12 +54,12 @@ function storedBank(ctx: AppContext, no: number): (typeof BANKS)[number] | null 
   return BANKS.find((b) => ctx.store.str(`scene.${b}.${no}.title`, "")) ?? null;
 }
 
-/** A scene's title: a preset's name, what a bank has stored under the number, or No Scene. */
+/** A scene's title: a preset's name, what a bank has stored under the number, or nothing where no scene is stored. */
 export function sceneTitle(ctx: AppContext, no: number): string {
-  if (isPreset(no)) return SIMPLE_PRESETS[no - PRESET_BASE - 1] ?? "No Scene";
+  if (isPreset(no)) return SIMPLE_PRESETS[no - PRESET_BASE - 1] ?? "";
   if (no === 0) return ctx.store.str("scene.0.title", "Initial Data");
   const bank = storedBank(ctx, no);
-  return bank ? ctx.store.str(`scene.${bank}.${no}.title`, "") : "No Scene";
+  return bank ? ctx.store.str(`scene.${bank}.${no}.title`, "") : "";
 }
 
 /** Whether the scene stored under the number is protected from being stored over, deleted or renamed. */
@@ -188,14 +188,17 @@ export const sceneScreen: ScreenDef = {
       };
     });
 
+    // Only a number holding a scene can be recalled.
+    const recallShut = owner === null && !isFactoryLocked(selected);
     const recall = button("Recall", () => {
+      if (recallShut) return;
       ctx.overlay(
         dialog({
           message: `Recall scene "${sceneTitle(ctx, selected)}"?`,
           onOk: () => void recallScene(ctx, selected),
         }),
       );
-    });
+    }, recallShut ? "is-disabled" : "");
 
     const storeShut = isFactoryLocked(selected) || guarded || readOnly;
     const store = markShut(button("Store", () => {

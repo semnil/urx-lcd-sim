@@ -1452,7 +1452,7 @@ At the end of the file the counter goes back to the start and stops there, the f
 The Standard and Simple tabs are one grouped button rounded at its two ends only, like SAMPLING FREQUENCY's frequencies.
 The Standard tab lists 00 Initial Data and the numbers 01 to 63, and the Simple tab the factory presets P01 to P03 followed by the
 numbers Standard holds no scene under (Scene list and its NOTE in the user guide's "SCENE screen"). A number with
-nothing stored under it reads `No Scene`. The bar's thumb draws no shorter than 15px (y110..124 in both p073-1 and
+nothing stored under it has an empty title. The bar's thumb draws no shorter than 15px (y110..124 in both p073-1 and
 p074-1). The HOME box names the recalled scene by the list's rules, `00 Initial Data` on a factory unit. SCENE LIST's
 top-left box names the scene picked on the list by the same rules (the picked 02 in p074-1). While the row picked is not
 the recalled scene (the row with the ▶), its number fades out and back in over two seconds, and the title stays (confirmed
@@ -1471,6 +1471,10 @@ middle of their cells.
 stores the scene and makes it the recalled one. On a stored number it asks `Store to "Scene Memory #05"?` (the number is
 the picked scene's) with [Cancel] / [OK], and on [OK] stores over it and makes it the recalled one.
 
+[Recall] cannot be used on a number with nothing stored, and a press asks nothing. On a stored number and on a factory scene
+it asks `Recall scene "Band"?` (the title is the picked scene's) with [Cancel] / [OK], and on [OK] puts that scene's mixer
+back and makes it the recalled one.
+
 The Edit tab (p074-1) sets glyph-only buttons [Protect], [Delete] and [Title] along the foot in place of [Store] /
 [Recall] (faces at x6..95, x149..238 and x291..380; glyphs a padlock 16x21, a bin 16x18 and a rename mark 20x20).
 
@@ -1478,7 +1482,7 @@ The Edit tab (p074-1) sets glyph-only buttons [Protect], [Delete] and [Title] al
   face under a `--list-selected-mark` padlock (01 in p074-1, the cell at x327..380 / y110..145, the padlock at
   x346..361 / y117..137). While a scene is protected, [Delete], [Title] and [Store] on the Store/Recall tab cannot be used.
 - [Delete] asks `Delete "Scene Memory #05"?` (the number is the picked scene's) with [Cancel] / [OK], and deletes the
-  scene on [OK].
+  scene on [OK]. The recalled scene can be deleted too; the scene box then keeps its number with an empty title.
 - [Title] opens the title entry sheet.
 - On a number with nothing stored and on a scene the unit ships with, [Protect], [Delete] and [Title] cannot be used.
 - While Operation Mode is Standard Mode, the Simple tab's list can be recalled from only; [Store] and the Edit tab
