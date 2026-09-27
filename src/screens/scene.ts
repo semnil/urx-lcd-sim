@@ -113,16 +113,31 @@ function sceneRows(ctx: AppContext, bank: string): number[] {
   return [...SIMPLE_PRESETS.map((_, i) => PRESET_BASE + i + 1), ...numbers.filter((n) => !ctx.store.str(`scene.Standard.${n}.title`, ""))];
 }
 
+/** In Standard Mode, Simple's list can be recalled from but not stored to or edited. */
+function readOnlyBank(ctx: AppContext, bank: string): boolean {
+  return bank === "Simple" && ctx.store.str("setup.operationMode", "Standard") === "Standard";
+}
+
+/** A control that cannot be used is greyed and marked out of reach, so it neither sinks under a press nor reads as usable. */
+function markShut(node: HTMLElement, shut: boolean): HTMLElement {
+  if (shut) {
+    node.classList.add("is-disabled");
+    node.setAttribute("aria-disabled", "true");
+  }
+  return node;
+}
+
 /** A button on the Edit tab named by a glyph. One that cannot be used does nothing. */
 function glyphButton(label: string, glyph: SVGSVGElement, enabled: boolean, onTap: () => void): HTMLElement {
-  return el("button", {
-    class: `btn scene-edit-btn${enabled ? "" : " is-disabled"}`,
+  const node = el("button", {
+    class: "btn scene-edit-btn",
     attrs: { "aria-label": label },
     children: [glyph],
     onTap: () => {
       if (enabled) onTap();
     },
   });
+  return markShut(node, !enabled);
 }
 
 /** The SCENE menu the HOME scene box opens; the list is one step under it. */
@@ -140,15 +155,17 @@ export const sceneScreen: ScreenDef = {
   toolbar: "sub",
   title: () => "SCENE LIST",
   build(ctx): ScreenBody {
-    const bank = ctx.store.str("scene.bank", "Standard");
+    // In Simple Mode only Simple's list opens, and the Standard tab cannot be used.
+    const simpleMode = ctx.store.str("setup.operationMode", "Standard") === "Simple";
+    const bank = simpleMode ? "Simple" : ctx.store.str("scene.bank", "Standard");
     const listed = sceneRows(ctx, bank);
     // A selection the bank does not list falls to its first row.
     const picked = ctx.store.num("scene.selected", 0);
     const selected = listed.includes(picked) ? picked : (listed[0] ?? 0);
     const current = ctx.store.num("scene.current", 0);
-    const menu = ctx.store.str("ui.sceneMenu", "Store/Recall");
-    // In Standard Mode, Simple's list can be recalled from but not stored to or edited.
-    const readOnly = bank === "Simple" && ctx.store.str("setup.operationMode", "Standard") === "Standard";
+    const readOnly = readOnlyBank(ctx, bank);
+    // A list that cannot be edited stands on the Store/Recall tab.
+    const menu = readOnly ? "Store/Recall" : ctx.store.str("ui.sceneMenu", "Store/Recall");
     const owner = storedBank(ctx, selected);
     const guarded = isProtected(ctx, selected);
 
@@ -181,7 +198,7 @@ export const sceneScreen: ScreenDef = {
     });
 
     const storeShut = isFactoryLocked(selected) || guarded || readOnly;
-    const store = button("Store", () => {
+    const store = markShut(button("Store", () => {
       if (storeShut) return;
       // A number with nothing stored is named on the title entry sheet, starting from the recalled scene's title.
       if (owner === null) {
@@ -194,7 +211,7 @@ export const sceneScreen: ScreenDef = {
           onOk: () => void storeScene(ctx, bank, selected),
         }),
       );
-    }, storeShut ? "is-disabled" : "");
+    }), storeShut);
 
     // Only a stored scene can be protected, and only one left unprotected deleted or renamed.
     const editable = owner !== null && !readOnly;
@@ -227,13 +244,18 @@ export const sceneScreen: ScreenDef = {
       children: [
         el("div", {
           class: "scene-banks",
-          children: (["Standard", "Simple"] as const).map((b) =>
-            toggle(b, b === bank, () => {
+          children: (["Standard", "Simple"] as const).map((b) => {
+            const shut = simpleMode && b === "Standard";
+            const node = toggle(b, b === bank, () => {
+              if (shut) return;
               void ctx.store.set("scene.bank", b);
               // The selection is dropped, so the other bank opens at its first row.
               void ctx.store.set("scene.selected", 0);
-            }, "scene-bank"),
-          ),
+              // The menu shown is kept, and a bank whose list cannot be edited moves it to Store/Recall.
+              void ctx.store.set("ui.sceneMenu", readOnlyBank(ctx, b) ? "Store/Recall" : menu);
+            }, "scene-bank");
+            return markShut(node, shut);
+          }),
         }),
         list,
         ...(bar ? [bar] : []),
@@ -245,16 +267,19 @@ export const sceneScreen: ScreenDef = {
 
     return {
       main,
-      // A factory scene cannot be edited, nor can Simple's list in Standard Mode, so the Edit menu is shut.
-      side: (["Store/Recall", "Edit"] as const).map((m) =>
-        sideTab(
+      // Simple's list in Standard Mode cannot be edited, so the Edit menu is shut.
+      side: (["Store/Recall", "Edit"] as const).map((m) => {
+        const tab = sideTab(
           m.replace("/", "/\n"),
           m === menu,
-          () => void ctx.store.set("ui.sceneMenu", m),
+          () => {
+            if (m !== "Edit" || !readOnly) void ctx.store.set("ui.sceneMenu", m);
+          },
           m === "Edit" ? Icons.edit() : Icons.archive(),
-          [m === "Edit" ? "is-name-lifted" : "is-name-close", m === "Edit" && (isFactoryLocked(selected) || readOnly) ? "is-disabled" : ""].join(" ").trim(),
-        ),
-      ),
+          m === "Edit" ? "is-name-lifted" : "is-name-close",
+        );
+        return markShut(tab, m === "Edit" && readOnly);
+      }),
       // The box names the scene picked on the list, not the one recalled, and
       // blinks its number while the two differ.
       headerLeft: el("div", {
