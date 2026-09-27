@@ -28,3 +28,4 @@
 - Set SCENE LIST's scene numbers, on the list and in the box at its top left, at the title's size and on the title's baseline, as the guide's figures print them.
 - Name the scene picked on SCENE LIST's list in the box at its top left, its number fading out and back in every two seconds while the scene picked is not the one recalled.
 - Keep SCENE LIST's Edit tab usable on every row of the Standard list, 00 included, as the unit does. It is shut only on the Simple list in Standard Mode, and opening the Simple list from the Edit tab moves to Store/Recall. The lit Edit tab lost the band under it when 00 or the Simple list was picked with the Edit tab open.
+- Mark every control RECORDER, SAVE/LOAD and the effect list shut as out of reach: the browser's up-one-level button, [Save], [Load], [Delete], [Rename] and the effects the sampling frequency rules out. A key press sank them, and assistive technology read them as usable.
