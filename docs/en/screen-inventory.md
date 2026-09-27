@@ -1482,7 +1482,12 @@ The Edit tab (p074-1) sets glyph-only buttons [Protect], [Delete] and [Title] al
 - [Title] opens the title entry sheet.
 - On a number with nothing stored and on a scene the unit ships with, [Protect], [Delete] and [Title] cannot be used.
 - While Operation Mode is Standard Mode, the Simple tab's list can be recalled from only; [Store] and the Edit tab
-  cannot be used (the NOTE under Edit in the user guide's "SCENE screen").
+  cannot be used (the NOTE under Edit in the user guide's "SCENE screen"). Switching from the Standard tab to the Simple
+  tab with the Edit tab open moves to the Store/Recall tab. On the Standard tab, the Store/Recall and Edit tabs can be
+  switched between whichever number is picked (confirmed on the unit, 2026-09-27).
+- While Operation Mode is Simple Mode, only the Simple tab's list opens and the Standard tab cannot be used. The Edit tab
+  can be used. With the Edit tab open on the Simple tab, setting Operation Mode to Standard Mode opens SCENE LIST on the
+  Simple tab's Store/Recall tab, with the Edit tab unusable (confirmed on the unit, 2026-09-27).
 
 ## The title entry sheet
 

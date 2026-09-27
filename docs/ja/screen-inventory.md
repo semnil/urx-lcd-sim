@@ -1292,7 +1292,12 @@ x6..95・x149..238・x291..380、字形は錠 16x21・ごみ箱 16x18・名前�
 - [Title] は題の入力シートを開く。
 - 保存の無い番号と工場出荷のシーンでは、[Protect]・[Delete]・[Title] が使えない。
 - Operation Mode が Standard Mode のあいだ、Simple タブの一覧は呼び出しだけができ、[Store] と Edit タブは使えない
-  (ユーザーガイド「SCENE screen」の Edit の NOTE)。
+  (ユーザーガイド「SCENE screen」の Edit の NOTE)。Edit タブを開いたまま Standard タブから Simple タブへ切り替えると、
+  Store/Recall タブへ移る。Standard タブでは、どの番号を選んでいても Store/Recall タブと Edit タブを行き来できる
+  (2026-09-27 操作者確認)。
+- Operation Mode が Simple Mode のあいだは Simple タブの一覧だけを開き、Standard タブは使えない。Edit タブは使える。
+  Simple タブで Edit タブを開いたまま Operation Mode を Standard Mode にすると、SCENE LIST は Simple タブの Store/Recall
+  タブで開き、Edit タブは使えない (2026-09-27 操作者確認)。
 
 ## 題の入力シート
 
