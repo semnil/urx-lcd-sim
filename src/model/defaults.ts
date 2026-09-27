@@ -104,15 +104,12 @@ export const SSMCS_DEFAULTS = {
   },
 } as const;
 
-/** The curve a band ships drawing. */
-export const EQ_BAND_SHAPE_DEFAULT = "Bell";
-
-/** Factory four-band EQ, identical on every channel. */
+/** Factory four-band EQ, identical on every channel: the outer bands shelves, the mid bands bells. */
 const EQ_BANDS = [
-  { band: "low", freq: 125, gain: 0, q: 0.71 },
-  { band: "lowMid", freq: 1000, gain: 0, q: 0.71 },
-  { band: "highMid", freq: 4000, gain: 0, q: 0.71 },
-  { band: "high", freq: 10000, gain: 0, q: 0.71 },
+  { band: "low", freq: 125, gain: 0, q: 0.71, shape: "L.Shelf" },
+  { band: "lowMid", freq: 1000, gain: 0, q: 0.71, shape: "Bell" },
+  { band: "highMid", freq: 4000, gain: 0, q: 0.71, shape: "Bell" },
+  { band: "high", freq: 10000, gain: 0, q: 0.71, shape: "H.Shelf" },
 ] as const;
 
 /**
@@ -138,7 +135,7 @@ export function compEqBankDefaults(): readonly [string, ParamValue][] {
     ["eq.oneKnob.level", 0],
   ];
   for (const b of EQ_BANDS) {
-    out.push([`eq.${b.band}.freq`, b.freq], [`eq.${b.band}.gain`, b.gain], [`eq.${b.band}.q`, b.q], [`eq.${b.band}.on`, true], [`eq.${b.band}.shape`, EQ_BAND_SHAPE_DEFAULT]);
+    out.push([`eq.${b.band}.freq`, b.freq], [`eq.${b.band}.gain`, b.gain], [`eq.${b.band}.q`, b.q], [`eq.${b.band}.on`, true], [`eq.${b.band}.shape`, b.shape]);
   }
   return out;
 }
@@ -182,7 +179,8 @@ function seedStrip(out: Map<ParamPath, ParamValue>, strip: Strip, model: UnitMod
   if (source !== undefined) out.set(p("source"), source);
   out.set(p("on"), true);
   out.set(p("cue"), false);
-  out.set(p("level"), 0);
+  // An FX channel's fader ships at the bottom; every other fader at 0 dB.
+  out.set(p("level"), strip.kind === "fx" ? LEVEL_MIN_DB : 0);
   for (const [suffix, value] of compEqBankDefaults()) {
     // Only a mono channel carries the compressor; every strip carries the EQ.
     if (strip.kind !== "monoIn" && suffix.startsWith("comp.")) continue;
@@ -311,7 +309,7 @@ export function factoryState(model: UnitModel): Map<ParamPath, ParamValue> {
 
   // Sends. Every one ships open with nothing going through it: the switch on,
   // the level at the bottom of the fader, the tap after the fader, and the send
-  // placed centre.
+  // placed centre. A MIX bus ships with its switch into STEREO off.
   const stereo = model.outputs.filter((o) => o.kind === "stereo");
   const mixes = model.outputs.filter((o) => o.kind === "mix");
   const returns = model.inputs.filter((s) => s.kind === "fx");
@@ -319,7 +317,7 @@ export function factoryState(model: UnitModel): Map<ParamPath, ParamValue> {
     const targets = [...stereo, ...mixes, ...returns].filter((to) => sendsTo(from, to));
     for (const to of targets) {
       out.set(chPath(from.id, "send", to.id, "level"), LEVEL_MIN_DB);
-      out.set(chPath(from.id, "send", to.id, "on"), true);
+      out.set(chPath(from.id, "send", to.id, "on"), !(from.kind === "mix" && to.kind === "stereo"));
       out.set(chPath(from.id, "send", to.id, "pre"), false);
       out.set(chPath(from.id, "send", to.id, "balance"), 0);
     }

@@ -863,7 +863,7 @@ Measured on p106-1. At the top left is the box of the selected band (x2..56 / y4
 (x283..376 / y50..87, its ends half circles of 19px radius, face `--shape-box` inside a 1px
 `--shape-box-edge` line, no shadow band, its ▼ 9x8 at x356..364 / y66..73), and [1 1-knob] on the right. The shape box names the shape with a
 30x20 outline rather than a word (Bell is a lens in the middle of a flat line, x310..339 / y60..79 in
-p106-1). LOW picks from Bell, L.Shelf and HPF, HIGH from Bell, H.Shelf and LPF, and LOW MID and HIGH MID keep Bell (their box keeps
+p106-1). LOW picks from Bell, L.Shelf and HPF, HIGH from Bell, H.Shelf and LPF (LOW ships L.Shelf and HIGH H.Shelf), and LOW MID and HIGH MID keep Bell (their box keeps
 Bell and its ▼, dimmed to an opacity of 0.5, and a press opens nothing). On a width of 30, L.Shelf brings its upper and lower lines together from x11 into one at x18, and HPF
 climbs from the bottom left to x13 and runs flat from there; H.Shelf and LPF are their mirror images. A press on the box opens a
 column of buttons the size of the box, 94x38, each carrying an outline alone, the chosen shape cyan and the others the list's
@@ -1046,7 +1046,7 @@ screens (MONITOR, SCENE, OSCILLATOR, Software Integration). The SEND TO tabs and
 3px shadow band at the bottom. A SEND TO name on two lines leads 21px, and a name stands a pixel above
 the middle of its tab, two on two lines (STEREO at y73..82, MIX 1-2 at y122..131 and y143..152 in p116-1).
 
-Sends ship **open** with nothing going through them: the switch on, the level at the bottom of the fader, the tap after the fader, the pan centred.
+Sends ship **open** with nothing going through them: the switch on, the level at the bottom of the fader, the tap after the fader, the pan centred. The exception is the send from MIX 1-2 into STEREO, which ships with its switch off.
 When the level is at the bottom the value is written `-∞`, with no unit (it is not a dB number).
 
 ## OSCILLATOR's OSC
@@ -1634,7 +1634,7 @@ setting name).
 
 The knob at the foot of a strip turns the send to the destination the [Sends] tab is showing (g under
 "Channel area" in the user guide). The channel's own fader is what feeds the stereo bus, so the fader
-stands there instead (p047-1 reads the factory fader's `0.00`, p157-1 the send's `-inf` under MIX 1).
+stands there instead (p047-1 reads the factory fader's `0.00`, p157-1 the send's `-inf` under MIX 1). The FX 1-2 faders ship at the bottom, `-∞`.
 The tab names the stereo bus short, `ST`, and a numbered bus with the space, `MIX 1` (p047-1, p157-1).
 
 While that send is switched off on the SEND TO screen, the knob's face and its lit arc take

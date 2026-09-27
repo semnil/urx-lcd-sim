@@ -3829,7 +3829,7 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
     const box = shell.root.querySelector(".eq-screen > .pulldown");
     expect(box?.querySelector("svg.icon-eq-shape"), "the outline").not.toBeNull();
     expect(box?.textContent, "and no word").toBe("");
-    expect(box?.getAttribute("aria-label")).toContain("Bell");
+    expect(box?.getAttribute("aria-label"), "LOW ships a shelf").toContain("L.Shelf");
   });
 
   it("classes INPUT's right-hand buttons and DELAY's value box apart", async () => {
