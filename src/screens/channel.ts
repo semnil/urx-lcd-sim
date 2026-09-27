@@ -6,7 +6,7 @@ import type { Route } from "../app/navigator";
 import type { ParamPath, ParamValue } from "../device/path";
 import type { DeviceStore, WriteRule } from "../device/store";
 import { clamp } from "../device/store";
-import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, EQ_BAND_SHAPE_SHIPPED, GATE_DEFAULTS, compEqBankDefaults, ssmcsBankDefaults } from "../model/defaults";
+import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, EQ_BAND_SHAPE_SHIPPED, GATE_DEFAULTS, compEqBankDefaults, faderShipped, sendShipsOn, ssmcsBankDefaults } from "../model/defaults";
 import { COMP_KNEE_WIDTH, compResponse, grBarShare, levelBarShare } from "../model/dynamics";
 import { eqResponse } from "../model/eq-response";
 import type { Strip } from "../model/types";
@@ -394,7 +394,7 @@ export const channelViewScreen: ScreenDef = {
     const { spec: gainSpec, connector } = headAmp(ctx, strip);
     const position = stripPosition(ctx, strip);
     const panParam = { ...panSpec(position.path, position.caption) };
-    const levelSpec = faderSpec(`${base}.level`, "LEVEL");
+    const levelSpec = faderSpec(`${base}.level`, "LEVEL", faderShipped(strip));
     // Only an input channel has a head amp. A bus shows its level down that
     // column instead, with nothing to set there.
     const inputChannel = mono || strip.kind === "stIn";
@@ -1882,7 +1882,7 @@ export const sendToScreen: ScreenDef = {
               el("div", {
                 class: "sendto-body",
                 children: [
-                  toggle("ON", ctx.store.bool(onPath, false), () => void ctx.store.set(onPath, !ctx.store.bool(onPath, false)), "btn-switch btn-on"),
+                  toggle("ON", ctx.store.bool(onPath, sendShipsOn(strip, t)), () => void ctx.store.set(onPath, !ctx.store.bool(onPath, sendShipsOn(strip, t))), "btn-switch btn-on"),
                   noTap
                     ? empty("sendto-empty-pre")
                     : toggle("PRE", ctx.store.bool(prePath, false), () => void ctx.store.set(prePath, !ctx.store.bool(prePath, false)), "btn-switch btn-pre"),

@@ -44,17 +44,49 @@ async function pickCompEq(shell: Shell, value: string): Promise<void> {
   await flush();
 }
 
-describe("an EQ band's shape", () => {
-  it("reads as the shape the band ships where the store holds none for it", async () => {
-    const model = unitById("URX44V");
-    const store = new DeviceStore();
-    const state = new Map([...factoryState(model)].filter(([path]) => !path.startsWith("ch.ch1.eq.low.shape")));
-    await store.attach(new SimTransport(state));
-    const shell = new Shell(buildRegistry(), store, model);
+/** Mount a unit whose store holds none of the paths given, the factory's everywhere else. */
+async function mountWithout(paths: string[]): Promise<Mounted> {
+  const model = unitById("URX44V");
+  const store = new DeviceStore();
+  await store.attach(new SimTransport(new Map([...factoryState(model)].filter(([path]) => !paths.includes(path)))));
+  const shell = new Shell(buildRegistry(), store, model);
+  await flush();
+  for (const path of paths) if (store.has(path)) throw new Error(`the premise: ${path} is still held`);
+  return { shell, store };
+}
+
+describe("what a screen reads where the store holds nothing", () => {
+  it("an FX channel's fader at the bottom, in the channel view and on HOME", async () => {
+    const { shell } = await mountWithout(["ch.fx1.level"]);
+    await open(shell, "channel-view", "fx1");
+    expect(shell.root.querySelector(".cv-level .value-box")?.textContent).toBe("-\u221e");
+    shell.ctx.nav.home();
+    await shell.ctx.store.set("ui.bank", 2);
     await flush();
+    expect(shell.root.querySelector(".strip-level")?.getAttribute("aria-label"), "the premise: FX 1 leads the bank").toBe("FX1 LEVEL");
+    expect(shell.root.querySelector(".strip-level-value")?.textContent).toBe("-\u221e");
+  });
+
+  it("a send switched on, but MIX's into STEREO off, on SEND TO and on HOME", async () => {
+    const { shell } = await mountWithout(["ch.ch1.send.bus.mix1.on", "ch.bus.mix1.send.bus.stereo.on"]);
+    await open(shell, "ch.sendto", "ch1");
+    expect(shell.root.querySelector(".sendto-cell .btn-on")?.getAttribute("aria-pressed"), "CH 1 into MIX 1").toBe("true");
+    shell.ctx.nav.home();
+    await open(shell, "ch.sendto", "bus.mix1");
+    expect(shell.root.querySelector(".sendto-cell .btn-on")?.getAttribute("aria-pressed"), "MIX 1 into STEREO").toBe("false");
+    shell.ctx.nav.home();
+    await shell.ctx.store.set("ui.bankSide", "output");
+    await shell.ctx.store.set("ui.bank", 0);
+    await flush();
+    const knob = shell.root.querySelector(".strip-level");
+    expect(knob?.getAttribute("aria-label"), "the premise: MIX 1 leads the bank").toBe("MIX 1 LEVEL");
+    expect(knob?.classList.contains("is-send-off"), "HOME darkens it").toBe(true);
+  });
+
+  it("an EQ band's shape as the band ships it", async () => {
+    const { shell } = await mountWithout(["ch.ch1.eq.low.shape"]);
     await open(shell, "channel-view", "ch1");
     await open(shell, "ch.eq", "ch1");
-    expect(store.has("ch.ch1.eq.low.shape"), "the premise").toBe(false);
     expect(shell.root.querySelector(".eq-screen > .pulldown")?.getAttribute("aria-label")).toContain("L.Shelf");
   });
 });

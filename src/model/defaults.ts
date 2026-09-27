@@ -174,6 +174,16 @@ export function ssmcsBankDefaults(): readonly [string, ParamValue][] {
   return out;
 }
 
+/** Where a strip's fader ships: an FX channel's at the bottom, every other at 0 dB. */
+export function faderShipped(strip: Pick<Strip, "kind">): number {
+  return strip.kind === "fx" ? LEVEL_MIN_DB : 0;
+}
+
+/** Whether a send ships switched on: every one does but a MIX bus's into STEREO. */
+export function sendShipsOn(from: Pick<Strip, "kind">, to: Pick<Strip, "kind">): boolean {
+  return !(from.kind === "mix" && to.kind === "stereo");
+}
+
 function seedStrip(out: Map<ParamPath, ParamValue>, strip: Strip, model: UnitModel): void {
   const p = (...rest: (string | number)[]): ParamPath => chPath(strip.id, ...rest);
   out.set(p("name"), factoryName(strip));
@@ -182,8 +192,7 @@ function seedStrip(out: Map<ParamPath, ParamValue>, strip: Strip, model: UnitMod
   if (source !== undefined) out.set(p("source"), source);
   out.set(p("on"), true);
   out.set(p("cue"), false);
-  // An FX channel's fader ships at the bottom; every other fader at 0 dB.
-  out.set(p("level"), strip.kind === "fx" ? LEVEL_MIN_DB : 0);
+  out.set(p("level"), faderShipped(strip));
   for (const [suffix, value] of compEqBankDefaults()) {
     // Only a mono channel carries the compressor; every strip carries the EQ.
     if (strip.kind !== "monoIn" && suffix.startsWith("comp.")) continue;
@@ -312,7 +321,7 @@ export function factoryState(model: UnitModel): Map<ParamPath, ParamValue> {
 
   // Sends. Every one ships open with nothing going through it: the switch on,
   // the level at the bottom of the fader, the tap after the fader, and the send
-  // placed centre. A MIX bus ships with its switch into STEREO off.
+  // placed centre, but for the switches `sendShipsOn` leaves off.
   const stereo = model.outputs.filter((o) => o.kind === "stereo");
   const mixes = model.outputs.filter((o) => o.kind === "mix");
   const returns = model.inputs.filter((s) => s.kind === "fx");
@@ -320,7 +329,7 @@ export function factoryState(model: UnitModel): Map<ParamPath, ParamValue> {
     const targets = [...stereo, ...mixes, ...returns].filter((to) => sendsTo(from, to));
     for (const to of targets) {
       out.set(chPath(from.id, "send", to.id, "level"), LEVEL_MIN_DB);
-      out.set(chPath(from.id, "send", to.id, "on"), !(from.kind === "mix" && to.kind === "stereo"));
+      out.set(chPath(from.id, "send", to.id, "on"), sendShipsOn(from, to));
       out.set(chPath(from.id, "send", to.id, "pre"), false);
       out.set(chPath(from.id, "send", to.id, "balance"), 0);
     }

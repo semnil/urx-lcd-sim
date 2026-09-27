@@ -8,6 +8,7 @@ import { STRIPS_PER_BANK, allStrips, bankCount, bankStrips, type Strip } from ".
 import { el, formatPan, makeTappable } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { faderSpec, formatValue } from "../ui/param-spec";
+import { faderShipped, sendShipsOn } from "../model/defaults";
 import { attachSpin, fractionOf, knobGraphic, meter, panSlider, toggle } from "../ui/widgets";
 import type { ScreenBody, ScreenDef } from "./types";
 import { fxShutOut } from "./effect-params";
@@ -148,10 +149,10 @@ function stripView(ctx: AppContext, strip: Strip, selected: boolean, linkedTo?: 
   const dest = sendsDestination(ctx);
   const sends = dest !== undefined && sendsTo(strip, dest);
   const levelSpec =
-    sends && dest.kind !== "stereo" ? faderSpec(`${base}.send.${dest.id}.level`, "Level") : faderSpec(`${base}.level`, "LEVEL");
+    sends && dest.kind !== "stereo" ? faderSpec(`${base}.send.${dest.id}.level`, "Level") : faderSpec(`${base}.level`, "LEVEL", faderShipped(strip));
   const level = ctx.store.num(levelSpec.path, levelSpec.fallback);
   // A send that is switched off still turns, and says so by going dark.
-  const sendOff = sends && !ctx.store.bool(`${base}.send.${dest.id}.on`, true);
+  const sendOff = sends && !ctx.store.bool(`${base}.send.${dest.id}.on`, sendShipsOn(strip, dest));
   const stereo = strip.kind !== "monoIn";
   const lane = stripLane(ctx, strip);
   // A stereo input's first line names both channels; the one its screens do not
