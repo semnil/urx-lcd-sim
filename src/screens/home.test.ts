@@ -1528,6 +1528,12 @@ describe("the SCENE menu the scene box opens", () => {
         t.classList.contains("is-disabled"),
       ]);
     const onEdit = (): boolean => shell.root.querySelector(".scene-actions.is-edit") !== null;
+    // Each shut control is marked out of reach, so a press does not sink it.
+    const shutControls = (): [string, string | null][] =>
+      [...shell.root.querySelectorAll<HTMLElement>(".is-disabled")].map((n) => [
+        n.getAttribute("aria-label") ?? n.textContent?.replace(/\s/g, "") ?? "",
+        n.getAttribute("aria-disabled"),
+      ]);
     const bank = (b: string): HTMLElement | undefined => pick(shell, ".scene-bank", b);
     const row = (no: string): HTMLElement | undefined =>
       [...shell.root.querySelectorAll<HTMLElement>(".scene-list .list-row")].find((r) => r.querySelector(".scene-no")?.textContent === no);
@@ -1542,6 +1548,7 @@ describe("the SCENE menu the scene box opens", () => {
     await tap(bank("Simple"));
     expect(tabs(), "Simple").toEqual([["Store/Recall", true, false], ["Edit", false, true]]);
     expect(onEdit()).toBe(false);
+    expect(shutControls(), "marked out of reach").toEqual([["Store", "true"], ["Edit", "true"]]);
     expect(shell.ctx.store.str("ui.sceneMenu", ""), "the move is kept").toBe("Store/Recall");
     await tap(pick(shell, ".side-tab", "Edit"));
     expect(onEdit(), "a shut Edit tab opens nothing").toBe(false);
@@ -1558,6 +1565,7 @@ describe("the SCENE menu the scene box opens", () => {
         b.classList.contains("is-disabled"),
       ]);
     expect(banks(), "Simple Mode").toEqual([["Standard", false, true], ["Simple", true, false]]);
+    expect(shutControls(), "Standard and the factory preset's Store marked out of reach").toEqual([["Standard", "true"], ["Store", "true"]]);
     await tap(row("P02"));
     await tap(bank("Standard"));
     expect(banks(), "a shut Standard tab opens nothing").toEqual([["Standard", false, true], ["Simple", true, false]]);
