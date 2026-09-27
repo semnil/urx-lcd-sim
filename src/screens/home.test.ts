@@ -1552,6 +1552,7 @@ describe("the SCENE menu the scene box opens", () => {
     expect(shell.ctx.store.str("ui.sceneMenu", ""), "the move is kept").toBe("Store/Recall");
     await tap(pick(shell, ".side-tab", "Edit"));
     expect(onEdit(), "a shut Edit tab opens nothing").toBe(false);
+    expect(shell.ctx.store.str("ui.sceneMenu", ""), "nor moves the menu a reload carries over").toBe("Store/Recall");
     await tap(bank("Standard"));
     expect(tabs(), "back on Standard, still on Store/Recall").toEqual([["Store/Recall", true, false], ["Edit", false, false]]);
 
@@ -1581,6 +1582,30 @@ describe("the SCENE menu the scene box opens", () => {
     expect(banks(), "Standard Mode").toEqual([["Standard", false, false], ["Simple", true, false]]);
     expect(tabs(), "Simple in Standard Mode").toEqual([["Store/Recall", true, false], ["Edit", false, true]]);
     expect(onEdit()).toBe(false);
+    await tap(bank("Standard"));
+    expect(tabs(), "and on to Standard, still on Store/Recall").toEqual([["Store/Recall", true, false], ["Edit", false, false]]);
+  });
+
+  it("keeps Store/Recall on leaving a Simple list saved on the Edit menu by an earlier version", async () => {
+    // An earlier version left the menu on Edit when the Simple list was opened from it.
+    const shell = await sceneList({ "scene.bank": "Simple", "ui.sceneMenu": "Edit" });
+    const tabs = (): [string, boolean, boolean][] =>
+      [...shell.root.querySelectorAll<HTMLElement>(".side-tab")].map((t) => [
+        t.textContent?.replace(/\s/g, "") ?? "",
+        t.getAttribute("aria-pressed") === "true",
+        t.classList.contains("is-disabled"),
+      ]);
+    const onEdit = (): boolean => shell.root.querySelector(".scene-actions.is-edit") !== null;
+    expect(tabs(), "the Simple list").toEqual([["Store/Recall", true, false], ["Edit", false, true]]);
+
+    await tap(pick(shell, ".scene-bank", "Standard"));
+    expect(tabs(), "back on Standard").toEqual([["Store/Recall", true, false], ["Edit", false, false]]);
+    expect(onEdit()).toBe(false);
+
+    await tap(pick(shell, ".side-tab", "Edit"));
+    expect(onEdit(), "the Edit tab still opens").toBe(true);
+    await tap([...shell.root.querySelectorAll<HTMLElement>(".scene-list .list-row")][0]);
+    expect(tabs(), "and stays open on 00").toEqual([["Store/Recall", false, false], ["Edit", true, false]]);
   });
 
   it("names an empty number on the title entry sheet when it is stored, and asks before storing over a stored scene", async () => {

@@ -251,8 +251,8 @@ export const sceneScreen: ScreenDef = {
               void ctx.store.set("scene.bank", b);
               // The selection is dropped, so the other bank opens at its first row.
               void ctx.store.set("scene.selected", 0);
-              // A bank whose list cannot be edited moves the menu to Store/Recall.
-              if (readOnlyBank(ctx, b)) void ctx.store.set("ui.sceneMenu", "Store/Recall");
+              // The menu shown is kept, and a bank whose list cannot be edited moves it to Store/Recall.
+              void ctx.store.set("ui.sceneMenu", readOnlyBank(ctx, b) ? "Store/Recall" : menu);
             }, "scene-bank");
             return markShut(node, shut);
           }),
