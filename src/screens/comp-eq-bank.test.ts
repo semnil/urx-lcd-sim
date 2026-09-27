@@ -5,6 +5,7 @@ import { SimTransport } from "../device/sim-transport";
 import { COMP_DEFAULTS, SSMCS_DEFAULTS, factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
+import { recallScene } from "./scene";
 
 // The unit holds COMP -> EQ and the morphing strip as two separate banks, and
 // loads one of them whole when the type is taken. The EQ 1-knob has its own
@@ -65,6 +66,26 @@ describe("switching a channel's COMP / EQ type", () => {
     ]);
     expect(store.num("ch.ch1.comp.threshold", 0), "the bank left keeps its own").toBe(-33);
     expect(store.num("ch.ch1.gate.threshold", 0), "GATE is the same either way").toBe(-41);
+  });
+
+  it("switches SSMCS, its compressor, its side chain and its EQ on when taken after P01, which leaves SSMCS off", async () => {
+    const { shell, store } = await mount();
+    await recallScene(shell.ctx, 101);
+    await store.set("ch.ch1.ssmcs.sc.on", false);
+    await store.set("ch.ch1.ssmcs.eq.mid.on", false);
+    expect(store.bool("ch.ch1.ssmcs.on", true), "P01 leaves SSMCS off").toBe(false);
+
+    await open(shell, "ch.setting", "ch1");
+    await pickCompEq(shell, "SSMCS");
+    expect(
+      [
+        store.bool("ch.ch1.ssmcs.on", false),
+        store.bool("ch.ch1.comp.on", false),
+        store.bool("ch.ch1.ssmcs.sc.on", false),
+        ...["low", "mid", "high"].map((band) => store.bool(`ch.ch1.ssmcs.eq.${band}.on`, false)),
+      ],
+      "[SSMCS], COMP, Side Chain and the EQ bands",
+    ).toEqual([true, true, true, true, true, true]);
   });
 
   it("loads the COMP -> EQ bank's factory values on the way back", async () => {

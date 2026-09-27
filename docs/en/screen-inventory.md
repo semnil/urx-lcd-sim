@@ -1473,7 +1473,21 @@ the picked scene's) with [Cancel] / [OK], and on [OK] stores over it and makes i
 
 [Recall] cannot be used on a number with nothing stored, and a press asks nothing. On a stored number and on a factory scene
 it asks `Recall scene "Band"?` (the title is the picked scene's) with [Cancel] / [OK], and on [OK] puts that scene's mixer
-back and makes it the recalled one.
+back and makes it the recalled one. 00 Initial Data puts the
+factory mixer back. P01 to P03 lay the settings below over the factory mixer, and what they do not set stays as the factory
+ships it (`src/model/scene-presets.ts`). The table's channels go onto the mono and the stereo channels from the lowest number
+up: on a URX22, CH 1-2 take the table's CH 1-2 and CH 3/4 to 9/10 take its four stereo channels.
+
+| Preset | Mono channels | Stereo channels (lowest number first) |
+| --- | --- | --- |
+| P01 Live Music 0 | CH 1-4 `Dyn.Mic` (A.Gain +40 dB, HPF, COMP, 1-knob EQ) | AUX IN / USB MAIN A / USB SUB / None |
+| P02 Streaming 0 | CH 1-2 `Dyn.Mic`, CH 3-4 `Gt./Ba.` (HI-Z, A.Gain +15 dB, EQ off) | AUX IN / USB MAIN A / USB SUB / None |
+| P03 DAW Rec 0 | CH 1-2 `Dyn.Mic`, CH 3-4 `Gt./Ba.`, all with Rec Point at PRE GATE and EQ off | USB DAW 1/2 / None / None / None, all with Rec Point at PRE EQ |
+
+All three put the channel and STEREO faders at the bottom, take the sends to MIX before the fader, make FX 1 a Rev-X Plate
+named `Reverb` returned at 0 dB, switch FX 2 off with an empty name, name MIX 2 `MIX3`, set the D.Gain to 0 dB, and switch the
+mono channels' SSMCS off. On P01 and P02 the 1-knob EQ keeps the gains its Level scales with HIGH alone at +7 dB, while the
+HIGH band shows 0 dB.
 
 The Edit tab (p074-1) sets glyph-only buttons [Protect], [Delete] and [Title] along the foot in place of [Store] /
 [Recall] (faces at x6..95, x149..238 and x291..380; glyphs a padlock 16x21, a bin 16x18 and a rename mark 20x20).

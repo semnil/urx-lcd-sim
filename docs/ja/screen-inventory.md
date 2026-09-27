@@ -1284,6 +1284,19 @@ Standard タブは 00 Initial Data と 01〜63 の番号を並べ、Simple タ�
 
 [Recall] は保存の無い番号では使えず、押しても何も尋ねない。保存済みの番号と工場出荷のシーンでは `Recall scene "Band"?`
 (題は選んでいるシーン) を [Cancel] / [OK] で尋ね、[OK] でそのシーンのミキサーを戻して呼び出し中にする。
+00 Initial Data は工場出荷のミキサーを戻す。P01〜P03 は工場出荷のミキサーに次の設定を重ね、
+重ねない値は工場出荷のまま (`src/model/scene-presets.ts`)。表のチャンネルはモノ CH とステレオ CH のそれぞれに若い番号から
+当て、URX22 ではモノ CH の CH 1-2 が表の CH 1-2 を、ステレオ CH の CH 3/4〜9/10 が表の 4 本を取る。
+
+| プリセット | モノ CH | ステレオ CH (若い番号から) |
+| --- | --- | --- |
+| P01 Live Music 0 | CH 1-4 が `Dyn.Mic` (A.Gain +40 dB・HPF・COMP・1-knob EQ) | AUX IN / USB MAIN A / USB SUB / None |
+| P02 Streaming 0 | CH 1-2 が `Dyn.Mic`、CH 3-4 が `Gt./Ba.` (HI-Z・A.Gain +15 dB・EQ 切) | AUX IN / USB MAIN A / USB SUB / None |
+| P03 DAW Rec 0 | CH 1-2 が `Dyn.Mic`、CH 3-4 が `Gt./Ba.`、どれも Rec Point は PRE GATE・EQ 切 | USB DAW 1/2 / None / None / None、どれも Rec Point は PRE EQ |
+
+3 つとも、チャンネルと STEREO のフェーダーを下端にし、MIX への送りをフェーダーの前から取り、FX 1 を `Reverb` の名前の
+Rev-X Plate にして 0 dB で戻し、FX 2 を切って名前を空にし、MIX 2 の名前を `MIX3` にし、D.Gain を 0 dB にし、モノ CH の SSMCS を切る。
+P01・P02 の 1-knob EQ は、Level の掛かる元のゲインを HIGH だけ +7 dB で持ち、バンドの HIGH は 0 dB を示す。
 
 Edit タブ (p074-1) は下端の [Store] / [Recall] に代えて、字形だけのボタン [Protect]・[Delete]・[Title] を並べる (面は
 x6..95・x149..238・x291..380、字形は錠 16x21・ごみ箱 16x18・名前変更 20x20)。

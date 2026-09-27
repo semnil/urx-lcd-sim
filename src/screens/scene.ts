@@ -2,9 +2,8 @@
 // and "Other operations > Storing a scene").
 
 import type { AppContext } from "../app/context";
-import type { ParamValue } from "../device/path";
-import { factoryState } from "../model/defaults";
-import { applyScene, captureScene, inScene, readScene } from "../model/scene-state";
+import { applyScene, captureScene, readScene } from "../model/scene-state";
+import { shippedScene } from "../model/scene-presets";
 import { dropInsertsOverRate } from "./insert-fx";
 import { followRecall, pairStates } from "./stereo-link";
 import { el } from "../ui/dom";
@@ -74,20 +73,16 @@ function statePath(bank: string, no: number): string {
 }
 
 /**
- * Put a scene's mixer on the unit and mark it as the one recalled. Scene 00
- * holds the mixer the unit ships with, which nothing stores over, so it is put
- * back from the factory state rather than from a stored copy.
+ * Put a scene's mixer on the unit and mark it as the one recalled. The factory
+ * scenes — 00 and the presets — hold the mixers the unit ships with, which
+ * nothing stores over, so they are put back from those rather than from a stored
+ * copy.
  */
 export async function recallScene(ctx: AppContext, no: number): Promise<void> {
   const bank = storedBank(ctx, no);
-  const stored = bank ? readScene(ctx.store, statePath(bank, no)) : undefined;
+  const state = bank ? readScene(ctx.store, statePath(bank, no)) : isFactoryLocked(no) ? shippedScene(ctx.model, isPreset(no) ? no - PRESET_BASE : 0) : undefined;
   const pairs = pairStates(ctx);
-  if (stored) await applyScene(ctx.store, stored);
-  else if (no === 0) {
-    const factory: Record<string, ParamValue> = {};
-    for (const [path, value] of factoryState(ctx.model)) if (inScene(path)) factory[path] = value;
-    await applyScene(ctx.store, factory);
-  }
+  if (state) await applyScene(ctx.store, state);
   followRecall(ctx, pairs);
   await ctx.store.set("scene.current", no);
   // A scene carries the mixer and not the sampling frequency, so a stored insert
