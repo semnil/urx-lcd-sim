@@ -186,7 +186,7 @@ export const sceneScreen: ScreenDef = {
 
     // Only a number holding a scene can be recalled.
     const recallShut = owner === null && !isFactoryLocked(selected);
-    const recall = button("Recall", () => {
+    const recall = markShut(button("Recall", () => {
       if (recallShut) return;
       ctx.overlay(
         dialog({
@@ -194,9 +194,7 @@ export const sceneScreen: ScreenDef = {
           onOk: () => void recallScene(ctx, selected),
         }),
       );
-    }, recallShut ? "is-disabled" : "");
-    // A shut Recall reads as out of reach.
-    if (recallShut) recall.setAttribute("aria-disabled", "true");
+    }), recallShut);
 
     const storeShut = isFactoryLocked(selected) || guarded || readOnly;
     const store = markShut(button("Store", () => {
