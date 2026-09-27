@@ -527,6 +527,22 @@ describe("the microSD card browser", () => {
     expect(unlitRows(), "the levels the store carries").toEqual([0, barRows]);
   });
 
+  it("marks every control out of reach that RECORDER and SAVE/LOAD shut, so a key press does not sink it", async () => {
+    const shut = (shell: Shell): [string, string | null][] =>
+      [...shell.root.querySelectorAll<HTMLElement>(".is-disabled")].map((n) => [
+        n.getAttribute("aria-label") ?? n.textContent ?? "",
+        n.getAttribute("aria-disabled"),
+      ]);
+    // The folder at the root is picked: nothing to climb out of, and no file to act on.
+    const recorder = await mount({ id: "microsd.recorder" });
+    await pickTab(recorder, "ui.sdTab", "Edit");
+    expect(shut(recorder)).toEqual([["Up one level", "true"], ["Delete", "true"], ["Rename", "true"]]);
+    const saveLoad = await mount({ id: "microsd.saveload" });
+    expect(shut(saveLoad), "Save/Load").toEqual([["Up one level", "true"], ["Save", "true"], ["Load", "true"]]);
+    await pickTab(saveLoad, "ui.sdSaveTab", "Edit");
+    expect(shut(saveLoad), "Edit").toEqual([["Up one level", "true"], ["Delete", "true"], ["Rename", "true"]]);
+  });
+
   it("draws Delete and Rename with one pair of marks on RECORDER and on SAVE/LOAD", async () => {
     const marks = (shell: Shell): (string | null)[] =>
       [...shell.root.querySelectorAll(".sd-actions > .sd-action svg")].map((svg) => svg.getAttribute("class"));

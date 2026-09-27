@@ -84,6 +84,15 @@ export function setPressed(node: HTMLElement, on: boolean): void {
   node.setAttribute("aria-pressed", on ? "true" : "false");
 }
 
+/** A control that cannot be used is greyed and marked out of reach, so it neither sinks under a press nor reads as usable. */
+export function markShut(node: HTMLElement, shut: boolean): HTMLElement {
+  if (shut) {
+    node.classList.add("is-disabled");
+    node.setAttribute("aria-disabled", "true");
+  }
+  return node;
+}
+
 /** What the unit prints where a level is off rather than at a number of dB. */
 export const OFF_MARK = "-\u221e";
 

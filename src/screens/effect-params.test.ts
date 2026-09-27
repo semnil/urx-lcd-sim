@@ -1330,6 +1330,10 @@ describe("an FX channel", () => {
     expect([...shell.root.querySelectorAll(".source-sheet .source-btn.is-disabled")].map((b) => b.textContent)).toEqual([
       "Rev.R3 Hall", "Rev.R3 Room", "Rev.R3 Plate", "Mono Delay", "Ping Pong",
     ]);
+    // Each is marked out of reach, so a key press does not sink it.
+    expect(
+      [...shell.root.querySelectorAll(".source-sheet .source-btn.is-disabled")].map((b) => b.getAttribute("aria-disabled")),
+    ).toEqual(["true", "true", "true", "true", "true"]);
     // An FX channel has no [No Effect] to fall to, so the one it is running stays.
     expect(shell.ctx.store.str("ch.fx2.effect.type", "")).toBe("Mono Delay");
 
