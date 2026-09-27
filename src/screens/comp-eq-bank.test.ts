@@ -44,6 +44,21 @@ async function pickCompEq(shell: Shell, value: string): Promise<void> {
   await flush();
 }
 
+describe("an EQ band's shape", () => {
+  it("reads as the shape the band ships where the store holds none for it", async () => {
+    const model = unitById("URX44V");
+    const store = new DeviceStore();
+    const state = new Map([...factoryState(model)].filter(([path]) => !path.startsWith("ch.ch1.eq.low.shape")));
+    await store.attach(new SimTransport(state));
+    const shell = new Shell(buildRegistry(), store, model);
+    await flush();
+    await open(shell, "channel-view", "ch1");
+    await open(shell, "ch.eq", "ch1");
+    expect(store.has("ch.ch1.eq.low.shape"), "the premise").toBe(false);
+    expect(shell.root.querySelector(".eq-screen > .pulldown")?.getAttribute("aria-label")).toContain("L.Shelf");
+  });
+});
+
 describe("switching a channel's COMP / EQ type", () => {
   it("loads the morphing strip's factory values, and leaves the bank it came from", async () => {
     const { shell, store } = await mount();

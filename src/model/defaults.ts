@@ -112,6 +112,9 @@ const EQ_BANDS = [
   { band: "high", freq: 10000, gain: 0, q: 0.71, shape: "H.Shelf" },
 ] as const;
 
+/** The filter shape each EQ band ships drawing, by band. */
+export const EQ_BAND_SHAPE_SHIPPED: Readonly<Record<string, string>> = Object.fromEntries(EQ_BANDS.map((b) => [b.band, b.shape]));
+
 /**
  * The COMP -> EQ bank as the unit holds it at the factory: the compressor, the
  * four-band EQ and the EQ 1-knob. The unit loads this bank whole when a channel

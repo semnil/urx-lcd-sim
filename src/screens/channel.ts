@@ -6,7 +6,7 @@ import type { Route } from "../app/navigator";
 import type { ParamPath, ParamValue } from "../device/path";
 import type { DeviceStore, WriteRule } from "../device/store";
 import { clamp } from "../device/store";
-import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, GATE_DEFAULTS, compEqBankDefaults, ssmcsBankDefaults } from "../model/defaults";
+import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, EQ_BAND_SHAPE_SHIPPED, GATE_DEFAULTS, compEqBankDefaults, ssmcsBankDefaults } from "../model/defaults";
 import { COMP_KNEE_WIDTH, compResponse, grBarShare, levelBarShare } from "../model/dynamics";
 import { eqResponse } from "../model/eq-response";
 import type { Strip } from "../model/types";
@@ -1454,7 +1454,7 @@ export const delayScreen: ScreenDef = {
 /** The filter shape an EQ band holds, or its first shape where it holds one the band cannot take. */
 function eqBandShape(ctx: AppContext, base: string, key: (typeof EQ_BANDS)[number]["key"]): string {
   const shapes = EQ_SHAPES[key];
-  const stored = ctx.store.str(`${base}.eq.${key}.shape`, "Bell");
+  const stored = ctx.store.str(`${base}.eq.${key}.shape`, EQ_BAND_SHAPE_SHIPPED[key] ?? "Bell");
   return shapes.includes(stored) ? stored : (shapes[0] ?? "Bell");
 }
 
