@@ -1499,12 +1499,14 @@ describe("the SCENE menu the scene box opens", () => {
     const shell = await sceneList({ "scene.selected": 7 });
     const button = (label: string): HTMLElement | undefined => pick(shell, ".scene-actions .btn", label);
     expect(button("Recall")?.classList.contains("is-disabled"), "an empty number").toBe(true);
+    expect(button("Recall")?.getAttribute("aria-disabled"), "and marked out of reach").toBe("true");
     expect(button("Store")?.classList.contains("is-disabled"), "Store stays open").toBe(false);
     await tap(button("Recall"));
     expect(shell.root.querySelector(".dialog"), "a shut Recall asks nothing").toBeNull();
     await shell.ctx.store.set("scene.Standard.7.title", "Band");
     await flush();
     expect(button("Recall")?.classList.contains("is-disabled"), "a stored scene").toBe(false);
+    expect(button("Recall")?.hasAttribute("aria-disabled")).toBe(false);
     for (const [bank, no] of [["Standard", 0], ["Simple", 101], ["Simple", 102], ["Simple", 103]] as const) {
       await shell.ctx.store.set("scene.bank", bank);
       await shell.ctx.store.set("scene.selected", no);

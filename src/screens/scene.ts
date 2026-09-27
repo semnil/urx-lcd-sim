@@ -195,6 +195,8 @@ export const sceneScreen: ScreenDef = {
         }),
       );
     }, recallShut ? "is-disabled" : "");
+    // A shut Recall reads as out of reach.
+    if (recallShut) recall.setAttribute("aria-disabled", "true");
 
     const storeShut = isFactoryLocked(selected) || guarded || readOnly;
     const store = markShut(button("Store", () => {
