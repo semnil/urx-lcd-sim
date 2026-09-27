@@ -480,24 +480,22 @@ describe("every knob-bound parameter is reachable on the glass", () => {
   // single mono channel would leave the stereo, FX and bus faces unswept.
   const STRIPS = ["ch1", "ch_5_6", "fx1", "bus.stereo"];
 
-  it("strands no knob-bound parameter on any screen", async () => {
+  it.each(STRIPS)("strands no knob-bound parameter on any screen (%s)", async (strip) => {
     const registry = buildRegistry();
     const stranded: string[] = [];
     for (const id of registry.ids()) {
-      for (const strip of STRIPS) {
-        const { shell, store, bound } = await mount();
-        // The channel screens are scoped to a strip; the rest ignore the field.
-        await open(shell, { id, strip });
-        const paths = bound.map((s) => s.path);
-        if (paths.length === 0) continue;
-        const reached = pathsReachedByKeyboard(shell.root, store, paths);
-        for (const p of paths) if (!reached.has(p)) stranded.push(`${id} (${strip}): ${p}`);
-      }
+      const { shell, store, bound } = await mount();
+      // The channel screens are scoped to a strip; the rest ignore the field.
+      await open(shell, { id, strip });
+      const paths = bound.map((s) => s.path);
+      if (paths.length === 0) continue;
+      const reached = pathsReachedByKeyboard(shell.root, store, paths);
+      for (const p of paths) if (!reached.has(p)) stranded.push(`${id} (${strip}): ${p}`);
     }
     expect(stranded).toEqual([]);
   });
 
-  it("keeps every value the unit ships inside the range its control offers", async () => {
+  it.each(STRIPS)("keeps every value the unit ships inside the range its control offers (%s)", async (strip) => {
     // A control whose range is narrower than the unit's pins the value at an end
     // and refuses to reach the rest of it, which is what a wrong min or max
     // looks like from the glass.
@@ -505,18 +503,16 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     const outside: string[] = [];
     let checked = 0;
     for (const id of registry.ids()) {
-      for (const strip of STRIPS) {
-        const { shell } = await mount();
-        await open(shell, { id, strip });
-        for (const node of turnables(shell.root)) {
-          const min = Number(node.getAttribute("aria-valuemin"));
-          const max = Number(node.getAttribute("aria-valuemax"));
-          const now = Number(node.getAttribute("aria-valuenow"));
-          if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(now)) continue;
-          checked += 1;
-          if (now < min || now > max) {
-            outside.push(`${id} (${strip}): ${node.getAttribute("aria-label")} = ${now}, range ${min}..${max}`);
-          }
+      const { shell } = await mount();
+      await open(shell, { id, strip });
+      for (const node of turnables(shell.root)) {
+        const min = Number(node.getAttribute("aria-valuemin"));
+        const max = Number(node.getAttribute("aria-valuemax"));
+        const now = Number(node.getAttribute("aria-valuenow"));
+        if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(now)) continue;
+        checked += 1;
+        if (now < min || now > max) {
+          outside.push(`${id} (${strip}): ${node.getAttribute("aria-label")} = ${now}, range ${min}..${max}`);
         }
       }
     }

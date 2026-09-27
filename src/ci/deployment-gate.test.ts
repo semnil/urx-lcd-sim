@@ -90,9 +90,10 @@ describe("Pages deployment gate", () => {
     expect(result.stdout).toBe("deploy=true\n");
   });
 
-  it("retains the newest release across every completion order of consecutive releases", () => {
-    const candidates = [[unchanged, release], [later, nextRelease], [nextLater, newestRelease]] as const;
-    for (const order of [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]]) {
+  it.each([[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]])(
+    "retains the newest release when consecutive releases complete in the order %i, %i, %i",
+    (...order) => {
+      const candidates = [[unchanged, release], [later, nextRelease], [nextLater, newestRelease]] as const;
       const published: string[] = [];
       for (const index of order) {
         const [before, after] = candidates[index]!;
@@ -101,8 +102,8 @@ describe("Pages deployment gate", () => {
         if (result.stdout === "deploy=true\n") published.push(after);
       }
       expect(published).toEqual([newestRelease]);
-    }
-  });
+    },
+  );
 
   it("rejects an old release even when a later release reuses its version string", () => {
     expect(latestGate(unchanged, release, reusedVersion).stdout).toBe("deploy=false\n");
