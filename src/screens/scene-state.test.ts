@@ -207,13 +207,18 @@ describe("storing and recalling a scene", () => {
     ]);
   });
 
-  it("lays a preset's channels onto a URX22's in order, CH 1-2 and the four stereo channels from CH 3/4", async () => {
+  it("lays a preset's channels onto a URX22's, its HI-Z CH 2 taking the preset's CH 3 and the four stereo channels from CH 3/4 in order", async () => {
     const shell = await mount("URX22");
     const s = shell.ctx.store;
+    await recallScene(shell.ctx, 101);
+    expect(["ch1", "ch2"].map((id) => s.str(`ch.${id}.name`, "")), "P01's CH 1-2").toEqual(["Dyn.Mic", "Dyn.Mic"]);
     await recallScene(shell.ctx, 102);
-    expect(["ch1", "ch2"].map((id) => s.str(`ch.${id}.name`, "")), "P02's CH 1-2").toEqual(["Dyn.Mic", "Dyn.Mic"]);
+    expect(["ch1", "ch2"].map((id) => s.str(`ch.${id}.name`, "")), "P02's CH 1-2").toEqual(["Dyn.Mic", "Gt./Ba."]);
+    expect([s.bool("ch.ch2.hiZ", false), s.num("ch.ch2.gain", 0), s.bool("ch.ch1.hiZ", true)], "CH 2 on HI-Z at +15 dB, CH 1 not").toEqual([true, 15, false]);
     expect(["ch_3_4", "ch_5_6", "ch_7_8", "ch_9_10"].map((id) => s.str(`ch.${id}.source`, ""))).toEqual(["AUX IN", "USB MAIN A", "USB SUB", "None"]);
     expect(s.has("ch.ch3.name"), "and no channel it does not have").toBe(false);
+    await recallScene(shell.ctx, 103);
+    expect([s.str("ch.ch2.name", ""), s.str("ch.ch2.recPoint", "")], "P03's CH 2").toEqual(["Gt./Ba.", "PRE GATE"]);
   });
 
   it("brings a source's digital gain the scene does not name back to 0 dB", async () => {

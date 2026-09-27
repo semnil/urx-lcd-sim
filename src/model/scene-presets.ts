@@ -117,6 +117,9 @@ const BUSES: Readonly<Record<string, Settings>> = {
 /** The sources whose digital gain a preset sets, all of them to 0 dB. */
 const PRESET_SOURCES = ["AUX IN", "USB MAIN A", "USB MAIN B", "USB MAIN C", "USB SUB"];
 
+/** Which of a preset's mono channels, CH 1 up, stand on a connector taking a high-impedance source. */
+const MONO_HIZ = [false, false, true, true];
+
 interface Preset {
   /** The mono channels, CH 1 up, four of them. */
   mono: readonly Settings[];
@@ -145,9 +148,10 @@ const PRESETS: readonly Preset[] = [
 
 /**
  * The mixer a factory scene holds: 00 Initial Data at 0 and a preset from 1, or
- * nothing where the unit ships no such preset. A preset's channels go onto the
- * model's mono and stereo channels in order, so a URX22 takes the first two mono
- * settings.
+ * nothing where the unit ships no such preset. A preset's stereo channels go onto
+ * the model's in order. Its mono channels do too, those on a high-impedance
+ * connector apart from the rest: a URX22's CH 1 takes the preset's CH 1 and its CH 2
+ * the preset's CH 3.
  */
 export function shippedScene(model: UnitModel, preset: number): Record<ParamPath, ParamValue> | undefined {
   const out: Record<ParamPath, ParamValue> = {};
@@ -161,7 +165,10 @@ export function shippedScene(model: UnitModel, preset: number): Record<ParamPath
   };
   const mono = model.inputs.filter((s) => s.kind === "monoIn");
   const stereo = model.inputs.filter((s) => s.kind === "stIn");
-  layout.mono.forEach((settings, i) => lay(mono[i]?.id, settings));
+  for (const hiZ of [false, true]) {
+    const from = layout.mono.filter((_, i) => MONO_HIZ[i] === hiZ);
+    mono.filter((s) => (s.hiZ ?? false) === hiZ).forEach((s, i) => lay(s.id, from[i]));
+  }
   layout.stereo.forEach((settings, i) => lay(stereo[i]?.id, settings));
   for (const [strip, settings] of Object.entries(BUSES)) lay(strip, settings);
   for (const [strip, settings] of Object.entries(layout.extra ?? {})) lay(strip, settings);
