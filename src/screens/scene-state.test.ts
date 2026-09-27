@@ -216,6 +216,30 @@ describe("storing and recalling a scene", () => {
     expect(s.has("ch.ch3.name"), "and no channel it does not have").toBe(false);
   });
 
+  it("brings a source's digital gain the scene does not name back to 0 dB", async () => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    await s.set("scene.Standard.1.title", "take one");
+    await storeScene(shell.ctx, "Standard", 1);
+    await s.set("source.usb-daw-1-2.digitalGain", 10);
+    await recallScene(shell.ctx, 1);
+    expect(s.num("source.usb-daw-1-2.digitalGain", 99), "a stored scene").toBe(0);
+    await s.set("source.hdmi.digitalGain", -6);
+    await recallScene(shell.ctx, 0);
+    expect([s.num("source.hdmi.digitalGain", 99), s.num("source.usb-main-a.digitalGain", 0)], "scene 00").toEqual([0, -14]);
+  });
+
+  it("brings a source's digital gain a settings file does not name back to 0 dB", async () => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    await s.set("source.usb-main-a.digitalGain", 6);
+    const file = captureSettings(s);
+    await s.set("source.usb-daw-1-2.digitalGain", 10);
+    await s.set("source.usb-main-a.digitalGain", -3);
+    await applySettings(s, file);
+    expect([s.num("source.usb-daw-1-2.digitalGain", 99), s.num("source.usb-main-a.digitalGain", 99)]).toEqual([0, 6]);
+  });
+
   it("stores the mixer when a number is named for the first time", async () => {
     const shell = await mount();
     await shell.ctx.store.set("ch.ch3.level", -7);

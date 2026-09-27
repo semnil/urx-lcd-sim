@@ -1442,7 +1442,7 @@ with nothing on it. On SAVE/LOAD, [Save] writes the unit's settings over the sel
 back on the unit. Writing over a file that is already there asks `File alerady exists. Replace it?`
 first; loading asks nothing. [Save] and [Load] stand out of reach until a settings file is under the
 cursor. A settings file carries every value but the screen's own state (`ui.`) and the card itself
-(`sd.`).
+(`sd.`). A source the file holds no D.Gain for comes back to 0 dB when it is loaded.
 
 A playback runs against the take's length, writing the counter and the bar in place once a second.
 At the end of the file the counter goes back to the start and stops there, the file still held.
@@ -1473,7 +1473,7 @@ the picked scene's) with [Cancel] / [OK], and on [OK] stores over it and makes i
 
 [Recall] cannot be used on a number with nothing stored, and a press asks nothing. On a stored number and on a factory scene
 it asks `Recall scene "Band"?` (the title is the picked scene's) with [Cancel] / [OK], and on [OK] puts that scene's mixer
-back and makes it the recalled one. 00 Initial Data puts the
+back and makes it the recalled one. A source the scene holds no D.Gain for comes back to 0 dB. 00 Initial Data puts the
 factory mixer back. P01 to P03 lay the settings below over the factory mixer, and what they do not set stays as the factory
 ships it (`src/model/scene-presets.ts`). The table's channels go onto the mono and the stereo channels from the lowest number
 up: on a URX22, CH 1-2 take the table's CH 1-2 and CH 3/4 to 9/10 take its four stereo channels.

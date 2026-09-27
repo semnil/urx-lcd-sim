@@ -6,6 +6,7 @@
 - Shut [Recall] on a scene number with nothing stored under it, as the unit does.
 - Recall the Simple Mode presets P01 Live Music 0, P02 Streaming 0 and P03 DAW Rec 0 with the mixer each holds; recalling them only moved the recalled number. A URX22 takes the presets' channels in order.
 - Ship every EQ with its LOW band as L.Shelf and its HIGH band as H.Shelf, the FX 1-2 faders at the bottom, and MIX 1-2's switch into STEREO off, as the unit does. Recalling 00 Initial Data puts them back.
+- Bring a source's D.Gain back to 0 dB on a recall or a settings file load when the scene or the file holds none for it.
 - Publish the simulator on GitHub Pages at `urx-lcd-sim.semnil.com` after a separate application version update is merged into `main` and tests and the production build pass. Ordinary merges and pull requests run checks without deploying.
 - Queue deployments and skip superseded version updates immediately before publishing, including retries of older runs.
 - Automatically tag tested version updates and create draft GitHub Releases with generated notes. Retries preserve existing releases and refuse to move conflicting tags.

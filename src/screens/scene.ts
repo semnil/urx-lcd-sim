@@ -4,6 +4,7 @@
 import type { AppContext } from "../app/context";
 import { applyScene, captureScene, readScene } from "../model/scene-state";
 import { shippedScene } from "../model/scene-presets";
+import { withEverySourceGain } from "../model/source-gain";
 import { dropInsertsOverRate } from "./insert-fx";
 import { followRecall, pairStates } from "./stereo-link";
 import { el } from "../ui/dom";
@@ -76,13 +77,13 @@ function statePath(bank: string, no: number): string {
  * Put a scene's mixer on the unit and mark it as the one recalled. The factory
  * scenes — 00 and the presets — hold the mixers the unit ships with, which
  * nothing stores over, so they are put back from those rather than from a stored
- * copy.
+ * copy. A source whose digital gain the scene does not name comes back to 0 dB.
  */
 export async function recallScene(ctx: AppContext, no: number): Promise<void> {
   const bank = storedBank(ctx, no);
   const state = bank ? readScene(ctx.store, statePath(bank, no)) : isFactoryLocked(no) ? shippedScene(ctx.model, isPreset(no) ? no - PRESET_BASE : 0) : undefined;
   const pairs = pairStates(ctx);
-  if (state) await applyScene(ctx.store, state);
+  if (state) await applyScene(ctx.store, withEverySourceGain(ctx.store, state));
   followRecall(ctx, pairs);
   await ctx.store.set("scene.current", no);
   // A scene carries the mixer and not the sampling frequency, so a stored insert
