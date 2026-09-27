@@ -2,9 +2,9 @@
 // and "Other operations > Storing a scene").
 
 import type { AppContext } from "../app/context";
-import type { ParamValue } from "../device/path";
-import { factoryState } from "../model/defaults";
-import { applyScene, captureScene, inScene, readScene } from "../model/scene-state";
+import { applyScene, captureScene, readScene } from "../model/scene-state";
+import { shippedScene } from "../model/scene-presets";
+import { withEverySourceGain } from "../model/source-gain";
 import { dropInsertsOverRate } from "./insert-fx";
 import { followRecall, pairStates } from "./stereo-link";
 import { el } from "../ui/dom";
@@ -54,12 +54,12 @@ function storedBank(ctx: AppContext, no: number): (typeof BANKS)[number] | null 
   return BANKS.find((b) => ctx.store.str(`scene.${b}.${no}.title`, "")) ?? null;
 }
 
-/** A scene's title: a preset's name, what a bank has stored under the number, or No Scene. */
+/** A scene's title: a preset's name, what a bank has stored under the number, or nothing where no scene is stored. */
 export function sceneTitle(ctx: AppContext, no: number): string {
-  if (isPreset(no)) return SIMPLE_PRESETS[no - PRESET_BASE - 1] ?? "No Scene";
+  if (isPreset(no)) return SIMPLE_PRESETS[no - PRESET_BASE - 1] ?? "";
   if (no === 0) return ctx.store.str("scene.0.title", "Initial Data");
   const bank = storedBank(ctx, no);
-  return bank ? ctx.store.str(`scene.${bank}.${no}.title`, "") : "No Scene";
+  return bank ? ctx.store.str(`scene.${bank}.${no}.title`, "") : "";
 }
 
 /** Whether the scene stored under the number is protected from being stored over, deleted or renamed. */
@@ -74,20 +74,16 @@ function statePath(bank: string, no: number): string {
 }
 
 /**
- * Put a scene's mixer on the unit and mark it as the one recalled. Scene 00
- * holds the mixer the unit ships with, which nothing stores over, so it is put
- * back from the factory state rather than from a stored copy.
+ * Put a scene's mixer on the unit and mark it as the one recalled. The factory
+ * scenes — 00 and the presets — hold the mixers the unit ships with, which
+ * nothing stores over, so they are put back from those rather than from a stored
+ * copy. A source whose digital gain the scene does not name comes back to 0 dB.
  */
 export async function recallScene(ctx: AppContext, no: number): Promise<void> {
   const bank = storedBank(ctx, no);
-  const stored = bank ? readScene(ctx.store, statePath(bank, no)) : undefined;
+  const state = bank ? readScene(ctx.store, statePath(bank, no)) : isFactoryLocked(no) ? shippedScene(ctx.model, isPreset(no) ? no - PRESET_BASE : 0) : undefined;
   const pairs = pairStates(ctx);
-  if (stored) await applyScene(ctx.store, stored);
-  else if (no === 0) {
-    const factory: Record<string, ParamValue> = {};
-    for (const [path, value] of factoryState(ctx.model)) if (inScene(path)) factory[path] = value;
-    await applyScene(ctx.store, factory);
-  }
+  if (state) await applyScene(ctx.store, withEverySourceGain(ctx.store, state));
   followRecall(ctx, pairs);
   await ctx.store.set("scene.current", no);
   // A scene carries the mixer and not the sampling frequency, so a stored insert
@@ -188,14 +184,17 @@ export const sceneScreen: ScreenDef = {
       };
     });
 
-    const recall = button("Recall", () => {
+    // Only a number holding a scene can be recalled.
+    const recallShut = owner === null && !isFactoryLocked(selected);
+    const recall = markShut(button("Recall", () => {
+      if (recallShut) return;
       ctx.overlay(
         dialog({
           message: `Recall scene "${sceneTitle(ctx, selected)}"?`,
           onOk: () => void recallScene(ctx, selected),
         }),
       );
-    });
+    }), recallShut);
 
     const storeShut = isFactoryLocked(selected) || guarded || readOnly;
     const store = markShut(button("Store", () => {

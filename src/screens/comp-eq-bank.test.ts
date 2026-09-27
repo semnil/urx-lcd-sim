@@ -5,6 +5,7 @@ import { SimTransport } from "../device/sim-transport";
 import { COMP_DEFAULTS, SSMCS_DEFAULTS, factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
+import { recallScene } from "./scene";
 
 // The unit holds COMP -> EQ and the morphing strip as two separate banks, and
 // loads one of them whole when the type is taken. The EQ 1-knob has its own
@@ -43,6 +44,53 @@ async function pickCompEq(shell: Shell, value: string): Promise<void> {
   await flush();
 }
 
+/** Mount a unit whose store holds none of the paths given, the factory's everywhere else. */
+async function mountWithout(paths: string[]): Promise<Mounted> {
+  const model = unitById("URX44V");
+  const store = new DeviceStore();
+  await store.attach(new SimTransport(new Map([...factoryState(model)].filter(([path]) => !paths.includes(path)))));
+  const shell = new Shell(buildRegistry(), store, model);
+  await flush();
+  for (const path of paths) if (store.has(path)) throw new Error(`the premise: ${path} is still held`);
+  return { shell, store };
+}
+
+describe("what a screen reads where the store holds nothing", () => {
+  it("an FX channel's fader at the bottom, in the channel view and on HOME", async () => {
+    const { shell } = await mountWithout(["ch.fx1.level"]);
+    await open(shell, "channel-view", "fx1");
+    expect(shell.root.querySelector(".cv-level .value-box")?.textContent).toBe("-\u221e");
+    shell.ctx.nav.home();
+    await shell.ctx.store.set("ui.bank", 2);
+    await flush();
+    expect(shell.root.querySelector(".strip-level")?.getAttribute("aria-label"), "the premise: FX 1 leads the bank").toBe("FX1 LEVEL");
+    expect(shell.root.querySelector(".strip-level-value")?.textContent).toBe("-\u221e");
+  });
+
+  it("a send switched on, but MIX's into STEREO off, on SEND TO and on HOME", async () => {
+    const { shell } = await mountWithout(["ch.ch1.send.bus.mix1.on", "ch.bus.mix1.send.bus.stereo.on"]);
+    await open(shell, "ch.sendto", "ch1");
+    expect(shell.root.querySelector(".sendto-cell .btn-on")?.getAttribute("aria-pressed"), "CH 1 into MIX 1").toBe("true");
+    shell.ctx.nav.home();
+    await open(shell, "ch.sendto", "bus.mix1");
+    expect(shell.root.querySelector(".sendto-cell .btn-on")?.getAttribute("aria-pressed"), "MIX 1 into STEREO").toBe("false");
+    shell.ctx.nav.home();
+    await shell.ctx.store.set("ui.bankSide", "output");
+    await shell.ctx.store.set("ui.bank", 0);
+    await flush();
+    const knob = shell.root.querySelector(".strip-level");
+    expect(knob?.getAttribute("aria-label"), "the premise: MIX 1 leads the bank").toBe("MIX 1 LEVEL");
+    expect(knob?.classList.contains("is-send-off"), "HOME darkens it").toBe(true);
+  });
+
+  it("an EQ band's shape as the band ships it", async () => {
+    const { shell } = await mountWithout(["ch.ch1.eq.low.shape"]);
+    await open(shell, "channel-view", "ch1");
+    await open(shell, "ch.eq", "ch1");
+    expect(shell.root.querySelector(".eq-screen > .pulldown")?.getAttribute("aria-label")).toContain("L.Shelf");
+  });
+});
+
 describe("switching a channel's COMP / EQ type", () => {
   it("loads the morphing strip's factory values, and leaves the bank it came from", async () => {
     const { shell, store } = await mount();
@@ -65,6 +113,26 @@ describe("switching a channel's COMP / EQ type", () => {
     ]);
     expect(store.num("ch.ch1.comp.threshold", 0), "the bank left keeps its own").toBe(-33);
     expect(store.num("ch.ch1.gate.threshold", 0), "GATE is the same either way").toBe(-41);
+  });
+
+  it("switches SSMCS, its compressor, its side chain and its EQ on when taken after P01, which leaves SSMCS off", async () => {
+    const { shell, store } = await mount();
+    await recallScene(shell.ctx, 101);
+    await store.set("ch.ch1.ssmcs.sc.on", false);
+    await store.set("ch.ch1.ssmcs.eq.mid.on", false);
+    expect(store.bool("ch.ch1.ssmcs.on", true), "P01 leaves SSMCS off").toBe(false);
+
+    await open(shell, "ch.setting", "ch1");
+    await pickCompEq(shell, "SSMCS");
+    expect(
+      [
+        store.bool("ch.ch1.ssmcs.on", false),
+        store.bool("ch.ch1.comp.on", false),
+        store.bool("ch.ch1.ssmcs.sc.on", false),
+        ...["low", "mid", "high"].map((band) => store.bool(`ch.ch1.ssmcs.eq.${band}.on`, false)),
+      ],
+      "[SSMCS], COMP, Side Chain and the EQ bands",
+    ).toEqual([true, true, true, true, true, true]);
   });
 
   it("loads the COMP -> EQ bank's factory values on the way back", async () => {

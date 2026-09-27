@@ -863,7 +863,7 @@ Measured on p106-1. At the top left is the box of the selected band (x2..56 / y4
 (x283..376 / y50..87, its ends half circles of 19px radius, face `--shape-box` inside a 1px
 `--shape-box-edge` line, no shadow band, its ▼ 9x8 at x356..364 / y66..73), and [1 1-knob] on the right. The shape box names the shape with a
 30x20 outline rather than a word (Bell is a lens in the middle of a flat line, x310..339 / y60..79 in
-p106-1). LOW picks from Bell, L.Shelf and HPF, HIGH from Bell, H.Shelf and LPF, and LOW MID and HIGH MID keep Bell (their box keeps
+p106-1). LOW picks from Bell, L.Shelf and HPF, HIGH from Bell, H.Shelf and LPF (LOW ships L.Shelf and HIGH H.Shelf), and LOW MID and HIGH MID keep Bell (their box keeps
 Bell and its ▼, dimmed to an opacity of 0.5, and a press opens nothing). On a width of 30, L.Shelf brings its upper and lower lines together from x11 into one at x18, and HPF
 climbs from the bottom left to x13 and runs flat from there; H.Shelf and LPF are their mirror images. A press on the box opens a
 column of buttons the size of the box, 94x38, each carrying an outline alone, the chosen shape cyan and the others the list's
@@ -1046,7 +1046,7 @@ screens (MONITOR, SCENE, OSCILLATOR, Software Integration). The SEND TO tabs and
 3px shadow band at the bottom. A SEND TO name on two lines leads 21px, and a name stands a pixel above
 the middle of its tab, two on two lines (STEREO at y73..82, MIX 1-2 at y122..131 and y143..152 in p116-1).
 
-Sends ship **open** with nothing going through them: the switch on, the level at the bottom of the fader, the tap after the fader, the pan centred.
+Sends ship **open** with nothing going through them: the switch on, the level at the bottom of the fader, the tap after the fader, the pan centred. The exception is the send from MIX 1-2 into STEREO, which ships with its switch off.
 When the level is at the bottom the value is written `-∞`, with no unit (it is not a dB number).
 
 ## OSCILLATOR's OSC
@@ -1442,7 +1442,7 @@ with nothing on it. On SAVE/LOAD, [Save] writes the unit's settings over the sel
 back on the unit. Writing over a file that is already there asks `File alerady exists. Replace it?`
 first; loading asks nothing. [Save] and [Load] stand out of reach until a settings file is under the
 cursor. A settings file carries every value but the screen's own state (`ui.`) and the card itself
-(`sd.`).
+(`sd.`). A source the file holds no D.Gain for comes back to 0 dB when it is loaded.
 
 A playback runs against the take's length, writing the counter and the bar in place once a second.
 At the end of the file the counter goes back to the start and stops there, the file still held.
@@ -1452,7 +1452,7 @@ At the end of the file the counter goes back to the start and stops there, the f
 The Standard and Simple tabs are one grouped button rounded at its two ends only, like SAMPLING FREQUENCY's frequencies.
 The Standard tab lists 00 Initial Data and the numbers 01 to 63, and the Simple tab the factory presets P01 to P03 followed by the
 numbers Standard holds no scene under (Scene list and its NOTE in the user guide's "SCENE screen"). A number with
-nothing stored under it reads `No Scene`. The bar's thumb draws no shorter than 15px (y110..124 in both p073-1 and
+nothing stored under it has an empty title. The bar's thumb draws no shorter than 15px (y110..124 in both p073-1 and
 p074-1). The HOME box names the recalled scene by the list's rules, `00 Initial Data` on a factory unit. SCENE LIST's
 top-left box names the scene picked on the list by the same rules (the picked 02 in p074-1). While the row picked is not
 the recalled scene (the row with the ▶), its number fades out and back in over two seconds, and the title stays (confirmed
@@ -1471,6 +1471,25 @@ middle of their cells.
 stores the scene and makes it the recalled one. On a stored number it asks `Store to "Scene Memory #05"?` (the number is
 the picked scene's) with [Cancel] / [OK], and on [OK] stores over it and makes it the recalled one.
 
+[Recall] cannot be used on a number with nothing stored, and a press asks nothing. On a stored number and on a factory scene
+it asks `Recall scene "Band"?` (the title is the picked scene's) with [Cancel] / [OK], and on [OK] puts that scene's mixer
+back and makes it the recalled one. A source the scene holds no D.Gain for comes back to 0 dB. 00 Initial Data puts the
+factory mixer back. P01 to P03 lay the settings below over the factory mixer, and what they do not set stays as the factory
+ships it (`src/model/scene-presets.ts`). The table's channels go onto the mono and the stereo channels from the lowest number
+up, the mono channels on a HI-Z connector (CH 3-4 in the table) apart from the rest: on a URX22, CH 1 takes the table's CH 1,
+CH 2 on its HI-Z connector takes the table's CH 3, and CH 3/4 to 9/10 take its four stereo channels.
+
+| Preset | Mono channels | Stereo channels (lowest number first) |
+| --- | --- | --- |
+| P01 Live Music 0 | CH 1-4 `Dyn.Mic` (A.Gain +40 dB, HPF, COMP, 1-knob EQ) | AUX IN / USB MAIN A / USB SUB / None |
+| P02 Streaming 0 | CH 1-2 `Dyn.Mic`, CH 3-4 `Gt./Ba.` (HI-Z, A.Gain +15 dB, EQ off) | AUX IN / USB MAIN A / USB SUB / None |
+| P03 DAW Rec 0 | CH 1-2 `Dyn.Mic`, CH 3-4 `Gt./Ba.`, all with Rec Point at PRE GATE and EQ off | USB DAW 1/2 / None / None / None, all with Rec Point at PRE EQ |
+
+All three put the channel and STEREO faders at the bottom, take the sends to MIX before the fader, make FX 1 a Rev-X Plate
+named `Reverb` returned at 0 dB, switch FX 2 off with an empty name, name MIX 2 `MIX3`, set the D.Gain to 0 dB, and switch the
+mono channels' SSMCS off. On P01 and P02 the 1-knob EQ keeps the gains its Level scales with HIGH alone at +7 dB, while the
+HIGH band shows 0 dB.
+
 The Edit tab (p074-1) sets glyph-only buttons [Protect], [Delete] and [Title] along the foot in place of [Store] /
 [Recall] (faces at x6..95, x149..238 and x291..380; glyphs a padlock 16x21, a bin 16x18 and a rename mark 20x20).
 
@@ -1478,7 +1497,7 @@ The Edit tab (p074-1) sets glyph-only buttons [Protect], [Delete] and [Title] al
   face under a `--list-selected-mark` padlock (01 in p074-1, the cell at x327..380 / y110..145, the padlock at
   x346..361 / y117..137). While a scene is protected, [Delete], [Title] and [Store] on the Store/Recall tab cannot be used.
 - [Delete] asks `Delete "Scene Memory #05"?` (the number is the picked scene's) with [Cancel] / [OK], and deletes the
-  scene on [OK].
+  scene on [OK]. The recalled scene can be deleted too; the scene box then keeps its number with an empty title.
 - [Title] opens the title entry sheet.
 - On a number with nothing stored and on a scene the unit ships with, [Protect], [Delete] and [Title] cannot be used.
 - While Operation Mode is Standard Mode, the Simple tab's list can be recalled from only; [Store] and the Edit tab
@@ -1634,7 +1653,7 @@ setting name).
 
 The knob at the foot of a strip turns the send to the destination the [Sends] tab is showing (g under
 "Channel area" in the user guide). The channel's own fader is what feeds the stereo bus, so the fader
-stands there instead (p047-1 reads the factory fader's `0.00`, p157-1 the send's `-inf` under MIX 1).
+stands there instead (p047-1 reads the factory fader's `0.00`, p157-1 the send's `-inf` under MIX 1). The FX 1-2 faders ship at the bottom, `-∞`.
 The tab names the stereo bus short, `ST`, and a numbered bus with the space, `MIX 1` (p047-1, p157-1).
 
 While that send is switched off on the SEND TO screen, the knob's face and its lit arc take

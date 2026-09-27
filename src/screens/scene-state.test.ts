@@ -3,19 +3,21 @@ import { Shell } from "../app/shell";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
+import type { UnitModel } from "../model/types";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
 import { applyScene, inScene } from "../model/scene-state";
 import { applySettings, captureSettings } from "../model/settings-file";
 import { recallScene, storeScene } from "./scene";
 import { setSignalType } from "./stereo-link";
+import { LEVEL_MIN_DB } from "../ui/param-spec";
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
-async function mount(): Promise<Shell> {
+async function mount(model: UnitModel["id"] = "URX44V"): Promise<Shell> {
   const store = new DeviceStore();
-  await store.attach(new SimTransport(factoryState(unitById("URX44V"))));
-  const shell = new Shell(buildRegistry(), store, unitById("URX44V"));
+  await store.attach(new SimTransport(factoryState(unitById(model))));
+  const shell = new Shell(buildRegistry(), store, unitById(model));
   await flush();
   return shell;
 }
@@ -148,6 +150,99 @@ describe("storing and recalling a scene", () => {
     await recallScene(shell.ctx, 0);
     expect([shell.ctx.store.num("ch.ch1.level", 99), shell.ctx.store.num("ch.ch1.gain", 99)]).toEqual([factory, -8]);
     expect(shell.ctx.store.num("scene.current", -1)).toBe(0);
+  });
+
+  it("lays each preset over the unit's own mixer, as the unit holds P01 to P03", async () => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    const shippedColor = s.str("ch.ch1.color", "");
+    await s.set("ch.ch1.color", "Green");
+    const stereo = (): string[] => ["ch_5_6", "ch_7_8", "ch_9_10", "ch_11_12"].map((id) => s.str(`ch.${id}.source`, ""));
+
+    await recallScene(shell.ctx, 101);
+    expect([s.str("ch.ch1.name", ""), s.num("ch.ch1.gain", 0), s.bool("ch.ch1.comp.on", false), s.str("ch.ch1.eq.low.shape", ""), s.num("ch.ch1.level", 0)]).toEqual([
+      "Dyn.Mic",
+      40,
+      true,
+      "HPF",
+      LEVEL_MIN_DB,
+    ]);
+    expect(stereo(), "P01's stereo channels").toEqual(["AUX IN", "USB MAIN A", "USB SUB", "None"]);
+    expect([s.str("ch.fx1.effect.type", ""), s.str("ch.fx1.name", "-"), s.bool("ch.fx2.on", true), s.str("ch.fx2.name", "-"), s.str("ch.bus.mix2.name", "")]).toEqual([
+      "Rev-X Plate",
+      "Reverb",
+      false,
+      "",
+      "MIX3",
+    ]);
+    expect(s.num("source.usb-main-a.digitalGain", -1), "USB MAIN A's digital gain").toBe(0);
+    expect(s.str("ch.ch1.color", ""), "what a preset does not set comes back as the unit ships it").toBe(shippedColor);
+    expect([s.num("ch.ch1.eq.high.gain", 99), s.bool("ch.ch1.ssmcs.on", true)], "HIGH shows 0 dB, and SSMCS is off").toEqual([0, false]);
+    await s.set("ch.ch1.eq.oneKnob.level", 100);
+    expect(s.num("ch.ch1.eq.lowMid.gain", 0), "1-knob's Intensity scales the preset's curve").toBe(-16);
+    expect(s.num("ch.ch1.eq.high.gain", 0), "HIGH from the +7 dB the preset keeps under a band at 0 dB").toBe(14);
+    await s.set("ch.ch1.eq.oneKnob.level", 25);
+    expect(s.num("ch.ch1.eq.lowMid.gain", 0), "from the curve the preset holds at 50").toBe(-4);
+
+    await recallScene(shell.ctx, 102);
+    expect([s.str("ch.ch3.name", ""), s.num("ch.ch3.gain", 0), s.bool("ch.ch3.hiZ", false), s.bool("ch.ch3.eq.on", true)]).toEqual(["Gt./Ba.", 15, true, false]);
+    expect(s.str("ch.ch1.name", ""), "P02's CH 1").toBe("Dyn.Mic");
+
+    await recallScene(shell.ctx, 103);
+    expect(stereo(), "P03's stereo channels").toEqual(["USB DAW 1/2", "None", "None", "None"]);
+    expect([s.str("ch.ch1.recPoint", ""), s.str("ch.ch_5_6.recPoint", ""), s.bool("ch.ch1.eq.oneKnob.on", true), s.bool("ch.bus.mix1.eq.on", true)]).toEqual([
+      "PRE GATE",
+      "PRE EQ",
+      false,
+      false,
+    ]);
+    expect(s.num("scene.current", -1)).toBe(103);
+
+    await recallScene(shell.ctx, 0);
+    expect([s.str("ch.ch1.name", ""), s.str("ch.ch1.eq.low.shape", ""), s.str("ch.ch_5_6.source", ""), s.num("source.usb-main-a.digitalGain", 0)]).toEqual([
+      "ch 1",
+      "L.Shelf",
+      "AUX IN",
+      -14,
+    ]);
+  });
+
+  it("lays a preset's channels onto a URX22's, its HI-Z CH 2 taking the preset's CH 3 and the four stereo channels from CH 3/4 in order", async () => {
+    const shell = await mount("URX22");
+    const s = shell.ctx.store;
+    await recallScene(shell.ctx, 101);
+    expect(["ch1", "ch2"].map((id) => s.str(`ch.${id}.name`, "")), "P01's CH 1-2").toEqual(["Dyn.Mic", "Dyn.Mic"]);
+    await recallScene(shell.ctx, 102);
+    expect(["ch1", "ch2"].map((id) => s.str(`ch.${id}.name`, "")), "P02's CH 1-2").toEqual(["Dyn.Mic", "Gt./Ba."]);
+    expect([s.bool("ch.ch2.hiZ", false), s.num("ch.ch2.gain", 0), s.bool("ch.ch1.hiZ", true)], "CH 2 on HI-Z at +15 dB, CH 1 not").toEqual([true, 15, false]);
+    expect(["ch_3_4", "ch_5_6", "ch_7_8", "ch_9_10"].map((id) => s.str(`ch.${id}.source`, ""))).toEqual(["AUX IN", "USB MAIN A", "USB SUB", "None"]);
+    expect(s.has("ch.ch3.name"), "and no channel it does not have").toBe(false);
+    await recallScene(shell.ctx, 103);
+    expect([s.str("ch.ch2.name", ""), s.str("ch.ch2.recPoint", "")], "P03's CH 2").toEqual(["Gt./Ba.", "PRE GATE"]);
+  });
+
+  it("brings a source's digital gain the scene does not name back to 0 dB", async () => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    await s.set("scene.Standard.1.title", "take one");
+    await storeScene(shell.ctx, "Standard", 1);
+    await s.set("source.usb-daw-1-2.digitalGain", 10);
+    await recallScene(shell.ctx, 1);
+    expect(s.num("source.usb-daw-1-2.digitalGain", 99), "a stored scene").toBe(0);
+    await s.set("source.hdmi.digitalGain", -6);
+    await recallScene(shell.ctx, 0);
+    expect([s.num("source.hdmi.digitalGain", 99), s.num("source.usb-main-a.digitalGain", 0)], "scene 00").toEqual([0, -14]);
+  });
+
+  it("brings a source's digital gain a settings file does not name back to 0 dB", async () => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    await s.set("source.usb-main-a.digitalGain", 6);
+    const file = captureSettings(s);
+    await s.set("source.usb-daw-1-2.digitalGain", 10);
+    await s.set("source.usb-main-a.digitalGain", -3);
+    await applySettings(s, file);
+    expect([s.num("source.usb-daw-1-2.digitalGain", 99), s.num("source.usb-main-a.digitalGain", 99)]).toEqual([0, 6]);
   });
 
   it("stores the mixer when a number is named for the first time", async () => {

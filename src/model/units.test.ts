@@ -145,6 +145,21 @@ describe("factory state", () => {
     }
   });
 
+  it("ships every EQ with shelves on its outer bands, and an FX channel's fader at the bottom while the others stand at 0 dB", () => {
+    for (const model of [URX44V, URX44, URX22]) {
+      const state = factoryState(model);
+      for (const strip of [...model.inputs, ...model.outputs].filter((s) => state.has(`ch.${s.id}.eq.low.shape`))) {
+        expect(["low", "lowMid", "highMid", "high"].map((b) => state.get(`ch.${strip.id}.eq.${b}.shape`)), `${model.id} ${strip.id}`).toEqual([
+          "L.Shelf",
+          "Bell",
+          "Bell",
+          "H.Shelf",
+        ]);
+        expect(state.get(`ch.${strip.id}.level`), `${model.id} ${strip.id} fader`).toBe(strip.kind === "fx" ? LEVEL_MIN_DB : 0);
+      }
+    }
+  });
+
   it("gives an FX return a send into each MIX bus and none into an FX bus", () => {
     for (const model of [URX44V, URX44, URX22]) {
       const state = factoryState(model);
@@ -158,9 +173,9 @@ describe("factory state", () => {
         expect(state.has(`ch.${fx}.send.fx2.level`), "an FX return reaches no FX bus").toBe(false);
         expect(state.get(`ch.${fx}.send.bus.stereo.on`), "and still reaches the stereo bus").toBe(true);
       }
-      // A MIX bus is the far end of a send and reaches the stereo bus alone.
+      // A MIX bus is the far end of a send and reaches the stereo bus alone, its switch into it off.
       expect(state.has("ch.bus.mix1.send.bus.mix2.level")).toBe(false);
-      expect(state.get("ch.bus.mix1.send.bus.stereo.on")).toBe(true);
+      expect(state.get("ch.bus.mix1.send.bus.stereo.on")).toBe(false);
     }
   });
 

@@ -8,6 +8,7 @@
 import type { ParamPath, ParamValue } from "../device/path";
 import type { DeviceStore } from "../device/store";
 import { isClockPath } from "./clock";
+import { withEverySourceGain } from "./source-gain";
 
 /** What stays behind when a settings file is written. */
 const NOT_SAVED = ["ui.", "sd.", "pair."];
@@ -24,9 +25,9 @@ export function captureSettings(store: DeviceStore): Record<string, ParamValue> 
   return out;
 }
 
-/** Put a settings file back on the unit, one value after another. */
+/** Put a settings file back on the unit, one value after another. A source whose digital gain the file does not name comes back at 0 dB. */
 export async function applySettings(store: DeviceStore, state: Record<string, ParamValue>): Promise<void> {
-  for (const [path, value] of Object.entries(state)) {
+  for (const [path, value] of Object.entries(withEverySourceGain(store, state))) {
     if (!inSettingsFile(path)) continue;
     await store.restore(path, value);
   }

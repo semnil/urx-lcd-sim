@@ -1333,7 +1333,7 @@ describe("the SCENE menu the scene box opens", () => {
     const numbers = (): string[] => rows().map((r) => r.querySelector(".scene-no")?.textContent ?? "");
     const titles = (): string[] => rows().map((r) => r.querySelectorAll(".list-cell")[1]?.textContent ?? "");
     expect(numbers()).toEqual(Array.from({ length: 64 }, (_, i) => String(i).padStart(2, "0")));
-    expect(titles().slice(0, 5)).toEqual(["Initial Data", "No Scene", "No Scene", "Band", "No Scene"]);
+    expect(titles().slice(0, 5), "a number with nothing stored has no title").toEqual(["Initial Data", "", "", "Band", ""]);
     const factories = (): number[] => rows().flatMap((r, i) => (r.querySelector(".scene-lock .icon-factory") ? [i] : []));
     expect(factories(), "00 alone carries the factory").toEqual([0]);
     expect(rows()[0]?.classList.contains("is-selected"), "the first row until one is picked").toBe(true);
@@ -1479,7 +1479,8 @@ describe("the SCENE menu the scene box opens", () => {
   });
 
   it("asks before deleting a scene by its number, and clears it on OK alone", async () => {
-    const shell = await sceneList({ "scene.Standard.5.title": "Band", "scene.Standard.5.protect": 0, "scene.selected": 5, "ui.sceneMenu": "Edit" });
+    const shell = await sceneList({ "scene.Standard.5.title": "Band", "scene.Standard.5.protect": 0, "scene.selected": 5, "scene.current": 5, "ui.sceneMenu": "Edit" });
+    const sceneBox = (): string[] => [...(shell.root.querySelector(".scene-box")?.children ?? [])].map((c) => c.textContent ?? "");
     await tap(editButtons(shell)[1]);
     const box = shell.root.querySelector(".dialog");
     expect(box?.querySelector(".dialog-text")?.textContent).toBe('Delete "Scene Memory #05"?');
@@ -1490,12 +1491,33 @@ describe("the SCENE menu the scene box opens", () => {
     await tap(editButtons(shell)[1]);
     await tap(pick(shell, ".dialog-actions .btn", "OK"));
     expect(shell.ctx.store.str("scene.Standard.5.title", "")).toBe("");
-    expect(shell.root.querySelectorAll(".scene-list .list-row")[5]?.querySelectorAll(".list-cell")[1]?.textContent).toBe("No Scene");
+    expect(shell.root.querySelectorAll(".scene-list .list-row")[5]?.querySelectorAll(".list-cell")[1]?.textContent, "the title goes with it").toBe("");
+    expect(sceneBox(), "the recalled scene deleted leaves its number alone in the box").toEqual(["05", ""]);
+  });
+
+  it("shuts Recall on a number holding no scene and leaves Store open there, and opens Recall on every factory scene", async () => {
+    const shell = await sceneList({ "scene.selected": 7 });
+    const button = (label: string): HTMLElement | undefined => pick(shell, ".scene-actions .btn", label);
+    expect(button("Recall")?.classList.contains("is-disabled"), "an empty number").toBe(true);
+    expect(button("Recall")?.getAttribute("aria-disabled"), "and marked out of reach").toBe("true");
+    expect(button("Store")?.classList.contains("is-disabled"), "Store stays open").toBe(false);
+    await tap(button("Recall"));
+    expect(shell.root.querySelector(".dialog"), "a shut Recall asks nothing").toBeNull();
+    await shell.ctx.store.set("scene.Standard.7.title", "Band");
+    await flush();
+    expect(button("Recall")?.classList.contains("is-disabled"), "a stored scene").toBe(false);
+    expect(button("Recall")?.hasAttribute("aria-disabled")).toBe(false);
+    for (const [bank, no] of [["Standard", 0], ["Simple", 101], ["Simple", 102], ["Simple", 103]] as const) {
+      await shell.ctx.store.set("scene.bank", bank);
+      await shell.ctx.store.set("scene.selected", no);
+      await flush();
+      expect(button("Recall")?.classList.contains("is-disabled"), `factory scene ${no}`).toBe(false);
+    }
   });
 
   it("shuts all three on an empty number and a factory scene, and Store and Edit on Simple's list in Standard Mode", async () => {
     const shell = await sceneList({ "scene.selected": 7, "ui.sceneMenu": "Edit" });
-    expect(shut(shell), "No Scene").toEqual([true, true, true]);
+    expect(shut(shell), "an empty number").toEqual([true, true, true]);
     await tap(editButtons(shell)[1]);
     expect(shell.root.querySelector(".dialog")).toBeNull();
     await shell.ctx.store.set("scene.selected", 0);
@@ -3829,7 +3851,7 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
     const box = shell.root.querySelector(".eq-screen > .pulldown");
     expect(box?.querySelector("svg.icon-eq-shape"), "the outline").not.toBeNull();
     expect(box?.textContent, "and no word").toBe("");
-    expect(box?.getAttribute("aria-label")).toContain("Bell");
+    expect(box?.getAttribute("aria-label"), "LOW ships a shelf").toContain("L.Shelf");
   });
 
   it("classes INPUT's right-hand buttons and DELAY's value box apart", async () => {
