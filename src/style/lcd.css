@@ -508,9 +508,9 @@
   text-align: left;
 }
 
-/* On the list it is a readout of what is loaded, not the button that opens the
- * menu, so it sits sunk into the glass instead of raised, with its title a
- * little closer to its number. */
+/* On the list it is a readout of the scene picked there, not the button that
+ * opens the menu, so it sits sunk into the glass instead of raised, with its
+ * title a little closer to its number. */
 .scene-box-static {
   margin-left: 5px;
   width: 124px;
@@ -521,9 +521,21 @@
   cursor: default;
 }
 
-/* SCENE LIST's box sets its title a row up of where HOME's box sets it. */
+/* SCENE LIST's box sets its title a row up of where HOME's box sets it. While
+ * the scene picked is not the one recalled, its number fades out and back in
+ * every two seconds, at the pace of a held EQ band's marks; the title stays. */
 .scene-box-static .scene-title {
   translate: 0 0;
+}
+
+.scene-box-static .scene-no.is-pending {
+  animation: focus-mark-blink 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-box-static .scene-no.is-pending {
+    animation: none;
+  }
 }
 
 /* The number a preset carries is green; a scene stored on the unit is not. */

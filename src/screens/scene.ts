@@ -255,11 +255,13 @@ export const sceneScreen: ScreenDef = {
           [m === "Edit" ? "is-name-lifted" : "is-name-close", m === "Edit" && (isFactoryLocked(selected) || readOnly) ? "is-disabled" : ""].join(" ").trim(),
         ),
       ),
+      // The box names the scene picked on the list, not the one recalled, and
+      // blinks its number while the two differ.
       headerLeft: el("div", {
         class: "scene-box scene-box-static",
         children: [
-          el("span", { class: `scene-no${isPreset(current) ? " is-preset" : ""}`, text: sceneNumber(current) }),
-          el("span", { class: "scene-title", text: sceneTitle(ctx, current) }),
+          el("span", { class: `scene-no${isPreset(selected) ? " is-preset" : ""}${selected === current ? "" : " is-pending"}`, text: sceneNumber(selected) }),
+          el("span", { class: "scene-title", text: sceneTitle(ctx, selected) }),
         ],
       }),
     };

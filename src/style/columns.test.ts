@@ -1111,6 +1111,12 @@ describe("the scene name box", () => {
     }
     expect(declarations(CSS, ".scene-box-static")["gap"], "the box's title a little closer to its number, so a title the unit prints whole fits").toBe("5px");
   });
+
+  it("fades the number in SCENE LIST's box out and back in at the pace of every other mark, and not the title", () => {
+    expect(declarations(CSS, ".scene-box-static .scene-no.is-pending")["animation"]).toBe("focus-mark-blink 2s ease-in-out infinite");
+    expect(declarations(CSS, ".scene-box-static .scene-title")["animation"]).toBeUndefined();
+    expect(CSS, "no blinking for a reader who asks for less motion").toMatch(/@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.scene-box-static \.scene-no\.is-pending\s*\{\s*animation: none;/);
+  });
 });
 
 describe("a sheet over the screen below it", () => {
