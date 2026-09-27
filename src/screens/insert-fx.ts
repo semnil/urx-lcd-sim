@@ -9,6 +9,7 @@ import type { EffectOption } from "../model/effects";
 import { INPUT_INSERT_EFFECTS, NO_EFFECT, OUTPUT_INSERT_EFFECTS, effectParams } from "../model/effects";
 import type { Strip } from "../model/types";
 import { allStrips } from "../model/types";
+import { markShut } from "../ui/dom";
 import { pickerGrid, pickerSheet, toggle } from "../ui/widgets";
 import { carriesStereo, linkedPair } from "./stereo-link";
 
@@ -125,12 +126,12 @@ export function effectSheet(
     label: EFFECT_SHEET_TITLE,
     build: (close) => {
       const tile = (o: EffectChoice): HTMLElement =>
-        toggle(o.name, o.name === spec.current, () => {
+        markShut(toggle(o.name, o.name === spec.current, () => {
           if (!o.enabled) return;
           spec.onPick(o.name);
           close();
           ctx.repaint();
-        }, o.enabled ? "source-btn" : "source-btn is-disabled");
+        }, "source-btn"), !o.enabled);
       const rows: (HTMLElement | null)[][] = [];
       const pad = (row: HTMLElement[]): (HTMLElement | null)[] => [
         ...row,

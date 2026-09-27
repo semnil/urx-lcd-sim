@@ -14,7 +14,7 @@ import { TRACK_COUNTS, dropTracksOverRate, trackCountCeiling } from "../model/tr
 import { dropInsertsOverRate } from "./insert-fx";
 import { followRecall, pairStates } from "./stereo-link";
 import { allStrips, channelPairs } from "../model/types";
-import { el, setPressed } from "../ui/dom";
+import { el, markShut, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { LIST_THUMB_MIN_PX, button, dialog, dropdown, listView, loadingDialog, menuButton, menuGrid, meter, pickerGrid, pickerSheet, scrollbar, sideTab, toggle } from "../ui/widgets";
 import { meterLevels, pairMeterId } from "./meters";
@@ -45,14 +45,8 @@ export const microsdScreen: ScreenDef = {
     // reach and carries the record dot.
     const usbOn = ctx.store.bool("sd.usbStorage", false);
     const taking = recordMode(ctx.store);
-    const entry = (label: string, onTap: () => void, usable = !usbOn): HTMLElement => {
-      const node = menuButton(label, usable ? onTap : () => undefined);
-      if (!usable) {
-        node.classList.add("is-disabled");
-        node.setAttribute("aria-disabled", "true");
-      }
-      return node;
-    };
+    const entry = (label: string, onTap: () => void, usable = !usbOn): HTMLElement =>
+      markShut(menuButton(label, usable ? onTap : () => undefined), !usable);
     const recorder = entry("Recorder", open("microsd.recorder"));
     if (taking) {
       recorder.classList.add("has-rec-dot");
@@ -68,11 +62,7 @@ export const microsdScreen: ScreenDef = {
         // The button asks before it goes either way, and lights while the mode is on.
         const node = button("USB Storage Mode", () => (taking ? undefined : usbStorageAsk(ctx, usbOn)), "usb-storage");
         setPressed(node, usbOn);
-        if (taking) {
-          node.classList.add("is-disabled");
-          node.setAttribute("aria-disabled", "true");
-        }
-        return node;
+        return markShut(node, taking);
       })(),
       ...(usbOn ? {} : { headerRight: ejectButton(ctx) }),
     };
@@ -172,12 +162,15 @@ function cardBrowser(ctx: AppContext, opts: BrowserOptions): HTMLElement {
         class: "sd-path",
         children: [
           // Nothing to climb out of until a folder is opened.
-          el("button", {
-            class: `btn sd-up${path === CARD_ROOT ? " is-disabled" : ""}`,
-            attrs: { "aria-label": "Up one level" },
-            onTap: path === CARD_ROOT ? () => undefined : () => openPath(ctx, parentPath(path)),
-            children: [Icons.upFolder()],
-          }),
+          markShut(
+            el("button", {
+              class: "btn sd-up",
+              attrs: { "aria-label": "Up one level" },
+              onTap: path === CARD_ROOT ? () => undefined : () => openPath(ctx, parentPath(path)),
+              children: [Icons.upFolder()],
+            }),
+            path === CARD_ROOT,
+          ),
           el("div", { class: "sd-path-field", children: [el("span", { text: path })] }),
         ],
       }),
@@ -292,12 +285,13 @@ function playedShare(ctx: AppContext): number {
 
 /** One of the browser's icon-only buttons, out of reach unless `usable`. */
 function iconAction(label: string, icon: SVGSVGElement, usable: boolean, onTap: () => void = () => undefined): HTMLElement {
-  return el("button", {
-    class: `btn sd-action${usable ? "" : " is-disabled"}`,
+  const node = el("button", {
+    class: "btn sd-action",
     attrs: { "aria-label": label },
     onTap: usable ? onTap : () => undefined,
     children: [icon],
   });
+  return markShut(node, !usable);
 }
 
 /** Where a settings file's contents are kept. */
@@ -667,7 +661,7 @@ export const saveLoadScreen: ScreenDef = {
         : ["Save", "Save as", "Load"].map((label) => {
             // Save and Load act on the settings file the cursor stands on; Save as writes a new one.
             const usable = label === "Save as" || onData;
-            return button(label, () => (usable ? saveLoadAction(ctx, label) : undefined), usable ? "" : "is-disabled");
+            return markShut(button(label, () => (usable ? saveLoadAction(ctx, label) : undefined)), !usable);
           });
     return {
       main: cardBrowser(ctx, { metaColumn: "Date/Time", meta: (entry) => entry.stamp, actions }),

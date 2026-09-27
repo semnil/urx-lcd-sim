@@ -7,7 +7,7 @@ import { factoryState } from "../model/defaults";
 import { applyScene, captureScene, inScene, readScene } from "../model/scene-state";
 import { dropInsertsOverRate } from "./insert-fx";
 import { followRecall, pairStates } from "./stereo-link";
-import { el } from "../ui/dom";
+import { el, markShut } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { LIST_THUMB_MIN_PX, button, dialog, listView, menuButton, menuGrid, scrollbar, sideTab, toggle } from "../ui/widgets";
 import { openTitleEntry } from "./title-entry";
@@ -116,15 +116,6 @@ function sceneRows(ctx: AppContext, bank: string): number[] {
 /** In Standard Mode, Simple's list can be recalled from but not stored to or edited. */
 function readOnlyBank(ctx: AppContext, bank: string): boolean {
   return bank === "Simple" && ctx.store.str("setup.operationMode", "Standard") === "Standard";
-}
-
-/** A control that cannot be used is greyed and marked out of reach, so it neither sinks under a press nor reads as usable. */
-function markShut(node: HTMLElement, shut: boolean): HTMLElement {
-  if (shut) {
-    node.classList.add("is-disabled");
-    node.setAttribute("aria-disabled", "true");
-  }
-  return node;
 }
 
 /** A button on the Edit tab named by a glyph. One that cannot be used does nothing. */
