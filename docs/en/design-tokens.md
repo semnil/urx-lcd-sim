@@ -619,8 +619,8 @@ from the ground by more than 90 on some channel) compared between the guide and 
 | --- | --- | --- | --- |
 | `--fs-2xl` (18.5px) | The name box in the middle of the toolbar | 14px (`COMP` in p099-1, y15..28), 14px (`CH SETTING` in p092-1, y15..28) | 14px (y15..28), 14px (y15..28) |
 | `--fs-xl` (15px) | EQ's type list beside [1-knob] while 1-knob is on | — | — |
-| `--fs-lg` (13px) | The HOME strip's names, [ON] / [CUE] / [PRE] and level value, value boxes, knob captions, SETUP's menu entries, the channel view's marks, and more | 9px ([ON] in p047-1, y182..190) | 9px (y182..190) |
-| `--fs-md` (11px) | The screen's default text (`.lcd`), the scene number, the channel view's block switches, effect type names, microSD's lists, and more | 9px (the scene number `00` in p047-1, y18..26) | 8px (y18..25) |
+| `--fs-lg` (13px) | The HOME strip's names, [ON] / [CUE] / [PRE] and level value, value boxes, knob captions, SETUP's menu entries, the channel view's marks, SCENE LIST's scene numbers, and more | 9px ([ON] in p047-1, y182..190) | 9px (y182..190) |
+| `--fs-md` (11px) | The screen's default text (`.lcd`), HOME's scene number, the channel view's block switches, effect type names, microSD's lists, and more | 9px (the scene number `00` in p047-1, y18..26) | 8px (y18..25) |
 | `--fs-sm` (11.5px) | The +48V mark on HOME's strip, an effect's list values, and the captions of an effect whose captions carry a band's name | 9px (CH4's lit `+48V` in p047-1, y100..108) | 8px (y101..108, with CH4's +48V on) |
 
 The token sizes and the face each weight is drawn with are chosen by the mean difference in pixels between the

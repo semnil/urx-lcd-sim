@@ -1102,6 +1102,21 @@ describe("the scene name box", () => {
     expect(declarations(CSS, ".scene-no")["font-size"]).toBe("var(--fs-md)");
     expect(declarations(CSS, ".scene-title")["font-size"]).toBe("var(--fs-lg)");
   });
+
+  it("sets SCENE LIST's numbers at the title's size, on the title's baseline", () => {
+    const title = declarations(CSS, ".scene-title");
+    for (const selector of [".scene-list .scene-no", ".scene-box-static .scene-no"]) {
+      const no = declarations(CSS, selector);
+      expect([no["font-size"], no["translate"]], selector).toEqual([title["font-size"], "0 0"]);
+    }
+    expect(declarations(CSS, ".scene-box-static")["gap"], "the box's title a little closer to its number, so a title the unit prints whole fits").toBe("5px");
+  });
+
+  it("fades the number in SCENE LIST's box out and back in at the pace of every other mark, and not the title", () => {
+    expect(declarations(CSS, ".scene-box-static .scene-no.is-pending")["animation"]).toBe("focus-mark-blink 2s ease-in-out infinite");
+    expect(declarations(CSS, ".scene-box-static .scene-title")["animation"]).toBeUndefined();
+    expect(CSS, "no blinking for a reader who asks for less motion").toMatch(/@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.scene-box-static \.scene-no\.is-pending\s*\{\s*animation: none;/);
+  });
 });
 
 describe("a sheet over the screen below it", () => {
@@ -2086,9 +2101,9 @@ describe("the type each control sets", () => {
       [".sd-list .list-head .list-cell:nth-child(2)", "-1px 0"],
       [".sd-transport-meta", "0 1px"],
       [".sd-transport-meta span:last-child", "-1px 0"],
-      [".scene-list .scene-no", "0 -1px"],
-      [".scene-box-static .scene-title", "2px 0px"],
-      [".scene-box-static .scene-no", "0 -1px"],
+      [".scene-list .scene-no", "0 0"],
+      [".scene-box-static .scene-title", "0 0"],
+      [".scene-box-static .scene-no", "0 0"],
       [".scene-list .list-head .list-cell:last-child", "4px 0"],
     ];
     for (const [selector, move] of MOVES) {
@@ -2532,7 +2547,7 @@ describe("the bands and marks the card screens draw", () => {
 
   it("holds the recalled scene's mark out of the flow, so the number stands where every row sets it", () => {
     const mark = declarations(CSS, ".scene-no .icon-recalled");
-    expect([mark["position"], mark["left"], mark["translate"]]).toEqual(["absolute", "-10px", "0 calc(1px - 50%)"]);
+    expect([mark["position"], mark["left"], mark["translate"]]).toEqual(["absolute", "-9px", "0 -50%"]);
     expect(declarations(CSS, ".scene-no")["position"]).toBe("relative");
   });
 });

@@ -25,3 +25,5 @@
 - Keep the channel view's GATE and DUCKER lamps and COMP bars, M.B.Comp's band reduction bars and the RECORDER's track meters moving with the signal as well.
 - Draw every reduction bar on the unit's scale, 11/21 of the bar at 18 dB, 11/14 at 36 dB and full at 60 dB: the GATE, DUCKER, COMP and SSMCS screens, an insert Compander, M.B.Comp's bands and the channel view's COMP block.
 - Light every level meter on the same scale laid from 0 dB down, 10/21 of the bar at -18 dB, 3/14 at -36 dB and empty from -60 dB, where the meters lit in a straight line over -60 dB to 0 dB. The channel view's COMP block level bar and threshold mark use it too.
+- Set SCENE LIST's scene numbers, on the list and in the box at its top left, at the title's size and on the title's baseline, as the guide's figures print them.
+- Name the scene picked on SCENE LIST's list in the box at its top left, its number fading out and back in every two seconds while the scene picked is not the one recalled.

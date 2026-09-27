@@ -1453,7 +1453,12 @@ The Standard and Simple tabs are one grouped button rounded at its two ends only
 The Standard tab lists 00 Initial Data and the numbers 01 to 63, and the Simple tab the factory presets P01 to P03 followed by the
 numbers Standard holds no scene under (Scene list and its NOTE in the user guide's "SCENE screen"). A number with
 nothing stored under it reads `No Scene`. The bar's thumb draws no shorter than 15px (y110..124 in both p073-1 and
-p074-1). The HOME box names the recalled scene by the list's rules, `00 Initial Data` on a factory unit.
+p074-1). The HOME box names the recalled scene by the list's rules, `00 Initial Data` on a factory unit. SCENE LIST's
+top-left box names the scene picked on the list by the same rules (the picked 02 in p074-1). While the row picked is not
+the recalled scene (the row with the ▶), its number fades out and back in over two seconds, and the title stays (confirmed
+by the operator). The numbers on the list and in SCENE LIST's top-left box are set at the title's size, on the title's
+baseline (02 and `01234-56789` both at y162..170 in p074-1, and the box's P01 and `Live Music 0` at y18..26 and y17..26
+in p073-1).
 
 The ▶ of the last recalled scene stands left of its number on the Store/Recall tab (x12..19 / y124..131 in p073-1).
 The Edit tab (p074-1) does not draw it on the same row. The number starts at x23 with or without the ▶. The Lock cell

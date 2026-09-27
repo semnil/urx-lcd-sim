@@ -1394,6 +1394,27 @@ describe("the SCENE menu the scene box opens", () => {
     expect(box(), "a preset").toEqual(["P01", "Live Music 0"]);
   });
 
+  it("names the scene picked on the list in SCENE LIST's box, not the one recalled", async () => {
+    const shell = await mount();
+    await shell.ctx.store.set("scene.Standard.2.title", "Band");
+    await shell.ctx.store.set("scene.current", 101);
+    shell.ctx.nav.openTop({ id: "scene" });
+    shell.ctx.nav.push({ id: "scene.list" });
+    await flush();
+    const box = (): string[] => [...(shell.root.querySelector(".scene-box-static")?.children ?? [])].map((c) => c.textContent ?? "");
+    const pending = (): boolean => shell.root.querySelector(".scene-box-static .scene-no")?.classList.contains("is-pending") ?? false;
+    expect(box(), "the first row, picked on opening").toEqual(["00", "Initial Data"]);
+    expect(shell.root.querySelector(".scene-box-static .scene-no.is-preset"), "green only for a preset").toBeNull();
+    expect(pending(), "its number blinks while the scene picked is not the one recalled").toBe(true);
+    shell.root.querySelectorAll<HTMLElement>(".scene-list .list-row")[2]?.click();
+    await flush();
+    expect(box()).toEqual(["02", "Band"]);
+    await shell.ctx.store.set("scene.current", 2);
+    await flush();
+    expect(pending(), "and stays lit on the recalled scene's row").toBe(false);
+    expect(box()).toEqual(["02", "Band"]);
+  });
+
   it("asks with a marked dialog box", async () => {
     const shell = await mount();
     shell.ctx.nav.openTop({ id: "scene" });
