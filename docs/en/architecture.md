@@ -21,7 +21,7 @@ flowchart TB
   subgraph model["Model layer (src/model)"]
     UM["UnitModel<br/>strip inventory per model"]
     DF["factoryState<br/>values at power-on"]
-    CD["Card, scenes, settings files<br/>card / scene-state / settings-file"]
+    CD["Card, scenes, settings files<br/>card / scene-state / scene-presets / settings-file"]
   end
   subgraph dev["Device layer (src/device)"]
     ST["DeviceStore<br/>synchronous mirror + optimistic writes"]

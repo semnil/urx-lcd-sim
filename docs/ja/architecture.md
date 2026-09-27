@@ -21,7 +21,7 @@ flowchart TB
   subgraph model["モデル層 (src/model)"]
     UM["UnitModel<br/>機種ごとのストリップ構成"]
     DF["factoryState<br/>電源投入時の値"]
-    CD["カード・シーン・設定ファイル<br/>card / scene-state / settings-file"]
+    CD["カード・シーン・設定ファイル<br/>card / scene-state / scene-presets / settings-file"]
   end
   subgraph dev["デバイス層 (src/device)"]
     ST["DeviceStore<br/>同期ミラー + 楽観的書き込み"]
