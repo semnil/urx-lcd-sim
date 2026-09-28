@@ -646,21 +646,13 @@ export function effectParams(name: string): readonly EffectParam[] {
   return effectFaces(name).flatMap((f) => f.params);
 }
 
-/**
- * The control a numeric value is turned by, under the path the channel gives it.
- * The box an effect prints its value in carries the same unit the readout bar
- * does: a row of them names four settings at once, and a bare number among them
- * says neither which unit it is in nor which decade.
- */
+/** The control a numeric value is turned by, under the path the channel gives it. */
 export function effectSpec(base: string, param: EffectNumeric, values: Readonly<Record<string, number>>): NumericSpec {
-  const shape = param.shape(values);
-  const box = shape.boxUnit ?? shape.unit;
   return {
     path: `${base}.${param.key}` as ParamPath,
     label: param.label,
     fallback: param.fallback,
-    ...shape,
-    ...(box === undefined ? {} : { boxUnit: box }),
+    ...param.shape(values),
   };
 }
 

@@ -71,14 +71,7 @@ export function stopsTravel(values: readonly number[]): Travel {
   return {
     position: (value) => indexOf(value) / last,
     valueAt: (p) => at(Math.round(clamp01(p) * last)),
-    // Stops that hold one value in a row are stepped off from the far end of
-    // the row, so each step moves the value on.
-    step: (value, detents) => {
-      let i = indexOf(value);
-      const dir = Math.sign(detents);
-      while (dir !== 0 && values[i + dir] === values[i]) i += dir;
-      return at(i + detents);
-    },
+    step: (value, detents) => at(indexOf(value) + detents),
   };
 }
 

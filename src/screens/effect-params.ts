@@ -189,7 +189,8 @@ const slotsOf = (p: EffectParam): number => (p.kind === "select" && p.buttons ? 
 
 /** One page of controls, with the panel each one's first stands in. */
 interface EffectPage {
-  label: string;
+  /** The band a page laid out in slots is set under. */
+  label?: string;
   params: EffectParam[];
   firsts: number[];
 }
@@ -216,12 +217,12 @@ function effectPages(faces: readonly EffectFace[]): EffectPage[] {
       }
       continue;
     }
-    let page: EffectPage = { label: face.label, params: [], firsts: [] };
+    let page: EffectPage = { params: [], firsts: [] };
     let used = 0;
     for (const p of face.params) {
       if (used + slotsOf(p) > PAGE_SLOTS) {
         pages.push(page);
-        page = { label: face.label, params: [], firsts: [] };
+        page = { params: [], firsts: [] };
         used = 0;
       }
       page.params.push(p);
@@ -480,7 +481,7 @@ function mbcMainPage(
     return gain && { ...gain, label: `${band.label} ${gain.label}` };
   });
   const rows = outGain
-    ? [el("div", { class: "mbc-out", children: [cell(outGain.label, valueBox(ctx, { ...outGain, boxUnit: "" }, "efx-value"), knobControl(ctx, outGain))] })]
+    ? [el("div", { class: "mbc-out", children: [cell(outGain.label, valueBox(ctx, outGain, "efx-value"), knobControl(ctx, outGain))] })]
     : [];
   return {
     plot,
@@ -726,7 +727,7 @@ function effectGrid(
       // The panel prints the number alone; the readout bar keeps the unit, and
       // the name the unit gives the row there.
       onKnob(spec);
-      return cell(caption, valueBox(ctx, { ...spec, label: caption, boxUnit: "" }, "efx-value"), knobControl(ctx, spec));
+      return cell(caption, valueBox(ctx, { ...spec, label: caption }, "efx-value"), knobControl(ctx, spec));
     }
     if (p.kind === "select") {
       const value = ctx.store.str(`${holder.base}.${p.key}`, p.fallback);
@@ -983,9 +984,6 @@ function effectScreen(ctx: AppContext, strip: Strip, route: Route, holder: Effec
 export const effectSettingsScreen: ScreenDef = {
   id: "ch.effect",
   toolbar: "sub",
-  // An effect whose every row the unit is holding itself assigns no knob, and the
-  // readout strip stays where it is rather than the controls moving down into it.
-  knobStrip: true,
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
