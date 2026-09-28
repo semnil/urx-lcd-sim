@@ -4,7 +4,7 @@
 
 import type { DeviceStore } from "../device/store";
 import { EQ_BAND_SHAPE_SHIPPED, SSMCS_DEFAULTS } from "./defaults";
-import { biquadDb, eqResponse, peakingBiquad, shelfBiquad } from "./eq-response";
+import { type EqBandResponse, biquadDb, eqResponse, peakingBiquad, shelfBiquad } from "./eq-response";
 
 /** The 4-band EQ's bands, low to high. */
 export const EQ_BAND_KEYS = ["low", "lowMid", "highMid", "high"] as const;
@@ -31,17 +31,20 @@ export function eqBandOn(store: DeviceStore, base: string, key: string): boolean
   return store.bool(`${base}.eq.${key}.on`, true);
 }
 
+/** The 4-band EQ's bands, low to high, as the strip under `base` holds them. */
+export function fourBands(store: DeviceStore, base: string): EqBandResponse[] {
+  return EQ_BAND_KEYS.map((key) => ({
+    on: eqBandOn(store, base, key),
+    shape: eqBandShape(store, base, key),
+    freq: store.num(`${base}.eq.${key}.freq`, 1000),
+    q: store.num(`${base}.eq.${key}.q`, 0.71),
+    gain: store.num(`${base}.eq.${key}.gain`, 0),
+  }));
+}
+
 /** The 4-band EQ's response in dB, as the strip under `base` holds it, whether or not the EQ is on. */
 export function fourBandResponse(store: DeviceStore, base: string): (hz: number) => number {
-  return eqResponse(
-    EQ_BAND_KEYS.map((key) => ({
-      on: eqBandOn(store, base, key),
-      shape: eqBandShape(store, base, key),
-      freq: store.num(`${base}.eq.${key}.freq`, 1000),
-      q: store.num(`${base}.eq.${key}.q`, 0.71),
-      gain: store.num(`${base}.eq.${key}.gain`, 0),
-    })),
-  );
+  return eqResponse(fourBands(store, base));
 }
 
 /** The SSMCS strip's three bands, low to high: LOW and HIGH are shelves, MID a bell. */

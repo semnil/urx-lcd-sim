@@ -344,6 +344,31 @@ describe("the processing on a channel", () => {
     expect(mono(store, tapId("ch3", "preFader")), "above 96 kHz the insert passes the signal").toBeCloseTo(into, 6);
   });
 
+  it("takes a MONO IN channel's HPF by its frequency", async () => {
+    const store = await unit();
+    await only(store, "ch3");
+    await store.set("ch.ch3.source", "USB MAIN A");
+    await store.set("ch.ch3.hpf.on", true);
+    const cut = (): number => mono(store, tapId("ch3", "input")) - mono(store, tapId("ch3", "preGate"));
+    await store.set("ch.ch3.hpf.freq", 40);
+    const low = cut();
+    await store.set("ch.ch3.hpf.freq", 300);
+    expect(cut(), "a higher corner takes more of the noise away").toBeGreaterThan(low + 1);
+  });
+
+  it("takes the SSMCS strip's EQ by its bands", async () => {
+    const store = await unit();
+    await only(store, "ch3");
+    await store.set("ch.ch3.source", "USB MAIN A");
+    await store.set("ch.ch3.compEqOrder", "SSMCS");
+    await store.set("ch.ch3.ssmcs.on", true);
+    const made = (): number => mono(store, tapId("ch3", "preIns")) - mono(store, tapId("ch3", "preComp"));
+    await store.set("ch.ch3.ssmcs.eq.mid.gain", 0);
+    const flat = made();
+    await store.set("ch.ch3.ssmcs.eq.mid.gain", 12);
+    expect(made(), "a raised MID raises the level").toBeGreaterThan(flat + 1);
+  });
+
   it("leaves a stereo channel's EQ out above 96 kHz", async () => {
     const store = await unit();
     await store.set("ch.ch_7_8.eq.lowMid.gain", 12);

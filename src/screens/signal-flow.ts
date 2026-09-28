@@ -12,7 +12,7 @@ import type { DeviceStore } from "../device/store";
 import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, GATE_DEFAULTS, SSMCS_DEFAULTS, faderShipped } from "../model/defaults";
 import { COMPANDER_EXPANSION, COMP_KNEE_WIDTH, OVER_REDUCTION_MAX_DB, SSMCS_CORNER_FLOOR_DB, compReductionDb, companderResponse, duckerReductionDb, gateReductionDb, ssmcsCorner } from "../model/dynamics";
 import { bandResponse } from "../model/eq-response";
-import { fourBandResponse, pinkGainDb, ssmcsEqResponse } from "../model/channel-eq";
+import { SSMCS_BAND_KEYS, fourBandResponse, fourBands, pinkGainDb, ssmcsBand, ssmcsEqResponse } from "../model/channel-eq";
 import { type EffectOption, FX_EFFECTS, FX_EFFECT_DEFAULT, INPUT_INSERT_EFFECTS, NO_EFFECT, OUTPUT_INSERT_EFFECTS, effectParams } from "../model/effects";
 import {
   DETECTOR_OFFSET,
@@ -447,34 +447,51 @@ const positionOf = (fc: FlowCtx, strip: Strip): number => fc.store.num(stripPosi
 /** Both sides of a stereo signal folded into one, as the unit folds them into a mono bus. */
 const fold = (lanes: Lanes): Lane => mix(...lanes.map((lane) => gain(lane, -10 * Math.log10(2))));
 
-/** The gains that stay put while the values do, per store. */
-const staticCache = new WeakMap<DeviceStore, { revision: number; values: Map<string, number> }>();
+/** What each response worked out lately does to pink noise, by the values it is drawn from. */
+const pinkGains = new Map<string, number>();
 
-function cached(store: DeviceStore, key: string, work: () => number): number {
-  let entry = staticCache.get(store);
-  if (!entry || entry.revision !== store.revision) staticCache.set(store, (entry = { revision: store.revision, values: new Map() }));
-  let v = entry.values.get(key);
-  if (v === undefined) entry.values.set(key, (v = work()));
+/** How many responses `pinkGains` holds before it starts over. */
+const PINK_GAINS_KEPT = 256;
+
+/** The gains each store's present values give, by name: each looked up once while the values stay. */
+const pinkGainsNow = new WeakMap<DeviceStore, { revision: number; gains: Map<string, number> }>();
+
+/**
+ * What the response named `name` does to pink noise at the store's present
+ * values: worked out once per set of `values` it is drawn from.
+ */
+function pinkGainOf(store: DeviceStore, name: string, values: () => unknown, response: () => (hz: number) => number): number {
+  let now = pinkGainsNow.get(store);
+  if (!now || now.revision !== store.revision) pinkGainsNow.set(store, (now = { revision: store.revision, gains: new Map() }));
+  let v = now.gains.get(name);
+  if (v !== undefined) return v;
+  const key = JSON.stringify(values());
+  v = pinkGains.get(key);
+  if (v === undefined) {
+    if (pinkGains.size >= PINK_GAINS_KEPT) pinkGains.clear();
+    pinkGains.set(key, (v = pinkGainDb(response())));
+  }
+  now.gains.set(name, v);
   return v;
 }
 
 /** What a strip's 4-band EQ does to its level, nothing while it is off. */
 function eqGainDb(store: DeviceStore, base: string): number {
   if (!store.bool(`${base}.eq.on`, true)) return 0;
-  return cached(store, `${base}.eq`, () => pinkGainDb(fourBandResponse(store, base)));
+  return pinkGainOf(store, `${base}.eq`, () => ["eq", fourBands(store, base)], () => fourBandResponse(store, base));
 }
 
 /** What a MONO IN channel's HPF does to its level, nothing while it is off. */
 function hpfGainDb(store: DeviceStore, base: string): number {
   if (!store.bool(`${base}.hpf.on`, false)) return 0;
   const freq = store.num(`${base}.hpf.freq`, 80);
-  return cached(store, `${base}.hpf`, () => pinkGainDb(bandResponse({ on: true, shape: "HPF", freq, q: 0.71, gain: 0 })));
+  return pinkGainOf(store, `${base}.hpf`, () => ["hpf", freq], () => bandResponse({ on: true, shape: "HPF", freq, q: 0.71, gain: 0 }));
 }
 
 /** What the SSMCS strip's EQ does to its level, nothing while it is off. */
 function ssmcsEqGainDb(store: DeviceStore, base: string): number {
   if (!store.bool(`${base}.eq.on`, true)) return 0;
-  return cached(store, `${base}.ssmcsEq`, () => pinkGainDb(ssmcsEqResponse(store, base)));
+  return pinkGainOf(store, `${base}.ssmcsEq`, () => ["ssmcs", SSMCS_BAND_KEYS.map((key) => ssmcsBand(store, base, key))], () => ssmcsEqResponse(store, base));
 }
 
 /** Whether an effect runs at the sampling frequency the unit is at. */
