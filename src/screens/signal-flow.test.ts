@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
@@ -6,7 +6,7 @@ import { insertCurveGainDb } from "../model/levels";
 import { panLawDb } from "../model/pan-law";
 import { unitById } from "../model/units";
 import { blockReduction, meterLevels, shownLevels } from "./meters";
-import { CUE_METER, gateSpec, tapId } from "./signal-flow";
+import { CUE_METER, drawAtOneMoment, gateSpec, tapId } from "./signal-flow";
 
 // The synthetic signal is carried through the mixer the way the unit routes it.
 // Each case reads two meters at one moment, so the signal's own wander cancels
@@ -494,6 +494,26 @@ describe("a bar's fall", () => {
     expect(shownLevels(store, "osc", 1, AT + 1000)).toEqual([expect.closeTo(-36, 9)]);
     await store.set("osc.on", true);
     expect(shownLevels(store, "osc", 1, AT + 1100)).toEqual([-6]);
+  });
+});
+
+describe("the moment a screen reads at", () => {
+  it("reads every meter of one draw at one moment, and each reading outside a draw at its own", async () => {
+    const store = await unit();
+    const id = tapId("ch_5_6", "input");
+    let now = AT;
+    const clock = vi.spyOn(Date, "now").mockImplementation(() => (now += 250));
+    try {
+      const twice = (): number[][] => [meterLevels(store, id, 2), meterLevels(store, id, 2)];
+      const [drawnFirst, drawnSecond] = drawAtOneMoment(twice);
+      expect(drawnSecond).toEqual(drawnFirst);
+      const [outer, inner, after] = drawAtOneMoment(() => [meterLevels(store, id, 2), drawAtOneMoment(() => meterLevels(store, id, 2)), meterLevels(store, id, 2)]);
+      expect([inner, after], "a draw inside a draw keeps the outer one's moment").toEqual([outer, outer]);
+      const [first, second] = twice();
+      expect(second).not.toEqual(first);
+    } finally {
+      clock.mockRestore();
+    }
   });
 });
 

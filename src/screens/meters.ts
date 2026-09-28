@@ -14,7 +14,7 @@ import { DETECTOR_OFFSET, type DetectorKind, METER_FALL_DB_PER_S, SIGNAL_LAMP_DB
 import { SILENT_DB } from "../model/signal";
 import type { Strip } from "../model/types";
 import { GATE_DEFAULTS } from "../model/defaults";
-import { CLIP_DB, type GrSpec, type Tap, clipSafe, flowCtx, flowLanes, flowLevels, heardOn, pairMembers, reductionAt, tapId } from "./signal-flow";
+import { CLIP_DB, type GrSpec, type Tap, clipSafe, flowCtx, flowLanes, flowLevels, heardOn, pairMembers, readingMoment, reductionAt, tapId } from "./signal-flow";
 
 export { CUE_METER, type GrSpec, clipSafe, oscillatorLevel, pairMeterId, tapId } from "./signal-flow";
 
@@ -98,7 +98,7 @@ export function markClipSafe(store: DeviceStore, node: HTMLElement, connector: S
  * is the moment the synthetic signal is read at, so two readings can be taken of
  * the same instant.
  */
-export function meterLevels(store: DeviceStore, id: string, channels: number, at = Date.now()): number[] {
+export function meterLevels(store: DeviceStore, id: string, channels: number, at = readingMoment()): number[] {
   const members = pairMembers(id);
   if (members) {
     return Array.from({ length: channels }, (_, c) => {
@@ -118,7 +118,7 @@ const shown = new WeakMap<DeviceStore, Map<string, { db: number; at: number }>>(
  * Meter values as a bar shows them at `at`: rising at once to what the meter
  * reads, and falling no faster than METER_FALL_DB_PER_S.
  */
-export function shownLevels(store: DeviceStore, id: string, channels: number, at = Date.now()): number[] {
+export function shownLevels(store: DeviceStore, id: string, channels: number, at = readingMoment()): number[] {
   let seen = shown.get(store);
   if (!seen) shown.set(store, (seen = new Map()));
   return meterLevels(store, id, channels, at).map((db, lane) => {
@@ -136,7 +136,7 @@ export function shownLevels(store: DeviceStore, id: string, channels: number, at
  * the spec names. A device's meters carry a level for each lane and nothing of
  * what makes it up, so on a device the detector hears the louder lane as read.
  */
-function detectorLevel(store: DeviceStore, spec: GrSpec, at = Date.now()): number {
+function detectorLevel(store: DeviceStore, spec: GrSpec, at = readingMoment()): number {
   if (source) return Math.max(...meterLevels(store, spec.level, 2, at));
   return heardOn(spec, flowLanes(flowCtx(store), spec.level, at));
 }
@@ -146,7 +146,7 @@ function detectorLevel(store: DeviceStore, spec: GrSpec, at = Date.now()): numbe
  * block's own values and the level its detector hears. A block that is off
  * takes nothing off.
  */
-export function blockReduction(store: DeviceStore, spec: GrSpec, at = Date.now()): number {
+export function blockReduction(store: DeviceStore, spec: GrSpec, at = readingMoment()): number {
   return reductionAt(store, spec, detectorLevel(store, spec, at));
 }
 
@@ -158,7 +158,7 @@ export type LampState = "off" | "open" | "holding" | "shut";
  * and shuts a range under it, DUCKER opens under its threshold on its key and
  * shuts a range over it. A block that is off lights none.
  */
-export function blockLampState(store: DeviceStore, spec: GrSpec, at = Date.now()): LampState {
+export function blockLampState(store: DeviceStore, spec: GrSpec, at = readingMoment()): LampState {
   const level = detectorLevel(store, spec, at);
   const b = spec.base;
   if (spec.kind === "gate") {

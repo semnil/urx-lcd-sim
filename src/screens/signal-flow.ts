@@ -103,6 +103,25 @@ export function stripTap(fc: FlowCtx, strip: Strip, tap: Tap): string {
   return pair ? pairMeterId(tapId(pair[0].id, tap), tapId(pair[1].id, tap)) : tapId(strip.id, tap);
 }
 
+// ---------------------------------------------------------------- the moment a reading is taken at
+
+/** The moment the screen being drawn reads at, while one is being drawn. */
+let drawnAt: number | undefined;
+
+/** The moment a reading that names none is taken at: the moment of the screen being drawn, or now. */
+export const readingMoment = (): number => drawnAt ?? Date.now();
+
+/** Draw with `draw`, every reading it takes that names no moment taken at one moment, so a screen agrees with itself. */
+export function drawAtOneMoment<T>(draw: () => T): T {
+  if (drawnAt !== undefined) return draw();
+  drawnAt = Date.now();
+  try {
+    return draw();
+  } finally {
+    drawnAt = undefined;
+  }
+}
+
 // ---------------------------------------------------------------- the input sources
 
 /**
@@ -142,7 +161,7 @@ const clipSafeStates = new WeakMap<DeviceStore, Map<number, number>>();
  * CLIP_SAFE_HOLD_MS after the last clip, engaged for as long. The A.Gain setting
  * stays where it is. Switched off, it forgets what it heard.
  */
-export function clipSafe(store: DeviceStore, n: number, at = Date.now()): { engaged: boolean; reduction: number } {
+export function clipSafe(store: DeviceStore, n: number, at = readingMoment()): { engaged: boolean; reduction: number } {
   let states = clipSafeStates.get(store);
   if (!states) clipSafeStates.set(store, (states = new Map()));
   if (!store.bool(jackParam(n, "clipSafe"), false)) {
@@ -190,7 +209,7 @@ function oscillatorLane(store: DeviceStore, at: number): Lane {
 }
 
 /** What the oscillator is putting out in dB, or silence while it is off. */
-export function oscillatorLevel(store: DeviceStore, at = Date.now()): number {
+export function oscillatorLevel(store: DeviceStore, at = readingMoment()): number {
   return levelDb(oscillatorLane(store, at));
 }
 
