@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
+import { bandResponse } from "../model/eq-response";
 import { insertCurveGainDb } from "../model/levels";
 import { panLawDb } from "../model/pan-law";
 import { unitById } from "../model/units";
@@ -261,6 +262,37 @@ describe("the buses", () => {
     await store.set("ch.bus.mix1.send.bus.stereo.on", true);
     await store.set("ch.bus.mix1.level", -10);
     expect(read(store, tapId("bus.stereo", "sum"))).toEqual([expect.closeTo(-30, 6), SILENT]);
+  });
+
+  it("take the oscillator's sine through their EQ at its frequency, and its noise by the EQ's pink-noise gain", async () => {
+    const store = await unit();
+    await only(store);
+    await store.set("osc.on", true);
+    await store.set("osc.level", -20);
+    await store.set("osc.assign.stereoL", false);
+    await store.set("osc.assign.stereoR", false);
+    await store.set("osc.assign.mix1L", true);
+    const lanes = (): number[] => (["sum", "preFader", "post"] as const).map((tap) => read(store, tapId("bus.mix1", tap))[0] ?? SILENT);
+    const at = async (hz: number): Promise<number[]> => {
+      await store.set("osc.frequency", hz);
+      return lanes();
+    };
+    expect(await at(100), "a flat EQ passes the sine").toEqual([-20, -20, -20].map((db) => expect.closeTo(db, 6)));
+    await store.set("ch.bus.mix1.eq.low.shape", "HPF");
+    await store.set("ch.bus.mix1.eq.low.freq", 2000);
+    const hpf = bandResponse({ on: true, shape: "HPF", freq: 2000, q: 0.71, gain: 0 });
+    const [, low = 0, lowPost = 0] = await at(100);
+    const [, high = 0, highPost = 0] = await at(10000);
+    expect(low, "100 Hz under a 2 kHz HPF").toBeCloseTo(-20 + hpf(100), 6);
+    expect(high, "10 kHz over it").toBeCloseTo(-20 + hpf(10000), 6);
+    expect(low, "the HPF takes 100 Hz far further down").toBeLessThan(high - 40);
+    expect([lowPost, highPost], "and the bus puts out what its EQ leaves").toEqual([low, high].map((db) => expect.closeTo(db, 6)));
+    await store.set("ch.bus.mix1.eq.on", false);
+    expect(await at(100), "the EQ switched off passes it again").toEqual([-20, -20, -20].map((db) => expect.closeTo(db, 6)));
+    await store.set("ch.bus.mix1.eq.on", true);
+    await store.set("osc.mode", "Pink Noise");
+    const [pinkLow, pinkHigh] = [(await at(100))[1], (await at(10000))[1]];
+    expect(pinkHigh, "noise takes no frequency of the oscillator's").toBe(pinkLow);
   });
 });
 

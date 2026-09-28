@@ -1190,7 +1190,8 @@ and URX44 run the same laws, bar the number of channels.
 ### Blocks
 
 - The EQ and the HPF take the level up or down by their power gain on pink noise, averaged over the whole
-  band (20 Hz..20 kHz). A stereo channel's EQ passes the signal at 176.4 / 192 kHz.
+  band (20 Hz..20 kHz), and the oscillator's sine by their response at its Frequency, the curve the EQ screen
+  draws. A stereo channel's EQ passes the signal at 176.4 / 192 kHz.
 - An input INS FX amp (Clean, Crunch, Lead, Drive) and Pitch Fix put out what a table of pink noise
   taken through the unit at the effect's own values says (`INSERT_CURVES`). An effect over its sampling
   frequency limit passes the signal.

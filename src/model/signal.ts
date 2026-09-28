@@ -18,6 +18,8 @@ export interface Part {
   amp: number;
   /** Whether it is a steady tone rather than a noise-like signal. */
   tone: boolean;
+  /** A steady tone's frequency in Hz, where it is one frequency. */
+  hz?: number;
 }
 
 /** What one lane carries. */
@@ -28,10 +30,10 @@ export const dbToAmp = (db: number): number => (db === Number.NEGATIVE_INFINITY 
 /** Parts quieter than this are dropped: no meter reads them. */
 const FLOOR_AMP = dbToAmp(-160);
 
-/** One signal at `db` on its own. */
-export function part(key: string, db: number, tone = false): Lane {
+/** One signal at `db` on its own; a steady tone of one frequency carries it in `hz`. */
+export function part(key: string, db: number, tone = false, hz?: number): Lane {
   const amp = dbToAmp(db);
-  return amp > FLOOR_AMP ? [{ key, amp, tone }] : [];
+  return amp > FLOOR_AMP ? [{ key, amp, tone, ...(hz === undefined ? {} : { hz }) }] : [];
 }
 
 /** `lane` taken up (or down) by `db`. */
@@ -39,6 +41,16 @@ export function gain(lane: Lane, db: number): Lane {
   if (db === 0) return lane;
   const k = dbToAmp(db);
   return lane.filter((p) => Math.abs(p.amp * k) > FLOOR_AMP).map((p) => ({ ...p, amp: p.amp * k }));
+}
+
+/**
+ * `lane` through a filter: a tone of one frequency by the filter's `response`
+ * at that frequency, every other part by `db`, what the filter does to pink noise.
+ */
+export function filtered(lane: Lane, db: number, response: () => (hz: number) => number): Lane {
+  if (!lane.some((p) => p.hz !== undefined)) return gain(lane, db);
+  const at = response();
+  return lane.flatMap((p) => gain([p], p.hz === undefined ? db : at(p.hz)));
 }
 
 /** `lane` with every part inverted. */
