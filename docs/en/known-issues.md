@@ -60,6 +60,10 @@ is built is in [screen-inventory.md](screen-inventory.md).
 - **COMP's Auto Makeup only takes the Gain.** Switching it on leaves the Gain division reading out
   and not turning, and the reading is the one it held before, since what the unit works out is not
   known.
+- **Lead's and Drive's Master only silence the amp at the bottom.** On the unit a Master under where it
+  ships takes the output down as well, by an amount that follows the input's level and whether it is a tone
+  or noise (0 to 10 dB at a quarter of its travel; URX44V, measured on 2026-09-28). This simulator leaves the
+  output where the effect's table puts it for every Master value but the bottom.
 
 ## What the unit itself does not do
 

@@ -13,7 +13,7 @@ import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, GATE_DEFAULTS, SSMCS_DEFAULTS, fa
 import { COMPANDER_EXPANSION, COMP_KNEE_WIDTH, OVER_REDUCTION_MAX_DB, SSMCS_CORNER_FLOOR_DB, compReductionDb, companderResponse, duckerReductionDb, gateReductionDb, ssmcsCorner } from "../model/dynamics";
 import { bandResponse } from "../model/eq-response";
 import { SSMCS_BAND_KEYS, fourBandResponse, fourBands, pinkGainDb, ssmcsBand, ssmcsEqResponse } from "../model/channel-eq";
-import { type EffectOption, FX_EFFECTS, FX_EFFECT_DEFAULT, INPUT_INSERT_EFFECTS, NO_EFFECT, OUTPUT_INSERT_EFFECTS, effectParams } from "../model/effects";
+import { type EffectOption, FX_EFFECTS, FX_EFFECT_DEFAULT, INPUT_INSERT_EFFECTS, NO_EFFECT, OUTPUT_INSERT_EFFECTS, effectParams, guitarOutputDb } from "../model/effects";
 import {
   DETECTOR_OFFSET,
   type DetectorKind,
@@ -273,6 +273,35 @@ function blockOn(store: DeviceStore, spec: GrSpec): boolean {
 /** The compander a detector belongs to, by name. */
 const COMPANDER_OF: Partial<Record<DetectorKind, string>> = { companderS: "Compander-S", companderH: "Compander-H" };
 
+/** An effect's value under `base`, and the value it ships at. */
+function effectValue(store: DeviceStore, base: string, effect: string, key: string): { value: number; shipped: number } {
+  const p = effectParams(effect).find((x) => x.key === key);
+  const shipped = p && p.kind === "num" ? p.fallback : 0;
+  return { value: store.num(`${base}.${key}`, shipped), shipped };
+}
+
+/**
+ * How far an effect's output level controls stand from where they ship, in dB:
+ * M.B.Comp's Out Gain dB for dB, an amp's Output by its own scale, and an amp's
+ * Master at its bottom silencing it. The effects' tables are read at the values
+ * they ship at, so this is what the table's output moves by.
+ */
+function outputLevelDb(store: DeviceStore, base: string, effect: string): number {
+  if (effect === "M.B.Comp") {
+    const { value, shipped } = effectValue(store, base, effect, "outGain");
+    return value - shipped;
+  }
+  const scale = (step: number): number => (step <= 0 ? Number.NEGATIVE_INFINITY : guitarOutputDb(step));
+  const has = (key: string): boolean => effectParams(effect).some((p) => p.key === key);
+  let db = 0;
+  if (has("output")) {
+    const { value, shipped } = effectValue(store, base, effect, "output");
+    db += scale(value) - scale(shipped);
+  }
+  if (has("master") && effectValue(store, base, effect, "master").value <= 0) db = Number.NEGATIVE_INFINITY;
+  return db;
+}
+
 /**
  * What an insert's compander named by `spec` does when it hears `heard`: the gain
  * its curve gives the level, and how far that is under the gain on the flat of the
@@ -281,10 +310,7 @@ const COMPANDER_OF: Partial<Record<DetectorKind, string>> = { companderS: "Compa
 function compander(store: DeviceStore, spec: GrSpec, heard: number): { gain: number; reduction: number } | undefined {
   const name = spec.detector ? COMPANDER_OF[spec.detector] : undefined;
   if (!name) return undefined;
-  const value = (key: string): number => {
-    const p = effectParams(name).find((x) => x.key === key);
-    return store.num(`${spec.base}.${key}`, p && p.kind === "num" ? p.fallback : 0);
-  };
+  const value = (key: string): number => effectValue(store, spec.base, name, key).value;
   const [threshold, ratio, width, out] = [value("threshold"), Math.max(1, value("ratio")), value("width"), value("gain")];
   const gain = companderResponse(threshold, ratio, width, out, COMPANDER_EXPANSION[name] ?? 1)(heard) - heard;
   const flat = out - threshold * (1 - 1 / ratio);
@@ -666,7 +692,7 @@ function monoChannels(f: FlowBuilder, sums: Sums): void {
     const option = INPUT_INSERT_EFFECTS.find((o) => o.name === effect);
     let out = into;
     if (effect !== NO_EFFECT && store.bool(`${base}.on`, false) && runs(option, f.rate)) {
-      if (INSERT_CURVES[effect]) out = gain(into, insertCurveGainDb(effect, levelDb(into)));
+      if (INSERT_CURVES[effect]) out = gain(into, insertCurveGainDb(effect, levelDb(into)) + outputLevelDb(store, base, effect));
       else out = gain(into, f.insertGain(insertSpec(fc, s, effect, base)));
     }
     f.put(s.id, "preFader", [out]);
@@ -749,7 +775,7 @@ function busesOut(f: FlowBuilder, base: Sums, ducking: Ducking): void {
       const loudest = into.reduce((a, lane) => (levelDb(lane) > levelDb(a) ? lane : a), [] as Lane);
       made =
         insertDetector(effect) === "mbc"
-          ? curveGainDb(MBC_CURVES[mostlyTone(loudest) ? "tone" : "noise"], levelDb(loudest))
+          ? curveGainDb(MBC_CURVES[mostlyTone(loudest) ? "tone" : "noise"], levelDb(loudest)) + outputLevelDb(store, `${b}.insFx`, effect)
           : f.insertGain(insertSpec(fc, s, effect, `${b}.insFx`));
     }
     const post = f.put(s.id, "post", into.map((lane) => gain(lane, made)));

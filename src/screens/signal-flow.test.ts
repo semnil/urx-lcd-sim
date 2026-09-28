@@ -7,7 +7,8 @@ import { insertCurveGainDb } from "../model/levels";
 import { panLawDb } from "../model/pan-law";
 import { unitById } from "../model/units";
 import { blockReduction, meterLevels, shownLevels } from "./meters";
-import { CUE_METER, drawAtOneMoment, gateSpec, tapId } from "./signal-flow";
+import { guitarOutputDb } from "../model/effects";
+import { CUE_METER, drawAtOneMoment, flowCtx, gateSpec, listenedTap, tapId } from "./signal-flow";
 
 // The synthetic signal is carried through the mixer the way the unit routes it.
 // Each case reads two meters at one moment, so the signal's own wander cancels
@@ -511,6 +512,64 @@ describe("an insert's compander and M.B.Comp", () => {
     await store.set("ch.bus.mix1.insFx.effect", "M.B.Comp");
     await store.set("ch.bus.mix1.insFx.on", true);
     expect(read(store, tapId("bus.mix1", "post"))[0]).toBeCloseTo(-16, 6);
+  });
+
+  it("moves M.B.Comp's output by its Out Gain, dB for dB from where it ships, and every meter the bus feeds with it", async () => {
+    const store = await unit();
+    await into(store, -20, true);
+    await store.set("ch.bus.mix1.insFx.effect", "M.B.Comp");
+    await store.set("ch.bus.mix1.insFx.on", true);
+    await store.set("ch.bus.mix1.send.bus.stereo.on", true);
+    await store.set("ch.bus.mix1.cue", true);
+    await store.set("monitor.1.source", "MIX 1");
+    await store.set("monitor.1.cueInterrupt", false);
+    const mix1 = unitById("URX44V").outputs.find((o) => o.id === "bus.mix1");
+    const recorded = mix1 ? listenedTap(flowCtx(store), mix1) : "";
+    const meters = (): number[] => [tapId("bus.mix1", "post"), tapId("bus.stereo", "sum"), CUE_METER, "monitor.1", recorded].map((id) => read(store, id)[0] ?? SILENT);
+    const shipped = meters();
+    expect(shipped[0], "at the Out Gain it ships at, the unit's own table").toBeCloseTo(-16, 6);
+    for (const [outGain, moved] of [[12, 8], [-12, -16]] as const) {
+      await store.set("ch.bus.mix1.insFx.outGain", outGain);
+      expect(meters(), `Out Gain ${outGain}: MIX 1, STEREO through TO ST, CUE, MONITOR and the record track`).toEqual(shipped.map((db) => expect.closeTo(db + moved, 6)));
+    }
+  });
+});
+
+describe("an input insert's amp", () => {
+  /** CH 3 alone on a source at -30 dB into its insert, the amp `effect` on it. */
+  async function amp(effect: string): Promise<DeviceStore> {
+    const store = await unit();
+    await only(store, "ch3");
+    await store.set("ch.ch3.source", "USB MAIN A");
+    const [now = 0] = meterLevels(store, tapId("ch3", "preIns"), 1, AT);
+    await store.set("source.usb-main-a.digitalGain", -14 - 30 - now);
+    await store.set("ch.ch3.insFx.effect", effect);
+    await store.set("ch.ch3.insFx.on", true);
+    return store;
+  }
+  const out = (store: DeviceStore): number[] => [tapId("ch3", "preFader"), tapId("ch3", "post"), tapId("bus.stereo", "sum")].map((id) => read(store, id)[0] ?? SILENT);
+
+  it("moves the amp's output by its Output, along the Output's own scale from where it ships, and what the channel feeds with it", async () => {
+    for (const [effect, shipped] of [["Clean", 64], ["Crunch", 47], ["Lead", 42], ["Drive", 43]] as const) {
+      const store = await amp(effect);
+      const before = out(store);
+      await store.set("ch.ch3.insFx.output", 96);
+      const moved = guitarOutputDb(96) - guitarOutputDb(shipped);
+      expect(out(store), `${effect} Output ${shipped} → 96`).toEqual(before.map((db) => expect.closeTo(db + moved, 6)));
+      await store.set("ch.ch3.insFx.output", 0);
+      expect(out(store)[0], `${effect} Output at its bottom`).toBe(SILENT);
+    }
+  });
+
+  it("silences Lead and Drive at the bottom of their Master, and leaves them where they are over where it ships", async () => {
+    for (const effect of ["Lead", "Drive"]) {
+      const store = await amp(effect);
+      const before = out(store);
+      await store.set("ch.ch3.insFx.master", 10);
+      expect(out(store), `${effect} Master at its top`).toEqual(before);
+      await store.set("ch.ch3.insFx.master", 0);
+      expect(out(store), `${effect} Master at its bottom`).toEqual([SILENT, SILENT, SILENT]);
+    }
   });
 });
 

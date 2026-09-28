@@ -1193,15 +1193,17 @@ and URX44 run the same laws, bar the number of channels.
   band (20 Hz..20 kHz), and the oscillator's sine by their response at its Frequency, the curve the EQ screen
   draws. A stereo channel's EQ passes the signal at 176.4 / 192 kHz.
 - An input INS FX amp (Clean, Crunch, Lead, Drive) and Pitch Fix put out what a table of pink noise
-  taken through the unit at the effect's own values says (`INSERT_CURVES`). An effect over its sampling
-  frequency limit passes the signal.
+  taken through the unit at the effect's own values says (`INSERT_CURVES`). An amp's Output moves that by
+  its own scale from where it ships, as it does on the unit, and its Master at the bottom silences it; the
+  other Master values leave the table as it is. An effect over its sampling frequency limit passes the signal.
 - An insert's compander puts out what the curve its screen draws gives. What goes into the curve is what its
   detector hears: a tone 0.8 dB over the meter's reading on Compander-S and 0.25 dB over on Compander-H, a
   noise 2.7 dB under on Compander-S and 7.1 dB under on Compander-H (fitted to the unit's sweeps at the
   defaults and at a -24 dB threshold; within 1.1 dB on a tone and 4 to 7 dB on pink noise). Its reduction bar
   reads how far the gain is under the gain on the flat of the curve, between the width and the threshold, as
   the unit's GR meter does. M.B.Comp puts out what a table of pink noise and of a tone taken through the unit
-  at the effect's own values says (`MBC_CURVES`).
+  at the effect's own values says (`MBC_CURVES`), moved dB for dB by its Out Gain from the +4 dB it ships at,
+  as on the unit.
 - An FX channel returns what goes into it at a level set by the effect it runs (the pink noise difference
   at the unit's own values, `FX_RETURN_DB`). FX2 is silent in and out at 176.4 / 192 kHz.
 - The detectors of GATE, COMP, DUCKER, the SSMCS compressor and M.B.Comp hear
