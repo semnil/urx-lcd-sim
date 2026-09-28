@@ -451,6 +451,18 @@ describe("the microSD card browser", () => {
     expect(state(), "let go").toEqual([false, -1]);
   });
 
+  it("leaves SAVE/LOAD's Delete and Rename out of reach where the list has no row under the cursor", async () => {
+    const shell = await mount({ id: "microsd.saveload" }, []);
+    await pickTab(shell, "ui.sdSaveTab", "Edit");
+    // New folder, Delete, Rename.
+    expect(usable(shell), "an empty card").toEqual([true, false, false]);
+    const filled = await mount({ id: "microsd.saveload" });
+    await pickTab(filled, "ui.sdSaveTab", "Edit");
+    await filled.ctx.store.set("sd.selectedFile", 1);
+    await flush();
+    expect(usable(filled), "the control: a file under the cursor").toEqual([true, true, true]);
+  });
+
   it("sizes the bar's thumb by whole rows, three of four in view taking three quarters of its travel, a pixel in from the rim", async () => {
     const shell = await mount({ id: "microsd.saveload" });
     await shell.ctx.store.set("sd.files", "a/\nb\nc\nd");
