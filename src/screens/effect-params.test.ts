@@ -816,6 +816,43 @@ describe("the screen an effect is set on", () => {
   });
 });
 
+describe("rows the unit leaves to the operator", () => {
+  /** Whether the readout cell named `label` turns, and what turning it up one step does to the value at `path`. */
+  const turns = async (shell: Shell, label: string, path: string): Promise<[boolean, boolean]> => {
+    const cell = [...shell.root.querySelectorAll<HTMLElement>(".knob-strip .knob-cell")].find((c) => c.querySelector(".knob-cell-label")?.textContent === label);
+    const before = shell.ctx.store.num(path, Number.NaN);
+    cell?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
+    await flush();
+    return [cell?.hasAttribute("aria-disabled") === false, shell.ctx.store.num(path, Number.NaN) !== before];
+  };
+
+  it("leaves Clean's Speed and Depth turning whichever of Cho, Off and Vib is picked", async () => {
+    // URX44V, 2026-09-22: the rows look and turn the same on Cho, Off and Vib; "Not available when Cho is On" is about the sound.
+    const shell = await mount([{ id: "channel-view", strip: "ch1" }, { id: "ch.insfx", strip: "ch1" }]);
+    await click(shell, ".insfx-effect");
+    await pick(shell, "Clean");
+    await click(shell, ".efx-page-next");
+    for (const mod of ["Cho", "Off", "Vib"]) {
+      await shell.ctx.store.set("ch.ch1.insFx.mod", mod);
+      await flush();
+      expect([await turns(shell, "Speed", "ch.ch1.insFx.modSpeed"), await turns(shell, "Depth", "ch.ch1.insFx.modDepth")], mod).toEqual([
+        [true, true],
+        [true, true],
+      ]);
+    }
+  });
+
+  it("leaves a delay's time turning while Sync is on, and Sync on after it", async () => {
+    // URX44V, 2026-09-22: the Delay row keeps its face and turns under Sync.
+    const shell = await mount([{ id: "channel-view", strip: "fx2" }, { id: "ch.effect", strip: "fx2" }]);
+    expect(shell.ctx.store.str("ch.fx2.effect.type", ""), "FX 2 ships on Mono Delay").toBe("Mono Delay");
+    await shell.ctx.store.set("ch.fx2.effect.sync", true);
+    await flush();
+    expect(await turns(shell, "Delay", "ch.fx2.effect.delay")).toEqual([true, true]);
+    expect(shell.ctx.store.bool("ch.fx2.effect.sync", false)).toBe(true);
+  });
+});
+
 describe("a compander", () => {
   const openParams = async (strip: string, effect: string): Promise<Shell> => {
     const shell = await mount([{ id: "channel-view", strip }, { id: "ch.insfx", strip }]);
