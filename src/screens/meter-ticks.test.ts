@@ -55,7 +55,7 @@ async function follow(shell: Shell, routes: Route[], id: string, read: () => unk
   const silent = read();
   for (const [step, db] of [["at 0 dB", 0], ["back in silence", -96]] as const) {
     levels[id] = db;
-    const stop = startMeterTicker(shell.ctx.store, shell.root, 20);
+    const stop = startMeterTicker(shell.ctx.store, shell.root, 200);
     vi.advanceTimersByTime(4000);
     stop();
     const ticked = read();
