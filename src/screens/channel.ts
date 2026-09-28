@@ -1787,8 +1787,9 @@ export const sendToScreen: ScreenDef = {
     const stored = ctx.store.str("ui.sendToGroup", "MIX");
     const group = groups.some((g) => g.key === stored) ? stored : (groups[0]?.key ?? "ST");
     const targets = sendTargets(ctx, strip, group);
-    // A bus taking its sends at a fixed level gives the knob nothing to turn.
-    const specs = targets.map((t) => (sendLocks(ctx, t).busFixed ? null : faderSpec(`${base}.send.${t.id}.level`, "Level")));
+    // A bus taking its sends at a fixed level gives the knob nothing to turn, and
+    // the stereo bus takes a channel at its own fader, with no level of its own.
+    const specs = targets.map((t) => (sendLocks(ctx, t).busFixed || t.kind === "stereo" ? null : faderSpec(`${base}.send.${t.id}.level`, "Level")));
     ctx.setKnobs([specs[0] ?? null, specs[1] ?? null, null, null]);
     return {
       main: el("div", {
@@ -1802,9 +1803,12 @@ export const sendToScreen: ScreenDef = {
           const noTap = busFixed || t.kind === "stereo";
           // The send carries its own placing; the level is on the knob under it.
           // A bus on Pan Link places the send by its source channel instead, and
-          // the row is named after what it is then reading.
-          const placing = panLinked ? "PAN" : "Bal";
-          const balSpec = panSpec(sendPanPath(ctx, strip, t), `${t.label} ${placing}`);
+          // the row is named after what it is then reading. The stereo bus places
+          // the channel where the channel itself stands, and turning it here turns
+          // the channel's own PAN.
+          const toStereo = t.kind === "stereo";
+          const placing = panLinked ? "PAN" : toStereo && stripPosition(ctx, strip).caption === "PAN" ? "Pan" : "Bal";
+          const balSpec = panSpec(toStereo ? stripPosition(ctx, strip).path : sendPanPath(ctx, strip, t), `${t.label} ${placing}`);
           const balance = ctx.store.num(balSpec.path, 0);
           // A fixed bus takes the send at one level, so the unit offers neither
           // the tap nor the placing. Both keep their place on the cell.

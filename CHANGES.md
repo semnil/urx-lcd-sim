@@ -7,6 +7,7 @@
 - Take an insert's compander along the curve its screen draws, lifting what sits on the flat of the curve as the unit does, and read its reduction bar from that flat; take M.B.Comp along the unit's own readings. They only held the level down over their threshold.
 - Keep a strip's signal dot lit while it clips, and light it from about -40 dB, as the unit does.
 - Let bars, clip marks and the indicator dots fall at 30 dB a second rather than at once.
+- Give the stereo bus on SEND TO no level of its own, and show and turn the channel's own PAN there, captioned `Pan`, as the unit does.
 - Leave the title of a scene number with nothing stored under it empty on the SCENE LIST and the HOME scene box, where it read `No Scene`.
 - Shut [Recall] on a scene number with nothing stored under it, as the unit does.
 - Recall the Simple Mode presets P01 Live Music 0, P02 Streaming 0 and P03 DAW Rec 0 with the mixer each holds; recalling them only moved the recalled number. A URX22 takes the presets' channels in order, its HI-Z CH 2 taking the presets' CH 3.

@@ -1033,7 +1033,11 @@ reaches the stereo bus alone and so shows no tabs (the table under the side menu
 leaves the pick alone.
 
 A send's tap (PRE / POST) is taken against the stereo bus's own fader, so a send into the stereo bus
-is that reference and carries no tap: [PRE] goes from its cell, keeping its room. The placing stays.
+is that reference and carries no tap: [PRE] goes from its cell, keeping its room. A send into the
+stereo bus has no level and no placing of its own either: no Level goes on the knob, the pan slider and
+its value show the channel's own PAN (BAL), and turning the value box turns the channel's PAN. On a channel
+placed by its PAN the value is captioned `Pan` (CH 3's PAN at L20 shows `Pan` L20 in the STEREO cell, and
+one step of the box takes CH 3's PAN to L21; confirmed on a URX44V on 2026-09-28).
 
 A cell is a column like a HOME strip, 98px wide and 181px high: under a 36px `--surface-raised` band
 naming the destination come [ON], [PRE], the send's own pan slider, and `Bal` with its value (measured

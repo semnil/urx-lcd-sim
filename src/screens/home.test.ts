@@ -969,6 +969,22 @@ describe("the SEND TO destination tabs", () => {
     ]);
   });
 
+  it("gives the stereo bus no level of its own, and places a channel into it by the channel's own PAN, turned from here", async () => {
+    const shell = await mount();
+    await shell.ctx.store.set("ch.ch1.pan", -20);
+    await shell.ctx.store.set("ui.sendToGroup", "ST");
+    shell.ctx.nav.push({ id: "ch.sendto", strip: "ch1" });
+    await flush();
+    expect(cells(shell)).toEqual(["STEREO"]);
+    expect(shell.root.querySelectorAll('.knob-cell[role="slider"]'), "no level on a knob").toHaveLength(0);
+    const bal = shell.root.querySelector<HTMLElement>(".sendto-bal .value-box");
+    expect([shell.root.querySelector(".sendto-bal-caption")?.textContent, bal?.textContent], "the channel's PAN").toEqual(["Pan", "L20"]);
+    expect([bal?.hasAttribute("aria-disabled"), bal?.tabIndex], "in reach").toEqual([false, 0]);
+    bal?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    await flush();
+    expect(shell.ctx.store.num("ch.ch1.pan", 0), "turning it turns the channel's PAN").toBe(-19);
+  });
+
   it("stacks the three groups down the rail, one of them lit", async () => {
     const shell = await mount();
     shell.ctx.nav.push({ id: "ch.sendto", strip: "ch1" });
