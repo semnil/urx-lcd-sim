@@ -36,20 +36,22 @@ import {
   stripLane,
   stripLanes,
 } from "./strip-state";
-import { CUE_METER, lampState, meterLevels, simulatedLevel } from "./meters";
+import { CUE_METER, homeMeterTap, lampState, lampTap, meterLevels, simulatedLevel, tapId } from "./meters";
 import { sceneNumber, sceneTitle } from "./scene";
 
 /**
  * The pair of lamps every indicator block opens with: the left one is green
- * while the strip is passing signal at or under 0 dBFS, the right one is the
- * strip's clip lamp. They stand at the block's top left on every kind of strip.
+ * while the strip is passing signal, the right one is the strip's clip lamp.
+ * They stand at the block's top left on every kind of strip, and read what the
+ * strip takes in (`lampTap`).
  */
 function indicatorLamps(ctx: AppContext, strip: Strip): HTMLElement {
-  const levels = simulatedLevel(ctx, strip, strip.kind !== "monoIn");
+  const tap = lampTap(strip);
+  const levels = simulatedLevel(ctx, strip, strip.kind !== "monoIn", tap);
   const { signal, clip } = lampState(levels);
   return el("div", {
     class: "ind-dots",
-    attrs: { "data-lamp-source": strip.id, "data-lamp-channels": String(levels.length) },
+    attrs: { "data-lamp-source": tapId(strip.id, tap), "data-lamp-channels": String(levels.length) },
     children: [
       el("span", { class: `dot dot-signal${signal ? " is-on" : ""}` }),
       el("span", { class: `dot dot-clip${clip ? " is-on" : ""}` }),
@@ -273,7 +275,7 @@ function stripView(ctx: AppContext, strip: Strip, selected: boolean, linkedTo?: 
           ? // The meter's column is held so the block keeps the width it has on
             // every other strip.
             [indicators, el("div", { class: "strip-meter-gap" })]
-          : [indicators, meter({ levels: simulatedLevel(ctx, strip, stereo), source: strip.id })],
+          : [indicators, meter({ levels: simulatedLevel(ctx, strip, stereo, homeMeterTap(strip)), source: tapId(strip.id, homeMeterTap(strip)) })],
       }),
       el("div", { class: "strip-buttons", children: streaming ? [cueBtn] : [onBtn, cueBtn] }),
       ...(streaming

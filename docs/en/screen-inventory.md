@@ -225,13 +225,12 @@ last clip. A clip read while it is held down counts again, and one read as soon 
 holds it down again at once. While it is engaged, INPUT's [Clip Safe] and the channel view's [SAFE] turn
 from the lit cyan to the orange of a lit GATE switch. The orange, its showing while Clip Safe is engaged,
 and Clip Safe staying engaged while the clipping goes on are the operator's own. It is `clipSafe()` in
-`src/screens/meters.ts`.
+`src/screens/signal-flow.ts`.
 
 In the synthetic signal, a MIC/LINE connector's input rises by as much as its A.Gain does, and its peaks
 start to reach 0 dB at an A.Gain of +44 dB (at the factory -8 dB it averages -58 dB). Channels on one
 connector read the same input. INPUT's two meters and the meter in the channel view's input area read
-before the fader, and the fader and [ON] do not move them (the Input meter in the user guide's "INPUT
-screen").
+the channel's input, and the EQ, INS FX, fader and [ON] do not move them ("The signal the meters read").
 
 The figures disagree on a space before the unit (p114-1 has `-69 dB`, p099-1 and p104-1 have
 `-33dB`). The unit has no space, consistently.
@@ -513,11 +512,11 @@ are shared with HOME's STEREO/CUE meter. A meter draws as many bars as the strip
 The reduction bar reads what the screen's own block is holding down. GATE reads its RANGE while the
 signal is at or under the threshold; COMP reads how far the
 curve it is drawing sits under unity; DUCKER compares the level of
-the strip named as Ducker Source against the threshold and stops at the RANGE. The OUT meter reads
-that far below IN, less what the block adds back after it (COMP's makeup) — where the makeup is
-deeper than the reduction, OUT reads above IN. A block that holds nothing down (DELAY, INS FX on
-[No Effect]) meters IN and OUT alike. The bar and the OUT offset are worked out again by the ticker
-that keeps the meters moving without redrawing the screen.
+the strip named as Ducker Source against the threshold and stops at the RANGE. IN and OUT read the
+block's own input and output, so OUT reads that far below IN, less what the block adds back after it
+(COMP's makeup) — where the makeup is deeper than the reduction, OUT reads above IN. A block that holds
+nothing down (DELAY switched off, INS FX on [No Effect]) meters IN and OUT alike. The bar and IN / OUT
+are read again by the ticker that keeps the meters moving without redrawing the screen.
 
 On a stereo-linked pair, what each block's detector hears differs by block (confirmed on the unit on
 2026-09-26).
@@ -1034,7 +1033,11 @@ reaches the stereo bus alone and so shows no tabs (the table under the side menu
 leaves the pick alone.
 
 A send's tap (PRE / POST) is taken against the stereo bus's own fader, so a send into the stereo bus
-is that reference and carries no tap: [PRE] goes from its cell, keeping its room. The placing stays.
+is that reference and carries no tap: [PRE] goes from its cell, keeping its room. A send into the
+stereo bus has no level and no placing of its own either: no Level goes on the knob, the pan slider and
+its value show the channel's own PAN (BAL), and turning the value box turns the channel's PAN. On a channel
+placed by its PAN the value is captioned `Pan` (CH 3's PAN at L20 shows `Pan` L20 in the STEREO cell, and
+one step of the box takes CH 3's PAN to L21; confirmed on a URX44V on 2026-09-28).
 
 A cell is a column like a HOME strip, 98px wide and 181px high: under a 36px `--surface-raised` band
 naming the destination come [ON], [PRE], the send's own pan slider, and `Bal` with its value (measured
@@ -1121,6 +1124,115 @@ of its name's ink, leaving out the tails of y and g.
 
 Output Patch's two tabs stand a pixel closer than the others, the second starting at y114 (p059-1,
 p060-2).
+
+## The signal the meters read
+
+The simulator has no audio. The meters read a synthetic signal that every input source carries of its
+own, taken through the mixer along the unit's own routing (`src/screens/signal-flow.ts`). The laws and
+the points read in this section were confirmed on a URX44V (System 1.3.1.0) on 2026-09-28. The URX22
+and URX44 run the same laws, bar the number of channels.
+
+### Input sources
+
+- Each source carries a signal of its own that wanders slowly within 7 dB either way, apart for each
+  source and each of its sides. Channels taking the same side of the same source move together.
+- A source sits where it wanders about -26 dB at its shipped D.Gain: USB MAIN A / B / C and USB SUB at
+  -12 dB before their D.Gain, AUX IN, USB DAW, HDMI and microSD Playback at -26 dB. Moving the D.Gain
+  moves it as far.
+- A MIC/LINE connector sits at -50 dB plus its A.Gain (Clip Safe is in "Head amp in the channel view").
+- microSD Playback sounds only while a file plays. None is silent.
+- A mono channel on a stereo source takes the left side on an odd-numbered channel and the right on an
+  even-numbered one.
+- The oscillator puts out its Level on Sine Wave, 2 dB under it on Pink Noise (the median of the unit's
+  meter), and its Level for the width alone on Burst Noise.
+
+### Summing
+
+- Where one signal (the same side of the same source) meets itself on a bus, the two add as amplitudes:
+  6 dB up at the same level, and cancelling where one is inverted by Φ.
+- Different signals add as powers (3 dB up for two at one level). The oscillator on Sine Wave adds as an
+  amplitude to any other signal too (the meters read peaks; on the unit two tones of different frequency
+  read 6 dB up, and two separate pink noises 4 dB up).
+- An FX channel's return adds as a signal apart from what went into it.
+
+### Placing (PAN and BAL)
+
+- PAN, a send's placing into a MIX bus, and BAL follow one law: 0 dB on both sides at the centre, 3 dB
+  up on the side it leans to at the end, and the other side falling as it leans and silent at the end.
+  The figures are a table read off the unit at every one of the 127 steps (`src/model/pan-law.ts`); the
+  two sides mirror each other.
+- BAL raises or lowers each side by its own side's figure and sends nothing across.
+- A stereo-linked pair placed on its BAL puts the odd-numbered channel on the left alone and the
+  even-numbered one on the right alone, each at 0 dB at the centre.
+
+### Sends
+
+- PRE is taken after the channel's EQ and INS FX and before its fader (on a stereo channel, before
+  DUCKER); POST after the fader (on a stereo channel, after DUCKER). The channel's [ON] stops a PRE send
+  as well.
+- The assign to the stereo bus (SEND TO's STEREO [ON]) cuts the way into the stereo bus alone and no
+  other send. The level into the stereo bus is the channel's fader, and its placing the channel's PAN
+  (BAL).
+- A send into a MIX bus on FIXED takes the signal after the fader at 0 dB, whatever the send's level and
+  [PRE], placed by the channel's PAN (BAL). A send into a MIX bus on Pan Link is placed by the channel's PAN as well.
+- A stereo channel goes into an FX bus as one signal, its two sides each 3 dB down and summed, and its
+  BAL has no say.
+- A MIX bus's TO ST puts the signal after the MIX fader, BAL, [ON] and INS FX into the stereo bus at 0 dB.
+
+### CUE and MONITOR
+
+- CUE takes a channel and an FX channel before the fader, [ON] and PAN (after the EQ and INS FX), MIX and
+  STEREO after their fader and INS FX, and STREAMING after its DELAY, and sums what is cued. A mono
+  channel goes to both sides at one level.
+- While CUE Interrupt is on and something is cued, MONITOR puts out the cue in place of its source. MONO
+  puts the two sides, each 3 dB down and summed, on both sides. [ON] and LEVEL act after that.
+
+### Blocks
+
+- The EQ and the HPF take the level up or down by their power gain on pink noise, averaged over the whole
+  band (20 Hz..20 kHz), and the oscillator's sine by their response at its Frequency, the curve the EQ screen
+  draws. A stereo channel's EQ passes the signal at 176.4 / 192 kHz.
+- An input INS FX amp (Clean, Crunch, Lead, Drive) and Pitch Fix put out what a table of pink noise
+  taken through the unit at the effect's own values says (`INSERT_CURVES`). An amp's Output moves that by
+  its own scale from where it ships, as it does on the unit, and its Master at the bottom silences it; the
+  other Master values leave the table as it is. An effect over its sampling frequency limit passes the signal.
+- An insert's compander puts out what the curve its screen draws gives. What goes into the curve is what its
+  detector hears: a tone 0.8 dB over the meter's reading on Compander-S and 0.25 dB over on Compander-H, a
+  noise 2.7 dB under on Compander-S and 7.1 dB under on Compander-H (fitted to the unit's sweeps at the
+  defaults and at a -24 dB threshold; within 1.1 dB on a tone and 4 to 7 dB on pink noise). Its reduction bar
+  reads how far the gain is under the gain on the flat of the curve, between the width and the threshold, as
+  the unit's GR meter does. M.B.Comp puts out what a table of pink noise and of a tone taken through the unit
+  at the effect's own values says (`MBC_CURVES`), moved dB for dB by its Out Gain from the +4 dB it ships at,
+  as on the unit.
+- An FX channel returns what goes into it at a level set by the effect it runs (the pink noise difference
+  at the unit's own values, `FX_RETURN_DB`). FX2 is silent in and out at 176.4 / 192 kHz.
+- The detectors of GATE, COMP, DUCKER, the SSMCS compressor and M.B.Comp hear
+  a set distance off the meter's reading, set by the block and by whether the signal is a tone or a noise
+  (`DETECTOR_OFFSET`). A DUCKER keyed by a stereo source (a stereo channel or a bus) hears from the two
+  sides summed. A channel key is taken at that channel's Rec Point.
+
+### What each meter reads
+
+| Meter | What it reads |
+| --- | --- |
+| A HOME strip's meter | On a channel, MIX and STEREO, after the EQ and INS FX and before [ON] and the fader; on FX, the effect's output; on STREAMING, before its DELAY |
+| The two dots in a HOME strip's indicator block | On a channel, its input; on FX, the effect's output; on MIX and STEREO, the sum (before the EQ) |
+| HOME's STEREO/CUE meter | The stereo bus after its INS FX; the cue while anything is cued |
+| The channel view's LEVEL meter | After the fader (on MIX and STEREO, after the INS FX; on STREAMING, after its DELAY) |
+| The channel view's input area and the INPUT screen's meters | On a channel, its input; on FX, what its bus brings (one bar); on MIX and STEREO, the sum (before the EQ); on STREAMING, before its DELAY |
+| A block screen's IN / OUT | The block's own input and output; the three SSMCS screens the whole strip's, DELAY's OUT after the delay |
+| The COMP Side Chain screen's SC meter | The SSMCS input plus the SC-Gain |
+| The MONITOR screen's meter | After the LEVEL |
+| A RECORDER track's meter | A channel at its Rec Point, a bus as it goes out |
+
+- The left dot (signal) lights green from about -40 dBFS and stays lit while the right dot (clip) is red.
+  The right dot lights only while the level clips (0 dB).
+- While the level just ahead of a fader clips, the meter just after the fader reads the clip even with [ON]
+  off and the fader down (on MONO IN and FX the LEVEL meter, on a stereo channel the one before DUCKER, on
+  MIX and STEREO the one before the INS FX). The meters after DUCKER and the INS FX do not, and nothing of
+  it goes on.
+- Bars, clip marks and the indicator dots rise at once and fall at 30 dB a second. Reduction bars carry
+  no tail.
 
 ## Meter scale
 

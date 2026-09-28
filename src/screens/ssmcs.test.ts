@@ -1,11 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { Shell } from "../app/shell";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { SSMCS_DEFAULTS, factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
-import { setMeterSource } from "./meters";
 import { compResponse } from "./channel";
 import { declarations, px, readStyle } from "../style/css-read";
 
@@ -527,31 +526,35 @@ describe("where the strip puts its boxes", () => {
 });
 
 describe("the side chain's own meter", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("reads what the filter is feeding the detector, and its floor while the chain is open", async () => {
-    setMeterSource(() => [-30]);
-    try {
-      const shell = await mount();
-      await shell.ctx.store.set("ch.ch1.comp.on", false);
-      shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
-      shell.ctx.nav.push({ id: "ch.ssmcs.sc", strip: "ch1" });
-      await flush();
-      const bar = (): string => shell.root.querySelector<HTMLElement>(".ssmcs-sc-meter .meter-bar")?.style.getPropertyValue("--unlit") ?? "";
-      expect(bar(), "nothing reaches the detector while the compressor is off").toBe("100%");
+    // One moment, so the signal's own wander stays out of the comparison.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(1_700_000_000_000);
+    const shell = await mount();
+    await shell.ctx.store.set("ch.ch1.compEqOrder", "SSMCS");
+    await shell.ctx.store.set("ch.ch1.gain", 30);
+    await shell.ctx.store.set("ch.ch1.comp.on", false);
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    shell.ctx.nav.push({ id: "ch.ssmcs.sc", strip: "ch1" });
+    await flush();
+    const bar = (): string => shell.root.querySelector<HTMLElement>(".ssmcs-sc-meter .meter-bar")?.style.getPropertyValue("--unlit") ?? "";
+    expect(bar(), "nothing reaches the detector while the compressor is off").toBe("100%");
 
-      await shell.ctx.store.set("ch.ch1.comp.on", true);
-      await flush();
-      const lit = bar();
-      expect(lit, "the key is metered once the chain is closed").not.toBe("100%");
+    await shell.ctx.store.set("ch.ch1.comp.on", true);
+    await flush();
+    const lit = bar();
+    expect(lit, "the key is metered once the chain is closed").not.toBe("100%");
 
-      await shell.ctx.store.set("ch.ch1.ssmcs.sc.gain", SSMCS_DEFAULTS.sc.gain + 6);
-      await flush();
-      expect(Number.parseFloat(bar()), "and the filter's gain lifts it").toBeLessThan(Number.parseFloat(lit));
+    await shell.ctx.store.set("ch.ch1.ssmcs.sc.gain", SSMCS_DEFAULTS.sc.gain + 6);
+    await flush();
+    expect(Number.parseFloat(bar()), "and the filter's gain lifts it").toBeLessThan(Number.parseFloat(lit));
 
-      await shell.ctx.store.set("ch.ch1.ssmcs.sc.on", false);
-      await flush();
-      expect(bar(), "an open side chain feeds nothing").toBe("100%");
-    } finally {
-      setMeterSource(null);
-    }
+    await shell.ctx.store.set("ch.ch1.ssmcs.sc.on", false);
+    await flush();
+    expect(bar(), "an open side chain feeds nothing").toBe("100%");
   });
 });

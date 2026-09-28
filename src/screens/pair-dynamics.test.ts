@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { Shell } from "../app/shell";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
@@ -8,9 +8,10 @@ import { levelBarShare } from "../model/dynamics";
 import { captureScene } from "../model/scene-state";
 import { captureSettings } from "../model/settings-file";
 import { findStrip } from "../model/types";
+import { digitalGainPath } from "../model/source-gain";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
-import { setMeterSource, startMeterTicker } from "./meters";
+import { meterLevels, startMeterTicker, tapId } from "./meters";
 import { recallScene, storeScene } from "./scene";
 import { compDetectorShared } from "./stereo-link";
 
@@ -18,21 +19,47 @@ import { compDetectorShared } from "./stereo-link";
 // signal and CH 2 silent: GATE and an insert hear the pair's louder channel; COMP
 // hears it from the moment the pair is linked until the linked pair is taken into
 // SSMCS, and each channel its own after that; SSMCS hears each channel its own.
+// The clock stands still but for the ticker's own steps, so each channel arrives
+// at the level it is put at.
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
-let levels: Record<string, number> = {};
-afterEach(() => setMeterSource(null));
+afterEach(() => vi.useRealTimers());
+
+/** The source each channel of the pair is on, so each is set apart by its own D.Gain. */
+const SOURCES: Record<string, string> = { ch1: "USB MAIN A", ch2: "USB MAIN B" };
+
+/** Bring channel `id` in at `db`: its source's D.Gain moved so it arrives there now, or its source on None for silence. */
+async function level(shell: Shell, id: string, db: number): Promise<void> {
+  const store = shell.ctx.store;
+  const source = SOURCES[id] ?? "";
+  if (db <= -96) {
+    await store.set(`ch.${id}.source`, "None");
+    return;
+  }
+  await store.set(`ch.${id}.source`, source);
+  const [now = 0] = meterLevels(store, tapId(id, "input"), 1);
+  await store.set(digitalGainPath(source), store.num(digitalGainPath(source), -14) + db - now);
+}
 
 async function mount(): Promise<Shell> {
-  levels = { ch1: -12, ch2: -96 };
-  setMeterSource((id, channels) => Array.from({ length: channels }, () => levels[id] ?? -96));
+  vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
+  vi.setSystemTime(1_700_000_000_000);
   const model = unitById("URX44V");
   const store = new DeviceStore();
   await store.attach(new SimTransport(factoryState(model)));
   const shell = new Shell(buildRegistry(), store, model);
   await flush();
+  await level(shell, "ch1", -12);
+  await level(shell, "ch2", -96);
   return shell;
+}
+
+/** Run the meter ticker once. */
+function tick(shell: Shell): void {
+  const stop = startMeterTicker(shell.ctx.store, shell.root, 20);
+  vi.advanceTimersByTime(20);
+  stop();
 }
 
 async function open(shell: Shell, id: string, strip: string): Promise<void> {
@@ -67,9 +94,17 @@ const outUnlit = (shell: Shell): string[] =>
 /** What a level meter leaves unlit at `db`. */
 const unlitAt = (db: number): string => `${(1 - levelBarShare(db)) * 100}%`;
 
-/** The OUT meter's offset for each lane on the screen open now, in dB. */
-const outOffsets = (shell: Shell): number[] =>
-  ([...shell.root.querySelectorAll<HTMLElement>(".dyn-io .meter")][1]?.dataset["meterOffset"] ?? "0").split(" ").map(Number);
+/** The two meters of the screen open now, IN and OUT, as they read now, lane by lane. */
+const inOut = (shell: Shell): number[][] =>
+  [...shell.root.querySelectorAll<HTMLElement>(".dyn-io .meter")].map((m) =>
+    meterLevels(shell.ctx.store, m.dataset["meterSource"] ?? "", m.querySelectorAll(".meter-bar").length),
+  );
+
+/** How far under its IN each OUT lane of the screen open now reads, in dB. */
+const outOffsets = (shell: Shell): number[] => {
+  const [into = [], out = []] = inOut(shell);
+  return out.map((db, i) => Math.round(((into[i] ?? -96) - db) * 1e6) / 1e6);
+};
 
 const shared = (shell: Shell): boolean => {
   const strip = findStrip(shell.ctx.model, "ch1");
@@ -117,6 +152,8 @@ describe("what a stereo-linked pair's dynamics hear", () => {
 
   it("holds both channels down by the pair's louder channel with COMP from the moment the pair is linked", async () => {
     const shell = await mount();
+    // CH 2 carries a signal under the threshold, so its lane shows what is taken off it.
+    await level(shell, "ch2", -30);
     await pick(shell, "Signal Type", "STEREO");
     await compOn(shell);
     await open(shell, "ch.comp", "ch1");
@@ -126,13 +163,14 @@ describe("what a stereo-linked pair's dynamics hear", () => {
     await open(shell, "ch.comp", "ch2");
     expect(grBar(shell), "CH 2's screen reads the same reduction").toBe(own);
     expect(outOffsets(shell), "and takes it off both OUT lanes").toEqual(ownOut);
-    expect(ownOut).toHaveLength(1);
+    expect(ownOut).toHaveLength(2);
+    expect(ownOut[1], "alike").toBeCloseTo(ownOut[0] ?? NaN, 6);
   });
 
   it("lets each channel's COMP hear its own channel once the linked pair has been through SSMCS, until it is linked again", async () => {
     const shell = await mount();
     // CH 2 carries a signal under the threshold, so its lane shows where it is drawn.
-    levels["ch2"] = -30;
+    await level(shell, "ch2", -30);
     await pick(shell, "Signal Type", "STEREO");
     await pick(shell, "COMP / EQ", "SSMCS");
     await pick(shell, "COMP / EQ", "COMP->EQ");
@@ -148,7 +186,9 @@ describe("what a stereo-linked pair's dynamics hear", () => {
     const makeup = shell.ctx.store.num("ch.ch2.comp.gain", 0);
     expect(right, "CH 2's lane is only raised by the makeup").toBe(-makeup);
     expect(Number(left), "while CH 1's comes down by its own reduction").toBeGreaterThan(Number(right));
-    expect(outUnlit(shell), "each lane drawn by its own").toEqual([unlitAt(-12 - Number(left)), unlitAt(-30 - Number(right))]);
+    expect(outUnlit(shell).map(Number.parseFloat), "each lane drawn by its own").toEqual(
+      [unlitAt(-12 - Number(left)), unlitAt(-30 - Number(right))].map((u) => expect.closeTo(Number.parseFloat(u), 4)),
+    );
 
     await pick(shell, "Signal Type", "MONO x 2");
     await pick(shell, "Signal Type", "STEREO");
@@ -260,22 +300,21 @@ describe("what a stereo-linked pair's dynamics hear", () => {
 
   it("keeps each OUT lane moving by its own channel's reduction", async () => {
     const shell = await mount();
-    levels["ch2"] = -30;
+    await level(shell, "ch2", -30);
     await pick(shell, "Signal Type", "STEREO");
     await pick(shell, "COMP / EQ", "SSMCS");
     await pick(shell, "COMP / EQ", "COMP->EQ");
     await compOn(shell);
     await open(shell, "ch.comp", "ch2");
     const before = outOffsets(shell);
-    levels["ch1"] = 0;
-    const stop = startMeterTicker(shell.ctx.store, shell.root, 20);
-    await new Promise((resolve) => setTimeout(resolve, 60));
-    stop();
+    await level(shell, "ch1", 0);
+    tick(shell);
     const after = outOffsets(shell);
     expect(after).toHaveLength(2);
     expect(Number(after[0]), "CH 1's lane follows CH 1 going up").toBeGreaterThan(Number(before[0]));
     expect(after[1], "CH 2's lane stays where CH 2 holds it").toBe(before[1]);
-    expect(outUnlit(shell), "and each lane is drawn by its own").toEqual([unlitAt(0 - Number(after[0])), unlitAt(-30 - Number(after[1]))]);
+    const [, out = []] = inOut(shell);
+    expect(outUnlit(shell), "and each lane is drawn by its own").toEqual(out.map(unlitAt));
   });
 
   it("takes the louder channel rather than the two together", async () => {
@@ -284,14 +323,16 @@ describe("what a stereo-linked pair's dynamics hear", () => {
     await compOn(shell);
     await open(shell, "ch.comp", "ch2");
     const one = grBar(shell);
-    levels["ch2"] = -12;
+    await level(shell, "ch2", -12);
     await open(shell, "ch.comp", "ch2");
     expect(grBar(shell)).toBe(one);
   });
 
   it("holds each OUT lane of a pair in SSMCS down by its own channel", async () => {
     const shell = await mount();
-    levels = { ch1: 0, ch2: -96 };
+    // CH 2 carries a signal well under the corner, so its lane shows what is taken off it.
+    await level(shell, "ch1", 0);
+    await level(shell, "ch2", -60);
     await pick(shell, "Signal Type", "STEREO");
     await pick(shell, "COMP / EQ", "SSMCS");
     await shell.ctx.store.set("ch.ch1.ssmcs.compDrive", 10);
@@ -313,18 +354,17 @@ describe("SSMCS's and a Compander's reduction as the signal moves", () => {
    * ticker has run and again after the screen is opened afresh: the two agree.
    */
   async function follow(shell: Shell, screen: string): Promise<void> {
-    levels = { ch1: -96, ch2: -96 };
+    await level(shell, "ch1", -96);
+    await level(shell, "ch2", -96);
     await open(shell, screen, "ch1");
     const silent = reading(shell);
     for (const [step, db] of [["over the threshold", 0], ["back under it", -96]] as const) {
-      levels["ch1"] = db;
-      const stop = startMeterTicker(shell.ctx.store, shell.root, 20);
-      await new Promise((resolve) => setTimeout(resolve, 60));
-      stop();
+      await level(shell, "ch1", db);
+      tick(shell);
       const ticked = reading(shell);
       await open(shell, screen, "ch1");
       expect(ticked, `${screen} ${step}: the ticker reads what the screen reads when opened`).toEqual(reading(shell));
-      if (db === 0) expect(ticked.out.some((d) => d > 0), `${screen} ${step}: OUT comes down`).toBe(true);
+      if (db === 0) expect(ticked.gr, `${screen} ${step}: the bar holds it down`).not.toBe("0%");
       else expect(ticked, `${screen} ${step}: as it read in silence`).toEqual(silent);
     }
   }
@@ -365,13 +405,11 @@ describe("SSMCS's and a Compander's reduction as the signal moves", () => {
   it("lets a Compander that is switched off stop holding the signal down as the meters move", async () => {
     const shell = await mount();
     await compander(shell);
-    levels = { ch1: 0, ch2: -96 };
+    await level(shell, "ch1", 0);
     await open(shell, "ch.insfx", "ch1");
-    expect(reading(shell).out.some((d) => d > 0), "on, it holds CH 1 down").toBe(true);
+    expect(reading(shell).gr, "on, it holds CH 1 down").not.toBe("0%");
     await shell.ctx.store.set("ch.ch1.insFx.on", false);
-    const stop = startMeterTicker(shell.ctx.store, shell.root, 20);
-    await new Promise((resolve) => setTimeout(resolve, 60));
-    stop();
+    tick(shell);
     expect(reading(shell), "off, the ticker lets go").toEqual({ gr: "0%", out: [0] });
   });
 
@@ -380,9 +418,14 @@ describe("SSMCS's and a Compander's reduction as the signal moves", () => {
     await pick(shell, "Signal Type", "STEREO");
     await compander(shell);
     await follow(shell, "ch.insfx");
-    // CH 2 alone holds the pair down too, on CH 1's screen.
-    levels = { ch1: -96, ch2: 0 };
+    // CH 2 alone sets the pair's gain too, on CH 1's screen: CH 1 is well under the threshold, and alone
+    // its lane would be lifted by the whole flat of the curve, 30 dB at -40 dB and 4:1.
+    await level(shell, "ch1", -60);
+    await level(shell, "ch2", 0);
     await open(shell, "ch.insfx", "ch1");
-    expect(reading(shell).out.every((d) => d > 0), "CH 2's signal holds both lanes down").toBe(true);
+    const [left = 0, right = 0] = reading(shell).out;
+    expect(left, "CH 2's signal sets both lanes' gain").toBeCloseTo(right, 6);
+    expect(left, "not CH 1's own").toBeGreaterThan(-20);
+    expect(reading(shell).gr, "and the bar holds it down").not.toBe("0%");
   });
 });

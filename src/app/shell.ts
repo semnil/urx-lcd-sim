@@ -16,6 +16,7 @@ import type { NumericSpec } from "../ui/param-spec";
 import { BRIGHTNESS_MAX, formatValue } from "../ui/param-spec";
 import type { ScreenBody, ScreenRegistry } from "../screens/types";
 import { recordMode } from "../screens/recording";
+import { drawAtOneMoment } from "../screens/signal-flow";
 import { dateDraftWriteRule } from "../screens/date-time";
 import { hiZWriteRule } from "../screens/head-amp";
 import { delaySyncWriteRule } from "../model/effects";
@@ -174,7 +175,7 @@ export class Shell {
       return;
     }
 
-    const body = def.build(this.ctx, route);
+    const body = drawAtOneMoment(() => def.build(this.ctx, route));
     this.mainNode.appendChild(body.main);
     // USER DEFINED KNOBS mode replaces the readout strip with the bank
     // assignments, so it shows even where the screen suppresses the normal one.

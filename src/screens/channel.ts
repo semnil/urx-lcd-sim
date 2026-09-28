@@ -6,9 +6,9 @@ import type { Route } from "../app/navigator";
 import type { ParamPath, ParamValue } from "../device/path";
 import type { DeviceStore, WriteRule } from "../device/store";
 import { clamp } from "../device/store";
-import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, EQ_BAND_SHAPE_SHIPPED, GATE_DEFAULTS, compEqBankDefaults, faderShipped, sendShipsOn, ssmcsBankDefaults } from "../model/defaults";
+import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, GATE_DEFAULTS, compEqBankDefaults, faderShipped, sendShipsOn, ssmcsBankDefaults } from "../model/defaults";
 import { COMP_KNEE_WIDTH, compResponse, grBarShare, levelBarShare } from "../model/dynamics";
-import { eqResponse } from "../model/eq-response";
+import { EQ_SHAPES, eqBandOn, eqBandShape, fourBandResponse } from "../model/channel-eq";
 import type { Strip } from "../model/types";
 import { findStrip, sendsTo } from "../model/types";
 import { CH_COLOR_NONE, CH_COLOR_OFF, CH_COLOR_PALETTE } from "../model/units";
@@ -18,8 +18,9 @@ import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
 import { compRatioSpec, dbSpec, faderSpec, formatValue, freqSpec, intSpec, logFreqSpec, msSpec, panSpec } from "../ui/param-spec";
 import { attachDrag, attachSpin, followFocus, knobControl, markFocus, meter, panSlider, pickerSheet, pulldown, sideTab, toggle, unbuilt, valueBox } from "../ui/widgets";
-import { type GrSpec, type LampState, blockReduction, inputMeterId, laneNetDb, markBlockLamps, markClipSafe, markLevelBar, markReduction, meterLevels, pairMeterId, showBlockLamps, simulatedInput, simulatedLevel } from "./meters";
-import { PAN_BAL, SIGNAL_TYPES, carriesStereo, compDetectorShared, enterSsmcs, linkedPair, setPanBal, setSignalType, signalType, stripPosition } from "./stereo-link";
+import { type GrSpec, type LampState, blockReduction, inputMeterId, markBlockLamps, markClipSafe, markLevelBar, markReduction, meterLevels, showBlockLamps, simulatedInput, simulatedLevel } from "./meters";
+import { type Tap, compSpec, duckerSources, duckerSpec, gateSpec, stripTap, tapId } from "./signal-flow";
+import { PAN_BAL, SIGNAL_TYPES, carriesStereo, enterSsmcs, setPanBal, setSignalType, signalType, stripPosition } from "./stereo-link";
 import { BUS_TYPES, busType, panLinkOn, sendLocks, sendPanPath, setBusType, setPanLink } from "./mix-bus";
 import { homeSide, sceneBox } from "./home";
 import { headAmp, headAmpSwitch } from "./head-amp";
@@ -230,16 +231,7 @@ export function block(
 function eqThumb(ctx: AppContext, stripId: string): HTMLElement {
   const W = 78;
   const H = 42;
-  const base = `ch.${stripId}`;
-  const at = eqResponse(
-    EQ_BANDS.map((b) => ({
-      on: eqBandOn(ctx, base, b.key),
-      shape: eqBandShape(ctx, base, b.key),
-      freq: ctx.store.num(`${base}.eq.${b.key}.freq`, 1000),
-      q: ctx.store.num(`${base}.eq.${b.key}.q`, 0.71),
-      gain: ctx.store.num(`${base}.eq.${b.key}.gain`, 0),
-    })),
-  );
+  const at = fourBandResponse(ctx.store, `ch.${stripId}`);
   const pts: string[] = [];
   for (let x = 0; x <= W; x += 2) {
     const hz = EQ_HZ_MIN * (EQ_HZ_MAX / EQ_HZ_MIN) ** (x / W);
@@ -299,39 +291,21 @@ function liveLamps(ctx: AppContext, spec: GrSpec): HTMLElement {
 
 /** GATE opens for a signal over the threshold and shuts once it is a range under. */
 function gateLamps(ctx: AppContext, strip: Strip, base: string): HTMLElement {
-  return liveLamps(ctx, { kind: "gate", base, level: pairMeter(ctx, strip), makeup: 0 });
+  return liveLamps(ctx, { ...gateSpec(ctx, strip), base });
 }
 
 /** How many names the ducker's key list sets across. */
 const DUCKER_SOURCE_COLUMNS = 8;
 
 /**
- * What a ducker can listen to, in the order the unit lists them: the input
- * channels, then the stereo bus and the two mix buses. The list names a channel
- * by its numbers alone (`1`, `5/6`) and the stereo bus `ST`; the box over it
- * carries the channel's own name.
- */
-function duckerSources(ctx: AppContext): { label: string; boxed: string; strip: Strip }[] {
-  const channels = ctx.model.inputs
-    .filter((s) => s.kind === "monoIn" || s.kind === "stIn")
-    .map((s) => ({ label: s.channels.join("/"), boxed: s.label, strip: s }));
-  const stereo = ctx.model.outputs
-    .filter((s) => s.kind === "stereo")
-    .map((s) => ({ label: "ST", boxed: "ST", strip: s }));
-  const mixes = ctx.model.outputs.filter((s) => s.kind === "mix").map((s) => ({ label: s.label, boxed: s.label, strip: s }));
-  return [...channels, ...stereo, ...mixes];
-}
-
-/**
  * DUCKER holds its channel down while the ducker source is over the threshold,
  * and right down to the range once the source is a range over it.
  */
-function duckerLamps(ctx: AppContext, base: string): HTMLElement {
-  const source = ctx.store.str(`${base}.ducker.source`, DUCKER_SOURCE_DEFAULT);
-  const key = duckerSources(ctx).find((s) => s.label === source)?.strip;
+function duckerLamps(ctx: AppContext, strip: Strip, base: string): HTMLElement {
+  const spec = duckerSpec(ctx, strip);
   // A key that is not in the list is silent, which holds nothing down.
-  if (!key) return blockLamps(ctx.store.bool(`${base}.ducker.on`, false) ? "open" : "off");
-  return liveLamps(ctx, { kind: "ducker", base, level: key.id, makeup: 0 });
+  if (!spec) return blockLamps(ctx.store.bool(`${base}.ducker.on`, false) ? "open" : "off");
+  return liveLamps(ctx, { ...spec, base });
 }
 
 /**
@@ -346,8 +320,8 @@ function compMeters(ctx: AppContext, strip: Strip, base: string, marked: boolean
   // with the threshold marked on the same scale, and the reduction on the
   // reduction bars' own.
   const level = bar("", 0);
-  markLevelBar(level, ctx.store, strip.id);
-  const gr: GrSpec = { ...compSpec(ctx, strip, base, ctx.store.num(`${base}.comp.gain`, COMP_DEFAULTS.gain)), row: true };
+  markLevelBar(level, ctx.store, tapId(strip.id, "preComp"));
+  const gr: GrSpec = { ...compSpec(ctx, strip), base, row: true };
   const reduce = bar("comp-reduce", grBarShare(blockReduction(ctx.store, gr)));
   markReduction(reduce, gr);
   return el("div", {
@@ -395,11 +369,12 @@ export const channelViewScreen: ScreenDef = {
     const position = stripPosition(ctx, strip);
     const panParam = { ...panSpec(position.path, position.caption) };
     const levelSpec = faderSpec(`${base}.level`, "LEVEL", faderShipped(strip));
-    // Only an input channel has a head amp. A bus shows its level down that
-    // column instead, with nothing to set there.
+    // Only an input channel has a head amp. A bus meters what it takes in down
+    // that column instead, with nothing to set there.
     const inputChannel = mono || strip.kind === "stIn";
-    // An input channel's meter there reads its level as it arrives, before the fader.
-    const gainMeterId = inputChannel ? inputMeterId(strip.id) : strip.id;
+    // The meter there reads what the strip takes in: a channel's input, an FX
+    // channel's bus, a MIX or STEREO bus's sum, STREAMING's feed before its DELAY.
+    const gainMeterId = strip.kind === "mix" || strip.kind === "stereo" ? tapId(strip.id, "sum") : inputMeterId(strip.id);
     const gainMeter = (stereo: boolean): number[] => meterLevels(ctx.store, gainMeterId, stereo ? 2 : 1);
 
     // The streaming bus has no position, no level and no on/off — it is fed,
@@ -439,8 +414,8 @@ export const channelViewScreen: ScreenDef = {
               class: "cv-gain-stack",
               children: gainSpec ? [valueBox(ctx, gainSpec), knobControl(ctx, gainSpec, 38)] : [],
             }),
-            // A two-channel strip meters the channel in view alone.
-            stripLanes(strip) === 2
+            // A two-channel strip meters the channel in view alone; an FX channel's bus is one.
+            stripLanes(strip) === 2 && strip.kind !== "fx"
               ? meter({ levels: [gainMeter(true)[stripLane(ctx, strip)] ?? -96], source: gainMeterId, lane: stripLane(ctx, strip) })
               : meter({ levels: gainMeter(false), source: gainMeterId }),
           ],
@@ -554,7 +529,7 @@ export const channelViewScreen: ScreenDef = {
       blocks.push(
         eqBlock(),
         block(ctx, "DUCKER", "ducker", `${base}.ducker.on`, false,
-          el("div", { class: "cv-block-body", children: [duckerValue, duckerLamps(ctx, base)] }),
+          el("div", { class: "cv-block-body", children: [duckerValue, duckerLamps(ctx, strip, base)] }),
           () => ctx.nav.push({ id: "ch.ducker", strip: strip.id }),
           { spec: ducker, frame: duckerValue },
         ),
@@ -1013,23 +988,6 @@ export function plotHandle(
   svg.append(grp, layer);
 }
 
-/**
- * What the compressor's reduction is read from: a linked pair's louder channel
- * while its compressors hear the pair, and otherwise the channel itself, with
- * each OUT lane of a pair held down by its own channel.
- */
-function compSpec(ctx: AppContext, strip: Strip, base: string, makeup: number): GrSpec {
-  const linked = linkedPair(ctx, strip);
-  const shared = compDetectorShared(ctx, strip);
-  return {
-    kind: "comp",
-    base,
-    level: shared ? pairMeter(ctx, strip) : strip.id,
-    ...(linked && !shared ? { lanes: linked.map((s) => s.id) } : {}),
-    makeup,
-  };
-}
-
 /** A caption over a value box, as the dynamics screens stack them down the right. */
 export function dynSetting(ctx: AppContext, spec: NumericSpec, caption = spec.label): HTMLElement {
   return el("div", {
@@ -1038,25 +996,33 @@ export function dynSetting(ctx: AppContext, spec: NumericSpec, caption = spec.la
   });
 }
 
-/** The meter of a strip's own level: both channels of a stereo-linked pair, the lower-numbered one first. */
-export function pairMeter(ctx: AppContext, strip: Strip): string {
-  const linked = linkedPair(ctx, strip);
-  return linked ? pairMeterId(linked[0].id, linked[1].id) : strip.id;
-}
+/** A block whose own screen meters what goes into it and what comes out. */
+export type MeteredBlock = "gate" | "comp" | "eq" | "insFx" | "ducker" | "ssmcs" | "effect" | "delay";
 
 /**
- * The block's own input and output, as the dynamics screens meter them. OUT reads
- * `attenuationDb` lower: one figure for every lane, or one per lane.
+ * Where a block's IN and OUT meters read: its own input and output on the strip.
+ * The three SSMCS screens meter the strip as a whole, a stereo channel's EQ from
+ * the input, a bus's from its sum, and a bus's insert comes after its fader.
  */
-export function dynMeters(ctx: AppContext, strip: Strip, attenuationDb: number | readonly number[] = 0, gr?: GrSpec): HTMLElement {
-  const source = pairMeter(ctx, strip);
+function blockTaps(strip: Strip, block: MeteredBlock): [Tap, Tap] {
+  if (block === "gate") return ["preGate", "preComp"];
+  if (block === "comp") return ["preComp", "preEq"];
+  if (block === "ssmcs") return ["preComp", "preIns"];
+  if (block === "ducker") return ["preDucker", "post"];
+  if (block === "effect") return ["input", "effect"];
+  if (block === "delay") return ["input", "post"];
+  if (block === "insFx") return strip.kind === "monoIn" ? ["preIns", "preFader"] : ["preIns", "post"];
+  if (strip.kind === "monoIn") return ["preEq", "preIns"];
+  return strip.kind === "stIn" ? ["input", "preFader"] : ["sum", "preFader"];
+}
+
+/** The block's own input and output, as the dynamics screens meter them. */
+export function dynMeters(ctx: AppContext, strip: Strip, block: MeteredBlock): HTMLElement {
   const stereo = carriesStereo(ctx, strip);
-  const column = (caption: string, offset: number | readonly number[], pair: boolean, mark?: GrSpec): HTMLElement => {
-    const offsetAt = (i: number): number => (typeof offset === "number" ? offset : (offset[i] ?? offset[0] ?? 0));
-    const bars = meter({ levels: meterLevels(ctx.store, source, pair ? 2 : 1).map((db, i) => db - offsetAt(i)), source, offset });
-    // The OUT meter's offset is what the block is taking off, so the ticker
-    // works it out again on every tick rather than keeping the built one.
-    if (mark) markReduction(bars, mark);
+  const [into, out] = blockTaps(strip, block);
+  const column = (caption: string, tap: Tap, pair: boolean): HTMLElement => {
+    const source = stripTap(ctx, strip, tap);
+    const bars = meter({ levels: meterLevels(ctx.store, source, pair ? 2 : 1), source });
     return el("div", { class: "dyn-io-col", children: [el("span", { class: "dyn-io-caption", text: caption }), bars] });
   };
   // An FX channel is fed by one bus and returns two, so it is the one block
@@ -1064,26 +1030,20 @@ export function dynMeters(ctx: AppContext, strip: Strip, attenuationDb: number |
   const inPair = stereo && strip.kind !== "fx";
   return el("div", {
     class: "dyn-io",
-    children: [column("IN", 0, inPair), column("OUT", attenuationDb, stereo, gr)],
+    children: [column("IN", into, inPair), column("OUT", out, stereo)],
   });
 }
 
-/**
- * The frame the three dynamics screens share. `gateDb` is what a gate takes off:
- * the reduction meter and the OUT meter show it where it is given, and the
- * compressor's reduction otherwise.
- */
+/** The frame the three dynamics screens share, with the reduction bar reading the block named by `gr`. */
 function dynScreen(
   ctx: AppContext,
   strip: Strip,
   plot: HTMLElement,
   right: (HTMLElement | null)[],
   gr: GrSpec,
+  block: MeteredBlock,
 ): HTMLElement {
-  // The OUT meter reads as far below IN as the bar beside it reads, less what
-  // the block adds back after it.
-  const db = blockReduction(ctx.store, gr);
-  return dynFrame(plot, grBarShare(db), [...right, dynMeters(ctx, strip, laneNetDb(ctx.store, gr), gr)], gr);
+  return dynFrame(plot, grBarShare(blockReduction(ctx.store, gr)), [...right, dynMeters(ctx, strip, block)], gr);
 }
 
 /**
@@ -1147,7 +1107,8 @@ export const gateScreen: ScreenDef = {
             children: [attack, hold, decay].map((s) => dynSetting(ctx, s)),
           }),
         ],
-        { kind: "gate", base: b, level: pairMeter(ctx, strip), makeup: 0 },
+        gateSpec(ctx, strip),
+        "gate",
       ),
       headerLeft: channelSelector(ctx, strip, route, true),
       headerCenter: titleBadge("GATE", "gate", on, () => void ctx.store.set(`${b}.gate.on`, !on)),
@@ -1246,7 +1207,8 @@ export const compScreen: ScreenDef = {
           }),
           el("div", { class: "dyn-sets", children: [attack, release].map((s) => dynSetting(ctx, s)) }),
         ],
-        compSpec(ctx, strip, b, g),
+        compSpec(ctx, strip),
+        "comp",
       ),
       headerLeft: channelSelector(ctx, strip, route, true),
       headerCenter: titleBadge("COMP", "comp", on, () => void ctx.store.set(`${b}.comp.on`, !on)),
@@ -1298,7 +1260,7 @@ export const duckerScreen: ScreenDef = {
             children: [
               el("span", { class: "dyn-caption", text: "Ducker Source" }),
               (() => {
-                const sources = duckerSources(ctx);
+                const sources = duckerSources(ctx.model);
                 const held = ctx.store.str(`${b}.ducker.source`, DUCKER_SOURCE_DEFAULT);
                 // The box carries the channel's own name; the list under it
                 // carries the numbers alone.
@@ -1325,13 +1287,10 @@ export const duckerScreen: ScreenDef = {
           }),
           el("div", { class: "dyn-sets", children: [dynSetting(ctx, threshold)] }),
         ],
-        // The ducker hears the strip its key names, not its own channel.
-        {
-          kind: "ducker",
-          base: b,
-          level: duckerSources(ctx).find((s) => s.label === ctx.store.str(`${b}.ducker.source`, DUCKER_SOURCE_DEFAULT))?.strip.id ?? strip.id,
-          makeup: 0,
-        },
+        // The ducker hears the strip its key names, not its own channel. A key that
+        // is not on the list is silent, which holds nothing down.
+        duckerSpec(ctx, strip) ?? { kind: "held", base: b, level: "", makeup: 0 },
+        "ducker",
       ),
       headerLeft: channelSelector(ctx, strip, route, true),
       headerCenter: titleBadge("DUCKER", "ducker", on, () => void ctx.store.set(`${b}.ducker.on`, !on)),
@@ -1442,7 +1401,7 @@ export const delayScreen: ScreenDef = {
               }),
             ),
           }),
-          dynMeters(ctx, strip),
+          dynMeters(ctx, strip, "delay"),
         ],
       }),
       headerLeft: channelSelector(ctx, strip, route, true),
@@ -1450,18 +1409,6 @@ export const delayScreen: ScreenDef = {
     };
   },
 };
-
-/** The filter shape an EQ band holds, or its first shape where it holds one the band cannot take. */
-function eqBandShape(ctx: AppContext, base: string, key: (typeof EQ_BANDS)[number]["key"]): string {
-  const shapes = EQ_SHAPES[key];
-  const stored = ctx.store.str(`${base}.eq.${key}.shape`, EQ_BAND_SHAPE_SHIPPED[key] ?? "Bell");
-  return shapes.includes(stored) ? stored : (shapes[0] ?? "Bell");
-}
-
-/** Whether an EQ band is on; the band box switches it, and a band switched off shapes no curve. */
-function eqBandOn(ctx: AppContext, base: string, band: string): boolean {
-  return ctx.store.bool(`${base}.eq.${band}.on`, true);
-}
 
 /** The EQ's four bands: the name a reader hears, the shorter one the band box and the knobs show, and which way a held grip's marks point. */
 const EQ_BANDS = [
@@ -1501,7 +1448,7 @@ export const eqScreen: ScreenDef = {
     ctx.setKnobs([null, specs[0] ?? null, specs[1] ?? null, specs[2] ?? null]);
     const on = ctx.store.bool(`${base}.eq.on`, true);
     const shapes = EQ_SHAPES[band.key];
-    const shape = eqBandShape(ctx, base, band.key);
+    const shape = eqBandShape(ctx.store, base, band.key);
 
     const svg = document.createElementNS(NS, "svg");
     svg.setAttribute("viewBox", `0 0 ${EQ_W} ${EQ_H}`);
@@ -1523,11 +1470,11 @@ export const eqScreen: ScreenDef = {
       hz: ctx.store.num(`${base}.eq.${b.key}.freq`, 1000),
       gain: ctx.store.num(`${base}.eq.${b.key}.gain`, 0),
       q: ctx.store.num(`${base}.eq.${b.key}.q`, 0.71),
-      shape: eqBandShape(ctx, base, b.key),
-      on: eqBandOn(ctx, base, b.key),
+      shape: eqBandShape(ctx.store, base, b.key),
+      on: eqBandOn(ctx.store, base, b.key),
     }));
     // A band switched off keeps its grip where its values put it and adds nothing to the curve.
-    const at = eqResponse(bands.map((s) => ({ on: s.on, shape: s.shape, freq: s.hz, q: s.q, gain: s.gain })));
+    const at = fourBandResponse(ctx.store, base);
     const points: string[] = [];
     for (let i = 0; i <= 96; i++) {
       const hz = EQ_HZ_MIN * (EQ_HZ_MAX / EQ_HZ_MIN) ** (i / 96);
@@ -1586,7 +1533,7 @@ export const eqScreen: ScreenDef = {
             ? []
             : [
                 (() => {
-                  const bandOn = eqBandOn(ctx, base, band.key);
+                  const bandOn = eqBandOn(ctx.store, base, band.key);
                   return el("button", {
                     class: `eq-band${bandOn ? "" : " is-off"}`,
                     text: band.box,
@@ -1619,7 +1566,7 @@ export const eqScreen: ScreenDef = {
                 oneKnobButton(ctx, `${base}.eq.oneKnob.on`, (next) => setEqOneKnob(ctx, base, next)),
               ]),
           plot,
-          dynMeters(ctx, strip),
+          dynMeters(ctx, strip, "eq"),
         ],
       }),
       headerLeft: channelSelector(ctx, strip, route, true),
@@ -1644,13 +1591,6 @@ function shapeBox(node: HTMLElement, shape: string, open: boolean): HTMLElement 
   return box;
 }
 
-/** The filter shapes each EQ band can take: the outer bands a shelf and a pass filter besides the bell, the mid bands the bell alone. */
-const EQ_SHAPES: Record<(typeof EQ_BANDS)[number]["key"], readonly string[]> = {
-  low: ["Bell", "L.Shelf", "HPF"],
-  lowMid: ["Bell"],
-  highMid: ["Bell"],
-  high: ["Bell", "H.Shelf", "LPF"],
-};
 
 /** A band's Q, frequency and gain, named as the readout bar names them. */
 function eqBandSpecs(base: string, band: (typeof EQ_BANDS)[number]): NumericSpec[] {
@@ -1847,8 +1787,9 @@ export const sendToScreen: ScreenDef = {
     const stored = ctx.store.str("ui.sendToGroup", "MIX");
     const group = groups.some((g) => g.key === stored) ? stored : (groups[0]?.key ?? "ST");
     const targets = sendTargets(ctx, strip, group);
-    // A bus taking its sends at a fixed level gives the knob nothing to turn.
-    const specs = targets.map((t) => (sendLocks(ctx, t).busFixed ? null : faderSpec(`${base}.send.${t.id}.level`, "Level")));
+    // A bus taking its sends at a fixed level gives the knob nothing to turn, and
+    // the stereo bus takes a channel at its own fader, with no level of its own.
+    const specs = targets.map((t) => (sendLocks(ctx, t).busFixed || t.kind === "stereo" ? null : faderSpec(`${base}.send.${t.id}.level`, "Level")));
     ctx.setKnobs([specs[0] ?? null, specs[1] ?? null, null, null]);
     return {
       main: el("div", {
@@ -1862,9 +1803,12 @@ export const sendToScreen: ScreenDef = {
           const noTap = busFixed || t.kind === "stereo";
           // The send carries its own placing; the level is on the knob under it.
           // A bus on Pan Link places the send by its source channel instead, and
-          // the row is named after what it is then reading.
-          const placing = panLinked ? "PAN" : "Bal";
-          const balSpec = panSpec(sendPanPath(ctx, strip, t), `${t.label} ${placing}`);
+          // the row is named after what it is then reading. The stereo bus places
+          // the channel where the channel itself stands, and turning it here turns
+          // the channel's own PAN.
+          const toStereo = t.kind === "stereo";
+          const placing = panLinked ? "PAN" : toStereo && stripPosition(ctx, strip).caption === "PAN" ? "Pan" : "Bal";
+          const balSpec = panSpec(toStereo ? stripPosition(ctx, strip).path : sendPanPath(ctx, strip, t), `${t.label} ${placing}`);
           const balance = ctx.store.num(balSpec.path, 0);
           // A fixed bus takes the send at one level, so the unit offers neither
           // the tap nor the placing. Both keep their place on the cell.

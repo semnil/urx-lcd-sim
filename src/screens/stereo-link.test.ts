@@ -193,7 +193,7 @@ describe("the stereo link of a mono channel pair", () => {
     // Each channel reads a level of its own, so the lanes say which side is which.
     const levels: Record<string, number> = { ch1: -12, ch2: -36, ch3: -24 };
     const ssmcsScreens = ["ch.ssmcs", "ch.ssmcs.comp", "ch.ssmcs.sc", "ch.ssmcs.eq"];
-    setMeterSource((id, channels) => Array.from({ length: channels }, () => levels[id] ?? -96));
+    setMeterSource((id, channels) => Array.from({ length: channels }, () => levels[id.split("@")[0] ?? ""] ?? -96));
     const unlit = (db: number): string => `${(1 - levelBarShare(db)) * 100}%`;
     try {
       const { shell, store } = await mount();
@@ -234,13 +234,14 @@ describe("the stereo link of a mono channel pair", () => {
         }
       }
 
-      // The ticker keeps both sides moving, each from its own channel.
-      levels["ch1"] = -48;
-      levels["ch2"] = -6;
+      // The ticker keeps both sides moving, each from its own channel. Both rise,
+      // which a bar follows at once.
+      levels["ch1"] = -6;
+      levels["ch2"] = -24;
       const stop = startMeterTicker(store, shell.root, 20);
       await new Promise((resolve) => setTimeout(resolve, 60));
       stop();
-      expect(lanes(1), "after a tick").toEqual([unlit(-48), unlit(-6)]);
+      expect(lanes(1), "after a tick").toEqual([unlit(-6), unlit(-24)]);
     } finally {
       setMeterSource(null);
     }
@@ -498,7 +499,7 @@ describe("the values a stereo pair holds one of", () => {
 
     // Through a control on the glass, not only a bare write.
     await goHome(shell);
-    const onButton = shell.root.querySelector<HTMLElement>('[data-lamp-source="ch2"]')?.closest(".strip")?.querySelector<HTMLElement>(".btn-on");
+    const onButton = shell.root.querySelector<HTMLElement>('[data-lamp-source="ch2@input"]')?.closest(".strip")?.querySelector<HTMLElement>(".btn-on");
     onButton?.click();
     await flush();
     expect([store.bool("ch.ch2.on", true), store.bool("ch.ch1.on", true)]).toEqual([false, false]);

@@ -79,7 +79,10 @@ sequenceDiagram
 2. Fill `BindingTable` from a validated catalog.
 3. Pass `new BridgeTransport(link, bindings)` to `store.attach()`.
 4. To drive the meters from the unit, pass the unit's meter stream to `setMeterSource()`
-   (`src/screens/meters.ts`). Until one is passed, the simulator's internal synthetic signal is shown.
+   (`src/screens/meters.ts`). The function passed is given a strip's id and the point on the strip it
+   reads, joined by `@` (`ch3@preFader`, `bus.mix1@post`, and so on; the points are `Tap` in
+   `src/screens/signal-flow.ts`), and `monitor.<n>`, `cue` and `osc`. Until one is passed, the
+   simulator's internal synthetic signal is shown.
 
 The `chrome-link` indicator in `src/main.ts` reads `store.kind`, so the connection state shows at the
 top of the screen as it is.

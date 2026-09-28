@@ -44,6 +44,7 @@ export class DeviceStore {
 
   /** Paths changed since the last flush, coalesced into one notification. */
   private pending = new Set<ParamPath>();
+  private changes = 0;
   private flushScheduled = false;
 
   /**
@@ -62,6 +63,11 @@ export class DeviceStore {
     const snap = await transport.snapshot();
     this.mirror = new Map(snap);
     for (const p of snap.keys()) this.markChanged(p);
+  }
+
+  /** A count that moves on every change to the mirror, for whatever keeps what it worked out from the values. */
+  get revision(): number {
+    return this.changes;
   }
 
   get kind(): string {
@@ -178,6 +184,7 @@ export class DeviceStore {
   }
 
   private markChanged(path: ParamPath): void {
+    this.changes++;
     this.pending.add(path);
     if (this.flushScheduled) return;
     this.flushScheduled = true;

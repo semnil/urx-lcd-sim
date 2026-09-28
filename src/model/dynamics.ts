@@ -93,6 +93,27 @@ export function compResponse(threshold: number, ratio: number, knee: number | re
   };
 }
 
+/** How steeply each compander pulls down what falls below its band. */
+export const COMPANDER_EXPANSION: Record<string, number> = { "Compander-H": 5, "Compander-S": 1.5 };
+
+/**
+ * What a compander puts out for an input level. 0 dB in comes out at the output
+ * gain, and from there up the line is flat. Under 0 dB the ratio sets the slope as
+ * far as the threshold, from there down through the width the slope is the one it
+ * has at 1.0:1, and below the width it falls by the expansion.
+ */
+export function companderResponse(threshold: number, ratio: number, width: number, gain: number, expansion: number): (db: number) => number {
+  const r = Math.max(1, ratio);
+  const foot = threshold - width;
+  const atThreshold = gain + threshold / r;
+  return (db) => {
+    if (db >= 0) return gain;
+    if (db >= threshold) return gain + db / r;
+    if (db >= foot) return atThreshold - (threshold - db);
+    return atThreshold - width - (foot - db) * expansion;
+  };
+}
+
 /** What a gate that is on takes off: its whole range at or under the threshold. */
 export function gateReductionDb(level: number, threshold: number, range: number): number {
   return level <= threshold ? -range : 0;

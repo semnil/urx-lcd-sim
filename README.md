@@ -27,8 +27,10 @@ The unit's physical controls are not reproduced. Every value is reached on the g
 turn the wheel over it, or use the arrow keys. The knob strip along the bottom of the screen is a
 readout on the unit; here a cell holding a value turns it the same way.
 
-Meters show a synthetic signal, which follows the faders, the oscillator, what is in CUE and the A.Gain. The
-simulator carries no audio, and a take it records carries none either.
+Meters show a synthetic signal: each input source carries one of its own, taken through the mixer along
+the unit's own routing, so the meters follow the sources, the gains, the blocks, the faders, the sends,
+the oscillator and what is in CUE. The simulator carries no audio, and a take it records carries none
+either.
 
 ## Running it
 

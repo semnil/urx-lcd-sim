@@ -202,7 +202,8 @@ const GUITAR_OUTPUT_ANCHORS: readonly (readonly [number, number])[] = [
   [96, -4.9],
   [127, 0],
 ];
-function guitarOutputDb(step: number): number {
+/** What a guitar amp leaves at its output at a place `step` on the output's own scale, above its bottom. */
+export function guitarOutputDb(step: number): number {
   const a = GUITAR_OUTPUT_ANCHORS;
   const between = (x0: number, y0: number, x1: number, y1: number): number => y0 + ((y1 - y0) / (x1 - x0)) * (step - x0);
   const first = a[0] ?? [0, 0];

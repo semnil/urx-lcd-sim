@@ -18,6 +18,7 @@ import { el, markShut, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { LIST_THUMB_MIN_PX, button, dialog, dropdown, listView, loadingDialog, menuButton, menuGrid, meter, pickerGrid, pickerSheet, scrollbar, sideTab, toggle } from "../ui/widgets";
 import { meterLevels, pairMeterId } from "./meters";
+import { listenedTap } from "./signal-flow";
 import { formatClock, holdsFile, pausePlayback, pauseTake, playedSeconds, recState, recordMode, recordTake, releaseOnRateChange, startPlayback, stopPlayback, stopTake, takeOpen, takeSeconds } from "./recording";
 import type { TitleDraft } from "./title-entry";
 import { draftTitle, titleEntryScreen } from "./title-entry";
@@ -439,19 +440,19 @@ function recFileIcon(playingRow: number): (entry: CardEntry, row: number) => Ele
 }
 
 /**
- * The meter a record track's source is read on: a bus in stereo, the two channels
- * of a pair (a stereo channel's own two, or two mono channels side by side), and
- * none for None.
+ * The meter a record track's source is read on: a bus in stereo as it goes out,
+ * the two channels of a pair (a stereo channel's own two, or two mono channels
+ * side by side) each at its Rec Point, and none for None.
  */
 function sourceMeter(ctx: AppContext, source: string): string | undefined {
   const strips = allStrips(ctx.model);
   const bus = strips.find((s) => s.side === "output" && s.label === source);
-  if (bus) return bus.id;
+  if (bus) return listenedTap(ctx, bus);
   const pair = /^CH (\d+)\/(\d+)$/.exec(source);
   if (!pair) return undefined;
   const [left, right] = [Number(pair[1]), Number(pair[2])].map((n) => strips.find((s) => s.side === "input" && s.channels.includes(n)));
   if (!left || !right) return undefined;
-  return left === right ? left.id : pairMeterId(left.id, right.id);
+  return left === right ? listenedTap(ctx, left) : pairMeterId(listenedTap(ctx, left), listenedTap(ctx, right));
 }
 
 /** What a record track's meter shows, kept moving with its source: silence for None. */

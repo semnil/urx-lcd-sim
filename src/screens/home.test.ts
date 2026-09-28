@@ -8,7 +8,7 @@ import { CH_COLOR_PALETTE, unitById } from "../model/units";
 import { bankStrips } from "../model/types";
 import { bankName, channelLabel } from "./strip-state";
 import { buildRegistry } from "./index";
-import { setMeterSource, startMeterTicker } from "./meters";
+import { meterLevels, setMeterSource, startMeterTicker } from "./meters";
 import { declarations, px, readStyle } from "../style/css-read";
 import { version as packageVersion } from "../../package.json";
 
@@ -521,18 +521,45 @@ describe("the pair of lamps at the top of a strip's indicator block", () => {
     return lamps(shell);
   };
 
-  it("lights the left one green in range and the right one where the meter clips", async () => {
+  it("lights the left one green from -40 dB up and the right one where the meter clips, the left one staying lit", async () => {
     const shell = await mount();
     try {
       expect(await atLevel(shell, -20)).toEqual({ signal: true, clip: false });
-      expect(await atLevel(shell, 0), "0 dBFS is both the top of the range and the clip point").toEqual({
-        signal: true,
-        clip: true,
-      });
-      expect(await atLevel(shell, 6), "over the top only the clip lamp is lit").toEqual({ signal: false, clip: true });
+      expect(await atLevel(shell, -39), "just over -40 dB is signal").toEqual({ signal: true, clip: false });
+      expect(await atLevel(shell, -41), "just under it is not").toEqual({ signal: false, clip: false });
+      expect(await atLevel(shell, 0), "0 dBFS is the clip point").toEqual({ signal: true, clip: true });
+      expect(await atLevel(shell, 6), "and over it both stay lit").toEqual({ signal: true, clip: true });
       expect(await atLevel(shell, -96), "a silent channel lights neither").toEqual({ signal: false, clip: false });
     } finally {
       setMeterSource(null);
+    }
+  });
+
+  it("read what each strip takes in, and its meter on HOME what goes into its fader, [ON] and fader aside", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(1_700_000_000_000);
+    try {
+      const shell = await mount();
+      const store = shell.ctx.store;
+      await store.set("ch.ch1.source", "USB MAIN A");
+      await store.set("ch.ch1.eq.lowMid.gain", 12);
+      await store.set("ch.ch1.level", -40);
+      await store.set("ch.ch1.on", false);
+      await flush();
+      const strip = shell.root.querySelector(".strip");
+      const lamps = strip?.querySelector<HTMLElement>(".ind-dots");
+      const bars = strip?.querySelector<HTMLElement>(".strip-mid .meter");
+      expect([lamps?.dataset["lampSource"], bars?.dataset["meterSource"]]).toEqual(["ch1@input", "ch1@preFader"]);
+      const [boosted = -96] = meterLevels(store, "ch1@preFader", 1);
+      const [input = -96] = meterLevels(store, "ch1@input", 1);
+      expect(boosted, "the EQ reaches the meter").toBeGreaterThan(input + 1);
+      expect(bars?.querySelector<HTMLElement>(".meter-bar")?.style.getPropertyValue("--unlit")).toBe(`${(1 - levelBarShare(boosted)) * 100}%`);
+      await store.set("ui.bankSide", "output");
+      await flush();
+      const stream = [...shell.root.querySelectorAll(".strip")].find((n) => n.getAttribute("aria-label")?.startsWith("STREAMING"));
+      expect(stream?.querySelector<HTMLElement>(".strip-mid .meter")?.dataset["meterSource"], "STREAMING before its DELAY").toBe("bus.stream@input");
+    } finally {
+      vi.useRealTimers();
     }
   });
 
@@ -942,6 +969,22 @@ describe("the SEND TO destination tabs", () => {
     ]);
   });
 
+  it("gives the stereo bus no level of its own, and places a channel into it by the channel's own PAN, turned from here", async () => {
+    const shell = await mount();
+    await shell.ctx.store.set("ch.ch1.pan", -20);
+    await shell.ctx.store.set("ui.sendToGroup", "ST");
+    shell.ctx.nav.push({ id: "ch.sendto", strip: "ch1" });
+    await flush();
+    expect(cells(shell)).toEqual(["STEREO"]);
+    expect(shell.root.querySelectorAll('.knob-cell[role="slider"]'), "no level on a knob").toHaveLength(0);
+    const bal = shell.root.querySelector<HTMLElement>(".sendto-bal .value-box");
+    expect([shell.root.querySelector(".sendto-bal-caption")?.textContent, bal?.textContent], "the channel's PAN").toEqual(["Pan", "L20"]);
+    expect([bal?.hasAttribute("aria-disabled"), bal?.tabIndex], "in reach").toEqual([false, 0]);
+    bal?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    await flush();
+    expect(shell.ctx.store.num("ch.ch1.pan", 0), "turning it turns the channel's PAN").toBe(-19);
+  });
+
   it("stacks the three groups down the rail, one of them lit", async () => {
     const shell = await mount();
     shell.ctx.nav.push({ id: "ch.sendto", strip: "ch1" });
@@ -996,7 +1039,7 @@ describe("the SEND TO destination tabs", () => {
 
   it("reads the ducker's lamps from the strip its key names, bus or channel", async () => {
     // The key the ducker listens to is loud; everything else is silent.
-    setMeterSource((id) => (id === "bus.mix1" ? [-2] : [-90]));
+    setMeterSource((id) => (id.startsWith("bus.mix1@") ? [-2] : [-90]));
     try {
       const shell = await mount();
       await shell.ctx.store.set("ch.ch_5_6.ducker.on", true);
@@ -1153,7 +1196,7 @@ describe("the SEND TO destination tabs", () => {
     await shell.ctx.store.set("ui.bank", 2);
     await flush();
     const level = (): HTMLElement | null | undefined =>
-      shell.root.querySelector('[data-lamp-source="fx1"]')?.closest(".strip")?.querySelector<HTMLElement>(".strip-level");
+      shell.root.querySelector('[data-lamp-source="fx1@effect"]')?.closest(".strip")?.querySelector<HTMLElement>(".strip-level");
     expect(level()?.getAttribute("aria-label"), "a send, not the strip's own fader").toBe("FX1 Level");
     expect(level()?.classList.contains("is-sends-mix")).toBe(true);
     expect(level()?.querySelector(".strip-level-value")?.textContent).toBe("-\u221e");
@@ -3196,8 +3239,9 @@ describe("the MONITOR Level cards", () => {
       vi.advanceTimersByTime(60);
       expect(heights(), "the bars move").not.toEqual(first);
       await shell.ctx.store.set("monitor.1.on", false);
-      vi.advanceTimersByTime(60);
-      expect(heights().slice(0, 2), "bus 1 off reads the floor").toEqual(["100%", "100%"]);
+      // A bar falls 30 dB a second, so it reaches the floor within four.
+      vi.advanceTimersByTime(4000);
+      expect(heights().slice(0, 2), "bus 1 off falls to the floor").toEqual(["100%", "100%"]);
       stop();
     } finally {
       vi.useRealTimers();
@@ -3600,7 +3644,7 @@ describe("screens laid out from the guide's figures", () => {
     await shell.ctx.store.set("ui.bank", 1);
     await flush();
     const strip = (): Element | null | undefined =>
-      shell.root.querySelector('[data-lamp-source="ch_5_6"]')?.closest(".strip");
+      shell.root.querySelector('[data-lamp-source="ch_5_6@input"]')?.closest(".strip");
     const mark = (): Element | null | undefined => strip()?.querySelector(".sym-phase");
     expect(strip()?.querySelectorAll(".sym-phase").length).toBe(1);
     expect(mark()?.querySelector("svg.icon-phase"), "a drawn ring and stem, not a character").not.toBeNull();
@@ -3633,6 +3677,14 @@ describe("screens laid out from the guide's figures", () => {
 });
 
 describe("channel, monitor and microSD screens laid out from the guide's figures", () => {
+  /** How far under the IN meter of the dynamics screen open now its OUT meter reads, on the first lane. */
+  const ioOffset = (shell: Shell): number => {
+    const [into = [], out = []] = [...shell.root.querySelectorAll<HTMLElement>(".dyn-io .meter")].map((m) =>
+      meterLevels(shell.ctx.store, m.dataset["meterSource"] ?? "", 1),
+    );
+    return (into[0] ?? -96) - (out[0] ?? -96);
+  };
+
   it("marks the centre only on a knob placed from the centre", async () => {
     const shell = await mount();
     shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
@@ -3648,6 +3700,9 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
   });
 
   it("lets GATE's reduction meter and OUT meter show the range while the signal is under the threshold", async () => {
+    // One moment, so IN and OUT are read of the same signal.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(1_700_000_000_000);
     const shell = await mount();
     shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
     shell.ctx.nav.push({ id: "ch.gate", strip: "ch1" });
@@ -3656,11 +3711,11 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
     await shell.ctx.store.set("ch.ch1.gate.range", -19);
     await flush();
     expect(shell.root.querySelector<HTMLElement>(".dyn-gr i")?.style.height, "19 dB on the reduction bars' scale").toBe(`${grBarShare(19) * 100}%`);
-    const out = shell.root.querySelectorAll<HTMLElement>(".dyn-io .meter")[1];
-    expect(out?.dataset["meterOffset"], "OUT reads the range lower").toBe("19");
+    expect(ioOffset(shell), "OUT reads the range lower").toBeCloseTo(19, 6);
     await shell.ctx.store.set("ch.ch1.gate.threshold", -96);
     await flush();
     expect(shell.root.querySelector<HTMLElement>(".dyn-gr i")?.style.height, "open, nothing taken off").toBe("0%");
+    vi.useRealTimers();
   });
 
   it("marks each of the head amp's flags with what sets it, so each takes that button's colour", async () => {
@@ -3704,16 +3759,16 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
     vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
     try {
       const bar = (): string | undefined => shell.root.querySelector<HTMLElement>(".dyn-gr i")?.style.height;
-      const offset = (): string | undefined =>
-        [...shell.root.querySelectorAll<HTMLElement>(".dyn-io .meter")][1]?.dataset["meterOffset"];
+      const outBar = (): string | undefined =>
+        [...shell.root.querySelectorAll<HTMLElement>(".dyn-io .meter")][1]?.querySelector<HTMLElement>(".meter-bar")?.style.getPropertyValue("--unlit");
       const stop = startMeterTicker(shell.ctx.store, shell.root, 50);
       vi.advanceTimersByTime(60);
       const firstBar = bar();
-      const firstOffset = offset();
+      const firstOut = outBar();
       vi.setSystemTime(Date.now() + 700);
       vi.advanceTimersByTime(60);
       expect(bar(), "the reduction bar moves with the signal").not.toBe(firstBar);
-      expect(offset(), "and so does the OUT meter it feeds").not.toBe(firstOffset);
+      expect(outBar(), "and so does the OUT meter it feeds").not.toBe(firstOut);
       stop();
     } finally {
       vi.useRealTimers();
@@ -3723,7 +3778,7 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
   it("lets DUCKER's reduction meter follow its key against the threshold and the range", async () => {
     // The key is loud; the ducked channel itself is silent, so a bar reading
     // the channel rather than the key cannot move.
-    setMeterSource((id) => (id === "ch1" ? [-6] : [-90]));
+    setMeterSource((id) => (id.startsWith("ch1@") ? [-6] : [-90]));
     try {
       const shell = await mount();
       await shell.ctx.store.set("ch.ch_9_10.ducker.on", true);
@@ -3755,9 +3810,13 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
   });
 
   it("reads a block's OUT as far below its IN as the reduction beside them, and above it where the makeup is deeper", async () => {
-    setMeterSource(() => [-6]);
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(1_700_000_000_000);
     try {
       const shell = await mount();
+      // CH 1 on a source that brings it well over the threshold.
+      await shell.ctx.store.set("ch.ch1.source", "USB MAIN A");
+      await shell.ctx.store.set("source.usb-main-a.digitalGain", 6);
       await shell.ctx.store.set("ch.ch1.comp.on", true);
       await shell.ctx.store.set("ch.ch1.comp.threshold", -20);
       await shell.ctx.store.set("ch.ch1.comp.ratio", 20);
@@ -3765,8 +3824,7 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
       shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
       shell.ctx.nav.push({ id: "ch.comp", strip: "ch1" });
       await flush();
-      const out = (): number =>
-        Number([...shell.root.querySelectorAll<HTMLElement>(".dyn-io .meter")][1]?.dataset["meterOffset"] ?? 0);
+      const out = (): number => ioOffset(shell);
       expect(out(), "OUT reads lower by what the block takes off").toBeGreaterThan(0);
 
       await shell.ctx.store.set("ch.ch1.comp.gain", 18);
@@ -3777,11 +3835,13 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
       await flush();
       expect(out(), "a block that is off leaves them alike").toBe(0);
     } finally {
-      setMeterSource(null);
+      vi.useRealTimers();
     }
   });
 
   it("leaves IN and OUT reading alike where the block takes nothing off", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(1_700_000_000_000);
     const shell = await mount();
     for (const [screen, strip] of [
       ["ch.delay", "bus.stream"],
@@ -3793,8 +3853,9 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
       await flush();
       const cols = [...shell.root.querySelectorAll<HTMLElement>(".dyn-io .meter")];
       expect(cols, `${screen} draws both columns`).toHaveLength(2);
-      expect(cols.map((c) => Number(c.dataset["meterOffset"] ?? 0)), `${screen} meters them alike`).toEqual([0, 0]);
+      expect(ioOffset(shell), `${screen} meters them alike`).toBe(0);
     }
+    vi.useRealTimers();
   });
 
   it("lets COMP's reduction meter follow the curve it draws, not the distance over the threshold", async () => {
@@ -4484,9 +4545,20 @@ describe("the head amp belongs to the connector a channel is on", () => {
     expect(store.num("ch.ch3.gain", 0), "the A.Gain stays where it was set").toBe(60);
   });
 
+  it("meters what an FX channel's one bus carries in its channel view, whichever side is in view", async () => {
+    const shell = await mount();
+    for (const [path, value] of [["osc.on", true], ["osc.level", -20], ["osc.assign.stereoL", false], ["osc.assign.stereoR", false], ["osc.assign.fx1", true], ["ui.lane.fx1", 1]] as const) {
+      await shell.ctx.store.set(path, value);
+    }
+    shell.ctx.nav.push({ id: "channel-view", strip: "fx1" });
+    await flush();
+    const unlit = [...shell.root.querySelectorAll<HTMLElement>(".cv-gain-row .meter-bar")].map((b) => b.style.getPropertyValue("--unlit"));
+    expect(unlit).toEqual([`${(1 - levelBarShare(-20)) * 100}%`]);
+  });
+
   it("meters an input channel as it arrives, before its fader, in the channel view and on INPUT", async () => {
-    // A channel's own level reads -10 dB here, and its level as it arrives -30 dB.
-    setMeterSource((id, channels) => Array.from({ length: channels }, () => (id.startsWith("in:") ? -30 : -10)));
+    // What a strip takes in reads -30 dB here, a bus's sum -24 dB, and anything else -10 dB.
+    setMeterSource((id, channels) => Array.from({ length: channels }, () => (id.endsWith("@input") ? -30 : id.endsWith("@sum") ? -24 : -10)));
     try {
       const shell = await mount();
       const unlit = (selector: string): string[] =>
@@ -4499,7 +4571,14 @@ describe("the head amp belongs to the connector a channel is on", () => {
       expect(unlit(".input-meter"), "INPUT's two").toEqual(Array(2).fill(`${(1 - levelBarShare(-30)) * 100}%`));
       shell.ctx.nav.replace({ id: "channel-view", strip: "bus.mix1" });
       await flush();
-      expect(unlit(".cv-gain-row"), "a bus reads its own level there").toEqual([`${(1 - levelBarShare(-10)) * 100}%`]);
+      expect(unlit(".cv-gain-row"), "a MIX bus reads its sum there").toEqual([`${(1 - levelBarShare(-24)) * 100}%`]);
+      // FX 1 with its right side in view: its bus is one, whichever side is shown.
+      await shell.ctx.store.set("ui.lane.fx1", 1);
+      for (const strip of ["fx1", "bus.stream"]) {
+        shell.ctx.nav.replace({ id: "channel-view", strip });
+        await flush();
+        expect(unlit(".cv-gain-row"), `${strip} reads what it takes in there, on one bar`).toEqual([`${(1 - levelBarShare(-30)) * 100}%`]);
+      }
     } finally {
       setMeterSource(null);
     }

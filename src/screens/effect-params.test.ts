@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Route } from "../app/navigator";
 import { grBarShare } from "../model/dynamics";
 import { Shell } from "../app/shell";
@@ -7,7 +7,7 @@ import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
 import { HANDLE_R, HANDLE_RING, PLOT_H, PLOT_MIN, PLOT_SPAN, PLOT_W } from "./channel";
-import { setMeterSource } from "./meters";
+import { meterLevels, setMeterSource } from "./meters";
 import { buildRegistry } from "./index";
 
 // Taking an effect, setting it, and the states the unit will not let a channel
@@ -1063,13 +1063,25 @@ describe("a compander", () => {
     expect(shell.ctx.store.num("ch.ch1.insFx.width", 0), "W to the left widens the band").toBeGreaterThan(6);
   });
 
+  it("holds each M.B.Comp band down by how far the level is over the band's threshold", async () => {
+    setMeterSource(() => [-6]);
+    try {
+      const shell = await openParams("bus.mix1", "M.B.Comp");
+      const bars = (): string[] => [...shell.root.querySelectorAll<HTMLElement>(".mbc-gr-bars .dyn-gr i")].map((n) => n.style.height);
+      // Every band's threshold ships at -20 dB, 14 dB under the level.
+      expect(bars()).toEqual(Array(3).fill(`${grBarShare(14) * 100}%`));
+    } finally {
+      setMeterSource(null);
+    }
+  });
+
   it("shows how far it is holding the channel down", async () => {
     setMeterSource(() => [-6]);
     try {
       const shell = await openParams("ch1", "Compander-H");
       const bar = (): string | undefined => shell.root.querySelector<HTMLElement>(".dyn-gr i")?.style.height;
-      // 4 dB over the threshold, on the reduction bars' scale.
-      expect(bar()).toBe(`${grBarShare(4) * 100}%`);
+      // 4 dB over the threshold at 3.5:1 is held down 4 x (1 - 1/3.5) dB under the flat of the curve, on the reduction bars' scale.
+      expect(Number.parseFloat(bar() ?? "")).toBeCloseTo(grBarShare(4 * (1 - 1 / 3.5)) * 100, 9);
       await shell.ctx.store.set("ch.ch1.insFx.threshold", -3);
       await flush();
       expect(bar(), "under the threshold it holds nothing down").toBe("0%");
@@ -1471,24 +1483,36 @@ describe("the compander's own meters", () => {
     mount([{ id: "channel-view", strip }, { id: "ch.insfx", strip }]);
 
   it("reads its OUT lower by what its bar is holding down", async () => {
-    setMeterSource(() => [-6]);
+    // One moment, so IN and OUT are read of the same signal.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(1_700_000_000_000);
     try {
       const shell = await openInsert("ch1");
+      // CH 1 on a source loud enough to be well over the compander's threshold.
+      await shell.ctx.store.set("ch.ch1.source", "USB MAIN A");
+      await shell.ctx.store.set("source.usb-main-a.digitalGain", 14);
       await click(shell, ".insfx-effect");
       await pick(shell, "Compander-H");
       await flush();
-      const out = (): number =>
-        Number([...shell.root.querySelectorAll<HTMLElement>(".dyn-io .meter")][1]?.dataset["meterOffset"] ?? 0);
+      const out = (): number => {
+        const [into = [], after = []] = [...shell.root.querySelectorAll<HTMLElement>(".dyn-io .meter")].map((m) =>
+          meterLevels(shell.ctx.store, m.dataset["meterSource"] ?? "", 1),
+        );
+        return (into[0] ?? -96) - (after[0] ?? -96);
+      };
       const bar = (): number => Number.parseFloat(shell.root.querySelector<HTMLElement>(".dyn-gr i")?.style.height ?? "0");
+      // Compander-H's threshold of -10 dB at 3.5:1: the flat of its curve lifts the level 10 x (1 - 1/3.5) dB,
+      // and OUT reads that much over IN less what the bar is holding down.
+      const flat = 10 * (1 - 1 / 3.5);
       expect(bar(), "the bar is holding the channel down").toBeGreaterThan(0);
-      expect(bar() / 100, "and OUT reads that much lower").toBeCloseTo(grBarShare(out()), 6);
+      expect(bar() / 100, "and OUT reads that much under the flat").toBeCloseTo(grBarShare(flat + out()), 6);
 
       await shell.ctx.store.set("ch.ch1.insFx.on", false);
       await flush();
       expect(bar(), "an effect that is off holds nothing down").toBe(0);
       expect(out()).toBe(0);
     } finally {
-      setMeterSource(null);
+      vi.useRealTimers();
     }
   });
 });

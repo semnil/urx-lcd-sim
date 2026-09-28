@@ -451,6 +451,18 @@ describe("the microSD card browser", () => {
     expect(state(), "let go").toEqual([false, -1]);
   });
 
+  it("leaves SAVE/LOAD's Delete and Rename out of reach where the list has no row under the cursor", async () => {
+    const shell = await mount({ id: "microsd.saveload" }, []);
+    await pickTab(shell, "ui.sdSaveTab", "Edit");
+    // New folder, Delete, Rename.
+    expect(usable(shell), "an empty card").toEqual([true, false, false]);
+    const filled = await mount({ id: "microsd.saveload" });
+    await pickTab(filled, "ui.sdSaveTab", "Edit");
+    await filled.ctx.store.set("sd.selectedFile", 1);
+    await flush();
+    expect(usable(filled), "the control: a file under the cursor").toEqual([true, true, true]);
+  });
+
   it("sizes the bar's thumb by whole rows, three of four in view taking three quarters of its travel, a pixel in from the rim", async () => {
     const shell = await mount({ id: "microsd.saveload" });
     await shell.ctx.store.set("sd.files", "a/\nb\nc\nd");
@@ -557,7 +569,8 @@ describe("the microSD card browser", () => {
 
 describe("RECORDER's track slots", () => {
   it("meter the source each slot takes, a pair channel by channel, whether or not recording", async () => {
-    const lit: Record<string, number[]> = { "bus.stereo": [-18, -22], ch2: [-18], ch_9_10: [-96, -18] };
+    // A bus is read as it goes out, a channel at its Rec Point.
+    const lit: Record<string, number[]> = { "bus.stereo@post": [-18, -22], "ch2@preFader": [-18], "ch_9_10@preFader": [-96, -18] };
     setMeterSource((id, channels) => lit[id] ?? Array.from({ length: channels }, () => -96));
     try {
       const shell = await mount({ id: "microsd.recorder" });

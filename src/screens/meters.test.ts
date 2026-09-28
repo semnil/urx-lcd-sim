@@ -4,7 +4,7 @@ import { meter } from "../ui/widgets";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
-import { clipSafe, inputMeterId, markClipSafe, meterLevels, oscillatorLevel, setMeterSource, startMeterTicker } from "./meters";
+import { clipSafe, inputMeterId, markClipSafe, meterLevels, oscillatorLevel, setMeterSource, startMeterTicker, tapId } from "./meters";
 
 // The ticker redraws the meters a screen already shows. What it writes has to
 // read the way the meter was first drawn.
@@ -38,15 +38,6 @@ describe("the meter ticker", () => {
     level = -20;
     vi.advanceTimersByTime(60);
     expect(dots(root)).toEqual([false, false]);
-    stop();
-  });
-
-  it("keeps the offset a meter after a gain stage was built with", () => {
-    level = -20;
-    const { root, stop } = run(meter({ levels: [-40], source: "ch1", offset: 20 }));
-    const before = unlit(root);
-    vi.advanceTimersByTime(60);
-    expect(unlit(root), "the ticker reads the source 20 dB lower, as the meter was drawn").toEqual(before);
     stop();
   });
 
@@ -156,13 +147,12 @@ describe("the cue bus", () => {
   it("sums the channels cued together", async () => {
     const store = await unit();
     const at = 1_700_000_000_000;
-    for (const id of ["ch1", "ch2"]) await store.set(`ch.${id}.gain`, 24);
-    await store.set("ch.ch1.level", 0);
-    await store.set("ch.ch2.level", -6);
+    await store.set("ch.ch1.gain", 24);
+    await store.set("ch.ch2.gain", 18);
     await store.set("ch.ch1.cue", true);
     await store.set("ch.ch2.cue", true);
-    const [one = -96] = meterLevels(store, "ch1", 1, at);
-    const [two = -96] = meterLevels(store, "ch2", 1, at);
+    const [one = -96] = meterLevels(store, tapId("ch1", "cue"), 1, at);
+    const [two = -96] = meterLevels(store, tapId("ch2", "cue"), 1, at);
     const [cue = -96] = meterLevels(store, "cue", 1, at);
     // Two signals in one bus read as the pair of them, not as the louder.
     expect(cue).toBeCloseTo(10 * Math.log10(10 ** (one / 10) + 10 ** (two / 10)), 5);
