@@ -193,6 +193,13 @@ function sourceLane(store: DeviceStore, stripId: string, source: string, lane: n
 /** Which side of a stereo source a mono channel takes: an odd-numbered channel the left, an even one the right. */
 const monoSide = (strip: Strip): number => ((strip.channels[0] ?? 1) % 2 === 1 ? 0 : 1);
 
+/** What an input channel takes in from its source, before anything on it: a MONO IN channel one side, a stereo channel both. */
+function inputLanes(store: DeviceStore, strip: Strip, at: number): Lanes {
+  const source = store.str(`ch.${strip.id}.source`, "");
+  const lanes = strip.kind === "monoIn" ? [monoSide(strip)] : [0, 1];
+  return lanes.map((lane) => sourceLane(store, strip.id, source, lane, at));
+}
+
 // ---------------------------------------------------------------- the oscillator
 
 /** What the oscillator puts out at `at`: a tone on Sine Wave, noise otherwise, and on Burst Noise only for its width once every interval. */
@@ -615,8 +622,7 @@ function monoChannels(f: FlowBuilder, sums: Sums): void {
   const strips = fc.model.inputs.filter((s) => s.kind === "monoIn");
   for (const s of strips) {
     const b = `ch.${s.id}`;
-    const src = sourceLane(store, s.id, store.str(`${b}.source`, ""), monoSide(s), f.at);
-    f.put(s.id, "input", [src]);
+    const [src = []] = f.put(s.id, "input", inputLanes(store, s, f.at));
     const flipped = store.bool(`${b}.phase`, false) ? invert(src) : src;
     f.put(s.id, "preGate", [gain(flipped, hpfGainDb(store, b))]);
   }
@@ -665,9 +671,7 @@ function stereoChannelsIn(f: FlowBuilder): void {
   const { store, fc } = f;
   for (const s of fc.model.inputs.filter((x) => x.kind === "stIn")) {
     const b = `ch.${s.id}`;
-    const source = store.str(`${b}.source`, "");
-    const input = [0, 1].map((lane) => sourceLane(store, s.id, source, lane, f.at));
-    f.put(s.id, "input", input);
+    const input = f.put(s.id, "input", inputLanes(store, s, f.at));
     const flipped = input.map((lane, i) => (store.bool(`${b}.phase.${i === 0 ? "l" : "r"}`, false) ? invert(lane) : lane));
     f.put(s.id, "preEq", flipped);
     // The stereo channels' EQ is out of use above 96 kHz.
@@ -851,6 +855,8 @@ export function flowLevels(fc: FlowCtx, id: string, at: number): number[] {
     const lanes = tap === "cue" ? streaming(fc, strip, at, "post") : streaming(fc, strip, at, tap);
     return (lanes.length ? lanes : [[], []]).map(levelDb);
   }
+  // What a channel takes in is its source alone, read without the rest of the mixer.
+  if (tap === "input" && (strip?.kind === "monoIn" || strip?.kind === "stIn")) return inputLanes(fc.store, strip, at).map(levelDb);
   const flow = flowAt(fc, at);
   const lanes = flow.taps.get(tapId(stripId, tap)) ?? [];
   const over = flow.over.has(tapId(stripId, tap));
