@@ -327,6 +327,27 @@ describe("the screen an effect is set on", () => {
     expect(shell.root.querySelector(".insfx-effect"), "and no effect to name").toBeNull();
   });
 
+  it("keeps the readout bar on a channel the arrows step onto that runs no effect, with USER DEFINED KNOBS on and off", async () => {
+    // A channel with nothing to set assigns no knob. The bar stays where it is
+    // rather than the controls moving down into its place.
+    const shell = await mount([{ id: "ch.effect", strip: "fx1" }]);
+    const bar = (): boolean[] => ["has-knobs", "is-udk"].map((c) => shell.root.classList.contains(c));
+    expect(knobLabels(shell).some(Boolean), "FX 1's page turns its values on the knobs").toBe(true);
+    expect(bar()).toEqual([true, false]);
+    for (const strip of ["ch2", "ch_5_6"]) {
+      shell.ctx.nav.replace({ id: "ch.effect", strip });
+      await flush();
+      expect(knobLabels(shell).some(Boolean), `${strip} assigns no knob`).toBe(false);
+      expect(bar(), `${strip} keeps the bar`).toEqual([true, false]);
+    }
+    await shell.ctx.store.set("ui.userDefinedKnobs", true);
+    await flush();
+    expect(bar(), "the bar carries the banks under USER DEFINED KNOBS").toEqual([true, true]);
+    await shell.ctx.store.set("ui.userDefinedKnobs", false);
+    await flush();
+    expect(bar(), "and stays, empty, once it is off").toEqual([true, false]);
+  });
+
   it("opens a list the glass cannot hold on a sheet, and a short one under its box", async () => {
     const amp = await openParams("ch1", "Clean");
     await click(amp, ".efx-page-next");
@@ -813,6 +834,43 @@ describe("the screen an effect is set on", () => {
       expect(speedDepth().map((n) => n?.classList.contains("value-box")), mod).toEqual([true, true]);
       expect(knobLabels(shell), mod).toEqual(["Speed", "Depth", "Gate Level", ""]);
     }
+  });
+});
+
+describe("rows the unit leaves to the operator", () => {
+  /** Whether the readout cell named `label` turns, and what turning it up one step does to the value at `path`. */
+  const turns = async (shell: Shell, label: string, path: string): Promise<[boolean, boolean]> => {
+    const cell = [...shell.root.querySelectorAll<HTMLElement>(".knob-strip .knob-cell")].find((c) => c.querySelector(".knob-cell-label")?.textContent === label);
+    const before = shell.ctx.store.num(path, Number.NaN);
+    cell?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
+    await flush();
+    return [cell?.hasAttribute("aria-disabled") === false, shell.ctx.store.num(path, Number.NaN) !== before];
+  };
+
+  it("leaves Clean's Speed and Depth turning whichever of Cho, Off and Vib is picked", async () => {
+    // URX44V, 2026-09-22: the rows look and turn the same on Cho, Off and Vib; "Not available when Cho is On" is about the sound.
+    const shell = await mount([{ id: "channel-view", strip: "ch1" }, { id: "ch.insfx", strip: "ch1" }]);
+    await click(shell, ".insfx-effect");
+    await pick(shell, "Clean");
+    await click(shell, ".efx-page-next");
+    for (const mod of ["Cho", "Off", "Vib"]) {
+      await shell.ctx.store.set("ch.ch1.insFx.mod", mod);
+      await flush();
+      expect([await turns(shell, "Speed", "ch.ch1.insFx.modSpeed"), await turns(shell, "Depth", "ch.ch1.insFx.modDepth")], mod).toEqual([
+        [true, true],
+        [true, true],
+      ]);
+    }
+  });
+
+  it("leaves a delay's time turning while Sync is on, and Sync on after it", async () => {
+    // URX44V, 2026-09-22: the Delay row keeps its face and turns under Sync.
+    const shell = await mount([{ id: "channel-view", strip: "fx2" }, { id: "ch.effect", strip: "fx2" }]);
+    expect(shell.ctx.store.str("ch.fx2.effect.type", ""), "FX 2 ships on Mono Delay").toBe("Mono Delay");
+    await shell.ctx.store.set("ch.fx2.effect.sync", true);
+    await flush();
+    expect(await turns(shell, "Delay", "ch.fx2.effect.delay")).toEqual([true, true]);
+    expect(shell.ctx.store.bool("ch.fx2.effect.sync", false)).toBe(true);
   });
 });
 

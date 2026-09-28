@@ -70,11 +70,11 @@ export function headAmp(ctx: AppContext, strip: Strip): { spec: NumericSpec | un
   return { connector, spec: gainSpec(digitalGainPath(source), "D.Gain", -24, 24, digitalGainShipped(source), D_GAIN_MARKS) };
 }
 
-/** Switching a connector's HI-Z on brings its A.Gain down to +40 dB where it stood above. Switching it off leaves the gain where it is. */
+/** Switching a connector's HI-Z brings its A.Gain down to +40 dB where it stands above; while HI-Z is on it stands no higher. */
 export function hiZWriteRule(store: DeviceStore): WriteRule {
-  return (path, value) => {
+  return (path) => {
     const connector = /^ch\.([^.]+)\.hiZ$/.exec(path)?.[1];
-    if (connector === undefined || value !== true) return [];
+    if (connector === undefined) return [];
     const gain = `ch.${connector}.gain`;
     return store.num(gain, -8) > A_GAIN_HI_Z_MAX_DB ? [[gain, A_GAIN_HI_Z_MAX_DB]] : [];
   };
