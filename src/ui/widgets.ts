@@ -699,8 +699,6 @@ export function fractionOf(spec: NumericSpec, value: number): number {
 export interface MeterOptions {
   /** Segment levels in dB; one bar per entry, so two entries is a stereo meter. */
   levels: number[];
-  /** dB taken off what the source meters, for a meter after a gain stage: one figure, or one per lane. */
-  offset?: number | readonly number[];
   height?: number;
   /**
    * Strip this meter belongs to. The meter ticker refreshes how much of each
@@ -733,17 +731,9 @@ export function meter(options: MeterOptions): HTMLElement {
   });
   if (options.source) {
     node.dataset["meterSource"] = options.source;
-    setMeterOffset(node, options.offset ?? 0);
     if (options.lane !== undefined) node.dataset["meterLane"] = String(options.lane);
   }
   return node;
-}
-
-/** Put a meter's offset on its node, one figure or one per lane, and none where nothing is taken off. */
-export function setMeterOffset(node: HTMLElement, offset: number | readonly number[]): void {
-  const lanes = typeof offset === "number" ? [offset] : offset;
-  if (lanes.some((db) => db !== 0)) node.dataset["meterOffset"] = lanes.join(" ");
-  else delete node.dataset["meterOffset"];
 }
 
 /** A horizontal PAN / BALANCE slider, as drawn under the ON/CUE buttons. */

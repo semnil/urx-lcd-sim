@@ -569,7 +569,8 @@ describe("the microSD card browser", () => {
 
 describe("RECORDER's track slots", () => {
   it("meter the source each slot takes, a pair channel by channel, whether or not recording", async () => {
-    const lit: Record<string, number[]> = { "bus.stereo": [-18, -22], ch2: [-18], ch_9_10: [-96, -18] };
+    // A bus is read as it goes out, a channel at its Rec Point.
+    const lit: Record<string, number[]> = { "bus.stereo@post": [-18, -22], "ch2@preFader": [-18], "ch_9_10@preFader": [-96, -18] };
     setMeterSource((id, channels) => lit[id] ?? Array.from({ length: channels }, () => -96));
     try {
       const shell = await mount({ id: "microsd.recorder" });

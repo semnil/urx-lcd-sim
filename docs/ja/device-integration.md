@@ -78,7 +78,9 @@ sequenceDiagram
 2. `BindingTable` を検証済みカタログから埋める。
 3. `new BridgeTransport(link, bindings)` を `store.attach()` に渡す。
 4. メーターを実機の値にする場合は `setMeterSource()` (`src/screens/meters.ts`) に実機の
-   メーターストリームを渡す。渡さない間はシミュレーター内部の合成信号が表示される。
+   メーターストリームを渡す。渡した関数は、ストリップの id とそのストリップ上の読む点を `@` でつないだ id
+   (`ch3@preFader`・`bus.mix1@post` など、読む点は `src/screens/signal-flow.ts` の `Tap`) と、`monitor.<n>`・`cue`・`osc` を
+   受け取る。渡さない間はシミュレーター内部の合成信号が表示される。
 
 `src/main.ts` の `chrome-link` 表示は `store.kind` を読むので、接続状態がそのまま画面上部に出る。
 

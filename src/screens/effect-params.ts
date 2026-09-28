@@ -29,7 +29,7 @@ import {
 import type { Strip } from "../model/types";
 import { el } from "../ui/dom";
 import { Icons } from "../ui/icons";
-import { compResponse, grBarShare } from "../model/dynamics";
+import { COMPANDER_EXPANSION, compResponse, companderResponse, grBarShare } from "../model/dynamics";
 import type { NumericSpec } from "../ui/param-spec";
 import { unitOf } from "../ui/param-spec";
 import { knobControl, pulldown, toggle, valueBox } from "../ui/widgets";
@@ -49,7 +49,6 @@ import {
   noChannel,
   oneKnobButton,
   oneKnobPanel,
-  pairMeter,
   plotCurve,
   plotHandle,
   plotPanel,
@@ -60,7 +59,8 @@ import {
   titleBadge,
   titleBox,
 } from "./channel";
-import { type GrSpec, blockReduction, laneNetDb, markReduction } from "./meters";
+import { type GrSpec, blockReduction, markReduction } from "./meters";
+import { insertSpec, stripTap } from "./signal-flow";
 import type { EffectChoice } from "./insert-fx";
 import { carriesInsert, effectSheet, insertBase, insertFxOptions, takeEffect, takeInsert } from "./insert-fx";
 import type { ScreenBody, ScreenDef } from "./types";
@@ -239,11 +239,7 @@ function pageIndex(ctx: AppContext, pages: readonly unknown[]): number {
   return Math.min(Math.max(0, Math.round(ctx.store.num(PAGE_PATH, 0))), pages.length - 1);
 }
 
-/**
- * The two effects the unit draws the way it draws the channel's own dynamics, and
- * how steeply each pulls down what falls below the band.
- */
-const COMPANDER_EXPANSION: Record<string, number> = { "Compander-H": 5, "Compander-S": 1.5 };
+/** The two effects the unit draws the way it draws the channel's own dynamics. */
 const COMPANDERS = Object.keys(COMPANDER_EXPANSION);
 
 /** The effect whose bands the unit pages through on the screen its own COMP takes. */
@@ -252,33 +248,6 @@ const MBC = "M.B.Comp";
 /** Where the plot's rules stand, as fractions of its width and its height. */
 const RULE_X = 0.8;
 const RULE_Y = 0.2;
-
-/**
- * What a compander puts out for an input level. The output is held at the crossing
- * of the plot's rules, which the output gain moves down from its ceiling of 0.0dB:
- * from there to the right edge the line is flat. Under the crossing the ratio sets
- * the slope as far as the threshold, and below the threshold the slope is the one
- * it has at 1.0:1.
- */
-function companderResponse(
-  threshold: number,
-  ratio: number,
-  width: number,
-  gain: number,
-  expansion: number,
-): (db: number) => number {
-  const r = Math.max(1, ratio);
-  const inAt = PLOT_MIN + RULE_X * PLOT_SPAN;
-  const top = PLOT_MIN + (1 - RULE_Y) * PLOT_SPAN + gain;
-  const foot = threshold - width;
-  const atThreshold = top - (inAt - threshold) / r;
-  return (db) => {
-    if (db >= inAt) return top;
-    if (db >= threshold) return top - (inAt - db) / r;
-    if (db >= foot) return atThreshold - (threshold - db);
-    return atThreshold - width - (foot - db) * expansion;
-  };
-}
 
 /**
  * A plot of what a block puts out for an input level: the two rules the unit
@@ -364,18 +333,10 @@ function companderBody(ctx: AppContext, strip: Strip, holder: EffectHolder): { m
   });
   const sets = [attack, release, ratio].filter((s): s is NumericSpec => s !== undefined);
   const rows = el("div", { class: "dyn-sets", children: sets.map((spec) => dynSetting(ctx, inShort(spec))) });
-  // The compander hears the pair's louder channel on a linked pair, and the OUT
-  // meter reads as far below IN as the bar beside it is holding down.
-  const gr: GrSpec = {
-    kind: "over",
-    base: holder.base,
-    level: pairMeter(ctx, strip),
-    makeup: 0,
-    ...(threshold ? { threshold: { path: threshold.path, fallback: threshold.fallback } } : {}),
-    ...(holder.onPath ? { on: { path: holder.onPath, fallback: holder.onFallback } } : {}),
-  };
+  // The compander hears the pair's louder channel on a linked pair.
+  const gr = insertSpec(ctx, strip, holder.name, holder.base);
   const held = grBarShare(blockReduction(ctx.store, gr));
-  return { main: dynFrame(plot, held, [rows, dynMeters(ctx, strip, laneNetDb(ctx.store, gr), gr)], gr), knobs: specs };
+  return { main: dynFrame(plot, held, [rows, dynMeters(ctx, strip, "insFx")], gr), knobs: specs };
 }
 
 /** The bands the multi-band compressor gives a page each, after the page they are set up on. */
@@ -571,8 +532,9 @@ function mbcGr(ctx: AppContext, strip: Strip, base: string, fallbackOf: (key: st
     const gr: GrSpec = {
       kind: "over",
       base,
-      level: pairMeter(ctx, strip),
+      level: stripTap(ctx, strip, "preIns"),
       makeup: 0,
+      detector: "mbc",
       threshold: { path: `${base}.${key}`, fallback: fallbackOf(key) },
     };
     const node = el("div", {
@@ -640,7 +602,7 @@ function mbcBody(
   return {
     main: el("div", {
       class: `dyn-screen mbc-screen${band ? "" : " is-bands"}`,
-      children: [page.plot, mbcGr(ctx, strip, holder.base, (key) => spec(key)?.fallback ?? 0, page.lit), top, ...page.rows, dynMeters(ctx, strip)],
+      children: [page.plot, mbcGr(ctx, strip, holder.base, (key) => spec(key)?.fallback ?? 0, page.lit), top, ...page.rows, dynMeters(ctx, strip, "insFx")],
     }),
     knobs: oneKnob && level ? [level] : page.knobs,
     ...(oneKnob && level ? { boxed: level } : page.boxed ? { boxed: page.boxed } : {}),
@@ -915,7 +877,7 @@ function pitchBody(
           ? [toggle(corner.label, on, () => void ctx.store.set(`${holder.base}.${corner.key}`, !on), "pitch-corner")]
           : []),
         ...pageArrows(ctx, at, pages.length),
-        dynMeters(ctx, strip),
+        dynMeters(ctx, strip, "insFx"),
       ],
     }),
     knobs: built?.knobs ?? [],
@@ -956,7 +918,7 @@ function effectScreen(ctx: AppContext, strip: Strip, route: Route, holder: Effec
     if (!holder || pages.length === 0) {
       ctx.setKnobs([]);
       return {
-        main: el("div", { class: "insfx-screen", children: [dynMeters(ctx, strip)] }),
+        main: el("div", { class: "insfx-screen", children: [dynMeters(ctx, strip, strip.kind === "fx" ? "effect" : "insFx")] }),
         ...effectHeader(ctx, strip, route, holder),
       };
     }
@@ -974,7 +936,7 @@ function effectScreen(ctx: AppContext, strip: Strip, route: Route, holder: Effec
     return {
       main: el("div", {
         class: "efx-screen",
-        children: [built.grid, ...pageArrows(ctx, at, pages.length), dynMeters(ctx, strip)],
+        children: [built.grid, ...pageArrows(ctx, at, pages.length), dynMeters(ctx, strip, strip.kind === "fx" ? "effect" : "insFx")],
       }),
       ...effectHeader(ctx, strip, route, holder),
     };

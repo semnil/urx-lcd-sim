@@ -25,9 +25,9 @@ is built is in [screen-inventory.md](screen-inventory.md).
 
 ## What moves but does not do what the unit does
 
-- **There is no audio.** The meters show a synthetic signal, which follows the channel's fader, the
-  buses the oscillator is assigned to, the channels put into CUE and the A.Gain of a MIC/LINE
-  connector. Raised to +44 dB, the A.Gain starts to clip the input, and Clip Safe acts on that
+- **There is no audio.** The meters read a synthetic signal that every input source carries of its
+  own, taken through the mixer along the unit's own routing and laws (screen-inventory.md, "The signal
+  the meters read"). Raised to +44 dB, the A.Gain starts to clip the input, and Clip Safe acts on that
   (screen-inventory.md, "Head amp in the channel view"). A take carries a length and a size and no
   sound.
 - **When Clip Safe starts to take the input down.** Clipped by hand claps, the unit took the input down

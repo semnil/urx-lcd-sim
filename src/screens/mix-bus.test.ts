@@ -125,7 +125,7 @@ describe("a MIX bus's BUS Type and Pan Link", () => {
     await store.set("ch.ch1.send.bus.mix1.level", -6);
     await flush();
     const level = (): HTMLElement | null | undefined =>
-      shell.root.querySelector('[data-lamp-source="ch1"]')?.closest(".strip")?.querySelector<HTMLElement>(".strip-level");
+      shell.root.querySelector('[data-lamp-source="ch1@input"]')?.closest(".strip")?.querySelector<HTMLElement>(".strip-level");
     expect(level()?.classList.contains("is-locked")).toBe(false);
     expect(level()?.tabIndex).toBe(0);
 

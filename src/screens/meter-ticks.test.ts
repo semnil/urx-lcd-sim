@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { Shell } from "../app/shell";
 import { grBarShare, levelBarShare } from "../model/dynamics";
 import type { Route } from "../app/navigator";
@@ -7,22 +7,27 @@ import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
-import { setMeterSource, startMeterTicker } from "./meters";
+import { blockReduction, setMeterSource, startMeterTicker } from "./meters";
+import { compSpec } from "./signal-flow";
 
 // What a screen shows of a moving signal outside the dynamics screens' own meters:
 // the channel view's GATE and DUCKER lamps and COMP bars, the M.B.Comp bands'
 // reduction bars and the RECORDER's track meters. Each is taken from silence to
 // 0 dB and back, and reads the same after the meter ticker has run as after the
-// screen is opened afresh.
+// screen is opened afresh. The levels are set per strip, whichever point on it a
+// meter reads.
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
 let levels: Record<string, number> = {};
-afterEach(() => setMeterSource(null));
+afterEach(() => {
+  setMeterSource(null);
+  vi.useRealTimers();
+});
 
 async function mount(): Promise<Shell> {
   levels = {};
-  setMeterSource((id, channels) => Array.from({ length: channels }, () => levels[id] ?? -96));
+  setMeterSource((id, channels) => Array.from({ length: channels }, () => levels[id.split("@")[0] ?? ""] ?? -96));
   const model = unitById("URX44V");
   const store = new DeviceStore();
   await store.attach(new SimTransport(factoryState(model)));
@@ -38,18 +43,20 @@ async function open(shell: Shell, routes: Route[]): Promise<void> {
 }
 
 /**
- * Move meter `id` from silence to 0 dB and back. After each step the ticker runs and
- * `read` is taken, then the screen is opened again and `read` is taken again: the two
- * agree, 0 dB reads other than silence, and silence reads as it did at the start.
+ * Move meter `id` from silence to 0 dB and back. After each step the ticker runs for
+ * long enough that a falling bar has come to rest, and `read` is taken, then the
+ * screen is opened again and `read` is taken again: the two agree, 0 dB reads other
+ * than silence, and silence reads as it did at the start.
  */
 async function follow(shell: Shell, routes: Route[], id: string, read: () => unknown): Promise<void> {
+  vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
   levels[id] = -96;
   await open(shell, routes);
   const silent = read();
   for (const [step, db] of [["at 0 dB", 0], ["back in silence", -96]] as const) {
     levels[id] = db;
     const stop = startMeterTicker(shell.ctx.store, shell.root, 20);
-    await new Promise((resolve) => setTimeout(resolve, 60));
+    vi.advanceTimersByTime(4000);
     stop();
     const ticked = read();
     await open(shell, routes);
@@ -87,13 +94,12 @@ describe("views that follow the signal as the meters move", () => {
     await follow(shell, [{ id: "channel-view", strip: "ch1" }], "ch1", () => widths(shell, ".comp-meters .comp-bar i"));
 
     // At 0 dB the level bar is full, and the reduction bar reads on the reduction
-    // bars' scale what the COMP screen's OUT takes off before the makeup.
+    // bars' scale what the compressor takes off before the makeup.
     levels["ch1"] = 0;
     await open(shell, [{ id: "channel-view", strip: "ch1" }]);
     const [level, reduce] = widths(shell, ".comp-meters .comp-bar i");
-    await open(shell, [{ id: "channel-view", strip: "ch1" }, { id: "ch.comp", strip: "ch1" }]);
-    const out = Number([...shell.root.querySelectorAll<HTMLElement>(".dyn-io .meter")][1]?.dataset["meterOffset"] ?? 0);
-    const reduction = out + shell.ctx.store.num("ch.ch1.comp.gain", 0);
+    const strip = shell.ctx.model.inputs[0];
+    const reduction = strip ? blockReduction(shell.ctx.store, compSpec(shell.ctx, strip)) : 0;
     expect(level).toBe("100%");
     expect(reduction).toBeGreaterThan(0);
     expect(Number.parseFloat(reduce ?? "NaN")).toBeCloseTo(grBarShare(reduction) * 100, 6);

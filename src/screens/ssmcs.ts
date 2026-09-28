@@ -21,7 +21,7 @@ import type { Strip } from "../model/types";
 import { clamp } from "../device/store";
 import { SSMCS_DEFAULTS } from "../model/defaults";
 import { grBarShare, ssmcsCorner } from "../model/dynamics";
-import { biquadDb, peakingBiquad, shelfBiquad } from "../model/eq-response";
+import { type SsmcsBand, ssmcsBand, ssmcsEqResponse } from "../model/channel-eq";
 import { el, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
@@ -47,8 +47,8 @@ import {
   routeStrip,
   titleBadge,
 } from "./channel";
-import { type GrSpec, blockReduction, laneNetDb, markReduction, simulatedLevel } from "./meters";
-import { linkedPair } from "./stereo-link";
+import { type GrSpec, blockReduction, markReduction, meterLevels } from "./meters";
+import { ssmcsSpec, tapId } from "./signal-flow";
 import type { ScreenBody, ScreenDef } from "./types";
 
 /** How far the compressor is driven, in hundredths over its 201 stops. */
@@ -237,38 +237,10 @@ function transfer(ctx: AppContext, b: string): (db: number) => number {
   return (db) => (drive === 0 ? db : curve(db));
 }
 
-/** The bell the strip draws for its MID band stands wider than the number it is set by. */
-const BELL_Q_SCALE = 0.696;
-
-/** One band's own values. */
-interface BandState {
-  on: boolean;
-  q: number;
-  freq: number;
-  gain: number;
-}
-
-const bandState = (ctx: AppContext, b: string, band: (typeof SSMCS_BANDS)[number]): BandState => {
-  const p = `${b}.ssmcs.eq.${band.key}`;
-  const factory = SSMCS_DEFAULTS.eq[band.key];
-  return {
-    on: ctx.store.bool(`${p}.on`, true),
-    q: ctx.store.num(`${p}.q`, SSMCS_DEFAULTS.eq.mid.q),
-    freq: ctx.store.num(`${p}.freq`, factory.freq),
-    gain: ctx.store.num(`${p}.gain`, factory.gain),
-  };
-};
+const bandState = (ctx: AppContext, b: string, band: (typeof SSMCS_BANDS)[number]): SsmcsBand => ssmcsBand(ctx.store, b, band.key);
 
 /** The three bands summed: LOW and HIGH are shelves, MID a bell. A band that is off adds nothing. */
-function eqResponse(ctx: AppContext, b: string): (hz: number) => number {
-  const parts = SSMCS_BANDS.map((band) => {
-    const s = bandState(ctx, b, band);
-    if (!s.on || s.gain === 0) return null;
-    const filter = band.key === "mid" ? peakingBiquad(s.freq, s.q * BELL_Q_SCALE, s.gain) : shelfBiquad(s.freq, s.gain, band.key === "high");
-    return (hz: number) => biquadDb(filter, hz);
-  });
-  return (hz) => parts.reduce((sum, part) => sum + (part ? part(hz) : 0), 0);
-}
+const eqResponse = (ctx: AppContext, b: string): ((hz: number) => number) => ssmcsEqResponse(ctx.store, b);
 
 // ---------------------------------------------------------------- the pieces the screens share
 
@@ -382,32 +354,17 @@ function pageArrow(dir: "prev" | "next", onTap: () => void): HTMLElement {
   });
 }
 
-/** The signal the compressor listens to, metered beside its curve. */
 /**
- * What the side chain's filter is feeding the detector. It reads the strip's
- * level lifted by the filter's own Gain, and reads its floor unless the
+ * The signal the compressor listens to, metered beside its curve: what goes into
+ * the strip lifted by the side chain filter's own Gain, and its floor unless the
  * compressor, the morphing strip and the side chain are all on.
  */
-function sideChainMeter(ctx: AppContext, strip: Parameters<typeof dynMeters>[1], b: string): HTMLElement {
-  const keyed =
-    ctx.store.bool(`${b}.comp.on`, false) &&
-    ctx.store.bool(`${b}.ssmcs.on`, SSMCS_DEFAULTS.on) &&
-    ctx.store.bool(`${b}.ssmcs.sc.on`, SSMCS_DEFAULTS.sc.on);
-  const gain = ctx.store.num(`${b}.ssmcs.sc.gain`, SSMCS_DEFAULTS.sc.gain);
-  const level = keyed ? (simulatedLevel(ctx, strip, false)[0] ?? -96) + gain : -96;
+function sideChainMeter(ctx: AppContext, strip: Parameters<typeof dynMeters>[1]): HTMLElement {
+  const source = tapId(strip.id, "sideChain");
   return el("div", {
     class: "ssmcs-sc-meter",
-    children: [meter({ levels: [level], ...(keyed ? { source: strip.id, offset: -gain } : {}) })],
+    children: [meter({ levels: meterLevels(ctx.store, source, 1), source })],
   });
-}
-
-/**
- * What the strip's compressor is read from: the channel's own level, with each OUT
- * lane of a linked pair held down by its own channel.
- */
-function compSpec(ctx: AppContext, strip: Parameters<typeof dynMeters>[1], b: string): GrSpec {
-  const linked = linkedPair(ctx, strip);
-  return { kind: "ssmcs", base: b, level: strip.id, ...(linked ? { lanes: linked.map((s) => s.id) } : {}), makeup: 0 };
 }
 
 /** The reduction meter, marked so the ticker keeps it moving. */
@@ -543,7 +500,7 @@ export const ssmcsScreen: ScreenDef = {
             children: [
               blockSwitch(ctx, "COMP", "comp", `${b}.comp.on`, true),
               el("div", { class: "ssmcs-thumb ssmcs-comp-thumb", children: [compThumb as unknown as HTMLElement] }),
-              reductionMeter(ctx, compSpec(ctx, strip, b)),
+              reductionMeter(ctx, ssmcsSpec(strip)),
             ],
           }),
           el("div", {
@@ -562,7 +519,7 @@ export const ssmcsScreen: ScreenDef = {
             }),
           ]),
           pageArrow("next", () => ctx.nav.replace({ id: "ch.ssmcs.comp", strip: strip.id })),
-          dynMeters(ctx, strip, laneNetDb(ctx.store, compSpec(ctx, strip, b)), compSpec(ctx, strip, b)),
+          dynMeters(ctx, strip, "ssmcs"),
         ],
       }),
       headerLeft: channelSelector(ctx, strip, route, true),
@@ -604,9 +561,9 @@ function compFace(ctx: AppContext, route: Route, sideChain: boolean): ScreenBody
       class: `ssmcs-dyn${sideChain ? " ssmcs-dyn-sc" : ""}`,
       children: [
         blockSwitch(ctx, "Comp", "comp", `${b}.comp.on`),
-        sideChainMeter(ctx, strip, b),
+        sideChainMeter(ctx, strip),
         plot,
-        reductionMeter(ctx, compSpec(ctx, strip, b)),
+        reductionMeter(ctx, ssmcsSpec(strip)),
         ...(sideChain
           ? [
               litSwitch("Side Chain", "ssmcs-sc-switch", scOn, () => void ctx.store.set(`${b}.ssmcs.sc.on`, !scOn)),
@@ -636,7 +593,7 @@ function compFace(ctx: AppContext, route: Route, sideChain: boolean): ScreenBody
         sideChain
           ? pageArrow("next", () => ctx.nav.replace({ id: "ch.ssmcs.eq", strip: strip.id }))
           : pageArrow("next", () => ctx.nav.replace({ id: "ch.ssmcs.sc", strip: strip.id })),
-        dynMeters(ctx, strip, laneNetDb(ctx.store, compSpec(ctx, strip, b)), compSpec(ctx, strip, b)),
+        dynMeters(ctx, strip, "ssmcs"),
       ],
     }),
     headerLeft: channelSelector(ctx, strip, route, true),
@@ -714,7 +671,7 @@ export const ssmcsEqScreen: ScreenDef = {
           litSwitch(band.label, "ssmcs-band", bandOn, () => void ctx.store.set(`${b}.ssmcs.eq.${band.key}.on`, !bandOn), `${band.label} band on`),
           plot,
           pageArrow("prev", () => ctx.nav.replace({ id: "ch.ssmcs.sc", strip: strip.id })),
-          dynMeters(ctx, strip),
+          dynMeters(ctx, strip, "ssmcs"),
         ],
       }),
       headerLeft: channelSelector(ctx, strip, route, true),

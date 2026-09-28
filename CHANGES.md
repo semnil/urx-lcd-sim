@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Carry the meters' synthetic signal through the mixer the way the unit routes it, where each strip read a signal of its own wandering under its fader. Each input source carries its own signal, at -26 dB on the source's shipped D.Gain; a channel takes it through its HPF, GATE, COMP, EQ, INS FX and fader, and on through its PAN or BAL, its sends and the FX returns into the MIX and stereo buses, the cue bus, STREAMING and the monitors. The pan law, the send taps, TO ST, the cue taps, the FX returns, the inserts' levels and the detectors are the unit's own, read off a URX44V.
+- Read each meter where the unit's does: HOME's strip meter after the EQ and insert and before [ON] and the fader, the indicator dots off what the strip takes in, a bus's meter in the channel view's input area off what the bus takes in, and a block screen's IN and OUT off the block's own input and output.
+- Take an insert's compander along the curve its screen draws, lifting what sits on the flat of the curve as the unit does, and read its reduction bar from that flat; take M.B.Comp along the unit's own readings. They only held the level down over their threshold.
+- Keep a strip's signal dot lit while it clips, and light it from about -40 dB, as the unit does.
+- Let bars, clip marks and the indicator dots fall at 30 dB a second rather than at once.
 - Leave the title of a scene number with nothing stored under it empty on the SCENE LIST and the HOME scene box, where it read `No Scene`.
 - Shut [Recall] on a scene number with nothing stored under it, as the unit does.
 - Recall the Simple Mode presets P01 Live Music 0, P02 Streaming 0 and P03 DAW Rec 0 with the mixer each holds; recalling them only moved the recalled number. A URX22 takes the presets' channels in order, its HI-Z CH 2 taking the presets' CH 3.

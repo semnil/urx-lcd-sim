@@ -11,7 +11,8 @@ import type { Strip } from "../model/types";
 import { allStrips } from "../model/types";
 import { markShut } from "../ui/dom";
 import { pickerGrid, pickerSheet, toggle } from "../ui/widgets";
-import { carriesStereo, linkedPair } from "./stereo-link";
+import { insertBase } from "./signal-flow";
+import { carriesStereo } from "./stereo-link";
 
 export { NO_EFFECT };
 
@@ -25,15 +26,7 @@ function insertEffects(strip: Strip): readonly EffectOption[] {
   return strip.side === "output" ? OUTPUT_INSERT_EFFECTS : INPUT_INSERT_EFFECTS;
 }
 
-/**
- * Where a strip keeps its insert. A stereo-linked pair carries one insert between
- * its two channels, held on the lower-numbered one, so both halves show and set
- * the same effect.
- */
-export function insertBase(ctx: AppContext, strip: Strip): string {
-  const first = linkedPair(ctx, strip)?.[0] ?? strip;
-  return `ch.${first.id}.insFx`;
-}
+export { insertBase };
 
 /** What is holding each kind of effect the unit runs one of at a time. */
 function holders(ctx: AppContext): Map<string, string> {
