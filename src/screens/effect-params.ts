@@ -984,6 +984,9 @@ function effectScreen(ctx: AppContext, strip: Strip, route: Route, holder: Effec
 export const effectSettingsScreen: ScreenDef = {
   id: "ch.effect",
   toolbar: "sub",
+  // A channel the arrows step onto that runs no effect assigns no knob, and the
+  // readout strip stays where it is rather than the controls moving down into it.
+  knobStrip: true,
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();

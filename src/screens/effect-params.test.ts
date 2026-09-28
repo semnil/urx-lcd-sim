@@ -327,6 +327,27 @@ describe("the screen an effect is set on", () => {
     expect(shell.root.querySelector(".insfx-effect"), "and no effect to name").toBeNull();
   });
 
+  it("keeps the readout bar on a channel the arrows step onto that runs no effect, with USER DEFINED KNOBS on and off", async () => {
+    // A channel with nothing to set assigns no knob. The bar stays where it is
+    // rather than the controls moving down into its place.
+    const shell = await mount([{ id: "ch.effect", strip: "fx1" }]);
+    const bar = (): boolean[] => ["has-knobs", "is-udk"].map((c) => shell.root.classList.contains(c));
+    expect(knobLabels(shell).some(Boolean), "FX 1's page turns its values on the knobs").toBe(true);
+    expect(bar()).toEqual([true, false]);
+    for (const strip of ["ch2", "ch_5_6"]) {
+      shell.ctx.nav.replace({ id: "ch.effect", strip });
+      await flush();
+      expect(knobLabels(shell).some(Boolean), `${strip} assigns no knob`).toBe(false);
+      expect(bar(), `${strip} keeps the bar`).toEqual([true, false]);
+    }
+    await shell.ctx.store.set("ui.userDefinedKnobs", true);
+    await flush();
+    expect(bar(), "the bar carries the banks under USER DEFINED KNOBS").toEqual([true, true]);
+    await shell.ctx.store.set("ui.userDefinedKnobs", false);
+    await flush();
+    expect(bar(), "and stays, empty, once it is off").toEqual([true, false]);
+  });
+
   it("opens a list the glass cannot hold on a sheet, and a short one under its box", async () => {
     const amp = await openParams("ch1", "Clean");
     await click(amp, ".efx-page-next");
