@@ -66,7 +66,9 @@ the unit is asynchronous, which is why the values are held twice.
   into a bus on Pan Link where its source is. The rule runs on edits
   alone and not on device-side notifies, because the unit does its own mirroring. Nor does it run on
   `store.restore(path, value)`, which a scene recall and a settings file Load use to put stored values
-  back, because those values already hold what the rule decided.
+  back, because those values already hold what the rule decided. A copy stored while Pan Link left each
+  send's own placing where it was does not, so after putting one back they place the sends into a bus on
+  Pan Link where their sources are.
 - **Changes on the device side** — arrive as notifies from the transport. Scene recall, turning a
   knob on the unit, and Auto Gain completing all take this path. A notify with `echo: false` is
   always taken.

@@ -7,6 +7,7 @@ import { shippedScene } from "../model/scene-presets";
 import { withEverySourceGain } from "../model/source-gain";
 import { dropInsertsOverRate } from "./insert-fx";
 import { followRecall, pairStates } from "./stereo-link";
+import { placeLinkedSends } from "./mix-bus";
 import { el, markShut } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { LIST_THUMB_MIN_PX, button, dialog, listView, menuButton, menuGrid, scrollbar, sideTab, toggle } from "../ui/widgets";
@@ -85,6 +86,9 @@ export async function recallScene(ctx: AppContext, no: number): Promise<void> {
   const pairs = pairStates(ctx);
   if (state) await applyScene(ctx.store, withEverySourceGain(ctx.store, state));
   followRecall(ctx, pairs);
+  // A scene stored while Pan Link left each send's own placing where it was
+  // comes back with the sends into a bus on Pan Link where their sources are.
+  placeLinkedSends(ctx);
   await ctx.store.set("scene.current", no);
   // A scene carries the mixer and not the sampling frequency, so a stored insert
   // can come back onto a unit that is running too fast for it.

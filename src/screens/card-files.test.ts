@@ -200,6 +200,24 @@ describe("playing a file back", () => {
     expect(store.num("sd.playingFile", -1)).toBe(-1);
   });
 
+  it("puts the sends into a bus on Pan Link where their sources are, whatever the loaded file holds", async () => {
+    // A file saved while Pan Link left each send's own placing where it was.
+    const shell = await mount({ id: "microsd.saveload" }, [{ name: "Recordings", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" }]);
+    const store = shell.ctx.store;
+    await store.set("ch.ch1.pan", -40);
+    await store.set("ch.bus.mix1.panLink", true);
+    await store.restore("ch.ch1.send.bus.mix1.balance", 21);
+    action(shell, "Save as")?.click();
+    await flush();
+    await typeTitle(shell, "linked");
+    await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === "linked.urxf"));
+    await flush();
+    action(shell, "Load")?.click();
+    await flush();
+    await flush();
+    expect(store.num("ch.ch1.send.bus.mix1.balance", 0)).toBe(-40);
+  });
+
   it("puts back a ratio saved at the top of its travel", async () => {
     const shell = await mount({ id: "microsd.saveload" }, [{ name: "Recordings", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" }]);
     const store = shell.ctx.store;
