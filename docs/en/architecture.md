@@ -69,7 +69,7 @@ the unit is asynchronous, which is why the values are held twice.
   `store.restore(path, value)`, which a scene recall and a settings file Load use to put stored values
   back, because those values already hold what the rule decided. A copy stored while Pan Link left each
   send's own placing where it was, or kept Pan Link on over a FIXED bus, does not, so after putting one
-  back they bring Pan Link to where the unit keeps it.
+  back they bring Pan Link to where the unit's screen leaves it.
 - **Changes on the device side** — arrive as notifies from the transport. Scene recall, turning a
   knob on the unit, and Auto Gain completing all take this path. A notify with `echo: false` is
   always taken.
@@ -97,7 +97,7 @@ names a pair the current frequency cannot hold drops it, as a change of frequenc
 stored as parts that stood still is not put back: the clock runs with the computer's. A guitar
 amp's Type or Amp Type stored by its name comes back at the place on its knob that reads that name,
 and a name the amp does not have is not put back. A state stored while Pan Link left each send's own placing where
-it was, or kept Pan Link on over a FIXED bus, comes back with Pan Link where the unit keeps it.
+it was, or kept Pan Link on over a FIXED bus, comes back with Pan Link where the unit's screen leaves it.
 
 What is on the card, the scene memories and the settings files are values in the same mirror, and
 they are kept with it. The browser's storage, the scene memories and the settings files are written as JSON, which has

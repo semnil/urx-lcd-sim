@@ -97,7 +97,7 @@ function linkedPlacings(ctx: Pick<AppContext, "store" | "model">, bus: Strip): [
 }
 
 /**
- * Bring Pan Link to where the unit keeps it, as switching it on and taking FIXED
+ * Bring Pan Link to where the unit's screen leaves it, as switching it on and taking FIXED
  * do: off on a FIXED bus, and every send into a bus on Pan Link where its source is.
  */
 export function settlePanLink(ctx: Pick<AppContext, "store" | "model">): void {
