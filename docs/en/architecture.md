@@ -63,12 +63,13 @@ the unit is asynchronous, which is why the values are held twice.
   brings a connector's A.Gain down to +40 dB when its HI-Z goes on, `src/model/effects.ts` sets a
   delay's time from the note value and the tempo while its Sync is on, `src/screens/channel.ts`
   sets the four bands from 1-knob EQ's curve and level, and `src/screens/mix-bus.ts` puts each send
-  into a bus on Pan Link where its source is. The rule runs on edits
+  into a bus on Pan Link where its source is and switches a bus's Pan Link off as the bus takes FIXED.
+  The rule runs on edits
   alone and not on device-side notifies, because the unit does its own mirroring. Nor does it run on
   `store.restore(path, value)`, which a scene recall and a settings file Load use to put stored values
   back, because those values already hold what the rule decided. A copy stored while Pan Link left each
-  send's own placing where it was does not, so after putting one back they place the sends into a bus on
-  Pan Link where their sources are.
+  send's own placing where it was, or kept Pan Link on over a FIXED bus, does not, so after putting one
+  back they bring Pan Link to where the unit keeps it.
 - **Changes on the device side** — arrive as notifies from the transport. Scene recall, turning a
   knob on the unit, and Auto Gain completing all take this path. A notify with `echo: false` is
   always taken.
@@ -96,7 +97,7 @@ names a pair the current frequency cannot hold drops it, as a change of frequenc
 stored as parts that stood still is not put back: the clock runs with the computer's. A guitar
 amp's Type or Amp Type stored by its name comes back at the place on its knob that reads that name,
 and a name the amp does not have is not put back. A state stored while Pan Link left each send's own placing where
-it was comes back with the sends into a bus on Pan Link where their sources are.
+it was, or kept Pan Link on over a FIXED bus, comes back with Pan Link where the unit keeps it.
 
 What is on the card, the scene memories and the settings files are values in the same mirror, and
 they are kept with it. The browser's storage, the scene memories and the settings files are written as JSON, which has

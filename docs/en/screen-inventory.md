@@ -305,8 +305,9 @@ y209..248). The second row is empty. No other bus and no channel carries either.
   a move of the source's position moves the send's with it; switching it off leaves each send where its
   source was and does not bring back the placing it had before (URX44V, measured over the control link
   on 2026-09-29).
-- `Pan Link` works on a `VARI` bus. While the bus is `FIXED` the button keeps its place and cannot be
-  taken, and its value is kept.
+- `Pan Link` works on a `VARI` bus. Taking `FIXED` switches it off; while the bus is `FIXED` the button
+  keeps its place and cannot be taken, and it stays off when the bus goes back to `VARI` (URX44V,
+  2026-09-29, on the unit's screen and over the control link).
 
 The decision is in one place, `src/screens/mix-bus.ts`, and `src/screens/mix-bus.test.ts` pins it.
 

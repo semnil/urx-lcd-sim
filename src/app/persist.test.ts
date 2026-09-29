@@ -87,22 +87,26 @@ describe("what a reload carries over", () => {
     expect(store.has("ch.ch1.safe"), "the old name is not put back").toBe(false);
   });
 
-  it("brings the sends into a bus on Pan Link back where their sources are", async () => {
+  it("brings the sends into a bus on Pan Link back where their sources are, and a FIXED bus off Pan Link", async () => {
     // A unit stored while Pan Link left each send's own placing where it was.
     window.localStorage.setItem(
       "urx-lcd-sim.state",
       JSON.stringify({
         version: 1,
         model: MODEL,
-        values: { "ch.bus.mix1.panLink": true, "ch.ch1.pan": -40, "ch.ch1.send.bus.mix1.balance": 21, "ch.ch1.send.bus.mix2.balance": 21 },
+        values: {
+          "ch.bus.mix1.panLink": true, "ch.ch1.pan": -40, "ch.ch1.send.bus.mix1.balance": 21, "ch.ch1.send.bus.mix2.balance": 21,
+          "ch.bus.mix2.busType": "FIXED", "ch.bus.mix2.panLink": true,
+        },
       }),
     );
     const store = await unit();
     await restore(store, MODEL);
     expect(
       [store.num("ch.ch1.send.bus.mix1.balance", 0), store.num("ch.ch1.send.bus.mix2.balance", 0)],
-      "MIX 1 is on Pan Link and MIX 2 is not",
+      "MIX 1 is on Pan Link and MIX 2, a FIXED bus, is not",
     ).toEqual([-40, 21]);
+    expect(store.bool("ch.bus.mix2.panLink", true), "and a FIXED bus comes back with Pan Link off").toBe(false);
   });
 
   it("brings an amp's type written as its name back at the place on its knob that reads it", async () => {

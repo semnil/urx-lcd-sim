@@ -33,8 +33,8 @@ export function panLinkOn(ctx: StoreCtx, strip: Strip): boolean {
 
 /**
  * What the sends into `to` cannot be given. A bus on FIXED takes its sends at
- * one level; a bus on Pan Link places them by their source. Pan Link keeps its
- * value while the bus is FIXED and only its effect goes away.
+ * one level; a bus on Pan Link places them by their source. Taking FIXED
+ * switches Pan Link off, so the two do not stand together.
  */
 export function sendLocks(ctx: StoreCtx, to: Strip): { busFixed: boolean; panLinked: boolean } {
   if (!isMixBus(to)) return { busFixed: false, panLinked: false };
@@ -96,10 +96,15 @@ function linkedPlacings(ctx: Pick<AppContext, "store" | "model">, bus: Strip): [
   return sendsInto(ctx, bus).map(([p, from]) => [p, ctx.store.num(stripPosition(ctx, from).path, 0)]);
 }
 
-/** Put every send into a bus on Pan Link where its source is, as switching Pan Link on does. */
-export function placeLinkedSends(ctx: Pick<AppContext, "store" | "model">): void {
+/**
+ * Bring Pan Link to where the unit keeps it, as switching it on and taking FIXED
+ * do: off on a FIXED bus, and every send into a bus on Pan Link where its source is.
+ */
+export function settlePanLink(ctx: Pick<AppContext, "store" | "model">): void {
   for (const bus of ctx.model.outputs) {
-    if (!isMixBus(bus) || !sendLocks(ctx, bus).panLinked) continue;
+    if (!isMixBus(bus)) continue;
+    if (busType(ctx, bus) === "FIXED" && panLinkOn(ctx, bus)) void ctx.store.set(`ch.${bus.id}.panLink`, false);
+    if (!sendLocks(ctx, bus).panLinked) continue;
     for (const [p, v] of linkedPlacings(ctx, bus)) void ctx.store.set(p, v);
   }
 }
@@ -109,9 +114,15 @@ export function placeLinkedSends(ctx: Pick<AppContext, "store" | "model">): void
  * moves the placing of every send into the bus to its source's position, and
  * while it is on, a source's position carries onto its sends into the bus.
  * Switching it off moves nothing, so each send stays where its source was.
+ * Taking FIXED switches the bus's Pan Link off.
  */
 export function panLinkWriteRule(ctx: Pick<AppContext, "store" | "model">): WriteRule {
   return (path, value) => {
+    const type = /^ch\.(.+)\.busType$/.exec(path);
+    if (type) {
+      const bus = findStrip(ctx.model, type[1] ?? "");
+      return bus && isMixBus(bus) && value === "FIXED" ? [[`ch.${bus.id}.panLink`, false]] : [];
+    }
     const link = /^ch\.(.+)\.panLink$/.exec(path);
     if (link) {
       const bus = findStrip(ctx.model, link[1] ?? "");

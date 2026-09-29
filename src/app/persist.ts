@@ -14,7 +14,7 @@ import { placeOfReading } from "../model/effects";
 import { dropTracksOverRate } from "../model/track-count";
 import type { UnitModel } from "../model/types";
 import { unitById } from "../model/units";
-import { placeLinkedSends } from "../screens/mix-bus";
+import { settlePanLink } from "../screens/mix-bus";
 import { fromJson, toJson } from "../device/value-json";
 
 /** Where the browser keeps it. */
@@ -97,9 +97,9 @@ export async function restore(store: DeviceStore, model: UnitModel["id"]): Promi
   // A state written before the recorder followed the frequency can name a pair
   // the unit cannot hold, so it is taken through the same one-way drop.
   dropTracksOverRate(store, store.num("setup.samplingFrequency", 48000));
-  // A state written while Pan Link left each send's own placing where it was
-  // comes back with the sends into a bus on Pan Link where their sources are.
-  placeLinkedSends({ store, model: unitById(model) });
+  // A state written while Pan Link left each send's own placing where it was, or
+  // kept Pan Link on over a FIXED bus, comes back as the unit would hold it.
+  settlePanLink({ store, model: unitById(model) });
 }
 
 /** The unit as it stands, as it is written to storage. */

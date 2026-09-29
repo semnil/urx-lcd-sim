@@ -177,7 +177,9 @@ describe("a MIX bus's BUS Type and Pan Link", () => {
     expect(bal?.textContent).toBe("L40");
   });
 
-  it("leaves Pan Link in place and out of reach while the bus is fixed", async () => {
+  it("switches Pan Link off and out of reach while the bus is fixed, and leaves it off back on VARI", async () => {
+    // URX44V: taking FIXED on the unit's screen switched Pan Link off and shut its button, and it
+    // stayed off when the bus went back to VARI.
     const { shell, store } = await mount();
     await store.set("ch.bus.mix1.panLink", true);
     await store.set("ch.bus.mix1.busType", "FIXED");
@@ -187,14 +189,18 @@ describe("a MIX bus's BUS Type and Pan Link", () => {
     const btn = wrap?.querySelector<HTMLElement>(".btn");
     expect(wrap?.classList.contains("is-locked")).toBe(true);
     expect(btn?.getAttribute("aria-disabled")).toBe("true");
+    expect(btn?.getAttribute("aria-pressed"), "switched off").toBe("false");
     btn?.click();
     await flush();
-    expect(store.bool("ch.bus.mix1.panLink", false), "the switch keeps its value").toBe(true);
+    expect(store.bool("ch.bus.mix1.panLink", true), "and it takes no press").toBe(false);
 
     // And a fixed bus places its sends by nothing, so Pan Link has no effect.
     await open(shell, "channel-view", "ch1");
     await open(shell, "ch.sendto", "ch1");
     expect([...shell.root.querySelectorAll(".sendto-cell")][0]?.querySelector(".sendto-bal")).toBeNull();
+
+    await store.set("ch.bus.mix1.busType", "VARI");
+    expect(store.bool("ch.bus.mix1.panLink", true), "back on VARI it stays off").toBe(false);
   });
 });
 
@@ -210,17 +216,11 @@ describe("what a MIX bus locks on the sends into it", () => {
     expect(sendLocks(shell.ctx, mix), "on Pan Link").toEqual({ busFixed: false, panLinked: true });
     await store.set("ch.bus.mix1.busType", "FIXED");
     // A fixed bus takes its sends at one level, so there is no placing for Pan
-    // Link to take over; the switch keeps its value.
-    expect(sendLocks(shell.ctx, mix), "fixed, with Pan Link still switched on").toEqual({
-      busFixed: true,
-      panLinked: false,
-    });
-    expect(store.bool("ch.bus.mix1.panLink", false)).toBe(true);
+    // Link to take over, and taking FIXED switches it off.
+    expect(sendLocks(shell.ctx, mix), "fixed").toEqual({ busFixed: true, panLinked: false });
+    expect(store.bool("ch.bus.mix1.panLink", true)).toBe(false);
     await store.set("ch.bus.mix1.busType", "VARI");
-    expect(sendLocks(shell.ctx, mix), "and it comes back when the bus does").toEqual({
-      busFixed: false,
-      panLinked: true,
-    });
+    expect(sendLocks(shell.ctx, mix), "and back on VARI with Pan Link off").toEqual({ busFixed: false, panLinked: false });
 
     expect(sendLocks(shell.ctx, stereo), "the stereo bus locks nothing").toEqual({ busFixed: false, panLinked: false });
   });
