@@ -137,7 +137,7 @@ describe("a MIX bus's BUS Type and Pan Link", () => {
     expect(level()?.tabIndex, "and takes no key").toBe(-1);
   });
 
-  it("places a send from its source channel while the bus is on Pan Link", async () => {
+  it("places a send from its source channel while the bus is on Pan Link, and leaves it there when Pan Link goes off", async () => {
     const { shell, store } = await mount();
     await store.set("ch.ch1.pan", -40);
     await store.set("ch.ch1.send.bus.mix1.balance", 21);
@@ -153,11 +153,30 @@ describe("a MIX bus's BUS Type and Pan Link", () => {
     expect(bal()?.textContent, "the source channel's PAN").toBe("L40");
     expect(bal()?.getAttribute("aria-disabled")).toBe("true");
     expect(bal()?.tabIndex, "and takes no key").toBe(-1);
-    expect(store.num("ch.ch1.send.bus.mix1.balance", 0), "the send keeps its own placing").toBe(21);
+    expect(store.num("ch.ch1.send.bus.mix1.balance", 0), "the send's own placing moves to its source's").toBe(-40);
+    await store.set("ch.ch1.pan", -10);
+    await flush();
+    expect([bal()?.textContent, store.num("ch.ch1.send.bus.mix1.balance", 0)], "and follows it while Pan Link is on").toEqual(["L10", -10]);
 
     await store.set("ch.bus.mix1.panLink", false);
     await flush();
-    expect(bal()?.textContent, "which comes back").toBe("R21");
+    expect(bal()?.textContent, "switched off, the send stays where its source was").toBe("L10");
+    expect(bal()?.tabIndex, "and turns again").toBe(0);
+    await store.set("ch.ch1.pan", 30);
+    await flush();
+    expect(bal()?.textContent, "and moves no more with its source").toBe("L10");
+  });
+
+  it("reads the source's position on Pan Link, whatever the send's own placing was put back to", async () => {
+    // A scene recall puts values back without the writes an edit carries.
+    const { shell, store } = await mount();
+    await store.set("ch.ch1.pan", -40);
+    await store.set("ch.bus.mix1.panLink", true);
+    await store.restore("ch.ch1.send.bus.mix1.balance", 21);
+    await open(shell, "channel-view", "ch1");
+    await open(shell, "ch.sendto", "ch1");
+    const bal = [...shell.root.querySelectorAll(".sendto-cell")][0]?.querySelector<HTMLElement>(".sendto-bal .value-box");
+    expect(bal?.textContent).toBe("L40");
   });
 
   it("leaves Pan Link in place and out of reach while the bus is fixed", async () => {

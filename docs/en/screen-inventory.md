@@ -298,8 +298,11 @@ y209..248). The second row is empty. No other bus and no channel carries either.
   is bound to nothing. HOME's readout keeps its reading and stops turning. What goes keeps its room,
   so nothing else on the cell moves.
 - `Pan Link` makes each send into that bus follow the position of its own source channel. While it is
-  on the row is named `PAN` instead of `Bal` and reads the source's value, turning no more; the
-  send's own placing is still held and comes back when Pan Link goes off.
+  on the row is named `PAN` instead of `Bal` and reads the source's value, turning no more. Switching
+  it on moves each send's own placing to its source's position, and while it is on a move of the
+  source's position moves the send's with it; switching it off leaves each send where its source was
+  and does not bring back the placing it had before (URX44V, measured over the control link on
+  2026-09-29).
 - `Pan Link` works on a `VARI` bus. While the bus is `FIXED` the button keeps its place and cannot be
   taken, and its value is kept.
 

@@ -8,9 +8,13 @@
 
 import type { AppContext } from "../app/context";
 import type { ParamPath } from "../device/path";
+import type { WriteRule } from "../device/store";
 import type { Strip } from "../model/types";
+import { findStrip } from "../model/types";
 import { LEVEL_MIN_DB } from "../ui/param-spec";
 import { stripPosition } from "./stereo-link";
+
+type StoreCtx = Pick<AppContext, "store">;
 
 /** What a MIX bus does with the level of each send into it. */
 export const BUS_TYPES = ["VARI", "FIXED"] as const;
@@ -19,11 +23,11 @@ export function isMixBus(strip: Strip): boolean {
   return strip.kind === "mix";
 }
 
-export function busType(ctx: AppContext, strip: Strip): string {
+export function busType(ctx: StoreCtx, strip: Strip): string {
   return ctx.store.str(`ch.${strip.id}.busType`, "VARI");
 }
 
-export function panLinkOn(ctx: AppContext, strip: Strip): boolean {
+export function panLinkOn(ctx: StoreCtx, strip: Strip): boolean {
   return ctx.store.bool(`ch.${strip.id}.panLink`, false);
 }
 
@@ -32,7 +36,7 @@ export function panLinkOn(ctx: AppContext, strip: Strip): boolean {
  * one level; a bus on Pan Link places them by their source. Pan Link keeps its
  * value while the bus is FIXED and only its effect goes away.
  */
-export function sendLocks(ctx: AppContext, to: Strip): { busFixed: boolean; panLinked: boolean } {
+export function sendLocks(ctx: StoreCtx, to: Strip): { busFixed: boolean; panLinked: boolean } {
   if (!isMixBus(to)) return { busFixed: false, panLinked: false };
   const busFixed = busType(ctx, to) === "FIXED";
   return { busFixed, panLinked: !busFixed && panLinkOn(ctx, to) };
@@ -73,4 +77,54 @@ export function setBusType(ctx: AppContext, strip: Strip, value: string): void {
 
 export function setPanLink(ctx: AppContext, strip: Strip, value: boolean): void {
   void ctx.store.set(`ch.${strip.id}.panLink`, value);
+}
+
+/** Each send into `bus` the store holds a placing for, by the strip it comes from. */
+function sendsInto(ctx: Pick<AppContext, "store" | "model">, bus: Strip): [ParamPath, Strip][] {
+  const tail = `.send.${bus.id}.balance`;
+  const out: [ParamPath, Strip][] = [];
+  for (const p of ctx.store.pathsUnder("ch")) {
+    if (!p.endsWith(tail)) continue;
+    const from = findStrip(ctx.model, p.slice("ch.".length, -tail.length));
+    if (from) out.push([p, from]);
+  }
+  return out;
+}
+
+/** Each send into `bus` put where its source is, as Pan Link places it. */
+function linkedPlacings(ctx: Pick<AppContext, "store" | "model">, bus: Strip): [ParamPath, number][] {
+  return sendsInto(ctx, bus).map(([p, from]) => [p, ctx.store.num(stripPosition(ctx, from).path, 0)]);
+}
+
+/** Put every send into a bus on Pan Link where its source is, as switching Pan Link on does. */
+export function placeLinkedSends(ctx: Pick<AppContext, "store" | "model">): void {
+  for (const bus of ctx.model.outputs) {
+    if (!isMixBus(bus) || !sendLocks(ctx, bus).panLinked) continue;
+    for (const [p, v] of linkedPlacings(ctx, bus)) void ctx.store.set(p, v);
+  }
+}
+
+/**
+ * The writes Pan Link carries, as the unit makes them itself: switching it on
+ * moves the placing of every send into the bus to its source's position, and
+ * while it is on, a source's position carries onto its sends into the bus.
+ * Switching it off moves nothing, so each send stays where its source was.
+ */
+export function panLinkWriteRule(ctx: Pick<AppContext, "store" | "model">): WriteRule {
+  return (path, value) => {
+    const link = /^ch\.(.+)\.panLink$/.exec(path);
+    if (link) {
+      const bus = findStrip(ctx.model, link[1] ?? "");
+      if (!bus || value !== true || !sendLocks(ctx, bus).panLinked) return [];
+      return linkedPlacings(ctx, bus);
+    }
+    // A position is a source strip's own PAN or BALANCE; a send's placing is not one.
+    if (!/^ch\.[^.]+\.(pan|balance)$/.test(path)) return [];
+    const out: [ParamPath, number][] = [];
+    for (const bus of ctx.model.outputs) {
+      if (!isMixBus(bus) || !sendLocks(ctx, bus).panLinked) continue;
+      for (const [p, from] of sendsInto(ctx, bus)) if (stripPosition(ctx, from).path === path) out.push([p, Number(value)]);
+    }
+    return out;
+  };
 }

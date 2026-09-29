@@ -87,6 +87,24 @@ describe("what a reload carries over", () => {
     expect(store.has("ch.ch1.safe"), "the old name is not put back").toBe(false);
   });
 
+  it("brings the sends into a bus on Pan Link back where their sources are", async () => {
+    // A unit stored while Pan Link left each send's own placing where it was.
+    window.localStorage.setItem(
+      "urx-lcd-sim.state",
+      JSON.stringify({
+        version: 1,
+        model: MODEL,
+        values: { "ch.bus.mix1.panLink": true, "ch.ch1.pan": -40, "ch.ch1.send.bus.mix1.balance": 21, "ch.ch1.send.bus.mix2.balance": 21 },
+      }),
+    );
+    const store = await unit();
+    await restore(store, MODEL);
+    expect(
+      [store.num("ch.ch1.send.bus.mix1.balance", 0), store.num("ch.ch1.send.bus.mix2.balance", 0)],
+      "MIX 1 is on Pan Link and MIX 2 is not",
+    ).toEqual([-40, 21]);
+  });
+
   it("brings an amp's type written as its name back at the place on its knob that reads it", async () => {
     // A unit stored while Type and Amp Type were lists held by name.
     window.localStorage.setItem(
