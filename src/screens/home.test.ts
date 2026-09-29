@@ -250,6 +250,32 @@ describe("the channel-bank list", () => {
     ]);
   });
 
+  it("gives the four knobs the level each strip's knob sets, the send to the destination in view", async () => {
+    const shell = await mount();
+    const bound: (string | null)[] = [];
+    const inner = shell.ctx.setKnobs;
+    shell.ctx.setKnobs = (specs): void => {
+      bound.splice(0, bound.length, ...specs.map((s) => (s === null ? null : "path" in s ? s.path : `${s.label} ${s.text}`)));
+      inner(specs);
+    };
+    shell.ctx.repaint();
+    await flush();
+    expect(bound, "STEREO in view: each strip's own fader").toEqual(["ch.ch1.level", "ch.ch2.level", "ch.ch3.level", "ch.ch4.level"]);
+
+    await shell.ctx.store.set("ui.sendsTarget", "MIX1");
+    await flush();
+    expect(bound, "MIX 1 in view: each strip's send to it").toEqual([
+      "ch.ch1.send.bus.mix1.level",
+      "ch.ch2.send.bus.mix1.level",
+      "ch.ch3.send.bus.mix1.level",
+      "ch.ch4.send.bus.mix1.level",
+    ]);
+
+    await shell.ctx.store.set("ch.bus.mix1.busType", "FIXED");
+    await flush();
+    expect(bound, "a FIXED bus: Fixed, turning nothing").toEqual(Array(4).fill("Level Fixed"));
+  });
+
   it("splits the two sides under a band naming each", async () => {
     const shell = await mount();
     await openList(shell);
