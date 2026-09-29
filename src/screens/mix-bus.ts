@@ -19,6 +19,9 @@ type StoreCtx = Pick<AppContext, "store">;
 /** What a MIX bus does with the level of each send into it. */
 export const BUS_TYPES = ["VARI", "FIXED"] as const;
 
+/** What the unit prints for the level of a send into a FIXED bus, on HOME and on the readout bar. */
+export const FIXED_LEVEL_TEXT = "Fixed";
+
 export function isMixBus(strip: Strip): boolean {
   return strip.kind === "mix";
 }

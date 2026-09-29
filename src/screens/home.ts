@@ -14,7 +14,7 @@ import type { ScreenBody, ScreenDef } from "./types";
 import { fxShutOut } from "./effect-params";
 import { headAmpSwitch, micLineConnector } from "./head-amp";
 import { insertBase } from "./insert-fx";
-import { sendLocks } from "./mix-bus";
+import { FIXED_LEVEL_TEXT, sendLocks } from "./mix-bus";
 import { isStereoLinked, linkPartner, stripPosition } from "./stereo-link";
 import {
   bankName,
@@ -218,6 +218,8 @@ function stripView(ctx: AppContext, strip: Strip, selected: boolean, linkedTo?: 
 
   const panValue = ctx.store.num(stripPosition(ctx, strip).path, 0);
 
+  // A bus taking its sends at a fixed level reads `Fixed` and takes no turn.
+  const levelLocked = sends && dest !== undefined && sendLocks(ctx, dest).busFixed;
   // HOME suppresses the knob strip, so this readout is the only place the
   // strip's level is reachable and it carries the control.
   const strippedLevel = el("div", {
@@ -228,17 +230,15 @@ function stripView(ctx: AppContext, strip: Strip, selected: boolean, linkedTo?: 
       "aria-valuenow": String(level),
       "aria-valuemin": String(levelSpec.min),
       "aria-valuemax": String(levelSpec.max),
-      "aria-valuetext": formatValue(levelSpec, level),
+      "aria-valuetext": levelLocked ? FIXED_LEVEL_TEXT : formatValue(levelSpec, level),
     },
     children: [
       knobGraphic(fractionOf(levelSpec, level)),
-      el("div", { class: "strip-level-value", text: levelSpec.format(level) }),
+      el("div", { class: "strip-level-value", text: levelLocked ? FIXED_LEVEL_TEXT : levelSpec.format(level) }),
     ],
   });
   if (accent !== "st") strippedLevel.classList.add(`is-sends-${accent}`);
   if (sendOff) strippedLevel.classList.add("is-send-off");
-  // A bus taking its sends at a fixed level keeps the reading and takes no turn.
-  const levelLocked = sends && dest !== undefined && sendLocks(ctx, dest).busFixed;
   if (levelLocked) {
     strippedLevel.classList.add("is-locked");
     strippedLevel.setAttribute("aria-disabled", "true");

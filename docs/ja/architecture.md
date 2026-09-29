@@ -117,7 +117,7 @@ flowchart LR
 
 1 画面 = 1 つの `ScreenDef` (`src/screens/types.ts`)。`build(ctx, route)` がメインエリアの DOM、
 サイドメニュー、ツールバー左の要素を返し、`ctx.setKnobs()` でマルチファンクションノブ A-D に
-パラメータを割り当てる。画面を増やす作業は「モジュールを 1 つ書き、`src/screens/index.ts` の
+パラメータか、字を出すだけで何も回さない読み出しを割り当てる。画面を増やす作業は「モジュールを 1 つ書き、`src/screens/index.ts` の
 `buildRegistry()` に 1 行足す」で完結する。
 
 画面どうしのつながりは [screen-map.md](screen-map.md) が図で持つ。

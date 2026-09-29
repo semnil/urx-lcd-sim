@@ -295,8 +295,10 @@ y209..248). The second row is empty. No other bus and no channel carries either.
   switch to the side the type taken decides (`FIXED` off, `VARI` on). Taking the type back resets it
   again rather than putting back what was there.
 - A send into a `FIXED` bus loses [PRE], the pan slider and `Bal` from its SEND TO cell, and its knob
-  is bound to nothing. HOME's readout keeps its reading and stops turning. What goes keeps its room,
-  so nothing else on the cell moves.
+  is bound to nothing. What goes keeps its room, so nothing else on the cell moves. On the unit's
+  screen (URX44V, 2026-09-29) its division of the readout bar reads `Level` over `Fixed`, as bright as
+  the division beside it; HOME's [Sends] view reads the strip's level as `Fixed` and stops turning it,
+  dark only while the send is switched off; and back on `VARI`, [PRE] shows the tap as it was before.
 - `Pan Link` makes each send into that bus follow the position of its own source channel. While it is
   on the row is named after the source's own position, as the stereo bus's cell names it (`Pan` for a
   channel placed by its PAN, `Bal` otherwise), reads the source's value, and turning it turns the

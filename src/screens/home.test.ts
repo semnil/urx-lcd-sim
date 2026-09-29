@@ -227,7 +227,7 @@ describe("the channel-bank list", () => {
     const bound: (string | null)[] = [];
     const inner = shell.ctx.setKnobs;
     shell.ctx.setKnobs = (specs): void => {
-      bound.splice(0, bound.length, ...specs.map((s) => s?.path ?? null));
+      bound.splice(0, bound.length, ...specs.map((s) => (s && "path" in s ? s.path : null)));
       inner(specs);
     };
     (await openList(shell)).at(-1)?.click();
