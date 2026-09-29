@@ -1802,12 +1802,11 @@ export const sendToScreen: ScreenDef = {
           // it is the reference and carries no tap of its own.
           const noTap = busFixed || t.kind === "stereo";
           // The send carries its own placing; the level is on the knob under it.
-          // A bus on Pan Link places the send by its source channel instead, and
-          // the row is named after what it is then reading. The stereo bus places
-          // the channel where the channel itself stands, and turning it here turns
-          // the channel's own PAN.
+          // The stereo bus places the channel where the channel itself stands, and
+          // so does a bus on Pan Link: the row is named after the channel's own
+          // position, and turning it here turns that position.
           const toStereo = t.kind === "stereo";
-          const placing = panLinked ? "PAN" : toStereo && stripPosition(ctx, strip).caption === "PAN" ? "Pan" : "Bal";
+          const placing = (toStereo || panLinked) && stripPosition(ctx, strip).caption === "PAN" ? "Pan" : "Bal";
           const balSpec = panSpec(toStereo ? stripPosition(ctx, strip).path : sendPanPath(ctx, strip, t), `${t.label} ${placing}`);
           const balance = ctx.store.num(balSpec.path, 0);
           // A fixed bus takes the send at one level, so the unit offers neither
@@ -1837,7 +1836,7 @@ export const sendToScreen: ScreenDef = {
                         class: "sendto-bal",
                         children: [
                           el("span", { class: "sendto-bal-caption", text: placing }),
-                          valueBox(ctx, balSpec, panLinked ? "is-locked" : "", true, panLinked),
+                          valueBox(ctx, balSpec),
                         ],
                       }),
                 ],

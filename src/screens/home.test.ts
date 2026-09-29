@@ -1116,7 +1116,7 @@ describe("the SEND TO destination tabs", () => {
     expect([at("MIX 1"), at("MIX 2")], "the mixes on the third").toEqual(["3/1", "3/2"]);
   });
 
-  it("names a send's placing after what it reads while the bus is on Pan Link", async () => {
+  it("names a send's placing after the channel's own position while the bus is on Pan Link, and turns that position there", async () => {
     const shell = await mount();
     await shell.ctx.store.set("ch.ch1.pan", -63);
     shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
@@ -1127,13 +1127,39 @@ describe("the SEND TO destination tabs", () => {
 
     await shell.ctx.store.set("ch.bus.mix1.panLink", true);
     await flush();
-    expect(cell()?.querySelector(".sendto-bal-caption")?.textContent, "it reads the channel's own PAN").toBe("PAN");
+    // URX44V: CH 3 at L20 read `Pan` L20 there, and one step took CH 3's PAN to L21.
+    expect(cell()?.querySelector(".sendto-bal-caption")?.textContent, "it reads the channel's own PAN").toBe("Pan");
     expect(cell()?.querySelector(".sendto-bal .value-box")?.textContent).toBe("L63");
-    expect(cell()?.querySelector(".sendto-bal .value-box")?.getAttribute("aria-label")).toBe("MIX 1 PAN");
+    expect(cell()?.querySelector(".sendto-bal .value-box")?.getAttribute("aria-label")).toBe("MIX 1 Pan");
+    cell()?.querySelector(".sendto-bal .value-box")?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    await flush();
+    expect(
+      [shell.ctx.store.num("ch.ch1.pan", 0), shell.ctx.store.num("ch.ch1.send.bus.mix1.balance", 0)],
+      "turning it turns the channel's PAN, and the send follows",
+    ).toEqual([-62, -62]);
 
     await shell.ctx.store.set("ch.bus.mix1.panLink", false);
     await flush();
     expect(cell()?.querySelector(".sendto-bal-caption")?.textContent).toBe("Bal");
+  });
+
+  it("names a stereo channel's send on Pan Link after its BAL, and turns the BAL there", async () => {
+    // URX44V: CH 5/6 at L20 read `Bal` L20 there, and one step took CH 5/6's BAL to L19.
+    const shell = await mount();
+    await shell.ctx.store.set("ch.ch_5_6.balance", -20);
+    await shell.ctx.store.set("ch.bus.mix1.panLink", true);
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch_5_6" });
+    shell.ctx.nav.push({ id: "ch.sendto", strip: "ch_5_6" });
+    await flush();
+    const cell = (): Element | undefined => [...shell.root.querySelectorAll(".sendto-cell")][0];
+    expect(cell()?.querySelector(".sendto-bal-caption")?.textContent).toBe("Bal");
+    expect(cell()?.querySelector(".sendto-bal .value-box")?.textContent).toBe("L20");
+    cell()?.querySelector(".sendto-bal .value-box")?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    await flush();
+    expect(
+      [shell.ctx.store.num("ch.ch_5_6.balance", 0), shell.ctx.store.num("ch.ch_5_6.send.bus.mix1.balance", 0)],
+      "turning it turns the channel's BAL, and the send follows",
+    ).toEqual([-19, -19]);
   });
 
   it("gives a send into the stereo bus no tap of its own, and keeps its placing", async () => {

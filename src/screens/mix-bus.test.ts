@@ -151,8 +151,7 @@ describe("a MIX bus's BUS Type and Pan Link", () => {
     await store.set("ch.bus.mix1.panLink", true);
     await flush();
     expect(bal()?.textContent, "the source channel's PAN").toBe("L40");
-    expect(bal()?.getAttribute("aria-disabled")).toBe("true");
-    expect(bal()?.tabIndex, "and takes no key").toBe(-1);
+    expect(bal()?.tabIndex, "and turns, as the unit's does").toBe(0);
     expect(store.num("ch.ch1.send.bus.mix1.balance", 0), "the send's own placing moves to its source's").toBe(-40);
     await store.set("ch.ch1.pan", -10);
     await flush();
@@ -161,7 +160,6 @@ describe("a MIX bus's BUS Type and Pan Link", () => {
     await store.set("ch.bus.mix1.panLink", false);
     await flush();
     expect(bal()?.textContent, "switched off, the send stays where its source was").toBe("L10");
-    expect(bal()?.tabIndex, "and turns again").toBe(0);
     await store.set("ch.ch1.pan", 30);
     await flush();
     expect(bal()?.textContent, "and moves no more with its source").toBe("L10");
