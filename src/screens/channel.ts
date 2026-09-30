@@ -21,7 +21,7 @@ import { attachDrag, attachSpin, followFocus, knobControl, markFocus, meter, pan
 import { type GrSpec, type LampState, blockReduction, inputMeterId, markBlockLamps, markClipSafe, markLevelBar, markReduction, meterLevels, showBlockLamps, simulatedInput, simulatedLevel } from "./meters";
 import { type Tap, compSpec, duckerSources, duckerSpec, gateSpec, stripTap, tapId } from "./signal-flow";
 import { PAN_BAL, SIGNAL_TYPES, carriesStereo, enterSsmcs, setPanBal, setSignalType, signalType, stripPosition } from "./stereo-link";
-import { BUS_TYPES, busType, panLinkOn, sendLocks, sendPanPath, setBusType, setPanLink } from "./mix-bus";
+import { BUS_TYPES, FIXED_LEVEL_TEXT, busType, panLinkOn, sendLocks, sendPanPath, setBusType, setPanLink } from "./mix-bus";
 import { homeSide, sceneBox } from "./home";
 import { headAmp, headAmpSwitch } from "./head-amp";
 import { inputSourceSheet, sourceBoxLabel } from "./input-source";
@@ -1787,9 +1787,16 @@ export const sendToScreen: ScreenDef = {
     const stored = ctx.store.str("ui.sendToGroup", "MIX");
     const group = groups.some((g) => g.key === stored) ? stored : (groups[0]?.key ?? "ST");
     const targets = sendTargets(ctx, strip, group);
-    // A bus taking its sends at a fixed level gives the knob nothing to turn, and
-    // the stereo bus takes a channel at its own fader, with no level of its own.
-    const specs = targets.map((t) => (sendLocks(ctx, t).busFixed || t.kind === "stereo" ? null : faderSpec(`${base}.send.${t.id}.level`, "Level")));
+    // A bus taking its sends at a fixed level reads `Fixed` under the level and
+    // gives the knob nothing to turn, and the stereo bus takes a channel at its
+    // own fader, with no level of its own.
+    const specs = targets.map((t) =>
+      t.kind === "stereo"
+        ? null
+        : sendLocks(ctx, t).busFixed
+          ? { label: "Level", text: FIXED_LEVEL_TEXT }
+          : faderSpec(`${base}.send.${t.id}.level`, "Level"),
+    );
     ctx.setKnobs([specs[0] ?? null, specs[1] ?? null, null, null]);
     return {
       main: el("div", {

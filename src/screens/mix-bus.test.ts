@@ -68,6 +68,7 @@ describe("a MIX bus's BUS Type and Pan Link", () => {
   it("empties the bank into the bus when the type is taken, and does not fill it again", async () => {
     const { shell, store } = await mount();
     await store.set("ch.ch1.send.bus.mix1.level", -6);
+    await store.set("ch.ch1.send.bus.mix1.pre", true);
     await store.set("ch.ch2.send.bus.mix1.on", false);
     await store.set("ch.fx1.send.bus.mix1.level", -10);
     await store.set("ch.ch1.send.bus.mix2.level", -8);
@@ -79,10 +80,13 @@ describe("a MIX bus's BUS Type and Pan Link", () => {
     expect(store.bool("ch.ch1.send.bus.mix1.on", true), "and every switch").toBe(false);
     expect(store.bool("ch.ch2.send.bus.mix1.on", true)).toBe(false);
     expect(store.num("ch.ch1.send.bus.mix2.level", 0), "the other bus is untouched").toBe(-8);
+    expect(store.bool("ch.ch1.send.bus.mix1.pre", false), "the tap is not reset").toBe(true);
 
     await store.set("ch.ch1.send.bus.mix1.level", -4);
     await pickBusType(shell, "VARI");
     expect(store.num("ch.ch1.send.bus.mix1.level", 0), "taking the type back empties it again").toBe(LEVEL_MIN_DB);
+    // URX44V, 2026-09-29: [PRE] comes back lit, as it was before FIXED.
+    expect(store.bool("ch.ch1.send.bus.mix1.pre", false), "and the tap is back as it was").toBe(true);
     // The switches go to what the type takes them to, not to what they held:
     // a send that was off before the round trip comes back on.
     expect(
@@ -113,29 +117,49 @@ describe("a MIX bus's BUS Type and Pan Link", () => {
     expect(cell(1)?.querySelector(".btn-pre")).not.toBeNull();
     expect(cell(1)?.querySelector(".sendto-bal")).not.toBeNull();
 
-    // The knob over a fixed destination is bound to nothing, and the division
-    // keeps its band.
-    const knobCells = [...shell.root.querySelectorAll(".knob-cell")];
-    expect(knobCells[0]?.classList.contains("is-empty"), "nothing to turn for MIX 1").toBe(true);
+    // The division over a fixed destination reads `Fixed` under the level, as bright
+    // as the one beside it, and its knob turns nothing (URX44V, 2026-09-29).
+    const knobCells = [...shell.root.querySelectorAll<HTMLElement>(".knob-cell")];
+    const mix1 = knobCells[0];
+    expect([mix1?.querySelector(".knob-cell-label")?.textContent, mix1?.querySelector(".knob-cell-value")?.textContent]).toEqual([
+      "Level",
+      "Fixed",
+    ]);
+    expect(mix1?.classList.contains("is-driven"), "not dimmed").toBe(false);
+    expect(mix1?.getAttribute("role"), "not a control").toBeNull();
+    const before = store.num("ch.ch1.send.bus.mix1.level", 0);
+    mix1?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
+    await flush();
+    expect(store.num("ch.ch1.send.bus.mix1.level", 0), "and a key moves nothing").toBe(before);
     expect(knobCells[1]?.querySelector(".knob-cell-value")?.textContent, "and the level for MIX 2").toBe("-∞");
   });
 
-  it("keeps HOME's level readable and out of reach while the bus in view is fixed", async () => {
+  it("reads HOME's level as Fixed and keeps it out of reach while the bus in view is fixed", async () => {
     const { shell, store } = await mount();
     await store.set("ui.sendsTarget", "MIX1");
     await store.set("ch.ch1.send.bus.mix1.level", -6);
     await flush();
     const level = (): HTMLElement | null | undefined =>
       shell.root.querySelector('[data-lamp-source="ch1@input"]')?.closest(".strip")?.querySelector<HTMLElement>(".strip-level");
+    expect(level()?.querySelector(".strip-level-value")?.textContent).toBe("-6.00");
     expect(level()?.classList.contains("is-locked")).toBe(false);
     expect(level()?.tabIndex).toBe(0);
 
+    // URX44V, 2026-09-29: the value reads `Fixed`, and the knob stays as bright
+    // as the send's switch has it.
     await store.set("ch.bus.mix1.busType", "FIXED");
     await flush();
-    expect(level()?.querySelector(".strip-level-value")?.textContent, "the reading stays").toBe("-6.00");
+    expect(level()?.querySelector(".strip-level-value")?.textContent).toBe("Fixed");
+    expect(level()?.getAttribute("aria-valuetext")).toBe("Fixed");
+    expect(level()?.classList.contains("is-send-off"), "a send switched on is not dark").toBe(false);
     expect(level()?.classList.contains("is-locked")).toBe(true);
     expect(level()?.getAttribute("aria-disabled")).toBe("true");
     expect(level()?.tabIndex, "and takes no key").toBe(-1);
+
+    await store.set("ch.ch1.send.bus.mix1.on", false);
+    await flush();
+    expect(level()?.classList.contains("is-send-off"), "a send switched off is").toBe(true);
+    expect(level()?.querySelector(".strip-level-value")?.textContent).toBe("Fixed");
   });
 
   it("places a send from its source channel while the bus is on Pan Link, and leaves it there when Pan Link goes off", async () => {

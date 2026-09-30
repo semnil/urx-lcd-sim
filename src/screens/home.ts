@@ -7,14 +7,14 @@ import type { AppContext } from "../app/context";
 import { STRIPS_PER_BANK, allStrips, bankCount, bankStrips, type Strip } from "../model/types";
 import { el, formatPan, makeTappable } from "../ui/dom";
 import { Icons } from "../ui/icons";
-import { faderSpec, formatValue } from "../ui/param-spec";
+import { faderSpec, formatValue, type NumericSpec } from "../ui/param-spec";
 import { faderShipped, sendShipsOn } from "../model/defaults";
 import { attachSpin, fractionOf, knobGraphic, meter, panSlider, toggle } from "../ui/widgets";
 import type { ScreenBody, ScreenDef } from "./types";
 import { fxShutOut } from "./effect-params";
 import { headAmpSwitch, micLineConnector } from "./head-amp";
 import { insertBase } from "./insert-fx";
-import { sendLocks } from "./mix-bus";
+import { FIXED_LEVEL_TEXT, sendLocks } from "./mix-bus";
 import { isStereoLinked, linkPartner, stripPosition } from "./stereo-link";
 import {
   bankName,
@@ -138,6 +138,22 @@ function sendsAccent(ctx: AppContext): "st" | "mix" | "fx" {
 }
 
 /**
+ * The level a strip's knob sets: its send to the destination in view. The stereo
+ * bus is fed by the strip's own fader, so it is the fader that stands there.
+ * `locked` is a send into a bus taking its sends at a fixed level, which reads
+ * `Fixed` and takes no turn.
+ */
+function stripLevel(ctx: AppContext, strip: Strip): { spec: NumericSpec; locked: boolean } {
+  const base = `ch.${strip.id}`;
+  const dest = sendsDestination(ctx);
+  const sends = dest !== undefined && sendsTo(strip, dest);
+  return {
+    spec: sends && dest.kind !== "stereo" ? faderSpec(`${base}.send.${dest.id}.level`, "Level") : faderSpec(`${base}.level`, "LEVEL", faderShipped(strip)),
+    locked: sends && sendLocks(ctx, dest).busFixed,
+  };
+}
+
+/**
  * One HOME strip. `linkedTo` is the channel this one is stereo-linked with when
  * that channel stands immediately to its left, which puts the link mark in the
  * gap between the two.
@@ -145,13 +161,10 @@ function sendsAccent(ctx: AppContext): "st" | "mix" | "fx" {
 function stripView(ctx: AppContext, strip: Strip, selected: boolean, linkedTo?: Strip): HTMLElement {
   const base = `ch.${strip.id}`;
   const name = ctx.store.str(`${base}.name`, "");
-  // The knob under a strip sets the send to the destination in view. The stereo
-  // bus is fed by the strip's own fader, so it is the fader that stands there,
-  // and its send carries the switch alone.
+  // The stereo bus's send carries the switch alone.
   const dest = sendsDestination(ctx);
   const sends = dest !== undefined && sendsTo(strip, dest);
-  const levelSpec =
-    sends && dest.kind !== "stereo" ? faderSpec(`${base}.send.${dest.id}.level`, "Level") : faderSpec(`${base}.level`, "LEVEL", faderShipped(strip));
+  const { spec: levelSpec, locked: levelLocked } = stripLevel(ctx, strip);
   const level = ctx.store.num(levelSpec.path, levelSpec.fallback);
   // A send that is switched off still turns, and says so by going dark.
   const sendOff = sends && !ctx.store.bool(`${base}.send.${dest.id}.on`, sendShipsOn(strip, dest));
@@ -228,17 +241,15 @@ function stripView(ctx: AppContext, strip: Strip, selected: boolean, linkedTo?: 
       "aria-valuenow": String(level),
       "aria-valuemin": String(levelSpec.min),
       "aria-valuemax": String(levelSpec.max),
-      "aria-valuetext": formatValue(levelSpec, level),
+      "aria-valuetext": levelLocked ? FIXED_LEVEL_TEXT : formatValue(levelSpec, level),
     },
     children: [
       knobGraphic(fractionOf(levelSpec, level)),
-      el("div", { class: "strip-level-value", text: levelSpec.format(level) }),
+      el("div", { class: "strip-level-value", text: levelLocked ? FIXED_LEVEL_TEXT : levelSpec.format(level) }),
     ],
   });
   if (accent !== "st") strippedLevel.classList.add(`is-sends-${accent}`);
   if (sendOff) strippedLevel.classList.add("is-send-off");
-  // A bus taking its sends at a fixed level keeps the reading and takes no turn.
-  const levelLocked = sends && dest !== undefined && sendLocks(ctx, dest).busFixed;
   if (levelLocked) {
     strippedLevel.classList.add("is-locked");
     strippedLevel.setAttribute("aria-disabled", "true");
@@ -324,11 +335,14 @@ export const homeScreen: ScreenDef = {
     for (let i = strips.length; i < STRIPS_PER_BANK; i++) main.appendChild(el("div", { class: "strip strip-empty" }));
 
     // The four multi-function knobs carry the send level of the four strips
-    // shown (user guide, "Send level knob"). The streaming bus has no level.
+    // shown (user guide, "Send level knob"), the one each strip's knob sets. The
+    // streaming bus has no level.
     ctx.setKnobs(
       Array.from({ length: STRIPS_PER_BANK }, (_, i) => {
         const s = strips[i];
-        return s && s.kind !== "streaming" ? faderSpec(`ch.${s.id}.level`, "LEVEL") : null;
+        if (!s || s.kind === "streaming") return null;
+        const { spec, locked } = stripLevel(ctx, s);
+        return locked ? { label: "Level", text: FIXED_LEVEL_TEXT } : spec;
       }),
     );
 

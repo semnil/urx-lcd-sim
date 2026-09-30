@@ -31,7 +31,8 @@ async function mount(): Promise<Mounted> {
   const inner = shell.ctx.setKnobs;
   shell.ctx.setKnobs = (specs): void => {
     bound.length = 0;
-    for (const s of specs) if (s) bound.push(s);
+    // A readout names no value to turn.
+    for (const s of specs) if (s && "path" in s) bound.push(s);
     inner(specs);
   };
   return { shell, store, bound };

@@ -17,9 +17,10 @@ export interface AppContext {
   /**
    * Bind the four multi-function knobs for the screen being built. A screen
    * that declares nothing leaves the strip empty, which is what the unit shows
-   * on screens with no knob-controlled parameters.
+   * on screens with no knob-controlled parameters. A readout names a control
+   * and prints a word in its division, and its knob turns nothing.
    */
-  setKnobs(specs: (NumericSpec | null)[]): void;
+  setKnobs(specs: (NumericSpec | KnobReadout | null)[]): void;
   /**
    * Put an element over the whole screen — a dialog box or a popup menu. It is
    * mounted inside the 480x272 frame, so it covers the glass and nothing else,
@@ -28,4 +29,10 @@ export interface AppContext {
    * goes away under it.
    */
   overlay(node: HTMLElement, onClose?: () => void): () => void;
+}
+
+/** A division of the readout bar that shows a word over a control's name and turns nothing. */
+export interface KnobReadout {
+  label: string;
+  text: string;
 }

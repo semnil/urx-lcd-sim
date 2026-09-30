@@ -24,7 +24,7 @@ import { eqOneKnobWriteRule } from "../screens/channel";
 import { pairWriteRule } from "../screens/stereo-link";
 import { panLinkWriteRule } from "../screens/mix-bus";
 import { bankSide, bankTotal, currentBank, stepBank } from "../screens/strip-state";
-import type { AppContext } from "./context";
+import type { AppContext, KnobReadout } from "./context";
 import { Navigator } from "./navigator";
 import { scrimFilter } from "../ui/scrim";
 
@@ -44,7 +44,7 @@ export class Shell {
   private readonly sideNode: HTMLElement;
   private readonly knobStripNode: HTMLElement;
   private readonly dimNode: HTMLElement;
-  private knobs: (NumericSpec | null)[] = [];
+  private knobs: (NumericSpec | KnobReadout | null)[] = [];
   /** Which four of them the readout bar is showing. */
   private knobPage = 0;
   private repaintScheduled = false;
@@ -414,6 +414,10 @@ export class Shell {
         this.knobStripNode.appendChild(
           el("div", { class: "knob-cell is-empty", children: [el("div", { class: "knob-cell-label" })] }),
         );
+        continue;
+      }
+      if (!("path" in spec)) {
+        this.knobStripNode.appendChild(this.knobCell(spec.text, spec.label));
         continue;
       }
       // On the unit this is a readout and the knob under it does the turning.

@@ -127,7 +127,7 @@ the addresses the unit answers to, for two reasons.
 
 One screen = one `ScreenDef` (`src/screens/types.ts`). `build(ctx, route)` returns the main area's
 DOM, the side menu and the element at the left of the toolbar, and `ctx.setKnobs()` assigns
-parameters to multifunction knobs A-D. Adding a screen is complete with "write one module and add
+parameters to multifunction knobs A-D, or a readout that shows a word and turns nothing. Adding a screen is complete with "write one module and add
 one line to `buildRegistry()` in `src/screens/index.ts`".
 
 How the screens connect is drawn in [screen-map.md](screen-map.md).
