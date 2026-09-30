@@ -7,6 +7,7 @@ import { unitById } from "../model/units";
 import { LEVEL_MIN_DB } from "../ui/param-spec";
 import { buildRegistry } from "./index";
 import { sendLocks } from "./mix-bus";
+import { setPanBal, setSignalType } from "./stereo-link";
 
 // BUS Type and Pan Link belong to a MIX bus and decide what the sends into it
 // are given: a FIXED bus takes them at one level, and a bus on Pan Link places
@@ -175,6 +176,39 @@ describe("a MIX bus's BUS Type and Pan Link", () => {
     await open(shell, "ch.sendto", "ch1");
     const bal = [...shell.root.querySelectorAll(".sendto-cell")][0]?.querySelector<HTMLElement>(".sendto-bal .value-box");
     expect(bal?.textContent).toBe("L40");
+  });
+
+  it("places a linked pair's sends by the pair's balance on BAL and by each channel's PAN on PAN, and leaves them there", async () => {
+    // URX44V, 2026-09-29, CH 3/4 linked: the pair comes up on BAL, where its two sends hold one
+    // placing; Pan Link puts both at the pair's balance, and on PAN each at its channel's PAN.
+    const { shell, store } = await mount();
+    const ch3 = shell.ctx.model.inputs.find((s) => s.id === "ch3");
+    if (!ch3) throw new Error("model has no CH 3");
+    const sends = (): number[] => ["ch3", "ch4"].map((id) => store.num(`ch.${id}.send.bus.mix1.balance`, 0));
+    setSignalType(shell.ctx, ch3, "STEREO");
+    await flush();
+    expect(store.str("ch.ch3.panBal", "PAN"), "linked, the pair comes up on its balance").toBe("BAL");
+    await store.set("ch.ch3.send.bus.mix1.balance", 40);
+    await store.set("ch.ch4.send.bus.mix1.balance", -40);
+    expect(sends(), "on BAL the two sends hold one placing").toEqual([-40, -40]);
+    await store.set("ch.ch3.balance", -25);
+    await store.set("ch.bus.mix1.panLink", true);
+    expect(sends(), "Pan Link: the pair's balance").toEqual([-25, -25]);
+    await store.set("ch.bus.mix1.panLink", false);
+    expect(sends(), "and off, where Pan Link put them").toEqual([-25, -25]);
+
+    setPanBal(shell.ctx, ch3, "PAN");
+    await flush();
+    expect(["ch3", "ch4"].map((id) => store.num(`ch.${id}.pan`, 0)), "PAN puts the two at the ends").toEqual([-63, 63]);
+    await store.set("ch.ch3.pan", -20);
+    await store.set("ch.ch4.pan", 30);
+    await store.set("ch.ch3.send.bus.mix1.balance", 40);
+    await store.set("ch.ch4.send.bus.mix1.balance", -40);
+    expect(sends(), "on PAN each send holds its own placing").toEqual([40, -40]);
+    await store.set("ch.bus.mix1.panLink", true);
+    expect(sends(), "Pan Link: each channel's PAN").toEqual([-20, 30]);
+    await store.set("ch.bus.mix1.panLink", false);
+    expect(sends(), "and off, where Pan Link put them").toEqual([-20, 30]);
   });
 
   it("switches Pan Link off and out of reach while the bus is fixed, and leaves it off back on VARI", async () => {
