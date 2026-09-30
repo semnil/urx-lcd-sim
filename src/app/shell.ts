@@ -22,6 +22,7 @@ import { hiZWriteRule } from "../screens/head-amp";
 import { delaySyncWriteRule } from "../model/effects";
 import { eqOneKnobWriteRule } from "../screens/channel";
 import { pairWriteRule } from "../screens/stereo-link";
+import { panLinkWriteRule } from "../screens/mix-bus";
 import { bankSide, bankTotal, currentBank, stepBank } from "../screens/strip-state";
 import type { AppContext } from "./context";
 import { Navigator } from "./navigator";
@@ -109,8 +110,9 @@ export class Shell {
     // A linked pair holds one set of values, so an edit to one of its channels
     // carries onto the other, the DATE / TIME popup keeps its day inside the
     // month it holds, HI-Z brings its connector's A.Gain down to what it
-    // reaches, a delay's Sync sets its time from the note and the tempo, and
-    // 1-knob EQ sets the four bands from its curve and level.
+    // reaches, a delay's Sync sets its time from the note and the tempo,
+    // 1-knob EQ sets the four bands from its curve and level, and Pan Link
+    // puts each send into its bus where the send's source is.
     // They are installed here because every screen and every gesture
     // reaches the store through this one context.
     store.setWriteRule(
@@ -120,6 +122,7 @@ export class Shell {
         hiZWriteRule(store),
         delaySyncWriteRule(store),
         eqOneKnobWriteRule(store),
+        panLinkWriteRule({ store, model }),
       ),
     );
     this.attachSwipe();

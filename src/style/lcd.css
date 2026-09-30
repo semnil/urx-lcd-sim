@@ -5230,11 +5230,6 @@
   height: 22px;
 }
 
-/* A send the unit places from its source channel reads out and takes no turn. */
-.sendto-bal .value-box.is-locked {
-  filter: brightness(var(--dim-disabled));
-}
-
 .sendto-bal {
   margin-top: 6px;
   width: 100%;

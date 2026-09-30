@@ -7,6 +7,7 @@ import { unitById } from "../model/units";
 import { LEVEL_MIN_DB } from "../ui/param-spec";
 import { buildRegistry } from "./index";
 import { sendLocks } from "./mix-bus";
+import { setPanBal, setSignalType } from "./stereo-link";
 
 // BUS Type and Pan Link belong to a MIX bus and decide what the sends into it
 // are given: a FIXED bus takes them at one level, and a bus on Pan Link places
@@ -137,7 +138,7 @@ describe("a MIX bus's BUS Type and Pan Link", () => {
     expect(level()?.tabIndex, "and takes no key").toBe(-1);
   });
 
-  it("places a send from its source channel while the bus is on Pan Link", async () => {
+  it("places a send from its source channel while the bus is on Pan Link, and leaves it there when Pan Link goes off", async () => {
     const { shell, store } = await mount();
     await store.set("ch.ch1.pan", -40);
     await store.set("ch.ch1.send.bus.mix1.balance", 21);
@@ -151,16 +152,68 @@ describe("a MIX bus's BUS Type and Pan Link", () => {
     await store.set("ch.bus.mix1.panLink", true);
     await flush();
     expect(bal()?.textContent, "the source channel's PAN").toBe("L40");
-    expect(bal()?.getAttribute("aria-disabled")).toBe("true");
-    expect(bal()?.tabIndex, "and takes no key").toBe(-1);
-    expect(store.num("ch.ch1.send.bus.mix1.balance", 0), "the send keeps its own placing").toBe(21);
+    expect(bal()?.tabIndex, "and turns, as the unit's does").toBe(0);
+    expect(store.num("ch.ch1.send.bus.mix1.balance", 0), "the send's own placing moves to its source's").toBe(-40);
+    await store.set("ch.ch1.pan", -10);
+    await flush();
+    expect([bal()?.textContent, store.num("ch.ch1.send.bus.mix1.balance", 0)], "and follows it while Pan Link is on").toEqual(["L10", -10]);
 
     await store.set("ch.bus.mix1.panLink", false);
     await flush();
-    expect(bal()?.textContent, "which comes back").toBe("R21");
+    expect(bal()?.textContent, "switched off, the send stays where its source was").toBe("L10");
+    await store.set("ch.ch1.pan", 30);
+    await flush();
+    expect(bal()?.textContent, "and moves no more with its source").toBe("L10");
   });
 
-  it("leaves Pan Link in place and out of reach while the bus is fixed", async () => {
+  it("reads the source's position on Pan Link, whatever the send's own placing was put back to", async () => {
+    // A scene recall puts values back without the writes an edit carries.
+    const { shell, store } = await mount();
+    await store.set("ch.ch1.pan", -40);
+    await store.set("ch.bus.mix1.panLink", true);
+    await store.restore("ch.ch1.send.bus.mix1.balance", 21);
+    await open(shell, "channel-view", "ch1");
+    await open(shell, "ch.sendto", "ch1");
+    const bal = [...shell.root.querySelectorAll(".sendto-cell")][0]?.querySelector<HTMLElement>(".sendto-bal .value-box");
+    expect(bal?.textContent).toBe("L40");
+  });
+
+  it("places a linked pair's sends by the pair's balance on BAL and by each channel's PAN on PAN, and leaves them there", async () => {
+    // URX44V, 2026-09-29, CH 3/4 linked: the pair comes up on BAL, where its two sends hold one
+    // placing; Pan Link puts both at the pair's balance, and on PAN each at its channel's PAN.
+    const { shell, store } = await mount();
+    const ch3 = shell.ctx.model.inputs.find((s) => s.id === "ch3");
+    if (!ch3) throw new Error("model has no CH 3");
+    const sends = (): number[] => ["ch3", "ch4"].map((id) => store.num(`ch.${id}.send.bus.mix1.balance`, 0));
+    setSignalType(shell.ctx, ch3, "STEREO");
+    await flush();
+    expect(store.str("ch.ch3.panBal", "PAN"), "linked, the pair comes up on its balance").toBe("BAL");
+    await store.set("ch.ch3.send.bus.mix1.balance", 40);
+    await store.set("ch.ch4.send.bus.mix1.balance", -40);
+    expect(sends(), "on BAL the two sends hold one placing").toEqual([-40, -40]);
+    await store.set("ch.ch3.balance", -25);
+    await store.set("ch.bus.mix1.panLink", true);
+    expect(sends(), "Pan Link: the pair's balance").toEqual([-25, -25]);
+    await store.set("ch.bus.mix1.panLink", false);
+    expect(sends(), "and off, where Pan Link put them").toEqual([-25, -25]);
+
+    setPanBal(shell.ctx, ch3, "PAN");
+    await flush();
+    expect(["ch3", "ch4"].map((id) => store.num(`ch.${id}.pan`, 0)), "PAN puts the two at the ends").toEqual([-63, 63]);
+    await store.set("ch.ch3.pan", -20);
+    await store.set("ch.ch4.pan", 30);
+    await store.set("ch.ch3.send.bus.mix1.balance", 40);
+    await store.set("ch.ch4.send.bus.mix1.balance", -40);
+    expect(sends(), "on PAN each send holds its own placing").toEqual([40, -40]);
+    await store.set("ch.bus.mix1.panLink", true);
+    expect(sends(), "Pan Link: each channel's PAN").toEqual([-20, 30]);
+    await store.set("ch.bus.mix1.panLink", false);
+    expect(sends(), "and off, where Pan Link put them").toEqual([-20, 30]);
+  });
+
+  it("switches Pan Link off and out of reach while the bus is fixed, and leaves it off back on VARI", async () => {
+    // URX44V: taking FIXED on the unit's screen switched Pan Link off and shut its button, and it
+    // stayed off when the bus went back to VARI.
     const { shell, store } = await mount();
     await store.set("ch.bus.mix1.panLink", true);
     await store.set("ch.bus.mix1.busType", "FIXED");
@@ -170,14 +223,18 @@ describe("a MIX bus's BUS Type and Pan Link", () => {
     const btn = wrap?.querySelector<HTMLElement>(".btn");
     expect(wrap?.classList.contains("is-locked")).toBe(true);
     expect(btn?.getAttribute("aria-disabled")).toBe("true");
+    expect(btn?.getAttribute("aria-pressed"), "switched off").toBe("false");
     btn?.click();
     await flush();
-    expect(store.bool("ch.bus.mix1.panLink", false), "the switch keeps its value").toBe(true);
+    expect(store.bool("ch.bus.mix1.panLink", true), "and it takes no press").toBe(false);
 
     // And a fixed bus places its sends by nothing, so Pan Link has no effect.
     await open(shell, "channel-view", "ch1");
     await open(shell, "ch.sendto", "ch1");
     expect([...shell.root.querySelectorAll(".sendto-cell")][0]?.querySelector(".sendto-bal")).toBeNull();
+
+    await store.set("ch.bus.mix1.busType", "VARI");
+    expect(store.bool("ch.bus.mix1.panLink", true), "back on VARI it stays off").toBe(false);
   });
 });
 
@@ -193,17 +250,11 @@ describe("what a MIX bus locks on the sends into it", () => {
     expect(sendLocks(shell.ctx, mix), "on Pan Link").toEqual({ busFixed: false, panLinked: true });
     await store.set("ch.bus.mix1.busType", "FIXED");
     // A fixed bus takes its sends at one level, so there is no placing for Pan
-    // Link to take over; the switch keeps its value.
-    expect(sendLocks(shell.ctx, mix), "fixed, with Pan Link still switched on").toEqual({
-      busFixed: true,
-      panLinked: false,
-    });
-    expect(store.bool("ch.bus.mix1.panLink", false)).toBe(true);
+    // Link to take over, and taking FIXED switches it off.
+    expect(sendLocks(shell.ctx, mix), "fixed").toEqual({ busFixed: true, panLinked: false });
+    expect(store.bool("ch.bus.mix1.panLink", true)).toBe(false);
     await store.set("ch.bus.mix1.busType", "VARI");
-    expect(sendLocks(shell.ctx, mix), "and it comes back when the bus does").toEqual({
-      busFixed: false,
-      panLinked: true,
-    });
+    expect(sendLocks(shell.ctx, mix), "and back on VARI with Pan Link off").toEqual({ busFixed: false, panLinked: false });
 
     expect(sendLocks(shell.ctx, stereo), "the stereo bus locks nothing").toEqual({ busFixed: false, panLinked: false });
   });

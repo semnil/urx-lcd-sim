@@ -105,6 +105,18 @@ describe("storing and recalling a scene", () => {
     expect(stored, "which is not how it holds the stereo bus").toContain("ch.bus.stereo.level");
   });
 
+  it("puts the sends into a bus on Pan Link where their sources are, whatever the stored scene holds", async () => {
+    // A scene stored while Pan Link left each send's own placing where it was.
+    const shell = await mount();
+    const s = shell.ctx.store;
+    await s.set("ch.ch1.pan", -40);
+    await s.set("ch.bus.mix1.panLink", true);
+    await s.restore("ch.ch1.send.bus.mix1.balance", 21);
+    await storeScene(shell.ctx, "Standard", 1);
+    await recallScene(shell.ctx, 1);
+    expect(s.num("ch.ch1.send.bus.mix1.balance", 0)).toBe(-40);
+  });
+
   it("puts back only what a scene carries, whatever the stored copy holds", async () => {
     const shell = await mount();
     const brightness = shell.ctx.store.num("setup.brightness", 99);

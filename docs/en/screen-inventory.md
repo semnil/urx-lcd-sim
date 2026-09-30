@@ -298,10 +298,16 @@ y209..248). The second row is empty. No other bus and no channel carries either.
   is bound to nothing. HOME's readout keeps its reading and stops turning. What goes keeps its room,
   so nothing else on the cell moves.
 - `Pan Link` makes each send into that bus follow the position of its own source channel. While it is
-  on the row is named `PAN` instead of `Bal` and reads the source's value, turning no more; the
-  send's own placing is still held and comes back when Pan Link goes off.
-- `Pan Link` works on a `VARI` bus. While the bus is `FIXED` the button keeps its place and cannot be
-  taken, and its value is kept.
+  on the row is named after the source's own position, as the stereo bus's cell names it (`Pan` for a
+  channel placed by its PAN, `Bal` otherwise), reads the source's value, and turning it turns the
+  source's own position (URX44V, 2026-09-29: CH 3 at L20 read `Pan` L20, and one step took CH 3's PAN
+  to L21; CH 5/6 at L20 read `Bal` L20, and one step took CH 5/6's BAL to L19). Switching it on moves each send's own placing to its source's position, and while it is on
+  a move of the source's position moves the send's with it; switching it off leaves each send where its
+  source was and does not bring back the placing it had before (URX44V, measured over the control link
+  on 2026-09-29).
+- `Pan Link` can be switched on only while the bus is `VARI`. Taking `FIXED` switches it off; while the
+  bus is `FIXED` the button keeps its place and cannot be taken, and it stays off when the bus goes back
+  to `VARI` (URX44V, 2026-09-29, on the unit's screen and over the control link).
 
 The decision is in one place, `src/screens/mix-bus.ts`, and `src/screens/mix-bus.test.ts` pins it.
 
