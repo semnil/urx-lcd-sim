@@ -200,6 +200,65 @@ describe("the sends", () => {
     expect(read(store, tapId("bus.mix1", "sum")), "FIXED, after the fader whatever the send's tap").toEqual([SILENT, expect.closeTo(input + 3 - 20, 6)]);
   });
 
+  it("place a stereo channel's and an FX channel's send into a FIXED bus by their own BAL, after their fader, whatever the send's", async () => {
+    // URX44V, 2026-09-29: CH 7/8 and FX1 into a FIXED MIX 1 and MIX 2 alike.
+    const closeTo = (lanes: number[], by = 0): unknown[] => lanes.map((v) => (v === SILENT ? SILENT : expect.closeTo(v + by, 6)));
+    const stereo = await unit();
+    await only(stereo, "ch_7_8");
+    await stereo.set("ch.bus.mix1.busType", "FIXED");
+    await stereo.set("ch.ch_7_8.send.bus.mix1.on", true);
+    const st = read(stereo, tapId("bus.mix1", "sum"));
+    expect(st.every((v) => v > SILENT), "MIX 1 carries CH 7/8").toBe(true);
+    await stereo.set("ch.ch_7_8.send.bus.mix1.balance", -63);
+    expect(read(stereo, tapId("bus.mix1", "sum")), "CH 7/8: the send's own BAL moves nothing").toEqual(closeTo(st));
+    await stereo.set("ch.ch_7_8.send.bus.mix1.balance", 0);
+    await stereo.set("ch.ch_7_8.balance", -63);
+    expect(read(stereo, tapId("bus.mix1", "sum"))[1], "the channel's BAL places it").toBe(SILENT);
+    await stereo.set("ch.ch_7_8.balance", 0);
+    await stereo.set("ch.ch_7_8.send.bus.mix1.pre", true);
+    await stereo.set("ch.ch_7_8.level", -20);
+    expect(read(stereo, tapId("bus.mix1", "sum")), "after the fader whatever the send's tap").toEqual(closeTo(st, -20));
+
+    const fx = await unit();
+    await only(fx, "ch3");
+    await fx.set("ch.ch3.source", "USB MAIN A");
+    await fx.set("ch.ch3.send.fx1.level", 0);
+    await fx.set("ch.ch3.send.bus.mix1.on", false);
+    await fx.set("ch.bus.mix1.busType", "FIXED");
+    await fx.set("ch.fx1.send.bus.mix1.on", true);
+    await fx.set("ch.fx1.level", 0);
+    const ret = read(fx, tapId("bus.mix1", "sum"));
+    expect(ret.every((v) => v > SILENT), "MIX 1 carries FX1").toBe(true);
+    await fx.set("ch.fx1.send.bus.mix1.balance", -63);
+    expect(read(fx, tapId("bus.mix1", "sum")), "FX1: the send's own BAL moves nothing").toEqual(closeTo(ret));
+    await fx.set("ch.fx1.send.bus.mix1.balance", 0);
+    await fx.set("ch.fx1.balance", -63);
+    expect(read(fx, tapId("bus.mix1", "sum"))[1], "the FX channel's BAL places it").toBe(SILENT);
+    await fx.set("ch.fx1.balance", 0);
+    await fx.set("ch.fx1.send.bus.mix1.pre", true);
+    await fx.set("ch.fx1.level", -20);
+    expect(read(fx, tapId("bus.mix1", "sum")), "after the fader whatever the send's tap").toEqual(closeTo(ret, -20));
+  });
+
+  it("take a stereo channel's send into a FIXED bus after its DUCKER, whatever the send's tap", async () => {
+    // URX44V, 2026-09-29: CH 5/6, 7/8, 9/10 and 11/12 into a FIXED MIX fell by the DUCKER's range with the
+    // tap at PRE or at POST, as a POST send into a VARI MIX did.
+    const store = await unit();
+    await only(store, "ch3", "ch_7_8");
+    await store.set("ch.ch3.source", "USB MAIN A");
+    await store.set("ch.ch3.gain", 0);
+    await store.set("ch.ch3.send.bus.mix1.on", false);
+    await store.set("ch.ch_7_8.ducker.source", "3");
+    await store.set("ch.ch_7_8.ducker.threshold", -60);
+    await store.set("ch.bus.mix1.busType", "FIXED");
+    await store.set("ch.ch_7_8.send.bus.mix1.on", true);
+    await store.set("ch.ch_7_8.send.bus.mix1.pre", true);
+    const into = read(store, tapId("ch_7_8", "preDucker"));
+    expect(read(store, tapId("bus.mix1", "sum")), "DUCKER off").toEqual(into.map((v) => expect.closeTo(v, 6)));
+    await store.set("ch.ch_7_8.ducker.on", true);
+    expect(read(store, tapId("bus.mix1", "sum")), "DUCKER on: down by its range").toEqual(into.map((v) => expect.closeTo(v - 24, 6)));
+  });
+
   it("fold a stereo channel into an FX bus as its two sides summed 3 dB down, whatever its balance", async () => {
     const store = await unit();
     await only(store, "ch_7_8");
