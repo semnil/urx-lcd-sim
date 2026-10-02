@@ -701,6 +701,9 @@ When the sampling frequency puts every effect an FX channel offers past its ceil
 mark, no second line, and none of the indicators, meter, [ON] / [CUE], rotary or level reading under
 them. The strip's own face stays, and the rail along its foot is drawn dark grey in place of the
 channel's colour. The strip can still be selected, and touching it no longer opens the channel view.
+`‹` `›` still step onto FX 2 L and FX 2 R. There every channel screen, the channel view among them, keeps the
+channel's name in the toolbar, draws no title, and shows `This channel is not available at this sampling frequency` in
+the middle, with nothing to operate: the name opens nothing, and nothing is written.
 
 The guide carries no figure of either, so **the arrangement is this project's own**. What the guide
 does fix is that the controls stand in the middle of the screen (the middle of p113-1 is what
@@ -897,7 +900,7 @@ drawn on a face that does nothing when touched. Three things put an effect out o
 
 | Why | Which |
 | --- | --- |
-| The sampling frequency is past its ceiling | Pitch Fix to 48kHz; the guitar amps, the companders and M.B.Comp to 96kHz; FX 2's effects to 96kHz |
+| The sampling frequency is past its ceiling | Pitch Fix to 48kHz; the guitar amps, the companders and M.B.Comp to 96kHz |
 | The channel is carrying one stereo signal | The four guitar amps and Pitch Fix |
 | Another channel is holding the same one | One holder for the four guitar amps, one for Pitch Fix, one for the two companders, and one shared by M.B.Comp and the two companders across the outputs |
 
@@ -912,7 +915,7 @@ title opens the `EFFECT TYPE` sheet.
 Raising the sampling frequency past an effect's ceiling takes the insert off the channel, which then
 reads [No Effect], and lowering the frequency again does not put it back. An FX channel has no
 [No Effect] to fall to, so the effect it is running stays, and while the frequency is past the
-ceiling nothing on its sheet can be picked. Moving Signal Type takes the insert off both channels of
+ceiling the channel's screens show `This channel is not available at this sampling frequency`. Moving Signal Type takes the insert off both channels of
 the pair whichever way it moves. A stereo-linked pair shares one insert, held on the lower-numbered
 channel.
 

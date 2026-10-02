@@ -42,6 +42,7 @@ import {
   hidePlotDrawing,
   noBlock,
   noChannel,
+  notAvailable,
   plotCurve,
   plotHandle,
   plotRules,
@@ -51,6 +52,7 @@ import {
   titleBadge,
 } from "./channel";
 import { type GrSpec, blockReduction, drawnLevels, markReduction } from "./meters";
+import { fxShutOut } from "./effect-params";
 import { ssmcsSpec, tapId } from "./signal-flow";
 import type { ScreenBody, ScreenDef } from "./types";
 
@@ -467,6 +469,7 @@ export const ssmcsScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
     if (!carriesBlock(strip, "SSMCS")) return noBlock(ctx, strip, route, "SSMCS");
     const b = `ch.${strip.id}`;
     const drive = driveSpec(b);
@@ -529,6 +532,7 @@ export const ssmcsScreen: ScreenDef = {
 function compFace(ctx: AppContext, route: Route, sideChain: boolean): ScreenBody {
   const strip = routeStrip(ctx, route);
   if (!strip) return noChannel();
+  if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
   if (!carriesBlock(strip, "SSMCS")) return noBlock(ctx, strip, route, "SSMCS");
   const b = `ch.${strip.id}`;
   const drive = driveSpec(b);
@@ -618,6 +622,7 @@ export const ssmcsEqScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
     if (!carriesBlock(strip, "SSMCS")) return noBlock(ctx, strip, route, "SSMCS");
     const b = `ch.${strip.id}`;
     const bandKey = ctx.store.str("ui.ssmcsBand", "mid");

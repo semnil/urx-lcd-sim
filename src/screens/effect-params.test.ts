@@ -1538,16 +1538,18 @@ describe("an FX channel", () => {
     const shell = await mount([{ id: "channel-view", strip: "fx2" }, { id: "ch.effect", strip: "fx2" }]);
     await shell.ctx.store.set("setup.samplingFrequency", 192000);
     await flush();
-    await click(shell, ".insfx-effect");
-    expect([...shell.root.querySelectorAll(".source-sheet .source-btn.is-disabled")].map((b) => b.textContent)).toEqual([
-      "Rev.R3 Hall", "Rev.R3 Room", "Rev.R3 Plate", "Mono Delay", "Ping Pong",
-    ]);
-    // Each is marked out of reach, so a key press does not sink it.
-    expect(
-      [...shell.root.querySelectorAll(".source-sheet .source-btn.is-disabled")].map((b) => b.getAttribute("aria-disabled")),
-    ).toEqual(["true", "true", "true", "true", "true"]);
+    // The screen says the channel is not there, and names no effect to pick.
+    expect(shell.root.querySelector(".main .screen-missing")?.textContent).toBe("This channel is not available at this sampling frequency");
+    expect(shell.root.querySelector(".insfx-effect")).toBeNull();
     // An FX channel has no [No Effect] to fall to, so the one it is running stays.
     expect(shell.ctx.store.str("ch.fx2.effect.type", "")).toBe("Mono Delay");
+    await shell.ctx.store.set("setup.samplingFrequency", 96000);
+    await flush();
+    await click(shell, ".insfx-effect");
+    expect([...shell.root.querySelectorAll(".source-sheet .source-btn")].map((b) => b.textContent), "at 96 kHz it runs all five").toEqual([
+      "Rev.R3 Hall", "Rev.R3 Room", "Rev.R3 Plate", "Mono Delay", "Ping Pong",
+    ]);
+    expect([...shell.root.querySelectorAll(".source-sheet .source-btn.is-disabled")].length).toBe(0);
 
     // FX 1 runs all five at every frequency the unit takes.
     const one = await mount([{ id: "channel-view", strip: "fx1" }, { id: "ch.effect", strip: "fx1" }]);

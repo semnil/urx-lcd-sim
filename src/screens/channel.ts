@@ -27,7 +27,7 @@ import { homeSide, sceneBox } from "./home";
 import { headAmp, headAmpSwitch } from "./head-amp";
 import { inputSourceSheet, sourceBoxLabel } from "./input-source";
 import { NO_EFFECT, insertBase } from "./insert-fx";
-import { effectSettingsScreen, insFxScreen, openEffectParams } from "./effect-params";
+import { effectSettingsScreen, fxShutOut, insFxScreen, openEffectParams } from "./effect-params";
 import { ssmcsArea } from "./ssmcs";
 import { channelLabel, phasePath, selectStrip, selectedStripId, sendsTarget, stepChannel, stripColor, stripLane, stripLanes } from "./strip-state";
 import type { ScreenBody, ScreenDef } from "./types";
@@ -54,6 +54,18 @@ export function noBlock(ctx: AppContext, strip: Strip, route: Route, block: keyo
   return {
     main: el("div", { class: "screen-missing", text: `This channel has no ${block} screen` }),
     headerLeft: channelSelector(ctx, strip, route, true),
+  };
+}
+
+/**
+ * What every channel screen shows on an FX channel the sampling frequency has
+ * put out of reach: the channel's name in the toolbar, no title, a line saying
+ * so in the middle, and nothing to operate.
+ */
+export function notAvailable(ctx: AppContext, strip: Strip, route: Route, narrow = true): ScreenBody {
+  return {
+    main: el("div", { class: "screen-missing", text: "This channel is not available at this sampling frequency" }),
+    headerLeft: channelSelector(ctx, strip, route, narrow),
   };
 }
 
@@ -169,8 +181,9 @@ export function channelSelector(ctx: AppContext, strip: Strip, route: Route, nar
   };
   // The name opens the screen that sets it on the screen a channel opens on,
   // the one that carries the copy mark. On the screens under it and on CH
-  // SETTING it is out of reach: it neither sinks nor opens anything.
-  const opens = !narrow && route.id !== "ch.setting";
+  // SETTING, and on a channel the sampling frequency has put out of reach, it
+  // is out of reach: it neither sinks nor opens anything.
+  const opens = !narrow && route.id !== "ch.setting" && !fxShutOut(ctx, strip);
   return el("div", {
     class: "ch-selector",
     children: [
@@ -403,6 +416,7 @@ export const channelViewScreen: ScreenDef = {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
     selectStrip(ctx, strip.id);
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route, false);
     const base = `ch.${strip.id}`;
     const mono = strip.kind === "monoIn";
     const { spec: gainSpec, connector } = headAmp(ctx, strip);
@@ -719,6 +733,7 @@ export const chSettingScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return { main: el("div", { class: "screen-missing", text: "No channel selected" }) };
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route, false);
     const base = `ch.${strip.id}`;
     const field = (caption: string, slot: string, node: HTMLElement): HTMLElement =>
       el("div", { class: `chs-field chs-${slot}-field`, children: [el("span", { class: "chs-caption", text: caption }), node] });
@@ -832,6 +847,7 @@ export const inputScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
     const base = `ch.${strip.id}`;
     const mono = strip.kind === "monoIn";
     // A head amp belongs to a channel. A bus is fed from inside the mixer, so
@@ -1164,6 +1180,7 @@ export const gateScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
     if (!carriesBlock(strip, "GATE")) return noBlock(ctx, strip, route, "GATE");
     const b = `ch.${strip.id}`;
     const threshold = gateThreshold(b);
@@ -1218,6 +1235,7 @@ export const compScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
     if (!carriesBlock(strip, "COMP")) return noBlock(ctx, strip, route, "COMP");
     const b = `ch.${strip.id}`;
     // While 1-knob is on, its level holds the focus and no other value on the screen turns.
@@ -1315,6 +1333,7 @@ export const duckerScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
     if (!carriesBlock(strip, "DUCKER")) return noBlock(ctx, strip, route, "DUCKER");
     const b = `ch.${strip.id}`;
     const threshold = duckerThreshold(b);
@@ -1444,6 +1463,7 @@ export const delayScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
     if (!carriesBlock(strip, "DELAY")) return noBlock(ctx, strip, route, "DELAY");
     const b = `ch.${strip.id}`;
     const on = ctx.store.bool(`${b}.delay.on`, false);
@@ -1528,6 +1548,7 @@ export const eqScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
     const base = `ch.${strip.id}`;
     const bandKey = ctx.store.str("ui.eqBand", "low");
     const band = EQ_BANDS.find((b) => b.key === bandKey) ?? EQ_BANDS[0];
@@ -1880,6 +1901,7 @@ export const sendToScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
     const base = `ch.${strip.id}`;
     const groups = sendGroups(ctx, strip);
     // A strip that has no send into the group last picked shows its first one,

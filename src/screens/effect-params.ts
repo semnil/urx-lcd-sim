@@ -48,6 +48,7 @@ import {
   dynSetting,
   hidePlotDrawing,
   noChannel,
+  notAvailable,
   oneKnobButton,
   oneKnobPanel,
   plotCurve,
@@ -971,6 +972,7 @@ export const effectSettingsScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
     return effectScreen(ctx, strip, route, effectHolder(ctx, strip));
   },
 };
@@ -991,6 +993,7 @@ export const insFxScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
     return effectScreen(ctx, strip, route, effectHolder(ctx, strip));
   },
 };
