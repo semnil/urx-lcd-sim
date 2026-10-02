@@ -52,8 +52,9 @@ and builds the toolbar, side menu and knob strip from the parts in `src/ui`. It 
 (`drawAtOneMoment`), and the record dot and the play mark on the microSD icon; `src/app/persist.ts`
 takes from `src/screens/mix-bus.ts` how Pan Link is brought into place when a stored state is put back. The model
 layer shares the value ranges and display formats (`src/ui/param-spec.ts`, `src/ui/dom.ts`) with the
-screen layer. The device layer imports no other layer. The screen layer knows only `DeviceStore` and
-`UnitModel`, and does not distinguish whether a value lives in this process or inside the unit.
+screen layer. The device layer imports no other layer. The screen layer reads and writes
+parameter values through `DeviceStore`, and does not distinguish whether a value lives in this process
+or inside the unit.
 
 ## Value flow
 
