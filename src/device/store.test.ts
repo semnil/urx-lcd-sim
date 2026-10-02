@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { DeviceStore } from "./store";
+import { DeviceStore, type WriteFailure } from "./store";
 import { SimTransport } from "./sim-transport";
 import type { DeviceTransport, Notify } from "./transport";
 import type { ParamPath, ParamValue } from "./path";
@@ -8,6 +8,41 @@ function simStore(initial: [ParamPath, ParamValue][] = []): { store: DeviceStore
   const transport = new SimTransport(initial);
   const store = new DeviceStore();
   return { store, transport };
+}
+
+/** A device whose writes wait until the test takes or refuses each one, and that can announce a change of its own. */
+function heldDevice(initial: [ParamPath, ParamValue][]): {
+  transport: DeviceTransport;
+  writes: { take: () => void; refuse: () => void }[];
+  announce: (path: ParamPath, value: ParamValue) => void;
+} {
+  const writes: { take: () => void; refuse: () => void }[] = [];
+  let listener: ((n: Notify) => void) | null = null;
+  const transport: DeviceTransport = {
+    kind: "bridge",
+    snapshot: () => Promise.resolve(new Map(initial)),
+    write: () =>
+      new Promise<void>((resolve, reject) => {
+        writes.push({ take: resolve, refuse: () => reject(new Error("device said no")) });
+      }),
+    onNotify: (l) => {
+      listener = l;
+      return () => {
+        listener = null;
+      };
+    },
+    close: () => {},
+  };
+  return { transport, writes, announce: (path, value) => listener?.({ path, value, echo: false }) };
+}
+
+/** A store on `device`, and each refusal it reports as [attempted, restored]. */
+async function storeOn(device: { transport: DeviceTransport }): Promise<{ store: DeviceStore; failures: [ParamValue, ParamValue | undefined][] }> {
+  const store = new DeviceStore();
+  await store.attach(device.transport);
+  const failures: [ParamValue, ParamValue | undefined][] = [];
+  store.onWriteFailure((f: WriteFailure) => failures.push([f.attempted, f.restored]));
+  return { store, failures };
 }
 
 describe("DeviceStore", () => {
@@ -80,6 +115,92 @@ describe("DeviceStore", () => {
 
     expect(store.num("ch.ch1.level")).toBe(-3);
     expect(failures).toHaveLength(1);
+  });
+
+  it("keeps a later write the device took when an earlier one is refused", async () => {
+    const device = heldDevice([["ch.ch1.level", 0]]);
+    const { store, failures } = await storeOn(device);
+    const first = store.set("ch.ch1.level", -1);
+    const second = store.set("ch.ch1.level", -2);
+
+    device.writes[1]!.take();
+    await second;
+    device.writes[0]!.refuse();
+    await first;
+
+    expect(store.num("ch.ch1.level")).toBe(-2);
+    expect(failures).toEqual([[-1, -2]]);
+  });
+
+  it("keeps what the device announced while a refused write waited", async () => {
+    const device = heldDevice([["ch.ch1.level", 0]]);
+    const { store, failures } = await storeOn(device);
+    const write = store.set("ch.ch1.level", -1);
+
+    device.announce("ch.ch1.level", -40);
+    device.writes[0]!.refuse();
+    await write;
+
+    expect(store.num("ch.ch1.level")).toBe(-40);
+    expect(failures).toEqual([[-1, -40]]);
+  });
+
+  it("goes back to what the device holds when every write is refused", async () => {
+    const device = heldDevice([["ch.ch1.level", 0]]);
+    const { store, failures } = await storeOn(device);
+    const first = store.set("ch.ch1.level", -1);
+    const second = store.set("ch.ch1.level", -2);
+
+    device.writes[0]!.refuse();
+    await first;
+    device.writes[1]!.refuse();
+    await second;
+
+    expect(store.num("ch.ch1.level")).toBe(0);
+    expect(failures).toEqual([[-1, -2], [-2, 0]]);
+  });
+
+  it("goes back to the write the device took when a later one is refused", async () => {
+    const device = heldDevice([["ch.ch1.level", 0]]);
+    const { store, failures } = await storeOn(device);
+    const first = store.set("ch.ch1.level", -1);
+    const second = store.set("ch.ch1.level", -2);
+
+    device.writes[0]!.take();
+    await first;
+    device.writes[1]!.refuse();
+    await second;
+
+    expect(store.num("ch.ch1.level")).toBe(-1);
+    expect(failures).toEqual([[-2, -1]]);
+  });
+
+  it("goes back to what the device announced when a later write is refused", async () => {
+    const device = heldDevice([["ch.ch1.level", 0]]);
+    const { store, failures } = await storeOn(device);
+    const first = store.set("ch.ch1.level", -1);
+    device.announce("ch.ch1.level", -40);
+    const second = store.set("ch.ch1.level", -3);
+
+    device.writes[0]!.refuse();
+    await first;
+    device.writes[1]!.refuse();
+    await second;
+
+    expect(store.num("ch.ch1.level")).toBe(-40);
+    expect(failures).toEqual([[-1, -3], [-3, -40]]);
+  });
+
+  it("drops a path the device never held when its write is refused", async () => {
+    const device = heldDevice([]);
+    const { store, failures } = await storeOn(device);
+    const write = store.set("ch.ch9.level", -6);
+
+    device.writes[0]!.refuse();
+    await write;
+
+    expect(store.has("ch.ch9.level")).toBe(false);
+    expect(failures).toEqual([[-6, undefined]]);
   });
 
   it("carries the values a write rule names along with the write", async () => {

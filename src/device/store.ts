@@ -2,8 +2,9 @@
 //
 // Rendering has to be synchronous, and a real device is not: so the store keeps
 // a local mirror of every value and pushes edits through the transport in the
-// background. The mirror is updated optimistically on `set` and reverted if the
-// write is rejected, so a screen never keeps showing a value the unit refused.
+// background. The mirror is updated optimistically on `set`, and a rejected
+// write still on screen goes back to the value the unit last took, so a screen
+// never keeps showing a value the unit refused.
 //
 // Device-originated notifies (`echo: false`) are adopted unconditionally — that
 // is the path a scene recall, or somebody turning a knob on the unit itself,
@@ -26,12 +27,27 @@ export function combineWriteRules(...rules: WriteRule[]): WriteRule {
   return (path, value) => rules.flatMap((rule) => [...rule(path, value)]);
 }
 
-/** Raised when a write is refused by the device; the mirror has been reverted. */
+/**
+ * Raised when a write is refused by the device. `restored` is what the mirror
+ * holds after it: the value the device last took or announced where the refused
+ * write was still the newest to its path and still on screen, and otherwise the
+ * value a later write or the device put there.
+ */
 export interface WriteFailure {
   path: ParamPath;
   attempted: ParamValue;
   restored: ParamValue | undefined;
   error: unknown;
+}
+
+/** A path with writes awaiting the device's answer. */
+interface Awaited {
+  /** The number of the newest write to the path. */
+  newest: number;
+  /** How many of its writes are awaiting an answer. */
+  open: number;
+  /** The value the device last took or announced for the path; undefined where it held none. */
+  held: ParamValue | undefined;
 }
 
 export class DeviceStore {
@@ -41,6 +57,10 @@ export class DeviceStore {
   private detachTransport: (() => void) | null = null;
   private readonly listeners = new Set<ChangeListener>();
   private readonly failureListeners = new Set<(f: WriteFailure) => void>();
+
+  /** Each path with writes awaiting the device, and the count each write is numbered from. */
+  private readonly awaiting = new Map<ParamPath, Awaited>();
+  private writes = 0;
 
   /** Paths changed since the last flush, coalesced into one notification. */
   private pending = new Set<ParamPath>();
@@ -56,6 +76,8 @@ export class DeviceStore {
     this.detachTransport?.();
     this.transport = transport;
     this.detachTransport = transport.onNotify((n) => {
+      const awaited = this.awaiting.get(n.path);
+      if (awaited) awaited.held = n.value;
       const current = this.mirror.get(n.path);
       if (current === n.value) return;
       this.mirror.set(n.path, n.value);
@@ -155,14 +177,35 @@ export class DeviceStore {
 
     const t = this.transport;
     if (!t) return Promise.resolve();
-    return t.write(path, value).catch((error: unknown) => {
-      if (previous === undefined) this.mirror.delete(path);
-      else this.mirror.set(path, previous);
-      this.markChanged(path);
-      for (const l of [...this.failureListeners]) {
-        l({ path, attempted: value, restored: previous, error });
-      }
-    });
+    const awaited = this.awaiting.get(path) ?? { newest: 0, open: 0, held: previous };
+    const n = ++this.writes;
+    awaited.newest = n;
+    awaited.open++;
+    this.awaiting.set(path, awaited);
+    const settle = (): void => {
+      if (--awaited.open === 0) this.awaiting.delete(path);
+    };
+    return t.write(path, value).then(
+      () => {
+        awaited.held = value;
+        settle();
+      },
+      (error: unknown) => {
+        settle();
+        // A refused write goes back to what the device holds only while it is
+        // the newest write to the path and still on screen; a later write, or a
+        // value the device announced since, stays.
+        if (awaited.newest === n && this.mirror.get(path) === value) {
+          if (awaited.held === undefined) this.mirror.delete(path);
+          else this.mirror.set(path, awaited.held);
+          this.markChanged(path);
+        }
+        const restored = this.mirror.get(path);
+        for (const l of [...this.failureListeners]) {
+          l({ path, attempted: value, restored, error });
+        }
+      },
+    );
   }
 
   onChange(listener: ChangeListener): () => void {
