@@ -1757,8 +1757,8 @@ the picked scene's) with [Cancel] / [OK], and on [OK] stores over it and makes i
 [Recall] cannot be used on a number with nothing stored, and a press asks nothing. On a stored number and on a factory scene
 it asks `Recall scene "Band"?` (the title is the picked scene's) with [Cancel] / [OK], and on [OK] puts that scene's mixer
 back and makes it the recalled one. A source the scene holds no D.Gain for comes back to 0 dB. 00 Initial Data puts the
-factory mixer back. P01 to P03 lay the settings below over the factory mixer, and what they do not set stays as the factory
-ships it (`src/model/scene-presets.ts`). The table's channels go onto the mono and the stereo channels from the lowest number
+factory mixer back. P01 to P03 lay settings of their own over the factory mixer. The main ones are below; the whole of what
+a preset changes is in `src/model/scene-presets.ts`. The table's channels go onto the mono and the stereo channels from the lowest number
 up, the mono channels on a HI-Z connector (CH 3-4 in the table) apart from the rest: on a URX22, CH 1 takes the table's CH 1,
 CH 2 on its HI-Z connector takes the table's CH 3, and CH 3/4 to 9/10 take its four stereo channels.
 
