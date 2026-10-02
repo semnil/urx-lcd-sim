@@ -49,18 +49,21 @@ export const INTERACTIVE = "button, [role='button'], [role='slider'], [role='spi
 export function makeTappable(node: HTMLElement, handler: (ev: Event) => void): void {
   if (!node.hasAttribute("role") && node.tagName !== "BUTTON") node.setAttribute("role", "button");
   if (!node.hasAttribute("tabindex")) node.tabIndex = 0;
-  node.addEventListener("click", (ev) => {
-    // A control inside a tappable area owns its own clicks: without this, a
-    // button or a value box would also fire whatever the area does.
+  // A control inside a tappable area owns its own clicks and keys: without this,
+  // a button or a value box would also fire whatever the area does.
+  const forInner = (ev: Event): boolean => {
     const inner = (ev.target as HTMLElement).closest(INTERACTIVE);
-    if (inner && inner !== node) return;
+    return inner !== null && inner !== node;
+  };
+  node.addEventListener("click", (ev) => {
+    if (forInner(ev)) return;
     handler(ev);
   });
   // A key acts where a finger would: the control answers when the key is let go,
   // not when it goes down, and only where the same control took the key.
   let taken = false;
   node.addEventListener("keydown", (ev) => {
-    if (ev.key !== "Enter" && ev.key !== " ") return;
+    if ((ev.key !== "Enter" && ev.key !== " ") || forInner(ev)) return;
     ev.preventDefault();
     taken = true;
   });

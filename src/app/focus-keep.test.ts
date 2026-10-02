@@ -116,6 +116,35 @@ describe("the focus through a redraw", () => {
     expect([shell.root.querySelector(".title-text")?.textContent, document.activeElement === field()]).toEqual(["abc", true]);
   });
 
+  it("works only the switch or value box pressed inside a channel view's block, as a finger does", async () => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    await flush();
+    const find = (selector: string, text?: string): HTMLElement | undefined =>
+      [...shell.root.querySelectorAll<HTMLElement>(selector)].find((n) => text === undefined || n.textContent === text);
+    const seen: (string | null | undefined)[] = [];
+    for (const [selector, text] of [
+      [".cv-block-eq .badge-switch", "EQ"],
+      [".cv-gain button", "SAFE"],
+      [".cv-gain .value-box", undefined],
+    ] as const) {
+      for (const key of ["Enter", " "]) {
+        const before = find(selector, text)?.getAttribute("aria-pressed");
+        find(selector, text)?.focus();
+        await press(key);
+        seen.push(`${shell.ctx.nav.current.id} ${before}->${find(selector, text)?.getAttribute("aria-pressed")}`);
+      }
+    }
+    expect(seen).toEqual([
+      "channel-view true->false",
+      "channel-view false->true",
+      "channel-view false->true",
+      "channel-view true->false",
+      "channel-view null->null",
+      "channel-view null->null",
+    ]);
+  });
+
   it("leaves the focus on the page when the press opens another screen", async () => {
     const shell = await mount();
     shell.ctx.nav.push({ id: "setup" });

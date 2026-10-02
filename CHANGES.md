@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Work only the switch or value box Enter or Space is pressed on inside a channel view's block, as a tap does. Enter on the EQ or GATE switch, [SAFE] or the A.Gain box also opened the block's screen or took the knob focus.
 - Hold the screen behind `Loading...`, `Formatting in progress...` and `Testing in progress...` out of reach of the keys until the modal goes. Leaving the screen under it with the keys dropped a format already agreed to, and [●] pressed under `Loading...` held the recorder in recording mode on the Play tab, out of reach of [■].
 - Hold the keys inside a dialog or a picker sheet while it is open: Tab goes round its own controls and no longer reaches the screen behind it, Escape cancels it wherever the focus stands, and once it closes the focus is back on the control that opened it.
 - Read a send into a FIXED MIX bus as the unit does: `Fixed` under `Level` on SEND TO's readout bar, where the division stood empty, and `Fixed` for the level on HOME's [Sends] view, where the stored level stayed.
