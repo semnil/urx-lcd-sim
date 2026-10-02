@@ -51,7 +51,52 @@ async function press(key: string): Promise<void> {
 const resetButton = (app: HTMLElement, text: string): HTMLElement | undefined =>
   [...app.querySelectorAll<HTMLElement>(".chrome-reset button")].find((b) => b.textContent === text);
 
+/** Waits for the unit `id` to come up on the glass. */
+async function startedAs(app: HTMLElement, id: string): Promise<void> {
+  for (let i = 0; i < 100 && app.querySelector(".lcd")?.getAttribute("aria-label") !== `${id} LCD`; i++) await flush();
+}
+
+describe("[Unit model]", () => {
+  it("opens the page with the focus on none of the chrome", async () => {
+    await open(SAVED);
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it("keeps the focus through the change of model it makes, so the next key goes on choosing", async () => {
+    const app = await open(SAVED);
+    const before = app.querySelector<HTMLSelectElement>('select[aria-label="Unit model"]');
+    before?.focus();
+    if (before) before.value = "URX22";
+    before?.dispatchEvent(new Event("change", { bubbles: true }));
+    await startedAs(app, "URX22");
+    const after = app.querySelector<HTMLSelectElement>('select[aria-label="Unit model"]');
+    expect([after === before, after?.value, document.activeElement === after]).toEqual([false, "URX22", true]);
+  });
+});
+
 describe("[Reset the unit]", () => {
+  it("gives the focus back to [Reset the unit] once [Cancel] takes the question back", async () => {
+    const app = await open(SAVED);
+    resetButton(app, "Reset the unit")?.focus();
+    await press("Enter");
+    resetButton(app, "Cancel")?.focus();
+    await press("Enter");
+    expect(app.querySelector(".chrome-reset-ask"), "the question is gone").toBeNull();
+    expect(document.activeElement).toBe(resetButton(app, "Reset the unit"));
+  });
+
+  it("puts the focus on [Reset the unit] of the unit started again from [Reset]", async () => {
+    const app = await open(SAVED);
+    const lcd = app.querySelector(".lcd");
+    resetButton(app, "Reset the unit")?.focus();
+    await press("Enter");
+    resetButton(app, "Reset")?.focus();
+    await press("Enter");
+    for (let i = 0; i < 100 && app.querySelector(".lcd") === lcd; i++) await flush();
+    expect(app.querySelector(".lcd"), "the unit started again").not.toBe(lcd);
+    expect(document.activeElement).toBe(resetButton(app, "Reset the unit"));
+  });
+
   it("asks with the focus on [Cancel], one Shift+Tab short of [Reset]", async () => {
     const app = await open(SAVED);
     resetButton(app, "Reset the unit")?.focus();

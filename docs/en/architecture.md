@@ -197,6 +197,8 @@ with the same key. While a dialog, a picker sheet or a pulldown's list is open, 
 input has focus (IME composition included) the input receives the key. While a control off the glass has focus (the
 model and display scale selectors at the top of the page, [Reset the unit]) that control receives it, and the screen
 stays. `Escape` takes [Reset the unit]'s question back as [Cancel] does, and the focus returns to [Reset the unit].
+Once [Reset] starts the unit again, or the model selector changes the model, the focus stands on the same control
+of the page drawn again ([Reset the unit], the model selector).
 
 On-screen controls keep the unit's dimensions (26px-high buttons on the 4.3-inch panel, and so on).
 The desktop GUI minimum touch target of 36x36 is met by the default `--scale` of 2 combined with a

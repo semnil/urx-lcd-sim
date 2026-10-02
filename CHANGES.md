@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Keep the focus on the page's own controls as they are drawn again: on [Reset the unit] once [Cancel] takes its question back or [Reset] starts the unit again, and on the model selector once it changes the model. The focus fell off every control onto the page itself.
 - Leave Escape pressed on the page around the glass to the control holding the focus there: on the model and display scale selectors or [Reset the unit] it no longer steps the screen back or cancels a dialog on it. Escape on [Reset the unit]'s question takes it back as [Cancel] does, with the focus on [Reset the unit]; the question stayed up while the screen stepped back.
 - Hold the USER DEFINED KNOBS bar out of reach under the dark around the channel-bank list, as the rest of what shows through there is. Its knobs and its page step still took a touch, a drag and the keys, so Phones 1's level or the knob page changed with the list open.
 - Keep the focus in the field of the title and name sheets when a key on the glass or the clear button is pressed, and put it there from outside the field, so a browser's keys go on typing. A tap on a key took the focus to that key: the browser's letters and Backspace went nowhere after it, and Space or Enter pressed the key again.
