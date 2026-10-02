@@ -103,7 +103,8 @@ embedded in the user guide (English, revision D0). The factory channel values ar
 settings after a factory reset. Details are in [design-tokens.md](docs/en/design-tokens.md).
 
 `reference/` holds those extracted captures. They are Yamaha's copyright, so the directory is
-gitignored and appears in neither the repository nor a build. To regenerate it locally:
+gitignored and appears in neither the repository nor a build. To regenerate it locally (needs
+poppler's `pdfimages`):
 
 ```bash
 node scripts/extract-ug-screens.mjs --pdf <path to the user guide PDF>
