@@ -86,6 +86,46 @@ describe("Escape", () => {
     }
   });
 
+  it("steps back once for a key held down, whatever its first press closed", async () => {
+    const shell = await mount();
+    document.body.appendChild(shell.root);
+    const at = (): string => `${shell.ctx.nav.current.id} (depth ${shell.ctx.nav.depth})`;
+    /** Escape as the browser sends it, at the focus of the moment; whether the page took it. */
+    const key = async (repeat: boolean): Promise<boolean> => {
+      const ev = new KeyboardEvent("keydown", { key: "Escape", repeat, bubbles: true, cancelable: true });
+      (document.activeElement ?? document.body).dispatchEvent(ev);
+      await flush();
+      return ev.defaultPrevented;
+    };
+    try {
+      // The first press cancels the dialog, and the repeats leave the screen behind it.
+      shell.ctx.nav.push({ id: "setup" });
+      shell.ctx.nav.push({ id: "setup.patch" });
+      await flush();
+      shell.root.querySelector<HTMLElement>(".patch-default")?.click();
+      await flush();
+      expect(shell.root.querySelector('[role="dialog"]'), "[Default] asks first").not.toBeNull();
+      await key(false);
+      expect([shell.root.querySelector('[role="dialog"]'), at()]).toEqual([null, "setup.patch (depth 3)"]);
+      for (let i = 0; i < 2; i++) expect(await key(true), "the repeat is the page's").toBe(true);
+      expect(at(), "after the dialog").toBe("setup.patch (depth 3)");
+
+      // With nothing over the screen, the first press goes back one screen and the repeats nothing.
+      shell.ctx.nav.home();
+      shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+      shell.ctx.nav.push({ id: "ch.comp", strip: "ch1" });
+      await flush();
+      for (let i = 0; i < 2; i++) await key(true);
+      expect(at(), "repeats alone").toBe("ch.comp (depth 3)");
+      await key(false);
+      expect(at(), "a fresh press").toBe("channel-view (depth 2)");
+      await key(true);
+      expect(at(), "and its repeat").toBe("channel-view (depth 2)");
+    } finally {
+      shell.root.remove();
+    }
+  });
+
   it("belongs to a field being typed into", async () => {
     const shell = await mount();
     document.body.appendChild(shell.root);

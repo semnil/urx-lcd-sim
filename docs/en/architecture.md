@@ -192,7 +192,8 @@ of the same face do, and nothing goes in while an IME is composing (`isComposing
 
 `Escape` does the same as the back arrow. A screen that shows no back arrow in its toolbar is left
 with the same key. While a dialog is open, cancelling the dialog takes precedence, and while a text
-input has focus (IME composition included) the input receives the key.
+input has focus (IME composition included) the input receives the key. Held down, the key acts once, as
+the back arrow held down does: a press that cancels a dialog leaves the screen behind it where it is.
 
 On-screen controls keep the unit's dimensions (26px-high buttons on the 4.3-inch panel, and so on).
 The desktop GUI minimum touch target of 36x36 is met by the default `--scale` of 2 combined with a

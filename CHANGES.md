@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Act once for Escape held down, as for the back arrow held down: a held Escape that cancels a dialog, a sheet or a list leaves the screen behind it, and one on a screen goes back one screen. Each repeat of the key went back another screen, so a held Escape on COMP went back to HOME.
 - Let the first press on another control act after a name typed into CH SETTING's Name field without Enter, by mouse or by finger. That press only committed the name and did nothing else: HOME, the channel arrows and a pulldown took a second press. The name is still kept, written once the press has acted.
 - Take a value to either end of its range by Home and End on a value box, HOME's levels, the handles on the dynamics plots and the readout bar's cells: End sets HOME's CH 1 LEVEL to 10 dB and Home to -∞. Home and End did nothing, where only the arrow keys turned a value.
 - End a value's drag when the screen changes under it, by Escape or by a second finger on HOME. The drag went on turning the value of the screen left behind until the pointer was let go: BRIGHTNESS's Screen went on dimming the glass after Escape had gone back to SETUP.

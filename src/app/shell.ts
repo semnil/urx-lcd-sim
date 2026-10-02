@@ -476,6 +476,8 @@ export class Shell {
       const target = ev.target instanceof HTMLElement ? ev.target : null;
       if (target?.closest("input, textarea, [contenteditable]")) return;
       ev.preventDefault();
+      // A key held down goes back once, as the back arrow held down does.
+      if (ev.repeat) return;
       this.ctx.nav.back();
     };
   }
