@@ -14,7 +14,7 @@
 
 import type { ParamPath, ParamValue } from "./path";
 import { inSubtree } from "./path";
-import type { DeviceTransport } from "./transport";
+import type { DeviceTransport, Notify } from "./transport";
 
 export type ChangeListener = (paths: ReadonlySet<ParamPath>) => void;
 
@@ -64,6 +64,9 @@ export class DeviceStore {
   private readonly awaiting = new Map<ParamPath, Awaited>();
   private writes = 0;
 
+  /** The count each attach is numbered from; the newest one is the one that takes the store. */
+  private attaches = 0;
+
   /** Paths changed since the last flush, coalesced into one notification. */
   private pending = new Set<ParamPath>();
   private changes = 0;
@@ -73,23 +76,52 @@ export class DeviceStore {
    * Point the store at a transport and load its snapshot. Replaces any previous
    * transport (that is how the simulator is switched onto a real unit and back).
    * Every path the snapshot holds, and every path it drops, is a change.
+   *
+   * The store stays on the transport it was on until the snapshot is in, and
+   * then moves its transport, its notifies and its mirror over at once. What
+   * the new transport announces while its snapshot is read is taken after the
+   * snapshot. A snapshot that cannot be read leaves the store where it was and
+   * throws; one that comes in after a later attach is dropped.
    */
   async attach(transport: DeviceTransport): Promise<void> {
+    const turn = ++this.attaches;
+    let early: Notify[] | null = [];
+    const detach = transport.onNotify((n) => {
+      if (early) early.push(n);
+      else this.adopt(n);
+    });
+    let snap: Map<ParamPath, ParamValue>;
+    try {
+      snap = await transport.snapshot();
+    } catch (error) {
+      detach();
+      throw error;
+    }
+    if (turn !== this.attaches) {
+      detach();
+      return;
+    }
     this.detachTransport?.();
     this.transport = transport;
-    this.detachTransport = transport.onNotify((n) => {
-      const awaited = this.awaiting.get(n.path);
-      if (awaited) awaited.held = n.value;
-      const current = this.mirror.get(n.path);
-      if (current === n.value) return;
-      this.mirror.set(n.path, n.value);
-      this.markChanged(n.path);
-    });
-    const snap = await transport.snapshot();
+    this.detachTransport = detach;
+    this.awaiting.clear();
     const before = this.mirror;
     this.mirror = new Map(snap);
     for (const p of snap.keys()) this.markChanged(p);
     for (const p of before.keys()) if (!snap.has(p)) this.markChanged(p);
+    const announced = early;
+    early = null;
+    for (const n of announced) this.adopt(n);
+  }
+
+  /** Take a notify as what the device holds, and mirror it where it differs. */
+  private adopt(n: Notify): void {
+    const awaited = this.awaiting.get(n.path);
+    if (awaited) awaited.held = n.value;
+    const current = this.mirror.get(n.path);
+    if (current === n.value) return;
+    this.mirror.set(n.path, n.value);
+    this.markChanged(n.path);
   }
 
   /** A count that moves on every change to the mirror, for whatever keeps what it worked out from the values. */
@@ -185,7 +217,7 @@ export class DeviceStore {
     awaited.open++;
     this.awaiting.set(path, awaited);
     const settle = (): void => {
-      if (--awaited.open === 0) this.awaiting.delete(path);
+      if (--awaited.open === 0 && this.awaiting.get(path) === awaited) this.awaiting.delete(path);
     };
     return t.write(path, value).then(
       () => {
@@ -193,11 +225,13 @@ export class DeviceStore {
         settle();
       },
       (error: unknown) => {
+        const onThisTransport = this.awaiting.get(path) === awaited;
         settle();
         // A refused write goes back to what the device holds only while it is
-        // the newest write to the path and still on screen; a later write, or a
-        // value the device announced since, stays.
-        if (awaited.newest === n && this.mirror.get(path) === value) {
+        // the newest write to the path on the transport the store is on and is
+        // still on screen; a later write, a value the device announced since, or
+        // a snapshot the store has moved onto, stays.
+        if (onThisTransport && awaited.newest === n && this.mirror.get(path) === value) {
           if (awaited.held === undefined) this.mirror.delete(path);
           else this.mirror.set(path, awaited.held);
           this.markChanged(path);

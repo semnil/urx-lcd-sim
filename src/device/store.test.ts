@@ -72,6 +72,116 @@ describe("DeviceStore", () => {
     expect([...changed].sort()).toEqual(["a", "b"]);
   });
 
+  it("stays on its transport when the new one's snapshot cannot be read", async () => {
+    const { store, transport: sim } = simStore([["ch.ch1.gain", 20]]);
+    await store.attach(sim);
+    const sent: ParamValue[] = [];
+    let unsubscribed = false;
+    const unreadable: DeviceTransport = {
+      kind: "bridge",
+      snapshot: () => Promise.reject(new Error("read timed out")),
+      write: (_path, value) => {
+        sent.push(value);
+        return Promise.resolve();
+      },
+      onNotify: () => () => {
+        unsubscribed = true;
+      },
+      close: () => {},
+    };
+
+    await expect(store.attach(unreadable)).rejects.toThrow("read timed out");
+    expect([store.kind, store.num("ch.ch1.gain")]).toEqual(["sim", 20]);
+    expect(unsubscribed, "it no longer listens to the transport it could not read").toBe(true);
+
+    await store.set("ch.ch1.gain", 21);
+    expect(sent, "nothing is sent to the transport it could not read").toEqual([]);
+    expect(sim.peek("ch.ch1.gain"), "the edit goes where the store still is").toBe(21);
+  });
+
+  it("drops a snapshot that comes in after a later attach", async () => {
+    const store = new DeviceStore();
+    let answer: (snap: Map<ParamPath, ParamValue>) => void = () => {};
+    let unsubscribed = false;
+    const slow: DeviceTransport = {
+      kind: "bridge",
+      snapshot: () =>
+        new Promise((resolve) => {
+          answer = resolve;
+        }),
+      write: () => Promise.resolve(),
+      onNotify: () => () => {
+        unsubscribed = true;
+      },
+      close: () => {},
+    };
+
+    const first = store.attach(slow);
+    await store.attach(new SimTransport([["p1", 0], ["p2", 0]]));
+    answer(new Map([["p1", -40]]));
+    await first;
+
+    expect([store.kind, store.num("p1", 99), store.has("p2")]).toEqual(["sim", 0, true]);
+    expect(unsubscribed, "it no longer listens to the transport it moved past").toBe(true);
+  });
+
+  it("takes what the transport announces while its snapshot is read", async () => {
+    const store = new DeviceStore();
+    let answer: (snap: Map<ParamPath, ParamValue>) => void = () => {};
+    let announce: (n: Notify) => void = () => {};
+    const unit: DeviceTransport = {
+      kind: "bridge",
+      snapshot: () =>
+        new Promise((resolve) => {
+          answer = resolve;
+        }),
+      write: () => Promise.resolve(),
+      onNotify: (listener) => {
+        announce = listener;
+        return () => {};
+      },
+      close: () => {},
+    };
+
+    const attaching = store.attach(unit);
+    announce({ path: "p", value: 55, echo: false });
+    answer(new Map([["p", 10]]));
+    await attaching;
+
+    expect(store.num("p")).toBe(55);
+  });
+
+  it("leaves the new transport's value alone when a write to the old one is refused", async () => {
+    const old = heldDevice([["p", 0]]);
+    const { store } = await storeOn(old);
+    const write = store.set("p", 5);
+    await store.attach(new SimTransport([["p", 5]]));
+
+    old.writes[0]!.refuse();
+    await write;
+
+    expect(store.num("p")).toBe(5);
+  });
+
+  it("goes back to what the new transport holds when writes on both sides of the move are refused", async () => {
+    const old = heldDevice([["p", 0]]);
+    const { store } = await storeOn(old);
+    const before = store.set("p", 5);
+    const next = heldDevice([["p", 7]]);
+    await store.attach(next.transport);
+    const second = store.set("p", 8);
+
+    old.writes[0]!.refuse();
+    await before;
+    const third = store.set("p", 9);
+    next.writes[0]!.refuse();
+    await second;
+    next.writes[1]!.refuse();
+    await third;
+
+    expect(store.num("p")).toBe(7);
+  });
+
   it("returns the fallback for a path the device never reported", async () => {
     const { store, transport } = simStore();
     await store.attach(transport);
