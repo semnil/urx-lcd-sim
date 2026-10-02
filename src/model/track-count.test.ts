@@ -73,6 +73,8 @@ describe("the recorder when the sampling frequency moves", () => {
   it("draws the counts the frequency cannot carry on a face that takes nothing", async () => {
     const shell = await mount();
     await shell.ctx.store.set("setup.samplingFrequency", 96000);
+    // The recorder holds 8, a count 96 kHz carries and none of the darkened ones names.
+    await shell.ctx.store.set("sd.trackCount", 8);
     shell.ctx.nav.push({ id: "microsd" });
     shell.ctx.nav.push({ id: "microsd.recorder" });
     await flush();
@@ -95,10 +97,9 @@ describe("the recorder when the sampling frequency moves", () => {
       "and darkens the four 96 kHz cannot carry",
     ).toEqual(["10 Tracks", "12 Tracks", "14 Tracks", "16 Tracks"]);
 
-    const held = shell.ctx.store.num("sd.trackCount", 0);
     options.find((o) => o.textContent === "16 Tracks")?.click();
     await flush();
-    expect(shell.ctx.store.num("sd.trackCount", 0), "and takes nothing when one is pressed").toBe(held);
+    expect(shell.ctx.store.num("sd.trackCount", 0), "and takes nothing when one is pressed").toBe(8);
     expect(shell.root.querySelector(".dropdown-list"), "the list stays open").not.toBeNull();
 
     options.find((o) => o.textContent === "6 Tracks")?.click();
