@@ -164,3 +164,13 @@ describe("[Reset the unit]", () => {
     expect(app.querySelector(".chrome-reset-ask"), "the unit starts again").toBeNull();
   });
 });
+
+describe("the page's landmarks", () => {
+  it("holds the glass in the page's one main landmark, between the header and the footer", async () => {
+    const app = await open(SAVED);
+    const glass = app.querySelector('.lcd[role="application"]');
+    expect([...app.children].map((n) => n.tagName.toLowerCase()), "the header, the main landmark and the footer").toEqual(["header", "main", "footer"]);
+    expect(app.querySelectorAll("main, [role='main']").length, "one main landmark").toBe(1);
+    expect(glass?.closest("main, [role='main']")?.parentElement, "and the glass inside it").toBe(app);
+  });
+});
