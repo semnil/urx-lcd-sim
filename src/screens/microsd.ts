@@ -120,6 +120,8 @@ interface BrowserOptions {
   extraClass?: string;
   /** The mark a file's row carries; a folder always carries the folder mark. */
   fileIcon?: (entry: CardEntry, row: number) => Element;
+  /** What a file's mark says, for a reader who cannot see it; a folder's row says it is a folder. */
+  fileNote?: (entry: CardEntry, row: number) => string | undefined;
   /** Which entries the list shows; a row keeps its entry's place on the card. */
   listed?: (entry: CardEntry, row: number) => boolean;
 }
@@ -129,7 +131,7 @@ interface BrowserOptions {
  * open, its entries as list rows, and the actions of the tab under them.
  */
 function cardBrowser(ctx: AppContext, opts: BrowserOptions): HTMLElement {
-  const { metaColumn, meta, actions, extraClass = "", fileIcon = () => Icons.file(), listed = () => true } = opts;
+  const { metaColumn, meta, actions, extraClass = "", fileIcon = () => Icons.file(), fileNote = () => undefined, listed = () => true } = opts;
   const entries = cardEntries(ctx);
   const selected = ctx.store.num("sd.selectedFile", 0);
   const path = cardPath(ctx);
@@ -137,6 +139,7 @@ function cardBrowser(ctx: AppContext, opts: BrowserOptions): HTMLElement {
     .map((entry, i) => ({
       key: String(i),
       selected: i === selected,
+      description: entry.kind === "folder" ? "folder" : fileNote(entry, i),
       // The first touch brings the cursor to the row; a folder already under it
       // opens on the next touch.
       onTap:
@@ -554,6 +557,7 @@ export const recorderScreen: ScreenDef = {
         actions,
         extraClass: "rec-browser",
         fileIcon: recFileIcon(playingRow),
+        fileNote: (_, row) => (row === playingRow ? (playing ? "playing" : "paused") : undefined),
         listed: tab === "Play" ? playList : (entry: CardEntry) => recorderLists(ctx, entry),
       });
       browser.appendChild(outMeter(ctx, playing));

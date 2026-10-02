@@ -337,3 +337,42 @@ describe("a recall puts back what the stored copy holds", () => {
     });
   }
 });
+
+describe("what SCENE LIST's rows tell assistive technology", () => {
+  it("describes each row by the marks it carries: the factory, the padlock and the recalled scene's glyph", async () => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    await s.set("scene.Standard.1.title", "Prot");
+    await s.set("scene.Standard.2.title", "Open");
+    shell.ctx.nav.push({ id: "scene" });
+    shell.ctx.nav.push({ id: "scene.list" });
+    await flush();
+    const rows = (): HTMLElement[] => [...shell.root.querySelectorAll<HTMLElement>(".scene-list .list-row")];
+    const described = (): (string | null)[] => rows().slice(0, 3).map((r) => r.getAttribute("aria-description"));
+    const button = (label: string): HTMLElement | undefined =>
+      [...shell.root.querySelectorAll<HTMLElement>(".scene-actions .btn")].find((b) => (b.getAttribute("aria-label") ?? b.textContent) === label);
+    const tap = async (node: HTMLElement | undefined): Promise<void> => {
+      node?.click();
+      await flush();
+    };
+    expect(described(), "00 ships with the unit and is the one recalled; 01 and 02 carry no mark").toEqual(["recalled, factory scene", null, null]);
+
+    await tap(rows()[1]);
+    await s.set("ui.sceneMenu", "Edit");
+    await flush();
+    expect(button("Protect")?.getAttribute("aria-pressed"), "[Protect] before it is pressed").toBe("false");
+    await tap(button("Protect"));
+    expect(s.num("scene.Standard.1.protect", 0)).toBe(1);
+    expect(button("Protect")?.getAttribute("aria-pressed"), "[Protect] once 01 is protected").toBe("true");
+    expect(described(), "the Edit tab draws no recalled glyph").toEqual(["factory scene", "protected", null]);
+
+    await s.set("ui.sceneMenu", "Store/Recall");
+    await flush();
+    await tap(rows()[2]);
+    await tap(button("Recall"));
+    await tap([...shell.root.querySelectorAll<HTMLElement>("[role=dialog] .btn")].find((b) => b.textContent === "OK"));
+    await flush();
+    expect(s.num("scene.current", -1)).toBe(2);
+    expect(described(), "02 recalled").toEqual(["factory scene", "protected", "recalled"]);
+  });
+});

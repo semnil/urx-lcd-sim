@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Tell assistive technology what the marks on SCENE LIST's rows and on the microSD lists say: a scene the unit ships with, a protected scene and the recalled one, a folder, and the file playing or paused. [Protect] on SCENE LIST's Edit tab now stands pressed while the picked scene is protected. The marks were drawn for the eye alone, so a row read as its number and title, or its name, and nothing more.
 - Tell assistive technology where the RECORDER's Record tab stands, as the Play tab's [Play/Pause] does: [●] stands pressed while armed, recording or paused, and the middle button while paused. [●] read the same armed or not, and the middle button the same recording or paused.
 - Leave the grips on the GATE, COMP, DUCKER, SSMCS Comp, compander and M.B.Comp plots to assistive technology, and hide only the rest of the plot from it. The grips took the Tab key from inside a plot hidden whole.
 - Name CH SETTING's Color box by the colour the channel carries, `Color: Blue` and so on. It reached assistive technology as a button with no name.

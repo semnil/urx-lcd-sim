@@ -118,11 +118,11 @@ function readOnlyBank(ctx: AppContext, bank: string): boolean {
   return bank === "Simple" && ctx.store.str("setup.operationMode", "Standard") === "Standard";
 }
 
-/** A button on the Edit tab named by a glyph. One that cannot be used does nothing. */
-function glyphButton(label: string, glyph: SVGSVGElement, enabled: boolean, onTap: () => void): HTMLElement {
+/** A button on the Edit tab named by a glyph. One that cannot be used does nothing. One that switches something on and off says which it stands at. */
+function glyphButton(label: string, glyph: SVGSVGElement, enabled: boolean, onTap: () => void, pressed?: boolean): HTMLElement {
   const node = el("button", {
     class: "btn scene-edit-btn",
-    attrs: { "aria-label": label },
+    attrs: { "aria-label": label, ...(pressed === undefined ? {} : { "aria-pressed": String(pressed) }) },
     children: [glyph],
     onTap: () => {
       if (enabled) onTap();
@@ -162,16 +162,20 @@ export const sceneScreen: ScreenDef = {
 
     const rows = listed.map((no) => {
       const factory = isFactoryLocked(no);
-      const lock = factory ? Icons.factory() : isProtected(ctx, no) ? Icons.lock() : null;
+      const guard = !factory && isProtected(ctx, no);
+      const lock = factory ? Icons.factory() : guard ? Icons.lock() : null;
+      // The mark stands on the Store/Recall tab only.
+      const recalled = no === current && menu === "Store/Recall";
+      const marks = [recalled && "recalled", factory && "factory scene", guard && "protected"].filter(Boolean);
       return {
         key: String(no),
         selected: no === selected,
         onTap: () => void ctx.store.set("scene.selected", no),
+        description: marks.join(", ") || undefined,
         cells: [
           el("span", {
             class: `scene-no${isPreset(no) && no !== selected ? " is-preset" : ""}`,
-            // The mark stands on the Store/Recall tab only.
-            children: [no === current && menu === "Store/Recall" && Icons.recalled(), document.createTextNode(sceneNumber(no))],
+            children: [recalled && Icons.recalled(), document.createTextNode(sceneNumber(no))],
           }) as HTMLElement,
           sceneTitle(ctx, no),
           lock ? (el("span", { class: `scene-lock${factory ? "" : " is-protected"}`, children: [lock] }) as HTMLElement) : "",
@@ -212,7 +216,7 @@ export const sceneScreen: ScreenDef = {
     const protectPath = `scene.${owner}.${selected}.protect`;
     const titlePath = `scene.${owner}.${selected}.title`;
     const edit = [
-      glyphButton("Protect", Icons.lock(), editable, () => void ctx.store.set(protectPath, guarded ? 0 : 1)),
+      glyphButton("Protect", Icons.lock(), editable, () => void ctx.store.set(protectPath, guarded ? 0 : 1), guarded),
       glyphButton("Delete", Icons.trash(), editable && !guarded, () => {
         ctx.overlay(
           dialog({

@@ -766,6 +766,8 @@ export interface ListRow {
   cells: (string | HTMLElement)[];
   selected?: boolean;
   onTap?: () => void;
+  /** What the row's marks say, for a reader who cannot see them. */
+  description?: string | undefined;
 }
 
 export function listView(columns: string[], rows: ListRow[], extraClass = ""): HTMLElement {
@@ -777,7 +779,7 @@ export function listView(columns: string[], rows: ListRow[], extraClass = ""): H
   for (const r of rows) {
     const row = el("div", {
       class: `list-row${r.selected ? " is-selected" : ""}`,
-      attrs: { role: "option", "aria-selected": r.selected ? "true" : "false" },
+      attrs: { role: "option", "aria-selected": r.selected ? "true" : "false", ...(r.description ? { "aria-description": r.description } : {}) },
       children: r.cells.map((c) =>
         typeof c === "string" ? el("div", { class: "list-cell", text: c }) : el("div", { class: "list-cell", children: [c] }),
       ),

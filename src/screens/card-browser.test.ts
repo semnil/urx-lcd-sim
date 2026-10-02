@@ -379,6 +379,28 @@ describe("the microSD card browser", () => {
     expect(marks(saveLoad), "SAVE/LOAD marks a file as a settings file").toEqual(["icon-folder", "icon-file", "icon-file"]);
   });
 
+  it("describes a folder's row as a folder, and the row of the file playback holds as playing or paused", async () => {
+    const shell = await mount({ id: "microsd.recorder" }, [entry("dir", "folder"), entry("a.wav", "take", 30), entry("b.wav", "take", 30)]);
+    await pickTab(shell, "ui.sdTab", "Play");
+    const described = (target: Shell): (string | null)[] => rows(target).map((r) => r.getAttribute("aria-description"));
+    expect(described(shell), "nothing held: the folder alone").toEqual(["folder", null, null]);
+    rows(shell)[1]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+    shell.root.querySelector<HTMLElement>(".sd-actions > .rec-pause")?.click();
+    await flush();
+    expect(shell.ctx.store.num("sd.playingFile", -1)).toBe(1);
+    expect(described(shell), "a.wav playing").toEqual(["folder", "playing", null]);
+    shell.root.querySelector<HTMLElement>(".sd-actions > .rec-pause")?.click();
+    await flush();
+    expect(described(shell), "a.wav paused, still held").toEqual(["folder", "paused", null]);
+    shell.root.querySelector<HTMLElement>(".sd-actions > .rec-stop")?.click();
+    await flush();
+    expect(described(shell), "stopped").toEqual(["folder", null, null]);
+
+    const saveLoad = await mount({ id: "microsd.saveload" }, [entry("Recordings", "folder"), entry("20260430_data1.urxf", "data")]);
+    expect(described(saveLoad), "SAVE/LOAD").toEqual(["folder", null]);
+  });
+
   it("leaves a take recorded at another sampling frequency off Play and Edit and unplayed, until the unit runs at that frequency again", async () => {
     const shell = await mount({ id: "microsd.recorder" }, [
       entry("Recordings", "folder"),
