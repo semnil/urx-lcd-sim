@@ -1952,7 +1952,7 @@ setting name).
 
 The knob at the foot of a strip turns the send to the destination the [Sends] tab is showing (g under
 "Channel area" in the user guide). The channel's own fader is what feeds the stereo bus, so the fader
-stands there instead (p047-1 reads the factory fader's `0.00`, p157-1 the send's `-inf` under MIX 1). The FX 1-2 faders ship at the bottom, `-∞`.
+stands there instead (p047-1 reads the factory fader's `0.00`, p157-1 the send's `-∞` under MIX 1). The FX 1-2 faders ship at the bottom, `-∞`.
 The tab names the stereo bus short, `ST`, and a numbered bus with the space, `MIX 1` (p047-1, p157-1).
 
 While that send is switched off on the SEND TO screen, the knob's face and its lit arc take
