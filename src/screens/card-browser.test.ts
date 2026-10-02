@@ -158,6 +158,51 @@ describe("the microSD card browser", () => {
     expect(top() - from, "10 page px down is 5 of the glass's own px").toBeCloseTo(5, 6);
   });
 
+  it("scrolls the list by the main button's drag, and by the pointer that took it alone", async () => {
+    const card = Array.from({ length: 20 }, (_, i) => entry(`take${i}.wav`, "take", 10));
+    const shell = await mount({ id: "microsd.saveload" }, card);
+    const list = shell.root.querySelector<HTMLElement>(".sd-list .scroll-host") as HTMLElement;
+    const thumb = shell.root.querySelector<HTMLElement>(".sd-scrollbar .scroll-thumb") as HTMLElement;
+    let scrolled = 0;
+    Object.defineProperty(list, "scrollHeight", { value: 20 * 38, configurable: true });
+    Object.defineProperty(list, "clientHeight", { value: 114, configurable: true });
+    Object.defineProperty(list, "scrollTop", {
+      configurable: true,
+      get: () => scrolled,
+      set: (v: number) => {
+        scrolled = Math.max(0, Math.min(20 * 38 - 114, v));
+        list.dispatchEvent(new Event("scroll"));
+      },
+    });
+    const pe = (type: string, init: PointerEventInit): PointerEvent => new PointerEvent(type, { bubbles: true, ...init });
+
+    // The right button scrolls nothing, on the rows or on the thumb.
+    for (const part of [list, thumb]) {
+      list.scrollTop = 200;
+      part.dispatchEvent(pe("pointerdown", { pointerId: 1, pointerType: "mouse", button: 2, buttons: 2, clientY: 100 }));
+      window.dispatchEvent(pe("pointermove", { pointerId: 1, pointerType: "mouse", buttons: 2, clientY: 60 }));
+      window.dispatchEvent(pe("pointerup", { pointerId: 1, pointerType: "mouse", button: 2, clientY: 60 }));
+      expect(list.scrollTop, `the right button on ${part.className}`).toBe(200);
+    }
+
+    // A second finger neither scrolls the list the first holds nor ends its drag.
+    list.dispatchEvent(pe("pointerdown", { pointerId: 1, pointerType: "touch", buttons: 1, clientY: 100 }));
+    window.dispatchEvent(pe("pointermove", { pointerId: 2, pointerType: "touch", buttons: 1, clientY: 60 }));
+    window.dispatchEvent(pe("pointercancel", { pointerId: 2, pointerType: "touch" }));
+    expect(list.scrollTop, "a second finger's move and cancel").toBe(200);
+    window.dispatchEvent(pe("pointermove", { pointerId: 1, pointerType: "touch", buttons: 1, clientY: 80 }));
+    expect(list.scrollTop, "the first finger goes on scrolling it").toBe(220);
+    window.dispatchEvent(pe("pointerup", { pointerId: 1, pointerType: "touch", clientY: 80 }));
+    await flush();
+
+    // A mouse that comes back with no button held was let go where the page did not hear it.
+    list.scrollTop = 200;
+    list.dispatchEvent(pe("pointerdown", { pointerId: 1, pointerType: "mouse", button: 0, buttons: 1, clientY: 100 }));
+    window.dispatchEvent(pe("pointermove", { pointerId: 1, pointerType: "mouse", buttons: 0, clientY: 60 }));
+    window.dispatchEvent(pe("pointermove", { pointerId: 1, pointerType: "mouse", buttons: 1, clientY: 40 }));
+    expect(list.scrollTop, "a hover with no button held").toBe(200);
+  });
+
   it("carries the path bar and how much of the card is left", async () => {
     const shell = await mount({ id: "microsd.saveload" });
     expect(shell.root.querySelector(".sd-path-field")?.textContent).toBe("/");

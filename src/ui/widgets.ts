@@ -88,6 +88,32 @@ export function followFocus(ctx: AppContext, node: Element, apply: () => void): 
   });
 }
 
+/**
+ * Follow the pointer that pressed in `start` on the window until it is let go or
+ * cancelled, calling `move` on each of its moves and `end` at the end. Other
+ * pointers are not heard, and a mouse that moves with no button held has been let
+ * go where the page did not hear it.
+ */
+function followPointer(start: PointerEvent, move: (m: PointerEvent) => void, end: () => void): void {
+  const onMove = (m: PointerEvent): void => {
+    if (m.pointerId !== start.pointerId) return;
+    if (m.pointerType === "mouse" && m.buttons === 0) stop();
+    else move(m);
+  };
+  const onUp = (u: PointerEvent): void => {
+    if (u.pointerId === start.pointerId) stop();
+  };
+  const stop = (): void => {
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    window.removeEventListener("pointercancel", onUp);
+    end();
+  };
+  window.addEventListener("pointermove", onMove);
+  window.addEventListener("pointerup", onUp);
+  window.addEventListener("pointercancel", onUp);
+}
+
 export function scrollbar(
   target: HTMLElement,
   track: number,
@@ -136,6 +162,8 @@ export function scrollbar(
   // The list and the thumb move as far on the screen as the pointer does, at
   // whatever scale the glass is drawn; the slop is measured on the page.
   const drag = (start: PointerEvent, reach: (moved: number) => number): void => {
+    // The main button drags, as a finger and a pen's tip do; the other buttons do not.
+    if (start.button !== 0) return;
     const from = target.scrollTop;
     const glass = target.closest<HTMLElement>(".lcd");
     const scale = glass ? drawnScale(glass) : 1;
@@ -151,16 +179,11 @@ export function scrollbar(
       target.scrollTop = from + reach(moved / scale);
     };
     const up = (): void => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-      window.removeEventListener("pointercancel", up);
       if (!dragged) return;
       target.addEventListener("click", swallow, true);
       setTimeout(() => target.removeEventListener("click", swallow, true), 0);
     };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-    window.addEventListener("pointercancel", up);
+    followPointer(start, move, up);
   };
 
   // A finger on the rows or on the thumb scrolls the list and leaves the page where it is.
@@ -544,6 +567,8 @@ export function attachDrag(ctx: AppContext, node: HTMLElement, spec: NumericSpec
   node.style.touchAction = "none";
   if (node instanceof SVGElement) node.ownerSVGElement?.style.setProperty("touch-action", "none");
   node.addEventListener("pointerdown", (ev) => {
+    // The main button turns the value, as a finger and a pen's tip do; the other buttons do not.
+    if (ev.button !== 0) return;
     onEngage?.();
     if (standsStill(ctx, spec)) return;
     // A drag sweeps the pointer across whatever is in its way; marking the page
@@ -573,15 +598,10 @@ export function attachDrag(ctx: AppContext, node: HTMLElement, spec: NumericSpec
     };
     const up = (): void => {
       document.documentElement.classList.remove(TURNING);
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-      window.removeEventListener("pointercancel", up);
     };
     // The first turn repaints the screen and this node is replaced, so the rest
     // of the gesture is followed on the window rather than on the node.
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-    window.addEventListener("pointercancel", up);
+    followPointer(ev, move, up);
   });
 }
 

@@ -171,6 +171,49 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     }
   });
 
+  it("turns a value by the main button's drag, and by the pointer that took it alone", async () => {
+    const { shell, store } = await mount();
+    await open(shell, { id: "channel-view", strip: "ch1" });
+    const pan = (): number => store.num("ch.ch1.pan", NaN);
+    const box = (): HTMLElement | undefined =>
+      turnables(shell.root).find((n) => n.classList.contains("value-box") && n.getAttribute("aria-label") === "PAN");
+    const turning = (): boolean => document.documentElement.classList.contains("is-turning");
+    const pe = (type: string, init: PointerEventInit): PointerEvent => new PointerEvent(type, { bubbles: true, cancelable: true, ...init });
+    expect(pan()).toBe(0);
+
+    // The right button starts no drag, so the mouse moving on with it held turns nothing.
+    box()?.dispatchEvent(pe("pointerdown", { pointerId: 1, pointerType: "mouse", button: 2, buttons: 2, clientY: 300 }));
+    expect(turning(), "the right button").toBe(false);
+    window.dispatchEvent(pe("pointermove", { pointerId: 1, pointerType: "mouse", buttons: 2, clientY: 250 }));
+    window.dispatchEvent(pe("pointerup", { pointerId: 1, pointerType: "mouse", button: 2, clientY: 250 }));
+    await flush();
+    expect(pan(), "the right button").toBe(0);
+
+    // A second finger neither turns the value the first holds nor ends its drag.
+    box()?.dispatchEvent(pe("pointerdown", { pointerId: 1, pointerType: "touch", buttons: 1, clientY: 300 }));
+    window.dispatchEvent(pe("pointermove", { pointerId: 2, pointerType: "touch", buttons: 1, clientY: 200 }));
+    window.dispatchEvent(pe("pointercancel", { pointerId: 2, pointerType: "touch" }));
+    await flush();
+    expect([pan(), turning()], "a second finger's move and cancel").toEqual([0, true]);
+    window.dispatchEvent(pe("pointermove", { pointerId: 1, pointerType: "touch", buttons: 1, clientY: 250 }));
+    await flush();
+    expect(pan(), "the first finger goes on turning it").toBeGreaterThan(0);
+    window.dispatchEvent(pe("pointerup", { pointerId: 1, pointerType: "touch", clientY: 250 }));
+    expect(turning(), "the first finger let go").toBe(false);
+
+    // A mouse that comes back with no button held was let go where the page did not hear it.
+    await store.set("ch.ch1.pan", 0);
+    await flush();
+    box()?.dispatchEvent(pe("pointerdown", { pointerId: 1, pointerType: "mouse", button: 0, buttons: 1, clientY: 300 }));
+    expect(turning(), "the main button").toBe(true);
+    window.dispatchEvent(pe("pointermove", { pointerId: 1, pointerType: "mouse", buttons: 0, clientY: 250 }));
+    await flush();
+    expect([pan(), turning()], "a hover with no button held").toEqual([0, false]);
+    window.dispatchEvent(pe("pointermove", { pointerId: 1, pointerType: "mouse", buttons: 1, clientY: 200 }));
+    await flush();
+    expect(pan(), "after the drag ended").toBe(0);
+  });
+
   it("steps the user-defined knob pages from the ends of the bar", async () => {
     const { shell, store } = await mount();
     await store.set("ui.userDefinedKnobs", true);
