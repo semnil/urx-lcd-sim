@@ -9,7 +9,7 @@ import { buildRegistry } from "./index";
 import { columnGap, declarations, px, readStyle } from "../style/css-read";
 import { setMeterSource } from "./meters";
 import type { CardEntry } from "../model/card";
-import { formatFree, freeBytes, writeCard } from "../model/card";
+import { filePath, formatFree, freeBytes, readCard, writeCard } from "../model/card";
 
 // RECORDER's Play and Edit tabs and both SAVE/LOAD tabs show what is on the
 // card, as rows of the same list the SCENE screen uses.
@@ -653,6 +653,73 @@ describe("the microSD card browser", () => {
     await filled.ctx.store.set("sd.selectedFile", 1);
     await flush();
     expect(usable(filled), "the control: a file under the cursor").toEqual([true, true, true]);
+  });
+
+  it("keeps SAVE/LOAD's cursor in the folder that is open once its last file is deleted, and acts on no file the list does not show", async () => {
+    const shell = await mount({ id: "microsd.saveload" }, [entry("F", "folder"), entry("B.urxf", "data"), entry("X.urxf", "data", 0, 0, "/F/")]);
+    const store = shell.ctx.store;
+    await store.set(filePath({ dir: "/F/", name: "X.urxf" }), JSON.stringify({ "ch.ch1.level": -30 }));
+    const press = async (label: string): Promise<void> => {
+      [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === label || b.textContent === label)?.click();
+      await flush();
+    };
+    const saveLoad = (): boolean[] =>
+      ["Save", "Save as", "Load"].map((l) => [...shell.root.querySelectorAll(".sd-actions .btn")].find((b) => b.textContent === l)?.classList.contains("is-disabled") === false);
+    const shown = (): [string, boolean][] => rows(shell).map((r) => [cellsOf(r)[1] ?? "", r.classList.contains("is-selected")]);
+    await pickTab(shell, "ui.sdSaveTab", "Edit");
+    rows(shell)[1]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+    await press("Delete");
+    [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === "OK")?.click();
+    await flush();
+    expect(readCard(store)[store.num("sd.selectedFile", -1)]?.dir ?? "/", "the cursor stays in the root").toBe("/");
+    expect(shown(), "on the folder left there").toEqual([["F", true]]);
+    expect(usable(shell), "New folder, Delete, Rename").toEqual([true, false, false]);
+    await pickTab(shell, "ui.sdSaveTab", "Save/\nLoad");
+    expect(saveLoad(), "Save, Save as, Load").toEqual([false, true, false]);
+
+    // The cursor on a file of another folder: the root's list shows no row under it.
+    await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === "X.urxf"));
+    await flush();
+    expect(shown()).toEqual([["F", false]]);
+    expect(saveLoad(), "Save, Save as, Load").toEqual([false, true, false]);
+    await store.set("ch.ch1.level", 0);
+    await press("Load");
+    await flush();
+    expect(store.num("ch.ch1.level", 99), "nothing loaded").toBe(0);
+    await pickTab(shell, "ui.sdSaveTab", "Edit");
+    expect(usable(shell), "New folder, Delete, Rename").toEqual([true, false, false]);
+    await press("Delete");
+    expect(shell.root.querySelector(".dialog-overlay"), "nothing asked").toBeNull();
+    expect(readCard(store).map((e) => `${e.dir}${e.name}`)).toEqual(["/F", "/F/X.urxf"]);
+  });
+
+  it("keeps RECORDER's cursor in the folder that is open once its last file is deleted", async () => {
+    const shell = await mount({ id: "microsd.recorder" }, [entry("Takes", "folder"), entry("A.wav", "take", 10), entry("Z.wav", "take", 10, 2, "/Takes/")]);
+    const store = shell.ctx.store;
+    await pickTab(shell, "ui.sdTab", "Edit");
+    rows(shell)[1]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+    shell.root.querySelector<HTMLElement>('.sd-actions [aria-label="Delete"]')?.click();
+    await flush();
+    [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === "OK")?.click();
+    await flush();
+    expect(readCard(store)[store.num("sd.selectedFile", -1)]?.dir ?? "/", "the cursor stays in the root").toBe("/");
+    expect(usable(shell), "Delete, Rename").toEqual([false, false]);
+    shell.root.querySelector<HTMLElement>('.sd-actions [aria-label="Delete"]')?.click();
+    await flush();
+    expect(shell.root.querySelector(".dialog-overlay"), "nothing asked").toBeNull();
+    expect(readCard(store).map((e) => `${e.dir}${e.name}`)).toEqual(["/Takes", "/Takes/Z.wav"]);
+
+    // The folder's only file deleted: the cursor stands on nothing.
+    await store.set("sd.path", "/Takes/");
+    await store.set("sd.selectedFile", 1);
+    await flush();
+    shell.root.querySelector<HTMLElement>('.sd-actions [aria-label="Delete"]')?.click();
+    await flush();
+    [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === "OK")?.click();
+    await flush();
+    expect([readCard(store).map((e) => `${e.dir}${e.name}`), store.num("sd.selectedFile", 0)]).toEqual([["/Takes"], -1]);
   });
 
   it("sizes the bar's thumb by whole rows, three of four in view taking three quarters of its travel, a pixel in from the rim", async () => {

@@ -249,9 +249,15 @@ function formatCard(ctx: AppContext): void {
   updateCard(ctx, []);
 }
 
-/** The entry the list's cursor stands on, if the card carries one there. */
+/** The row of the card the list's cursor stands on, or -1 where it stands on nothing in the folder that is open. */
+function cursorRow(ctx: AppContext): number {
+  const row = ctx.store.num("sd.selectedFile", 0);
+  return cardEntries(ctx)[row]?.dir === cardPath(ctx) ? row : -1;
+}
+
+/** The entry the list's cursor stands on, if the folder that is open carries one there. */
 function selectedEntry(ctx: AppContext): CardEntry | undefined {
-  return cardEntries(ctx)[ctx.store.num("sd.selectedFile", 0)];
+  return cardEntries(ctx)[cursorRow(ctx)];
 }
 
 /** Whether the selected row is a file on a card in the slot: the thing Delete, Rename and playback act on. */
@@ -310,7 +316,7 @@ function updateCard(ctx: AppContext, entries: readonly CardEntry[]): void {
 
 /** Take the selected file off the card, asking first. */
 function deleteSelected(ctx: AppContext): void {
-  const row = ctx.store.num("sd.selectedFile", 0);
+  const row = cursorRow(ctx);
   const entries = cardEntries(ctx);
   const entry = entries[row];
   if (!entry) return;
@@ -320,8 +326,12 @@ function deleteSelected(ctx: AppContext): void {
       onOk: () => {
         if (row === playingFile(ctx)) stopPlayback(ctx.store);
         void ctx.store.set(filePath(entry), "");
-        void ctx.store.set("sd.selectedFile", Math.max(0, Math.min(row, entries.length - 2)));
-        updateCard(ctx, entries.filter((_, i) => i !== row));
+        // The cursor goes on to the next entry of the same folder, else back to
+        // the one before it, else onto nothing.
+        const rest = entries.filter((_, i) => i !== row);
+        const next = rest[row]?.dir === entry.dir ? row : rest[row - 1]?.dir === entry.dir ? row - 1 : -1;
+        void ctx.store.set("sd.selectedFile", next);
+        updateCard(ctx, rest);
       },
     }),
   );
@@ -337,7 +347,7 @@ function folderCarries(entries: readonly CardEntry[], dir: string, name: string,
  * entry of its folder carries is refused, and the sheet stays as typed.
  */
 function renameSelected(ctx: AppContext): void {
-  const row = ctx.store.num("sd.selectedFile", 0);
+  const row = cursorRow(ctx);
   const entries = cardEntries(ctx);
   const entry = entries[row];
   if (!entry) return;
