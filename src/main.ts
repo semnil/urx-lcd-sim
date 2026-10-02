@@ -9,8 +9,9 @@ import "./style/tokens.css";
 import "./style/app.css";
 import "./style/lcd.css";
 
-import { forget, keepModel, lastModel, restore, startSaving } from "./app/persist";
+import { cardInSlot, forget, keepModel, lastModel, restore, startSaving } from "./app/persist";
 import { Shell } from "./app/shell";
+import type { ParamValue } from "./device/path";
 import { DeviceStore } from "./device/store";
 import { SimTransport } from "./device/sim-transport";
 import { factoryState } from "./model/defaults";
@@ -60,7 +61,8 @@ let disposeMounted: (() => void) | null = null;
 /** Stores a change of the mounted unit still waiting to be stored. */
 let flushMounted: (() => void) | null = null;
 
-async function boot(modelId: ModelId, mount: HTMLElement): Promise<void> {
+/** Start `modelId` in `mount`, with `card` (its paths and values) put back in the slot. */
+async function boot(modelId: ModelId, mount: HTMLElement, card: Record<string, ParamValue> = {}): Promise<void> {
   disposeMounted?.();
   disposeMounted = null;
   flushMounted = null;
@@ -88,6 +90,7 @@ async function boot(modelId: ModelId, mount: HTMLElement): Promise<void> {
     },
   );
   flushMounted = saving.flush;
+  for (const [path, value] of Object.entries(card)) await store.restore(path, value);
 
   const shell = new Shell(buildRegistry(), store, model);
   const panel = buildPanel(shell);
@@ -117,11 +120,12 @@ async function boot(modelId: ModelId, mount: HTMLElement): Promise<void> {
 
   // The unit as it ships, for a start from nothing: what the unit's own
   // Initialize All Memories does, on the simulator's chrome rather than a
-  // screen. It asks first, with the focus on [Cancel], since it drops everything
-  // the unit holds, on a panel under the button that moves nothing else on the
-  // page. [Cancel] and Escape on the question take it back and leave the focus on
-  // [Reset the unit]. A click on [Reset] does nothing for the second click of a
-  // double click, nor until RESET_HOLD_MS after the question appears.
+  // screen. The card in the slot stays as it stands. It asks first, with the
+  // focus on [Cancel], since it drops everything the unit holds, on a panel under
+  // the button that moves nothing else on the page. [Cancel] and Escape on the
+  // question take it back and leave the focus on [Reset the unit]. A click on
+  // [Reset] does nothing for the second click of a double click, nor until
+  // RESET_HOLD_MS after the question appears.
   const resetBox = el("span", { class: "chrome-reset" });
   let askedAt = 0;
   const drawReset = (asking: boolean, refocus = false): void => {
@@ -142,11 +146,12 @@ async function boot(modelId: ModelId, mount: HTMLElement): Promise<void> {
             el("span", {
               class: "chrome-reset-panel",
               children: [
-                el("span", { class: "chrome-reset-ask", text: "Drop everything and start again?" }),
+                el("span", { class: "chrome-reset-ask", text: "Drop all but the card and start again?" }),
                 el("button", { class: "chrome-button is-danger", text: "Reset", onTap: (ev) => {
                   if (ev instanceof MouseEvent && (ev.detail > 1 || performance.now() - askedAt < RESET_HOLD_MS)) return;
+                  const card = cardInSlot(store);
                   forget();
-                  void boot(modelId, mount);
+                  void boot(modelId, mount, card);
                 } }),
                 cancel,
               ],

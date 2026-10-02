@@ -294,9 +294,9 @@ describe("[Reset the unit]", () => {
     node.dispatchEvent(new MouseEvent("click", { bubbles: true, detail }));
   };
 
-  /** A URX44V with CH 1's level stored at -9, and [Reset the unit] asking. */
-  async function asking(): Promise<void> {
-    window.localStorage.setItem(STATE_KEY, JSON.stringify({ version: 1, model: "URX44V", values: { "ch.ch1.level": -9 } }));
+  /** A URX44V with CH 1's level stored at -9 beside `values`, and [Reset the unit] asking. */
+  async function asking(values: Record<string, string | number> = {}): Promise<void> {
+    window.localStorage.setItem(STATE_KEY, JSON.stringify({ version: 1, model: "URX44V", values: { "ch.ch1.level": -9, ...values } }));
     await openPage();
     click(button("Reset the unit"), 1);
     expect(button("Reset"), "the question is up").toBeDefined();
@@ -328,6 +328,23 @@ describe("[Reset the unit]", () => {
     click(button("Reset"), 1);
     expect(window.localStorage.getItem(STATE_KEY), "what was stored is dropped").toBeNull();
     await until("the unit as it ships", () => firstLevel()?.getAttribute("aria-valuenow") !== "-9");
+  });
+
+  it("leaves the card in the slot as it is", async () => {
+    const stamp = "01/01/2026\n12:00:00";
+    const card = JSON.stringify([
+      { name: "Live.urxf", kind: "data", seconds: 0, tracks: 0, stamp, dir: "/" },
+      { name: "20260101_120000.wav", kind: "take", seconds: 3, tracks: 2, stamp, dir: "/" },
+    ]);
+    const file = JSON.stringify({ "ch.ch1.level": -3 });
+    await asking({ "sd.card": card, "sd.cardName": "MYCARD", "sd.file./Live.urxf": file, "sd.trackCount": 8 });
+    await pause(600);
+    click(button("Reset"), 1);
+    await until("the unit as it ships", () => shownLevel() === "0");
+    await until("the card to be stored", () => readSaved("URX44V")?.["sd.cardName"] === "MYCARD");
+    const kept = readSaved("URX44V")!;
+    expect([kept["sd.card"], kept["sd.file./Live.urxf"]], "the card").toEqual([card, file]);
+    expect([kept["ch.ch1.level"], kept["sd.trackCount"]], "the unit as it ships").toEqual([0, 16]);
   });
 
   it("keeps [Reset the unit] where it was while it asks, and the question up under a second click on it", async () => {

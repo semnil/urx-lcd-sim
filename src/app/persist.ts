@@ -241,6 +241,16 @@ export function snapshot(store: DeviceStore): Record<string, ParamValue> {
   return values;
 }
 
+/** Where the card in the slot keeps what is on it, its files and its volume label. */
+const IN_THE_SLOT = /^sd\.(card|cardName|file\..+)$/;
+
+/** The card in the slot as it stands, which [Reset the unit] leaves where it is. */
+export function cardInSlot(store: DeviceStore): Record<string, ParamValue> {
+  const values: Record<string, ParamValue> = {};
+  for (const path of store.paths()) if (IN_THE_SLOT.test(path)) values[path] = store.get(path, 0);
+  return values;
+}
+
 /** The steps that end the writing `startSaving` starts. */
 export interface Saving {
   /** Write a change still waiting now, rather than when it falls due. */
