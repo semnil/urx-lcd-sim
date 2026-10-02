@@ -269,6 +269,34 @@ describe("the DATE / TIME popup buttons", () => {
     expect(reading(shell)).toBe("01 / 03 / 2020 09 : 00 PM");
   });
 
+  it("takes the Display Format picked from each list, and reads the clock in it", async () => {
+    const shell = await open();
+    const boxes = (): HTMLElement[] => [...shell.root.querySelectorAll<HTMLElement>(".dt-formats .pulldown")];
+    const formats = (): string[] => [shell.ctx.store.str("setup.dateTime.dateFormat", ""), shell.ctx.store.str("setup.dateTime.timeFormat", "")];
+    const choose = async (box: number, option: string): Promise<void> => {
+      boxes()[box]?.click();
+      await flush();
+      [...shell.root.querySelectorAll<HTMLElement>(".dropdown-option")].find((o) => o.textContent === option)?.click();
+      await flush();
+    };
+    expect(formats(), "as the unit ships").toEqual(["MM/DD/YYYY", "24h"]);
+
+    await choose(0, "YYYY/MM/DD");
+    expect(shell.root.querySelector(".dropdown-option"), "the list closes on the pick").toBeNull();
+    await choose(1, "12h");
+    expect(formats()).toEqual(["YYYY/MM/DD", "12h"]);
+    expect(boxes().map((b) => b.querySelector(".pulldown-value")?.textContent)).toEqual(["YYYY/MM/DD", "12h"]);
+
+    // The year, month and day apart, and the hours either side of where the 12-hour clock turns over.
+    const read: string[] = [];
+    for (const hour of [0, 11, 12, 13]) {
+      await setClock(shell.ctx.store, { year: 2020, month: 3, day: 4, hour, minute: 5 });
+      await flush();
+      read.push(reading(shell));
+    }
+    expect(read).toEqual(["2020 / 03 / 04 12 : 05 AM", "2020 / 03 / 04 11 : 05 AM", "2020 / 03 / 04 12 : 05 PM", "2020 / 03 / 04 01 : 05 PM"]);
+  });
+
   it("reads the clock in the time zone the unit is set to", async () => {
     const shell = await open();
     await shell.ctx.store.set("setup.dateTime.timeZone", "London");
