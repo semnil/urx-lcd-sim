@@ -449,4 +449,24 @@ describe("a unit another tab stores", () => {
     expect(notice()?.hidden).toBe(true);
     expect(await nudgeLevel("URX44V"), "and stores again").not.toBe("-20");
   });
+
+  it("is stored by this tab again once [Reset the unit] starts it again", async () => {
+    await openPage();
+    const theirs = JSON.stringify({ version: 1, model: "URX44V", values: { "ch.ch1.level": -20 } });
+    window.localStorage.setItem(STATE_KEY, theirs);
+    window.dispatchEvent(new StorageEvent("storage", { key: STATE_KEY, newValue: theirs, storageArea: window.localStorage }));
+    await nudge();
+    await pause(600);
+    expect(window.localStorage.getItem(STATE_KEY), "this tab has stopped storing").toBe(theirs);
+
+    const box = document.querySelector<HTMLElement>(".chrome-reset")!;
+    box.querySelector<HTMLElement>("button")!.click();
+    await pause(600);
+    const reset = [...box.querySelectorAll<HTMLElement>("button")].find((b) => b.textContent === "Reset")!;
+    reset.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+    await until("the unit as it ships", () => shownLevel() === "0");
+    expect(notice()?.hidden, "the chrome has nothing to tell").toBe(true);
+    const now = await nudge();
+    await until("this tab to store the unit", () => readSaved("URX44V")?.["ch.ch1.level"] === Number(now), 2000);
+  });
 });

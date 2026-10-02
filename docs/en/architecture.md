@@ -94,7 +94,7 @@ What is left out is **what the unit was doing** at that moment: a take or a play
 (`sd.rec` and the rest) and a name half typed (`ui.titleEntry.`, `ui.dateTimeDraft.`) come back
 stopped, as they do on a unit that has been switched off. The result of TOOLS' card test (`sd.tested`)
 is left out too, as a unit switched off no longer shows it. [Reset the unit], outside the screen, asks
-in place and then forgets what was stored and starts again from the unit as it ships. The card in the
+first and then forgets what was stored and starts again from the unit as it ships. The card in the
 slot stays as it stands, with its takes, settings files and volume label ([Format microSD] on TOOLS
 empties it). The question
 sits on a panel laid over the page under the button, so the other controls and the glass stay where
@@ -131,7 +131,7 @@ browser is not keeping the unit, and it goes once a write is taken again.
 
 When another tab of the same browser writes the unit or forgets it ([Reset the unit]), a tab that was open stops
 writing, so as not to write over the other tab's unit, and says so on the same line. It writes again once it starts
-again, on a reload or a switch of model.
+again, on a reload, a switch of model or [Reset the unit].
 
 ```mermaid
 flowchart LR
