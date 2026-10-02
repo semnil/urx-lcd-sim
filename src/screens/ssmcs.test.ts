@@ -3,11 +3,12 @@ import { Shell } from "../app/shell";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { SSMCS_DEFAULTS, factoryState, ssmcsBankDefaults } from "../model/defaults";
+import { ssmcsCorner } from "../model/dynamics";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
 import { ssmcsSideChainResponse } from "../model/channel-eq";
 import { biquadDb, peakingBiquad } from "../model/eq-response";
-import { compResponse } from "./channel";
+import { compResponse, plotY } from "./channel";
 import { meterLevels } from "./meters";
 import { declarations, px, readStyle, styleRules, subject } from "../style/css-read";
 
@@ -340,6 +341,95 @@ describe("the compressor the strip runs", () => {
     expect(curve(), "a softer corner").not.toBe(medium);
   });
 
+  it("turns each value one stop of its own a press, between the ends it names", async () => {
+    const shell = await strip();
+    const cell = (label: string): HTMLElement | undefined =>
+      [...shell.root.querySelectorAll<HTMLElement>(".knob-cell")].find((c) => c.querySelector(".knob-cell-label")?.textContent === label);
+    /** Press the key `times` over on the cell, then read it once the screen is drawn again. */
+    const press = async (label: string, key: string, times = 1, shiftKey = false): Promise<string> => {
+      const node = cell(label);
+      for (let i = 0; i < times; i++) node?.dispatchEvent(new KeyboardEvent("keydown", { key, shiftKey, bubbles: true }));
+      await flush();
+      return cell(label)?.getAttribute("aria-valuetext") ?? "";
+    };
+    /** The value the cell holds after turning it to each end, and the two ends it names. */
+    const ends = async (label: string): Promise<(string | null | undefined)[]> => {
+      await press(label, "Home");
+      const bottom = cell(label)?.getAttribute("aria-valuenow");
+      await press(label, "End");
+      const c = cell(label);
+      return [bottom, c?.getAttribute("aria-valuemin"), c?.getAttribute("aria-valuenow"), c?.getAttribute("aria-valuemax")];
+    };
+    const open = async (id: string): Promise<void> => {
+      shell.ctx.nav.replace({ id, strip: "ch1" });
+      await flush();
+    };
+    const store = shell.ctx.store;
+
+    await store.set("ch.ch1.ssmcs.compDrive", 0);
+    await flush();
+    expect(await press("Comp Drive", "ArrowUp"), "Comp Drive").toBe("0.05");
+    expect(await ends("Comp Drive")).toEqual(["0", "0", "10", "10"]);
+    expect(await press("Morphing", "ArrowUp"), "Morphing").toBe("1");
+    expect(await ends("Morphing")).toEqual(["0", "0", "120", "120"]);
+    expect(await press("Out Gain", "ArrowUp"), "Out Gain, 1.0 dB a detent").toBe("1.0dB");
+    expect(await ends("Out Gain")).toEqual(["-18", "-18", "18", "18"]);
+
+    await open("ch.ssmcs.comp");
+    expect(await ends("Attack")).toEqual(["0.092", "0.092", "80", "80"]);
+    expect(await ends("Release")).toEqual(["9.3", "9.3", "999", "999"]);
+
+    await open("ch.ssmcs.sc");
+    expect(await press("SC-Gain", "ArrowUp"), "SC-Gain, 1.0 dB a detent").toBe(`${(SSMCS_DEFAULTS.sc.gain + 1).toFixed(1)}dB`);
+    expect(await ends("SC-Gain")).toEqual(["-18", "-18", "18", "18"]);
+    expect(await ends("SC-Q")).toEqual(["0.5", "0.5", "16", "16"]);
+    expect(await press("SC-Q", "ArrowUp"), "the top of Q").toBe("16.00");
+
+    await open("ch.ssmcs.eq");
+    expect(await press("Mid Gain", "ArrowUp"), "a band's gain, 1.0 dB a detent").toBe("1.0dB");
+    expect(await ends("Mid Gain")).toEqual(["-18", "-18", "18", "18"]);
+    expect(await ends("Mid Q")).toEqual(["0.5", "0.5", "16", "16"]);
+  });
+
+  it("offers Soft, Medium and Hard, and bends the curve over and under the corner as far as each reaches", async () => {
+    const shell = await strip("ch.ssmcs.comp");
+    const pulldown = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".ssmcs-knee .pulldown");
+    const options = async (): Promise<HTMLElement[]> => {
+      pulldown()?.click();
+      await flush();
+      return [...shell.root.querySelectorAll<HTMLElement>(".dropdown-option")];
+    };
+    const drawn = (): [number, number][] =>
+      (shell.root.querySelector(".dyn-plot .dyn-curve-line")?.getAttribute("points") ?? "")
+        .split(" ")
+        .map((p) => p.split(",").map(Number) as [number, number]);
+    // The plot reads -80..+20 dB both ways, 130 tall, a point a decibel.
+    const y = (out: number): number => Number(plotY(out, 130).toFixed(1));
+
+    expect((await options()).map((o) => o.textContent)).toEqual(["Soft", "Medium", "Hard"]);
+    const corner = ssmcsCorner(SSMCS_DEFAULTS.compDrive);
+    const reach: Record<string, [number, number]> = { Soft: [26.3, 24.3], Medium: [10.0, 8.5], Hard: [0, 0] };
+    for (const knee of ["Soft", "Medium", "Hard"]) {
+      (await options()).find((o) => o.textContent === knee)?.click();
+      await flush();
+      expect(shell.ctx.store.str("ch.ch1.ssmcs.comp.knee", ""), knee).toBe(knee);
+      const at = compResponse(corner, SSMCS_DEFAULTS.ratio, reach[knee] ?? [0, 0], 0);
+      const points = drawn();
+      for (const db of [-50, -40, -30, -25, -20, -15, -5, 10]) expect(points[db + 80]?.[1], `${knee} at ${db} dB`).toBe(y(at(db)));
+    }
+    const soft = compResponse(corner, SSMCS_DEFAULTS.ratio, [26.3, 24.3], 0);
+    const medium = compResponse(corner, SSMCS_DEFAULTS.ratio, [10.0, 8.5], 0);
+    expect(-40 - soft(-40), "Soft has left the diagonal 20 dB under the corner").toBeGreaterThan(0.1);
+    expect(-25 - medium(-25), "and Medium 5 dB under it").toBeGreaterThan(0.1);
+
+    // No drive leaves the signal as it is, over the corner too.
+    await shell.ctx.store.set("ch.ch1.ssmcs.compDrive", 0);
+    await flush();
+    const flat = drawn();
+    expect(flat).toHaveLength(101);
+    for (const [i, p] of flat.entries()) expect(p[1], `${i - 80} dB`).toBe(y(i - 80));
+  });
+
   it("switches the filter from the button over the three rows", async () => {
     const shell = await strip("ch.ssmcs.sc");
     const button = shell.root.querySelector(".ssmcs-sc-switch");
@@ -405,6 +495,68 @@ describe("the strip's EQ screen", () => {
       expect(held.length > 0 && held.every((p) => p.endsWith(".ssmcs.eq.mid.q")), `${id}: ${held.join(" ")}`).toBe(true);
     }
     expect(ssmcsBankDefaults().map(([suffix]) => suffix).filter((s) => /^ssmcs\.eq\.\w+\.q$/.test(s))).toEqual(["ssmcs.eq.mid.q"]);
+  });
+
+  it("reads its frequencies off the R40 series to three figures, and stops each band on the ends it names", async () => {
+    const shell = await strip("ch.ssmcs.eq");
+    const cell = (label: string): HTMLElement | undefined =>
+      [...shell.root.querySelectorAll<HTMLElement>(".knob-cell")].find((c) => c.querySelector(".knob-cell-label")?.textContent === label);
+    const reading = (label: string): string => cell(label)?.getAttribute("aria-valuetext") ?? "";
+    const turn = async (label: string, key: string, times = 1, shiftKey = false): Promise<string[]> => {
+      const read: string[] = [];
+      for (let i = 0; i < times; i++) {
+        cell(label)?.dispatchEvent(new KeyboardEvent("keydown", { key, shiftKey, bubbles: true }));
+        await flush();
+        read.push(reading(label));
+      }
+      return read;
+    };
+    /** The value the cell holds, the end it names, and its reading, after turning it to that end. */
+    const end = async (label: string, key: "ArrowUp" | "ArrowDown"): Promise<(string | null | undefined)[]> => {
+      await turn(label, key === "ArrowUp" ? "End" : "Home");
+      const c = cell(label);
+      return [c?.getAttribute("aria-valuenow"), c?.getAttribute(key === "ArrowUp" ? "aria-valuemax" : "aria-valuemin"), reading(label)];
+    };
+    const pick = async (band: string): Promise<void> => {
+      tap(shell.root.querySelector(`.eq-grip[aria-label="${band} band"]`));
+      await flush();
+    };
+    /** The value the cell holds and its reading. */
+    const held = (label: string): (string | null | undefined)[] => [cell(label)?.getAttribute("aria-valuenow"), reading(label)];
+
+    expect(held("Mid Freq."), "MID as it ships").toEqual(["1000", "1.00kHz"]);
+    expect(await turn("Mid Freq.", "ArrowUp", 14)).toEqual([
+      "1.06kHz", "1.12kHz", "1.18kHz", "1.25kHz", "1.32kHz", "1.40kHz", "1.50kHz",
+      "1.60kHz", "1.70kHz", "1.80kHz", "1.90kHz", "2.00kHz", "2.12kHz", "2.24kHz",
+    ]);
+    expect(await end("Mid Freq.", "ArrowDown"), "MID's bottom").toEqual(["20", "20", "20.0Hz"]);
+    expect(await turn("Mid Freq.", "ArrowUp", 3)).toEqual(["21.2Hz", "22.4Hz", "23.6Hz"]);
+    expect(await end("Mid Freq.", "ArrowUp"), "MID's top").toEqual(["20000", "20000", "20.0kHz"]);
+
+    await pick("Low");
+    expect(held("Low Freq."), "LOW as it ships").toEqual(["100", "100Hz"]);
+    expect(await end("Low Freq.", "ArrowUp"), "LOW's top").toEqual(["1000", "1000", "1.00kHz"]);
+    expect(await turn("Low Freq.", "ArrowDown")).toEqual(["950Hz"]);
+    expect(await end("Low Freq.", "ArrowDown"), "LOW's bottom").toEqual(["20", "20", "20.0Hz"]);
+
+    await pick("High");
+    expect(held("High Freq."), "HIGH as it ships").toEqual(["10000", "10.0kHz"]);
+    expect(await end("High Freq.", "ArrowDown"), "HIGH's bottom").toEqual(["500", "500", "500Hz"]);
+    expect(await turn("High Freq.", "ArrowUp")).toEqual(["530Hz"]);
+    expect(await end("High Freq.", "ArrowUp"), "HIGH's top").toEqual(["20000", "20000", "20.0kHz"]);
+
+    shell.ctx.nav.replace({ id: "ch.ssmcs.sc", strip: "ch1" });
+    await flush();
+    expect(held("SC-Freq."), "the side chain as it ships").toEqual(["90", "90.0Hz"]);
+    expect([...(await turn("SC-Freq.", "ArrowDown")), ...(await turn("SC-Freq.", "ArrowUp", 2))]).toEqual(["85.0Hz", "90.0Hz", "95.0Hz"]);
+
+    // A value off the stops, as an older save holds, reads as the stop it turns from.
+    await shell.ctx.store.set("ch.ch1.ssmcs.sc.freq", 89);
+    await flush();
+    expect([reading("SC-Freq."), ...(await turn("SC-Freq.", "ArrowUp"))]).toEqual(["90.0Hz", "95.0Hz"]);
+    await shell.ctx.store.set("ch.ch1.ssmcs.sc.freq", 990);
+    await flush();
+    expect(reading("SC-Freq.")).toBe("1.00kHz");
   });
 
   it("sets a band's frequency along the graph and its gain up it, from its grip", async () => {

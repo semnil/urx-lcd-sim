@@ -96,11 +96,11 @@ export const SSMCS_DEFAULTS = {
   attack: 4.124,
   release: 91.6,
   ratio: 2.5,
-  sc: { on: true, q: 1, freq: 89, gain: -4.7 },
+  sc: { on: true, q: 1, freq: 90, gain: -4.7 },
   eq: {
     low: { freq: 100, gain: 0 },
-    mid: { q: 1, freq: 1002, gain: 0 },
-    high: { freq: 10024, gain: 0 },
+    mid: { q: 1, freq: 1000, gain: 0 },
+    high: { freq: 10000, gain: 0 },
   },
 } as const;
 

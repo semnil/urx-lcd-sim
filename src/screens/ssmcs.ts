@@ -22,7 +22,7 @@ import { clamp } from "../device/store";
 import { SSMCS_DEFAULTS } from "../model/defaults";
 import { grBarShare, ssmcsCorner } from "../model/dynamics";
 import { type SsmcsBand, ssmcsBand, ssmcsEqResponse } from "../model/channel-eq";
-import { el, setPressed } from "../ui/dom";
+import { el, formatHz, hzUnit, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
 import { compRatioSpec, fineGainSpec, freqSpec, round, steps, stopsTravel } from "../ui/param-spec";
@@ -62,8 +62,13 @@ const DRIVE_STOPS = steps(201, (i) => round(i / 20, 2));
 const MORPHING_STOPS = steps(121, (i) => i);
 /** The bell's width, from wide open to its narrowest. */
 const Q_STOPS = steps(61, (i) => round(0.5 * 32 ** (i / 60), 2));
-/** A twelfth of an octave a stop, 20 Hz to 20 kHz. */
-const FREQ_STOPS = steps(121, (i) => Math.round(20 * 10 ** (i / 40)));
+/** The R40 series of preferred numbers: forty to a decade, each to three figures. */
+const R40 = [
+  1, 1.06, 1.12, 1.18, 1.25, 1.32, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2, 2.12, 2.24, 2.36, 2.5, 2.65, 2.8, 3,
+  3.15, 3.35, 3.55, 3.75, 4, 4.25, 4.5, 4.75, 5, 5.3, 5.6, 6, 6.3, 6.7, 7.1, 7.5, 8, 8.5, 9, 9.5,
+];
+/** A fortieth of a decade a stop, about a twelfth of an octave, 20 Hz to 20 kHz, each on the R40 series. */
+const FREQ_STOPS = steps(121, (i) => Number(((R40[(i + 12) % 40] ?? 1) * 10 ** (1 + Math.floor((i + 12) / 40))).toPrecision(3)));
 const ATTACK_STOPS = steps(227, (i) => round(0.092 * (80 / 0.092) ** (i / 226), 3));
 const RELEASE_STOPS = steps(277, (i) => round(9.3 * (999 / 9.3) ** (i / 276), 1));
 
@@ -74,11 +79,11 @@ export const SSMCS_BANDS = [
   { key: "high", label: "High", letter: "H", marks: "updown" },
 ] as const;
 
-/** LOW stops at 1 kHz and HIGH starts near 500 Hz; MID takes the whole range. */
+/** LOW stops at 1 kHz and HIGH starts at 500 Hz; MID takes the whole range. */
 const BAND_FREQ_RANGE: Record<string, readonly [number, number]> = {
-  low: [20, 1002],
+  low: [20, 1000],
   mid: [20, 20000],
-  high: [501, 20000],
+  high: [500, 20000],
 };
 
 /** The list the [Sweet Spot Data] button drops. */
@@ -161,10 +166,22 @@ const qSpec = (path: string, label: string, fallback: number): NumericSpec =>
     (v) => v.toFixed(2),
   );
 
-const hzSpec = (path: string, label: string, fallback: number, range: readonly [number, number] = [20, 20000]): NumericSpec => ({
-  ...freqSpec(path, label, range[0], range[1], fallback),
-  travel: stopsTravel(FREQ_STOPS.filter((hz) => hz >= range[0] && hz <= range[1])),
-});
+/**
+ * A frequency the strip sets, running from the first stop in `range` to the
+ * last. A value off the stops, as an older save holds, reads as the stop it
+ * turns from.
+ */
+const hzSpec = (path: string, label: string, fallback: number, range: readonly [number, number] = [20, 20000]): NumericSpec => {
+  const stops = FREQ_STOPS.filter((hz) => hz >= range[0] && hz <= range[1]);
+  const travel = stopsTravel(stops);
+  const shown = (hz: number): number => travel.step(hz, 0);
+  return {
+    ...freqSpec(path, label, stops[0] ?? range[0], stops[stops.length - 1] ?? range[1], fallback),
+    travel,
+    format: (hz) => formatHz(shown(hz)),
+    unit: (hz) => hzUnit(shown(hz)),
+  };
+};
 
 /** A time the strip sets: three decimals under 10 ms, two under 100, one above. */
 const timeSpec = (path: string, label: string, stops: readonly number[], fallback: number): NumericSpec =>

@@ -1025,8 +1025,9 @@ Ratio 1.00:1..INF:1 (sixty stops of 0.05 from 1.00:1 to 4.00:1; from there 4.00.
 10.0..20.0 in 1 and 22.0..38.0 in 2, then 40.0, 45.0, 50.0, 55.0, 60.0, 65.0, 70.0, 80.0, 90.0, 100, 150, 200, 300,
 500 and INF; every stop URX44V, the operator, 2026-09-22 and 23; read to three figures: two places under 10, one under
 100, whole from 100, and the top carries its `:1` too, `INF:1`), Attack 0.092..80.000 ms, Release 9.3..999.0 ms, Knee Soft / Medium / Hard, Q
-0.50..16.00, frequency 20 Hz..20 kHz in twelfths of an octave (LOW to 1002 Hz, HIGH from 501 Hz), and
-gain ±18.0 dB.
+0.50..16.00, frequency 20 Hz..20 kHz in twelfths of an octave, the stops being numbers of the R40 series of preferred
+numbers (forty to a decade: 1.00, 1.06, 1.12, 1.18, 1.25 and on) read to three figures (LOW to 1.00 kHz, HIGH from
+500 Hz), and gain ±18.0 dB.
 
 The compressor makes up no gain. Under the corner the curve runs at the height of the input, and Out
 Gain is the only thing that lifts the whole of it (p110-1 reads -76.9 dB out for -76 dB in and
