@@ -536,8 +536,9 @@ two-channel strip meters the channel in view alone in its gain column. The name 
 channel and bus detail screens, where it is the wide box with the copy mark. On the screens further below them and on
 CH SETTING it neither sinks nor opens anything when touched.
 
-GATE, COMP and SSMCS belong to the mono inputs, DUCKER to the stereo inputs and DELAY to STREAMING. Stepped to a
-channel whose strip does not carry the block, these screens keep the channel's name in the toolbar, draw no title, and
+GATE belongs to the mono inputs, COMP to a mono input whose COMP / EQ type is not SSMCS and SSMCS to one whose type
+is, DUCKER to the stereo inputs and DELAY to STREAMING. Stepped to a channel that does not carry the block (a mono
+channel on SSMCS on the COMP screen, for one), these screens keep the channel's name in the toolbar, draw no title, and
 show `This channel has no GATE screen` (`COMP`, `DUCKER`, `DELAY` and `SSMCS` in the same form) in the middle, with
 nothing to operate and nothing written.
 

@@ -473,8 +473,9 @@ STEREO を `ST`、STREAMING を `STR` と書く。2 行目はストリップに�
 ストリップは、ゲインの列のメーターを表示中のチャンネルの 1 本だけにする。名前の箱が CH SETTING を開くのは、名前を広い箱で出し
 複製マークを付けるチャンネル・バスの詳細画面だけ。そこから下りた画面と CH SETTING では、触れても沈まず何も開かない。
 
-GATE・COMP・SSMCS はモノラルの入力、DUCKER はステレオの入力、DELAY は STREAMING のブロック。そのブロックを持たないストリップの
-チャンネルへ送ると、これらの画面はツールバーにそのチャンネルの名前を出し、題を出さず、中央に `This channel has no GATE screen`
+GATE はモノラルの入力、COMP は COMP / EQ のタイプが SSMCS でないモノラルの入力、SSMCS はそのタイプが SSMCS のモノラルの入力、
+DUCKER はステレオの入力、DELAY は STREAMING のブロック。そのブロックを持たないチャンネル (COMP の画面なら SSMCS にしたモノラルの
+チャンネルなど) へ送ると、これらの画面はツールバーにそのチャンネルの名前を出し、題を出さず、中央に `This channel has no GATE screen`
 (`COMP`・`DUCKER`・`DELAY`・`SSMCS` も同じ形) と出す。操作できるものは無く、値も書かない。
 
 画面名は折り返さない。

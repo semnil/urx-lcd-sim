@@ -3,6 +3,7 @@ import type { ParamPath } from "../device/path";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
+import { findStrip } from "../model/types";
 import { unitById } from "../model/units";
 import { UDK_BANKS, UDK_KNOBS, UDK_UNASSIGNED, udkAssignment, udkPath } from "../model/udk";
 import { buildRegistry } from "../screens";
@@ -70,6 +71,10 @@ function pathsReachedByKeyboard(root: HTMLElement, store: DeviceStore, paths: st
 }
 
 async function open(shell: Shell, route: Route): Promise<void> {
+  // A mono channel draws its SSMCS screens while its COMP / EQ type is SSMCS.
+  if (route.id.startsWith("ch.ssmcs") && findStrip(shell.ctx.model, route.strip ?? "")?.kind === "monoIn") {
+    await shell.ctx.store.set(`ch.${route.strip}.compEqOrder`, "SSMCS");
+  }
   shell.ctx.nav.push(route);
   await flush();
 }
@@ -1236,12 +1241,15 @@ describe("every knob-bound parameter is reachable on the glass", () => {
 
   it("finds screens that bind knobs at all, so the sweep cannot pass vacuously", async () => {
     const registry = buildRegistry();
-    let binding = 0;
+    const binding: string[] = [];
     for (const id of registry.ids()) {
       const { shell, bound } = await mount();
       await open(shell, { id, strip: "ch1" });
-      if (bound.length > 0) binding += 1;
+      if (bound.length > 0) binding.push(id);
     }
-    expect(binding).toBeGreaterThan(3);
+    expect(binding.length).toBeGreaterThan(3);
+    expect(binding, "the COMP and SSMCS screens are both swept").toEqual(
+      expect.arrayContaining(["ch.comp", "ch.ssmcs", "ch.ssmcs.comp", "ch.ssmcs.sc", "ch.ssmcs.eq"]),
+    );
   });
 });

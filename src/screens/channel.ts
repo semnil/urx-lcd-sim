@@ -40,9 +40,15 @@ export function noChannel(): ScreenBody {
 /** The kind of strip each block with a screen of its own belongs to. */
 const BLOCK_STRIPS = { GATE: "monoIn", COMP: "monoIn", SSMCS: "monoIn", DUCKER: "stIn", DELAY: "streaming" } satisfies Record<string, StripKind>;
 
-/** Whether the strip carries the block. */
-export function carriesBlock(strip: Strip, block: keyof typeof BLOCK_STRIPS): boolean {
-  return strip.kind === BLOCK_STRIPS[block];
+/**
+ * Whether the strip carries the block. A mono channel carries COMP or SSMCS,
+ * whichever its COMP / EQ type is.
+ */
+export function carriesBlock(ctx: AppContext, strip: Strip, block: keyof typeof BLOCK_STRIPS): boolean {
+  if (strip.kind !== BLOCK_STRIPS[block]) return false;
+  if (block === "COMP") return !runsSsmcs(ctx, strip);
+  if (block === "SSMCS") return runsSsmcs(ctx, strip);
+  return true;
 }
 
 /**
@@ -115,13 +121,18 @@ const REC_POINT_DEFAULT = "PRE FADER";
 const COMP_EQ_SSMCS = "SSMCS";
 const COMP_EQ_ORDERS = ["COMP->EQ", COMP_EQ_SSMCS];
 
+/** Whether the strip is a mono channel whose COMP / EQ type is the morphing strip. */
+function runsSsmcs(ctx: AppContext, strip: Strip): boolean {
+  return strip.kind === "monoIn" && ctx.store.str(`ch.${strip.id}.compEqOrder`, "COMP->EQ") === COMP_EQ_SSMCS;
+}
+
 /**
  * The tap stages a strip offers. The morphing channel strip has no discrete EQ
  * stage to tap ahead of, so PRE EQ leaves the list while it is in use.
  */
 function recPoints(ctx: AppContext, strip: Strip): string[] {
   const mono = strip.kind === "monoIn";
-  const ssmcs = mono && ctx.store.str(`ch.${strip.id}.compEqOrder`, "COMP->EQ") === COMP_EQ_SSMCS;
+  const ssmcs = runsSsmcs(ctx, strip);
   return REC_POINTS.filter((p) => (mono || p.stereo) && !(ssmcs && p.label === "PRE EQ")).map((p) => p.label);
 }
 
@@ -545,7 +556,7 @@ export const channelViewScreen: ScreenDef = {
       const gate = gateThreshold(base);
       const gateValue = readout(gate);
       // While 1-knob turns COMP, the knob sets its depth instead of the threshold.
-      const ssmcs = ctx.store.str(`${base}.compEqOrder`, "COMP->EQ") === COMP_EQ_SSMCS;
+      const ssmcs = runsSsmcs(ctx, strip);
       const compOneKnob = ctx.store.bool(`${base}.comp.oneKnob.on`, false);
       const comp = compOneKnob ? oneKnobDepth(`${base}.comp.oneKnob.level`) : compThreshold(base);
       const compValue = readout(comp, "", compOneKnob ? "%" : "");
@@ -1181,7 +1192,7 @@ export const gateScreen: ScreenDef = {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
     if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
-    if (!carriesBlock(strip, "GATE")) return noBlock(ctx, strip, route, "GATE");
+    if (!carriesBlock(ctx, strip, "GATE")) return noBlock(ctx, strip, route, "GATE");
     const b = `ch.${strip.id}`;
     const threshold = gateThreshold(b);
     const range = dbSpec(`${b}.gate.range`, "Range", -73, 0, GATE_DEFAULTS.range, 1, 0);
@@ -1236,7 +1247,7 @@ export const compScreen: ScreenDef = {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
     if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
-    if (!carriesBlock(strip, "COMP")) return noBlock(ctx, strip, route, "COMP");
+    if (!carriesBlock(ctx, strip, "COMP")) return noBlock(ctx, strip, route, "COMP");
     const b = `ch.${strip.id}`;
     // While 1-knob is on, its level holds the focus and no other value on the screen turns.
     const oneKnob = ctx.store.bool(`${b}.comp.oneKnob.on`, false);
@@ -1334,7 +1345,7 @@ export const duckerScreen: ScreenDef = {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
     if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
-    if (!carriesBlock(strip, "DUCKER")) return noBlock(ctx, strip, route, "DUCKER");
+    if (!carriesBlock(ctx, strip, "DUCKER")) return noBlock(ctx, strip, route, "DUCKER");
     const b = `ch.${strip.id}`;
     const threshold = duckerThreshold(b);
     const range = dbSpec(`${b}.ducker.range`, "Range", -70, 0, -24, 1, 0);
@@ -1467,7 +1478,7 @@ export const delayScreen: ScreenDef = {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
     if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
-    if (!carriesBlock(strip, "DELAY")) return noBlock(ctx, strip, route, "DELAY");
+    if (!carriesBlock(ctx, strip, "DELAY")) return noBlock(ctx, strip, route, "DELAY");
     const b = `ch.${strip.id}`;
     const on = ctx.store.bool(`${b}.delay.on`, false);
     const rate = delayFrameRate(ctx, b);

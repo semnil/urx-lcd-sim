@@ -4563,25 +4563,30 @@ describe("what the dedicated channel screens draw", () => {
   });
 
   it("says a channel stepped to without the block has no such screen, and leaves nothing on it to operate", async () => {
-    // GATE, COMP and SSMCS are a mono input's, DUCKER a stereo input's, DELAY STREAMING's.
-    const screens: [string, string, string, string][] = [
-      ["ch.gate", "GATE", "ch1", "monoIn"],
-      ["ch.comp", "COMP", "ch1", "monoIn"],
-      ["ch.ducker", "DUCKER", "ch_5_6", "stIn"],
-      ["ch.delay", "DELAY", "bus.stream", "streaming"],
-      ["ch.ssmcs", "SSMCS", "ch1", "monoIn"],
-      ["ch.ssmcs.comp", "SSMCS", "ch1", "monoIn"],
-      ["ch.ssmcs.sc", "SSMCS", "ch1", "monoIn"],
-      ["ch.ssmcs.eq", "SSMCS", "ch1", "monoIn"],
+    // GATE is a mono input's, COMP a mono input's on COMP->EQ and SSMCS a mono
+    // input's on SSMCS, DUCKER a stereo input's, DELAY STREAMING's.
+    const onSsmcs = new Set(["ch2", "ch4"]);
+    const mono = (s: Strip): boolean => s.kind === "monoIn";
+    const ssmcs = (s: Strip): boolean => mono(s) && onSsmcs.has(s.id);
+    const screens: [string, string, string, (s: Strip) => boolean][] = [
+      ["ch.gate", "GATE", "ch1", mono],
+      ["ch.comp", "COMP", "ch1", (s) => mono(s) && !onSsmcs.has(s.id)],
+      ["ch.ducker", "DUCKER", "ch_5_6", (s) => s.kind === "stIn"],
+      ["ch.delay", "DELAY", "bus.stream", (s) => s.kind === "streaming"],
+      ["ch.ssmcs", "SSMCS", "ch2", ssmcs],
+      ["ch.ssmcs.comp", "SSMCS", "ch2", ssmcs],
+      ["ch.ssmcs.sc", "SSMCS", "ch2", ssmcs],
+      ["ch.ssmcs.eq", "SSMCS", "ch2", ssmcs],
     ];
-    for (const [id, name, from, kind] of screens) {
+    for (const [id, name, from, carries] of screens) {
       const shell = await mount();
       const store = shell.ctx.store;
+      for (const ch of onSsmcs) await store.set(`ch.${ch}.compEqOrder`, "SSMCS");
       shell.ctx.nav.push({ id: "channel-view", strip: from });
       shell.ctx.nav.push({ id, strip: from });
       await flush();
       const mixer = new Set(store.pathsUnder("ch"));
-      const landed = { with: 0, without: 0 };
+      const landed = { with: 0, without: 0, monoWithout: 0 };
       const here = (): [Strip, string] => {
         const strip = findStrip(shell.ctx.model, shell.ctx.nav.current.strip ?? "");
         if (!strip) throw new Error(`${id}: no strip ${shell.ctx.nav.current.strip}`);
@@ -4599,17 +4604,21 @@ describe("what the dedicated channel screens draw", () => {
         );
         const title = shell.root.querySelector(".toolbar .badge-title")?.textContent;
         const missing = shell.root.querySelector(".main .screen-missing")?.textContent;
-        if (strip.kind === kind) {
+        if (carries(strip)) {
           landed.with++;
           expect([title, missing], `${at}: the block's own screen`).toEqual([name, undefined]);
           continue;
         }
         landed.without++;
+        if (mono(strip)) landed.monoWithout++;
         expect([title, missing], at).toEqual([undefined, `This channel has no ${name} screen`]);
         const controls = [...shell.root.querySelectorAll<HTMLElement>(".main button, .main [role], .main [tabindex], .knob-strip [role]")];
         expect(controls.map((c) => c.className), `${at}: nothing to operate`).toEqual([]);
       }
       expect(landed.with > 0 && landed.without > 0, `${id} lands both ways`).toBe(true);
+      if (name === "COMP" || name === "SSMCS") {
+        expect(landed.monoWithout, `${id} lands on a mono channel of the other COMP / EQ type`).toBeGreaterThan(0);
+      }
       expect(store.pathsUnder("ch").filter((p) => !mixer.has(p)), `${id}: no value written`).toEqual([]);
       shell.destroy();
     }

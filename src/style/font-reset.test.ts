@@ -3,6 +3,7 @@ import { Shell } from "../app/shell";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
+import { findStrip } from "../model/types";
 import { unitById } from "../model/units";
 import { buildRegistry } from "../screens";
 import { declarations, readStyle, selectorList, styleRules } from "./css-read";
@@ -104,6 +105,8 @@ async function drawScreen(id: string): Promise<HTMLElement[]> {
     const model = unitById("URX44V");
     const store = new DeviceStore();
     await store.attach(new SimTransport(factoryState(model)));
+    // A mono channel draws its SSMCS screens while its COMP / EQ type is SSMCS.
+    if (id.startsWith("ch.ssmcs") && findStrip(model, strip)?.kind === "monoIn") await store.set(`ch.${strip}.compEqOrder`, "SSMCS");
     const shell = new Shell(registry, store, model);
     shell.ctx.nav.push({ id, strip });
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -187,6 +190,11 @@ describe("the colour a rule gives a control", () => {
   it("finds a one-class colour on a control, so the sweep cannot pass vacuously", () => {
     const { dead } = overridden(`${CSS}\n.patch-default { color: #123456; }`, roots, COLOUR);
     expect(dead).toEqual([".patch-default { color: #123456 }"]);
+  });
+
+  it("finds a one-class colour on an SSMCS screen's control, so the sweep draws the SSMCS screens", () => {
+    const { dead } = overridden(`${CSS}\n.ssmcs-band { color: #123456; }`, roots, COLOUR);
+    expect(dead).toEqual([".ssmcs-band { color: #123456 }"]);
   });
 
   it("leaves a colour set on a control's pseudo-element to it", () => {
