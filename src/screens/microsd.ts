@@ -8,7 +8,7 @@
 import type { AppContext } from "../app/context";
 import type { ParamValue } from "../device/path";
 import type { CardEntry } from "../model/card";
-import { CARD_ROOT, cardStamp, folderPath, formatFree, formatRate, freeBytes, parentPath, readCard, takeRate, writeCard } from "../model/card";
+import { CARD_ROOT, cardStamp, filePath, folderPath, formatFree, formatRate, freeBytes, parentPath, readCard, takeRate, writeCard } from "../model/card";
 import { applySettings, captureSettings } from "../model/settings-file";
 import { onDynamicsTimeStops } from "../model/dynamics-times";
 import { TRACK_COUNTS, dropTracksOverRate, trackCountCeiling } from "../model/track-count";
@@ -243,7 +243,7 @@ function cardLabel(ctx: AppContext): string {
 /** Leave the card with nothing on it. */
 function formatCard(ctx: AppContext): void {
   stopPlayback(ctx.store);
-  for (const entry of cardEntries(ctx)) void ctx.store.set(filePath(entry.name), "");
+  for (const entry of cardEntries(ctx)) void ctx.store.set(filePath(entry), "");
   void ctx.store.set("sd.selectedFile", 0);
   void ctx.store.set("sd.path", CARD_ROOT);
   updateCard(ctx, []);
@@ -302,11 +302,6 @@ function iconAction(label: string, icon: SVGSVGElement, usable: boolean, onTap: 
   return markShut(node, !usable);
 }
 
-/** Where a settings file's contents are kept. */
-function filePath(name: string): string {
-  return `sd.file.${name}`;
-}
-
 /** Put a changed card back and draw it as it now stands. */
 function updateCard(ctx: AppContext, entries: readonly CardEntry[]): void {
   void writeCard(ctx.store, entries);
@@ -324,7 +319,7 @@ function deleteSelected(ctx: AppContext): void {
       message: "Delete the selected file?",
       onOk: () => {
         if (row === playingFile(ctx)) stopPlayback(ctx.store);
-        void ctx.store.set(filePath(entry.name), "");
+        void ctx.store.set(filePath(entry), "");
         void ctx.store.set("sd.selectedFile", Math.max(0, Math.min(row, entries.length - 2)));
         updateCard(ctx, entries.filter((_, i) => i !== row));
       },
@@ -339,10 +334,10 @@ function renameSelected(ctx: AppContext): void {
   const entry = entries[row];
   if (!entry) return;
   nameOnCard(ctx, entry.name, (name) => {
-    const held = ctx.store.str(filePath(entry.name), "");
+    const held = ctx.store.str(filePath(entry), "");
     if (held) {
-      void ctx.store.set(filePath(entry.name), "");
-      void ctx.store.set(filePath(name), held);
+      void ctx.store.set(filePath(entry), "");
+      void ctx.store.set(filePath({ ...entry, name }), held);
     }
     updateCard(
       ctx,
@@ -360,10 +355,10 @@ function newFolder(ctx: AppContext): void {
 
 /** Write the unit's settings to the card under `name`, over a file of that name. */
 function saveSettings(ctx: AppContext, name: string): void {
-  void ctx.store.set(filePath(name), toJson(captureSettings(ctx.store)));
+  const entry: CardEntry = { name, kind: "data", seconds: 0, tracks: 0, stamp: cardStamp(ctx.store), dir: cardPath(ctx) };
+  void ctx.store.set(filePath(entry), toJson(captureSettings(ctx.store)));
   const entries = cardEntries(ctx);
   const at = entries.findIndex((e) => e.name === name && e.dir === cardPath(ctx));
-  const entry: CardEntry = { name, kind: "data", seconds: 0, tracks: 0, stamp: cardStamp(ctx.store), dir: cardPath(ctx) };
   updateCard(ctx, at < 0 ? [...entries, entry] : entries.map((e, i) => (i === at ? entry : e)));
 }
 
@@ -381,7 +376,7 @@ function saveLoadAction(ctx: AppContext, label: string): void {
   }
   if (entry === undefined || entry.kind !== "data") return;
   if (label === "Load") {
-    loadSettings(ctx, entry.name);
+    loadSettings(ctx, entry);
     return;
   }
   // Saving over a file that is already there asks first; nothing else does.
@@ -389,8 +384,8 @@ function saveLoadAction(ctx: AppContext, label: string): void {
 }
 
 /** Put a settings file back on the unit, a GATE, COMP or DUCKER time off its stops on the stop nearest it. */
-function loadSettings(ctx: AppContext, name: string): void {
-  const held = ctx.store.str(filePath(name), "");
+function loadSettings(ctx: AppContext, entry: CardEntry): void {
+  const held = ctx.store.str(filePath(entry), "");
   if (!held) return;
   const before = ctx.store.num("setup.samplingFrequency", 48000);
   const pairs = pairStates(ctx);

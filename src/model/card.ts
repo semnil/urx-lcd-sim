@@ -41,6 +41,18 @@ export function parentPath(path: string): string {
   return cut <= 0 ? CARD_ROOT : path.slice(0, cut + 1);
 }
 
+/** Where the store keeps what settings files hold. */
+export const FILES = "sd.file.";
+
+/**
+ * Where the store keeps what a settings file holds: under the folder holding it
+ * and its name, so files of one name in two folders each hold their own. An
+ * entry keeps the folder it was made in for as long as it is on the card.
+ */
+export function filePath(entry: Pick<CardEntry, "dir" | "name">): string {
+  return `${FILES}${entry.dir}${entry.name}`;
+}
+
 /** The sampling frequency as the recorder's screens print it. */
 export function formatRate(hz: number): string {
   return `${(hz / 1000).toFixed(1)}kHz`;

@@ -9,6 +9,7 @@ import { unitById } from "../model/units";
 import { freeBytes, readCard, writeCard } from "../model/card";
 import type { CardEntry } from "../model/card";
 import { buildRegistry } from "./index";
+import { forget, restore } from "../app/persist";
 import { pausePlayback, playedSeconds, recordTake, startPlayback, startRecorderClock, stopPlayback, stopTake } from "./recording";
 import { openTitleEntry } from "./title-entry";
 
@@ -485,6 +486,84 @@ describe("what the card's own actions do to it", () => {
     await okDialog(shell);
     await flush();
     expect(store.num("ch.ch1.level", 0), "the settings the file was saved with").toBe(-3);
+  });
+
+  it("keeps apart what two settings files of one name in two folders hold", async () => {
+    const shell = await mount({ id: "microsd.saveload" }, card);
+    const store = shell.ctx.store;
+    const saveAs = async (title: string): Promise<void> => {
+      action(shell, "Save as")?.click();
+      await flush();
+      await typeTitle(shell, title);
+    };
+    const select = async (dir: string): Promise<void> => {
+      await store.set("sd.path", dir);
+      await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.dir === dir && e.name === "mine.urxf"));
+      await flush();
+    };
+    const load = async (dir: string): Promise<number> => {
+      await store.set("ui.sdSaveTab", "Save/\nLoad");
+      await store.set("ch.ch1.level", 0);
+      await select(dir);
+      action(shell, "Load")?.click();
+      await flush();
+      await flush();
+      return store.num("ch.ch1.level", 99);
+    };
+    await store.set("ch.ch1.level", -12);
+    await saveAs("mine");
+    await store.set("sd.path", "/Recordings/");
+    await store.set("ch.ch1.level", 5);
+    await flush();
+    await saveAs("mine");
+    expect(readCard(store).filter((e) => e.name === "mine.urxf").map((e) => e.dir)).toEqual(["/", "/Recordings/"]);
+    expect([await load("/"), await load("/Recordings/")], "each brings back what it was saved with").toEqual([-12, 5]);
+
+    await store.set("ui.sdSaveTab", "Edit");
+    await select("/Recordings/");
+    action(shell, "Delete")?.click();
+    await flush();
+    await okDialog(shell);
+    expect(readCard(store).filter((e) => e.name === "mine.urxf").map((e) => e.dir)).toEqual(["/"]);
+    expect(await load("/"), "the file left in the root still holds its own").toBe(-12);
+  });
+
+  it("brings back what a settings file held where the browser kept it under the file's name alone", async () => {
+    // A unit stored while a settings file's contents were kept under its name, whatever folder held it.
+    const file = (dir: string): CardEntry => ({ name: "mine.urxf", kind: "data", seconds: 0, tracks: 0, stamp: "", dir });
+    window.localStorage.setItem(
+      "urx-lcd-sim.state",
+      JSON.stringify({
+        version: 1,
+        model: "URX44V",
+        values: {
+          "sd.card": JSON.stringify([{ name: "Recordings", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" }, file("/"), file("/Recordings/")]),
+          "sd.file.mine.urxf": JSON.stringify({ "ch.ch1.level": -12 }),
+        },
+      }),
+    );
+    try {
+      const model = unitById("URX44V");
+      const store = new DeviceStore();
+      await store.attach(new SimTransport(factoryState(model)));
+      await restore(store, "URX44V");
+      const shell = new Shell(buildRegistry(), store, model);
+      shell.ctx.nav.push({ id: "microsd.saveload" });
+      await flush();
+      expect(store.has("sd.file.mine.urxf"), "the old place is not put back").toBe(false);
+      for (const dir of ["/", "/Recordings/"]) {
+        await store.set("ch.ch1.level", 0);
+        await store.set("sd.path", dir);
+        await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.dir === dir && e.name === "mine.urxf"));
+        await flush();
+        action(shell, "Load")?.click();
+        await flush();
+        await flush();
+        expect(store.num("ch.ch1.level", 99), dir).toBe(-12);
+      }
+    } finally {
+      forget();
+    }
   });
 
   it("leaves nothing free once the card is full", async () => {

@@ -99,6 +99,9 @@ amp's Type or Amp Type stored by its name comes back at the place on its knob th
 and a name the amp does not have is not put back. A state stored while Pan Link left each send's own placing where
 it was, or kept Pan Link on over a FIXED bus, comes back with Pan Link where the unit's screen leaves it. A GATE,
 COMP or DUCKER time stored off its stops comes back on the stop nearest it.
+A state stored while a settings file's contents were kept under the file's name alone gives those contents to
+every settings file of that name, whatever folder holds it (they are now kept under the folder and the name, so
+files of one name in two folders hold their own).
 
 What is on the card, the scene memories and the settings files are values in the same mirror, and
 they are kept with it. The browser's storage, the scene memories and the settings files are written as JSON, which has
