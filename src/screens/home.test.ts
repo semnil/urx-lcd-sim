@@ -3593,6 +3593,7 @@ describe("screens laid out from the guide's figures", () => {
     await flush();
     const sdIcon = (): HTMLElement | null => q('.toolbar-icons .icon-btn[aria-label^="microSD"]');
     expect([sdIcon()?.querySelector(".rec-dot") !== null, shell.ctx.store.str("sd.rec", "")], "off the screen the take goes on, HOME's microSD icon dotted").toEqual([true, "recording"]);
+    expect(sdIcon()?.getAttribute("aria-label"), "and named as recording").toBe("microSD, recording");
     sdIcon()?.click();
     await flush();
     const entry = (name: string): HTMLElement | undefined => [...shell.root.querySelectorAll<HTMLElement>(".menu-btn")].find((b) => b.textContent === name);
@@ -3600,6 +3601,7 @@ describe("screens laid out from the guide's figures", () => {
       [entry("Recorder")?.querySelector(".rec-dot") !== null, entry("Save/Load")?.classList.contains("is-disabled"), entry("Tools")?.classList.contains("is-disabled"), q(".usb-storage")?.classList.contains("is-disabled"), q(".sd-eject")?.classList.contains("is-disabled")],
       "the microSD menu: Recorder dotted, the rest out of reach",
     ).toEqual([true, true, true, true, true]);
+    expect(entry("Recorder")?.getAttribute("aria-label"), "Recorder named as recording").toBe("Recorder, recording");
     entry("Tools")?.click();
     q(".usb-storage")?.click();
     await flush();
@@ -3613,13 +3615,18 @@ describe("screens laid out from the guide's figures", () => {
     shell.ctx.nav.home();
     await flush();
     expect(sdIcon()?.querySelector(".rec-dot") !== null, "a paused take is still open").toBe(true);
+    expect(sdIcon()?.getAttribute("aria-label"), "paused, still named as recording").toBe("microSD, recording");
     await shell.ctx.store.set("sd.rec", "armed");
     await flush();
     expect(sdIcon()?.querySelector(".rec-dot") !== null, "armed is recording mode too").toBe(true);
+    expect(sdIcon()?.getAttribute("aria-label"), "armed, named as recording").toBe("microSD, recording");
     await shell.ctx.store.set("sd.rec", "idle");
     await flush();
     expect(sdIcon()?.querySelector(".rec-dot"), "stopped, no dot").toBeNull();
+    expect(sdIcon()?.getAttribute("aria-label"), "stopped, the name alone").toBe("microSD");
     shell.ctx.nav.openTop({ id: "microsd" });
+    await flush();
+    expect([entry("Recorder") !== undefined, entry("Recorder")?.getAttribute("aria-label")], "stopped, Recorder goes by its own name").toEqual([true, null]);
     shell.ctx.nav.push({ id: "microsd.recorder" });
     await flush();
     const sourceIdle = q(".rec-slot-src");
