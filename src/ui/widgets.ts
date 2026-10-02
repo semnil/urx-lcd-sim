@@ -596,7 +596,7 @@ export function attachSpin(
       return;
     }
     const size = fast ? (spec.fastStep ?? spec.step) : spec.step;
-    put(onStep(spec, value() + steps * size));
+    put(spec.free ? value() + steps * size : onStep(spec, value() + steps * size));
   };
 
   // A control whose touch does something else of its own turns by the wheel and the keys alone.

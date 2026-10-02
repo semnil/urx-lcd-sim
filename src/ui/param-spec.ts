@@ -32,6 +32,8 @@ export interface NumericSpec {
    * a table of its own. Absent means the travel runs evenly over [min, max].
    */
   travel?: Travel;
+  /** Turns by its step as it is, off any grid of the step. */
+  free?: boolean;
   /**
    * Where the mark points for a value, as a fraction of the travel, where that is
    * not the value's place in its range. A drag and a detent still move the value

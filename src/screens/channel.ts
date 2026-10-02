@@ -1431,6 +1431,9 @@ const DELAY_UNITS = [
   { label: "feet", per: 1.125, digits: 1 },
 ] as const;
 
+/** A delay cell's reading to its places, a half on the last place going up wherever its binary value lands. */
+const delayReading = (v: number, digits: number): string => (Math.round(v * 10 ** digits + 1e-9) / 10 ** digits).toFixed(digits);
+
 /** The frame rates the DELAY screen counts a time in. `D` is drop frame. */
 const DELAY_FRAME_RATES = ["24", "25", "29.97D", "29.97", "30D", "30", "60", "120"] as const;
 
@@ -1479,9 +1482,10 @@ export const delayScreen: ScreenDef = {
         label: u.label,
         // Each cell is framed on its own, though the four turn one time.
         focusKey: `${b}.delay.${u.label}`,
-        step: 0.01 / per,
-        fastStep: 0.1 / per,
-        format: (v: number) => (v * per).toFixed(u.digits),
+        step: 10 ** -u.digits / per,
+        fastStep: 10 ** (1 - u.digits) / per,
+        free: true,
+        format: (v: number) => delayReading(v * per, u.digits),
       };
     });
     ctx.setKnobs(specs);

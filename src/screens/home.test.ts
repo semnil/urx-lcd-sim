@@ -4457,6 +4457,58 @@ describe("what the dedicated channel screens draw", () => {
     expect(boxes(), "one value, four ways of naming it").toEqual(["10.00", "0.30", "3.4", "11.3"]);
   });
 
+  it("turns each delay cell by the last place it prints, at a press and at a Shift press", async () => {
+    const shell = await open("ch.delay");
+    const box = (i: number): HTMLElement | undefined => [...shell.root.querySelectorAll<HTMLElement>(".delay-cell .value-box")][i];
+    const seen: (string | null | undefined)[][] = [];
+    for (const shiftKey of [false, true]) {
+      for (let i = 0; i < 4; i++) {
+        await shell.ctx.store.set("ch.bus.stream.delay.ms", 10);
+        await flush();
+        const before = box(i)?.textContent;
+        box(i)?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", shiftKey, bubbles: true }));
+        await flush();
+        seen.push([before, box(i)?.textContent, box(i)?.getAttribute("aria-valuetext")]);
+      }
+    }
+    expect(seen).toEqual([
+      ["10.00", "10.01", "10.01"],
+      ["0.30", "0.31", "0.31"],
+      ["3.4", "3.5", "3.5"],
+      ["11.3", "11.4", "11.4"],
+      ["10.00", "10.10", "10.10"],
+      ["0.30", "0.40", "0.40"],
+      ["3.4", "4.4", "4.4"],
+      ["11.3", "12.3", "12.3"],
+    ]);
+
+    // Ten presses in a row move meter and feet a place each, from a time feet reads on a half.
+    for (const [i, from] of [[2, 3.4], [3, 11.3]] as const) {
+      await shell.ctx.store.set("ch.bus.stream.delay.ms", 10);
+      await flush();
+      const walk: string[] = [];
+      for (let n = 0; n < 10; n++) {
+        box(i)?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
+        await flush();
+        walk.push(box(i)?.textContent ?? "");
+      }
+      expect(walk).toEqual(Array.from({ length: 10 }, (_, n) => (from + (n + 1) / 10).toFixed(1)));
+    }
+
+    // At 25 frames a second, 1 ms and 5 ms read on a half of frame's last place.
+    await shell.ctx.store.set("ch.bus.stream.delay.frameRate", "25");
+    const frames: (string | null | undefined)[][] = [];
+    for (const [ms, key] of [[1, "ArrowUp"], [5, "ArrowDown"]] as const) {
+      await shell.ctx.store.set("ch.bus.stream.delay.ms", ms);
+      await flush();
+      const before = box(1)?.textContent;
+      box(1)?.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+      await flush();
+      frames.push([before, box(1)?.textContent]);
+    }
+    expect(frames).toEqual([["0.03", "0.04"], ["0.13", "0.12"]]);
+  });
+
   it("picks the EQ band from the grips on the plot", async () => {
     const shell = await open("ch.eq");
     expect(shell.root.querySelector(".eq-band")?.textContent).toBe("LOW");
