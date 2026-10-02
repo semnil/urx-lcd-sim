@@ -64,7 +64,7 @@ export function declarationsOn(css: string, target: string): Record<string, stri
 }
 
 /** The classes and the pseudo-element the last compound of a selector names outside parentheses. */
-function subject(selector: string): { classes: string[]; pseudo: string } {
+export function subject(selector: string): { classes: string[]; pseudo: string } {
   let depth = 0;
   let last = "";
   for (const ch of selector) {

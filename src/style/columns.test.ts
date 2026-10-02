@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { KNOB_SIZE } from "../ui/param-spec";
-import { columnGap, declarations, declarationsOn, px, readStyle, styleRules } from "./css-read";
+import { columnGap, declarations, declarationsOn, px, readStyle, styleRules, subject } from "./css-read";
 
 // A value has to read under the panel it belongs to. The HOME bank, the knob
 // readout strip and the head-amp column of a channel view therefore stand on one
@@ -1114,7 +1114,17 @@ describe("the scene name box", () => {
 
   it("fades the number in SCENE LIST's box out and back in at the pace of every other mark, and not the title", () => {
     expect(declarations(CSS, ".scene-box-static .scene-no.is-pending")["animation"]).toBe("focus-mark-blink 2s ease-in-out infinite");
-    expect(declarations(CSS, ".scene-box-static .scene-title")["animation"]).toBeUndefined();
+    const onTitle = styleRules(CSS).flatMap((rule) =>
+      rule.selectors
+        .filter((s) => {
+          const { classes, pseudo } = subject(s);
+          const before = s.replace(/:not\([^()]*\)/g, "").split(/[\s>+~]+/).slice(0, -1).join(" ");
+          return pseudo === "" && classes.includes("scene-title") && /\.scene-box-static(?![\w-])/.test(before);
+        })
+        .map((selector) => ({ selector, animated: Object.keys(rule.body).some((key) => key.startsWith("animation")) })),
+    );
+    expect(onTitle.map((r) => r.selector), "the box's own title rule is among those read").toContain(".scene-box-static .scene-title");
+    expect(onTitle.filter((r) => r.animated).map((r) => r.selector), "no rule on the box's title animates it").toEqual([]);
     expect(CSS, "no blinking for a reader who asks for less motion").toMatch(/@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.scene-box-static \.scene-no\.is-pending\s*\{\s*animation: none;/);
   });
 });
