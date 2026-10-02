@@ -361,11 +361,16 @@ export class Shell {
       icons.appendChild(iconBtn("SETUP", Icons.setup(), () => this.ctx.nav.openTop({ id: "setup" })));
       if (this.ctx.model.hasSD) {
         const sd = iconBtn("microSD", Icons.storage(), () => this.ctx.nav.openTop({ id: "microsd" }));
-        // Recording mode marks the icon with the record dot at its lower right.
+        // Recording mode marks the icon with the record dot at its lower right,
+        // and a file playing with the play triangle where the dot stands.
         if (recordMode(this.ctx.store)) {
           sd.classList.add("has-rec-dot");
           sd.appendChild(el("span", { class: "rec-dot", attrs: { "aria-hidden": "true" } }));
           sd.setAttribute("aria-label", "microSD, recording");
+        } else if (this.ctx.store.bool("sd.playing", false)) {
+          sd.classList.add("has-play-mark");
+          sd.appendChild(el("span", { class: "play-mark", attrs: { "aria-hidden": "true" } }));
+          sd.setAttribute("aria-label", "microSD, playing");
         }
         icons.appendChild(sd);
       }

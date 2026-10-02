@@ -6249,6 +6249,23 @@
   top: 22px;
 }
 
+/* The play triangle a file playing puts on the microSD icon: on the record
+ * dot's rows and as tall, 3px in from the dot's left and pointing right. */
+.icon-btn.has-play-mark {
+  position: relative;
+}
+
+.play-mark {
+  position: absolute;
+  left: 26px;
+  top: 22px;
+  width: 10px;
+  height: 14px;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+  background: var(--transport-play);
+  pointer-events: none;
+}
+
 /* Left of the entry's name, which keeps its place. */
 .menu-btn.has-rec-dot > span {
   position: relative;

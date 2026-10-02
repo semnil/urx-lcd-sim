@@ -4798,6 +4798,54 @@ describe("screens laid out from the guide's figures", () => {
     expect(shell.root.querySelector("[data-overlay]") !== null, "stopped, a source opens its list").toBe(true);
   });
 
+  it("marks the microSD icon with the play triangle while a file plays, and with nothing once it pauses or [■] lets it go", async () => {
+    const shell = await mount();
+    const sdIcon = (): HTMLElement | null => shell.root.querySelector<HTMLElement>('.toolbar-icons .icon-btn[aria-label^="microSD"]');
+    const mark = (): [string | null | undefined, boolean, boolean] => [
+      sdIcon()?.getAttribute("aria-label"),
+      sdIcon()?.querySelector(".play-mark") != null,
+      sdIcon()?.querySelector(".rec-dot") != null,
+    ];
+    const press = async (label: string): Promise<void> => {
+      [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === label)?.click();
+      await flush();
+    };
+    const recorder = async (): Promise<void> => {
+      shell.ctx.nav.openTop({ id: "microsd" });
+      shell.ctx.nav.push({ id: "microsd.recorder" });
+      await flush();
+    };
+    const home = async (): Promise<void> => {
+      shell.ctx.nav.home();
+      await flush();
+    };
+    await shell.ctx.store.set("sd.card", JSON.stringify([{ name: "a.wav", kind: "take", seconds: 30, tracks: 2, stamp: "", dir: "/" }]));
+    await flush();
+    expect(mark(), "nothing held").toEqual(["microSD", false, false]);
+
+    await recorder();
+    await shell.ctx.store.set("ui.sdTab", "Play");
+    await flush();
+    shell.root.querySelector(".sd-list .list-row")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+    await press("Play/Pause");
+    await home();
+    expect([shell.ctx.store.bool("sd.playing", false), mark()], "a file playing").toEqual([true, ["microSD, playing", true, false]]);
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    await flush();
+    expect([shell.ctx.nav.current.id, mark()], "on the channel view's toolbar as well").toEqual(["channel-view", ["microSD, playing", true, false]]);
+
+    await recorder();
+    await press("Play/Pause");
+    await home();
+    expect([shell.ctx.store.num("sd.playingFile", -1), mark()], "paused").toEqual([0, ["microSD", false, false]]);
+    await recorder();
+    await press("Play/Pause");
+    await press("Stop");
+    await home();
+    expect([shell.ctx.store.num("sd.playingFile", -1), mark()], "let go").toEqual([-1, ["microSD", false, false]]);
+  });
+
   it("stands OSCILLATOR's [ON] as the switch HOME's strips use", async () => {
     const shell = await mount();
     shell.ctx.nav.push({ id: "monitor" });

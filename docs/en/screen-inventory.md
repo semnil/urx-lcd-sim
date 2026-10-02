@@ -1573,6 +1573,11 @@ the microSD icon on the HOME and channel view toolbars (x364..377 / y22..35) and
 button) takes the face of a button that cannot be used and does nothing when pressed. SETUP's [Sampling Frequency] takes
 that face too, as the unit does, and does not open the SAMPLING FREQUENCY screen.
 
+While a file plays, the microSD icon on the HOME and channel view toolbars carries a triangle of `--transport-play`
+pointing right where recording mode puts its dot (d under "Toolbar" in the user guide). The triangle stands on the dot's
+rows and is as tall, 14px (y22..35), and 10px wide 3px in from the dot's left (x367..376). It is not shown while the file
+is paused or after [■].
+
 TOOLS carries the card-eject button on its toolbar as well (p087-1). [Format microSD] on the Format tab opens the
 same keyboard screen the title entry uses, under the title `Volume Label`, with the card's volume label in the
 field; it takes up to 11 characters, and [OK] goes on with the field empty too (the volume label is then
