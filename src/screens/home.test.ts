@@ -1874,14 +1874,20 @@ describe("the SCENE menu the scene box opens", () => {
       ["1 / span 4", "1"], ["3 / span 4", "2"], ["33 / span 8", "3"], ["7 / span 12", "4"], ["34 / span 7", "4"],
     ]);
 
+    // Shift is the one key that stays on, and assistive technology reads whether it is.
+    const toggles = (): string[] =>
+      [...shell.root.querySelectorAll(".title-key[aria-pressed]")].map((k) => `${k.textContent} ${k.getAttribute("aria-pressed")}`);
+    expect(toggles(), "Shift off").toEqual(["Shift false"]);
     await tap(key("Shift"));
     expect(key("Shift")?.classList.contains("is-on"), "Shift lit").toBe(true);
+    expect(toggles(), "and read as on").toEqual(["Shift true"]);
     expect(faces().slice(0, 10).join("")).toBe("QWERTYUIOP");
     await tap(key("Q"));
     await tap(key("Q"));
     expect(typed(), "Shift stays on").toBe("BandQQ");
     await tap(key("Shift"));
     expect(key("Shift")?.classList.contains("is-on"), "and goes off on the next tap").toBe(false);
+    expect(toggles(), "and is read as off").toEqual(["Shift false"]);
 
     await tap(key("123"));
     expect(faces().slice(0, 10).join("")).toBe("1234567890");

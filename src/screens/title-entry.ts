@@ -2,7 +2,7 @@
 
 import type { AppContext } from "../app/context";
 import { captureScene } from "../model/scene-state";
-import { el } from "../ui/dom";
+import { el, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { button } from "../ui/widgets";
 import type { ScreenBody, ScreenDef } from "./types";
@@ -203,7 +203,8 @@ export const titleEntryScreen: ScreenDef = {
       const node =
         k.action.kind === "backspace"
           ? el("button", { class: "btn title-key", children: [Icons.backspace()], onTap: tap })
-          : button(face, tap, `title-key${k.action.kind === "shift" && shift ? " is-on" : ""}`);
+          : button(face, tap, "title-key");
+      if (k.action.kind === "shift") setPressed(node, shift);
       const name = KEY_NAMES[k.action.kind];
       if (name) node.setAttribute("aria-label", name);
       node.style.gridColumn = `${k.col + 1} / span ${k.span}`;

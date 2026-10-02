@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Tell assistive technology whether [Shift] on the title and name sheets is on: it stands pressed while lit. It was lit for the eye alone.
 - Open the INS FX screen from the INS FX name on a channel view's block while the channel reads [No Effect], the whole block sinking as under a touch elsewhere on it, and open EFFECT TYPE from the INS FX screen's title. Both stood as switches that did nothing. While 1-knob is on, the value boxes and bar divisions on the COMP and EQ screens that do not turn are told to assistive technology as out of reach, as Knee is.
 - Name the field of the name sheets by what it takes: `Volume Label` on the sheet [Format microSD] opens, `Name` on the sheets [Save as], [Rename] and [New folder] open, and `Title` on a scene's title sheet as before. The field read `Title` on every sheet.
 - Name SCENE LIST's list and the microSD lists of RECORDER and SAVE/LOAD to assistive technology, and move the focus from row to row on them with the up and down arrow keys, Home and End, leaving the selection to Enter or Space. The lists had no name, and only Tab moved between their rows.
