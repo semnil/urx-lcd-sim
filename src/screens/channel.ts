@@ -1725,18 +1725,24 @@ const EQ_ONE_KNOB_TYPES = ["Intensity", "Vocal", "Loudness"] as const;
 const EQ_ONE_KNOB_NEUTRAL: Record<string, number> = { Intensity: 50, Vocal: 0, Loudness: 0 };
 
 /** Taking a kind of curve puts the level on that curve's neutral point, in one operation of the store. */
-function setEqOneKnobType(ctx: AppContext, base: string, type: string): void {
+function takeEqOneKnobType(ctx: AppContext, base: string, type: string): void {
   ctx.store.operation(() => {
     void ctx.store.set(`${base}.eq.oneKnob.type`, type);
     void ctx.store.set(`${base}.eq.oneKnob.level`, EQ_ONE_KNOB_NEUTRAL[type] ?? 0);
   });
 }
 
+/** Picking a kind of curve in the box takes it; picking the one in use changes nothing. */
+function setEqOneKnobType(ctx: AppContext, base: string, type: string): void {
+  if (ctx.store.str(`${base}.eq.oneKnob.type`, "Intensity") === type) return;
+  takeEqOneKnobType(ctx, base, type);
+}
+
 /** Switching 1-knob on takes the curve back to Intensity at its neutral point, in one operation of the store. */
 function setEqOneKnob(ctx: AppContext, base: string, on: boolean): void {
   ctx.store.operation(() => {
     void ctx.store.set(`${base}.eq.oneKnob.on`, on);
-    if (on) setEqOneKnobType(ctx, base, "Intensity");
+    if (on) takeEqOneKnobType(ctx, base, "Intensity");
   });
 }
 
@@ -1796,8 +1802,9 @@ const EQ_VOCAL_GAIN: Record<"lowMid" | "highMid" | "high", readonly number[]> = 
 const EQ_ONE_KNOB_GAIN_MAX = 1800;
 
 /**
- * What 1-knob EQ does to the four bands. Switching it on, and taking Intensity
- * while it is on, keep the gains as they stand; the Intensity level then sets
+ * What 1-knob EQ does to the four bands. Switching it on, and changing to
+ * Intensity from another curve while it is on, keep the gains as they stand
+ * (picking the curve in use writes nothing); the Intensity level then sets
  * each band to that gain times level / 50. Taking Loudness or Vocal sets that
  * curve's own switches and shapes with no gain, whatever the bands held.
  * Loudness's level sets each band's gain at the band's own rate per percent;
