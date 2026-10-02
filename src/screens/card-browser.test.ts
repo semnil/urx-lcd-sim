@@ -65,6 +65,16 @@ async function pickTab(shell: Shell, path: string, tab: string): Promise<void> {
   await flush();
 }
 
+/** Tap the side tab named `label`, as a finger would. */
+async function tapSideTab(shell: Shell, label: string): Promise<void> {
+  [...shell.root.querySelectorAll<HTMLElement>(".side-tab")].find((t) => t.querySelector(".side-tab-label")?.textContent === label)?.click();
+  await flush();
+}
+
+/** The name of the side tab drawn lit. */
+const litSideTab = (shell: Shell): string | null | undefined =>
+  shell.root.querySelector('.side-tab[aria-pressed="true"] .side-tab-label')?.textContent;
+
 describe("the microSD card browser", () => {
   it("lists what is on the card, an icon beside each name", async () => {
     const shell = await mount({ id: "microsd.saveload" });
@@ -139,6 +149,35 @@ describe("the microSD card browser", () => {
     await pickTab(shell, "ui.sdSaveTab", "Edit");
     expect(actions(shell)).toEqual(["icon-new-folder", "icon-trash", "icon-rename"]);
     expect(rows(shell).map((r) => cellsOf(r)[1]), "the same list under both").toEqual(before);
+  });
+
+  it("moves SAVE/LOAD between its tabs on a tap of the side tab", async () => {
+    const shell = await mount({ id: "microsd.saveload" });
+    const names = (): string[] =>
+      [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].map((n) => n.getAttribute("aria-label") ?? n.textContent ?? "");
+    expect(names()).toEqual(["Save", "Save as", "Load"]);
+
+    await tapSideTab(shell, "Edit");
+    expect([shell.ctx.store.str("ui.sdSaveTab", ""), litSideTab(shell)]).toEqual(["Edit", "Edit"]);
+    expect(names()).toEqual(["New folder", "Delete", "Rename"]);
+
+    await tapSideTab(shell, "Save/\nLoad");
+    expect([shell.ctx.store.str("ui.sdSaveTab", ""), litSideTab(shell)]).toEqual(["Save/\nLoad", "Save/\nLoad"]);
+    expect(names()).toEqual(["Save", "Save as", "Load"]);
+  });
+
+  it("moves TOOLS between Format and Test on a tap of the side tab", async () => {
+    const shell = await mount({ id: "microsd.tools" });
+    const job = (): string | null | undefined => shell.root.querySelector(".tools-screen > .btn")?.textContent;
+    expect(job()).toBe("Format microSD");
+
+    await tapSideTab(shell, "Test");
+    expect([shell.ctx.store.str("ui.sdToolsTab", ""), litSideTab(shell)]).toEqual(["Test", "Test"]);
+    expect(job()).toBe("Test microSD");
+
+    await tapSideTab(shell, "Format");
+    expect([shell.ctx.store.str("ui.sdToolsTab", ""), litSideTab(shell)]).toEqual(["Format", "Format"]);
+    expect(job()).toBe("Format microSD");
   });
 
   it("gives RECORDER a track layout on Record and the card on Play and Edit", async () => {

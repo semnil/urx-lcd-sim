@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { Shell } from "../app/shell";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
@@ -153,15 +153,44 @@ describe("moving between the RECORDER tabs", () => {
   const tab = (shell: Shell, name: string): HTMLElement | undefined =>
     [...shell.root.querySelectorAll<HTMLElement>(".side-tab")].find((t) => t.textContent === name);
 
+  const dialogText = (shell: Shell): string | null => shell.root.querySelector(".dialog-text")?.textContent ?? null;
+  const lit = (shell: Shell): string | null =>
+    shell.root.querySelector('.side-tab[aria-pressed="true"] .side-tab-label')?.textContent ?? null;
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("holds a loading modal up before the tab that reads the card appears", async () => {
     const shell = await mount();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     tab(shell, "Play")?.click();
-    await flush();
+    await vi.advanceTimersByTimeAsync(0);
 
-    expect(shell.root.querySelector(".dialog-text")?.textContent).toBe("Loading...");
+    expect(dialogText(shell)).toBe("Loading...");
     expect(shell.root.querySelector(".dialog-actions"), "there is nothing to answer").toBeNull();
     expect(shell.root.querySelector(".dialog-spinner"), "it waits on a ring").not.toBeNull();
     expect(shell.ctx.store.str("ui.sdTab", "Record"), "the tab has not moved yet").toBe("Record");
+
+    await vi.advanceTimersByTimeAsync(2999);
+    expect([shell.ctx.store.str("ui.sdTab", "Record"), dialogText(shell), lit(shell)], "at 2999 ms").toEqual(["Record", "Loading...", "Record"]);
+    await vi.advanceTimersByTimeAsync(1);
+    expect([shell.ctx.store.str("ui.sdTab", "Record"), dialogText(shell), lit(shell)], "at 3000 ms").toEqual(["Play", null, "Play"]);
+  });
+
+  it("loads nothing when the tab already open is tapped", async () => {
+    const shell = await mount();
+    await shell.ctx.store.set("ui.sdTab", "Play");
+    await flush();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+
+    tab(shell, "Play")?.click();
+    await vi.advanceTimersByTimeAsync(0);
+    expect([shell.ctx.store.str("ui.sdTab", "Record"), dialogText(shell)], "Play is already open").toEqual(["Play", null]);
+
+    tab(shell, "Edit")?.click();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(dialogText(shell), "a tab that is not open waits").toBe("Loading...");
   });
 
   it("goes straight to Record, which is the tab the screen opens on", async () => {
