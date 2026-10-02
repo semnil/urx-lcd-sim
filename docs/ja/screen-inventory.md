@@ -1661,11 +1661,14 @@ Sends の送り先シートとチャンネルバンクの一覧は宣言を持�
 
 ## ドロップダウン
 
-値を選ぶ箱 (CH SETTING の Signal Type / Rec Point / COMP・EQ、SETUP の User Defined Knobs や
-Date/Time の書式、Software Integration の送り先、COMP の Knee、DUCKER の Ducker Source、
-DELAY の Frame rate) はタップで候補の一覧を画面上に開き、選ぶと閉じる。タップごとに値が
-1 つ送られる動作ではない。ガラスに載る候補は 5 つまでで、それより長い一覧は実機が長い一覧を
-開くシートの上に開く (DUCKER の Ducker Source と DELAY の Frame rate がこれに当たる)。
+値を選ぶ箱 (CH SETTING の Signal Type / Rec Point / COMP・EQ、SETUP の Date/Time の書式、
+Software Integration の送り先、COMP の Knee、DUCKER の Ducker Source、DELAY の Frame rate) は
+タップで候補の一覧を画面上に開き、選ぶと閉じる。タップごとに値が 1 つ送られる動作ではない。
+ガラスに載る候補は 5 つまでで、それより長い一覧は実機が長い一覧を開くシートの上に開く (DELAY の
+Frame rate がこれに当たる)。自分の並べ方を持つ一覧は 5 つを超えても画面上に開き、DUCKER の
+Ducker Source は箱の下に開く 3 行 8 列のパネル (「チャンネルビューのヘッドアンプ列」)、ディレイの
+Note は 3 行 5 列で開く。USER DEFINED KNOBS のカードはこの箱ではなく、タップすると
+USER DEFINED KNOBS の割り当てのシートを開く。
 
 一覧のパネルは選択肢を上下左右とも 4px 内側に置き、選択肢どうしの間も 4px 空ける (p079-3 実測:
 パネル y46..225、最初の札 y50、最後の札の下端 221)。

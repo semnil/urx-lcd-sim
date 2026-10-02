@@ -1923,11 +1923,14 @@ list as a touch on the dark does.
 
 ## Dropdowns
 
-A box that picks a value (Signal Type / Rec Point / COMP and EQ in CH SETTING, SETUP's User Defined
-Knobs and the Date/Time format, Software Integration's destination, COMP's Knee, DUCKER's Ducker
-Source, DELAY's Frame rate) opens a list of options on the screen when tapped, and closes when one is
-picked. It is not a control that sends one value per tap. The glass holds five options; a longer list
-opens on the sheet the unit opens a long list on (DUCKER's Ducker Source and DELAY's Frame rate).
+A box that picks a value (Signal Type / Rec Point / COMP and EQ in CH SETTING, SETUP's Date/Time
+format, Software Integration's destination, COMP's Knee, DUCKER's Ducker Source, DELAY's Frame rate)
+opens a list of options on the screen when tapped, and closes when one is picked. It is not a control
+that sends one value per tap. The glass holds five options; a longer list opens on the sheet the unit
+opens a long list on (DELAY's Frame rate). A list laid out in a panel of its own stays on the screen
+with more than five: DUCKER's Ducker Source opens as the panel three rows by eight under the box ("Head
+amp column in the channel view"), and a delay's Note as three rows of five. A card on USER DEFINED KNOBS
+is not such a box: a tap on it opens USER DEFINED KNOBS' assignment sheet.
 
 A list's panel sets its choices 4px inside it on every edge, with 4px between them (measured on
 p079-3: the panel runs y46..225, its first tile starts at y50 and its last ends at y221).
