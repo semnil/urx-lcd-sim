@@ -111,10 +111,11 @@ flowchart LR
 - **名前の入力は 2 か所から開く。** シーンの名前 (`scene.title`) とカードのフォルダー・ファイルの名前
   (`microsd.name`) は同じ画面の作りで、開いた元へ戻る。
 - **チャンネルの画面はストリップを持ち歩く。** ツールバーの左右の矢印がストリップを替えても画面は
-  そのままで、そのストリップが持たないブロックの画面は開かない。下に積んだチャンネルビューなども送った先のストリップへ
-  移るので、戻る矢印は送った先のチャンネルビューへ帰り、HOME でもそのストリップが選ばれている。そのブロックを持たない
-  チャンネル (COMP と SSMCS はモノラルのチャンネルの COMP / EQ のタイプで決まる) では、GATE・COMP・DUCKER・DELAY・SSMCS の
-  画面は題も操作できるものも描かず、中央に `This channel has no GATE screen` (ほかのブロックも同じ形) とだけ出す。
-  176.4 / 192 kHz の FX 2 では、どのチャンネルの画面も同じ形で `This channel is not available at this sampling frequency` と出す。
+  そのままで、そのストリップが持たないブロックの画面は開かない。下に積んだチャンネルビューなども送った先の
+  ストリップへ移るので、戻る矢印は送った先のチャンネルビューへ帰り、HOME でもそのストリップが選ばれている。
+  そのブロックを持たないチャンネル (COMP と SSMCS はモノラルのチャンネルの COMP / EQ のタイプで決まる) では、
+  GATE・COMP・DUCKER・DELAY・SSMCS の画面は題も操作できるものも描かず、中央に `This channel has no GATE screen`
+  (ほかのブロックも同じ形) とだけ出す。176.4 / 192 kHz の FX 2 では、どのチャンネルの画面も同じ形で
+  `This channel is not available at this sampling frequency` と出す。
 - **名前の箱は CH SETTING を開く。** CH SETTING 以外のチャンネル画面は、ツールバーの名前の箱からそのストリップの
   CH SETTING を開く。地図はこの矢印をチャンネルビューからだけ描く。
