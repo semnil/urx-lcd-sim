@@ -191,6 +191,40 @@ describe("DeviceStore", () => {
     expect(failures).toEqual([[-1, -3], [-3, -40]]);
   });
 
+  it("keeps a newer write of the same value when an earlier one is refused", async () => {
+    const device = heldDevice([["ch.ch1.level", 0]]);
+    const { store, failures } = await storeOn(device);
+    const first = store.set("ch.ch1.level", -1);
+    void store.set("ch.ch1.level", -2);
+    const third = store.set("ch.ch1.level", -1);
+
+    device.writes[0]!.refuse();
+    await first;
+    expect(store.num("ch.ch1.level"), "while the newer write waits").toBe(-1);
+    device.writes[1]!.take();
+    device.writes[2]!.take();
+    await third;
+
+    expect(store.num("ch.ch1.level")).toBe(-1);
+    expect(failures).toEqual([[-1, -1]]);
+  });
+
+  it("keeps what the device announced after the refused write was sent", async () => {
+    const device = heldDevice([["ch.ch1.level", 0]]);
+    const { store, failures } = await storeOn(device);
+    const first = store.set("ch.ch1.level", -1);
+    const second = store.set("ch.ch1.level", -2);
+    device.announce("ch.ch1.level", -40);
+
+    device.writes[0]!.take();
+    await first;
+    device.writes[1]!.refuse();
+    await second;
+
+    expect(store.num("ch.ch1.level")).toBe(-40);
+    expect(failures).toEqual([[-2, -40]]);
+  });
+
   it("drops a path the device never held when its write is refused", async () => {
     const device = heldDevice([]);
     const { store, failures } = await storeOn(device);
