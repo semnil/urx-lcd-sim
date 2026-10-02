@@ -570,6 +570,12 @@ describe("the INPUT Input Source button", () => {
     const ask = await bulk(small, "All USB DAW", "OK");
     expect(ask, "and the question names the channels it carries").toContain("Ch1-10 All USB DAW");
     expect(small.ctx.store.str("ch.ch_9_10.source", "")).toBe("USB DAW 9/10");
-    expect(tiles(small), "and never names a return the unit does not carry").not.toContain("USB DAW 11/12");
+    await tap(small, ".input-source-btn");
+    const offered = tiles(small);
+    expect(offered.length, "the sheet open again").toBeGreaterThan(0);
+    expect(
+      offered.filter((t) => t.startsWith("USB DAW ")),
+      "names the five returns the unit carries, and none past them",
+    ).toEqual(["USB DAW 1/2", "USB DAW 3/4", "USB DAW 5/6", "USB DAW 7/8", "USB DAW 9/10"]);
   });
 });
