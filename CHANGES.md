@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Keep a sheet that draws no way out of its own open under a touch or a drag on the USER DEFINED KNOBS bar, and under a drag that starts on the sheet and is let go off it: the title and name sheets, DATE/TIME's popup, the knob assignment and Operation Mode. A touch on a knob, assigned or `---`, closed the sheet and dropped what had been typed.
 - Work only the switch or value box Enter or Space is pressed on inside a channel view's block, as a tap does. Enter on the EQ or GATE switch, [SAFE] or the A.Gain box also opened the block's screen or took the knob focus.
 - Hold the screen behind `Loading...`, `Formatting in progress...` and `Testing in progress...` out of reach of the keys until the modal goes. Leaving the screen under it with the keys dropped a format already agreed to, and [●] pressed under `Loading...` held the recorder in recording mode on the Play tab, out of reach of [■].
 - Hold the keys inside a dialog or a picker sheet while it is open: Tab goes round its own controls and no longer reaches the screen behind it, Escape cancels it wherever the focus stands, and once it closes the focus is back on the control that opened it.

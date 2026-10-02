@@ -10,6 +10,7 @@ import { bankName, channelLabel } from "./strip-state";
 import { buildRegistry } from "./index";
 import { meterLevels, setMeterSource, startMeterTicker } from "./meters";
 import { declarations, px, readStyle } from "../style/css-read";
+import { dialog } from "../ui/widgets";
 import { version as packageVersion } from "../../package.json";
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
@@ -374,6 +375,79 @@ describe("the channel-bank list", () => {
     shell.root.querySelector(".side")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await flush();
     expect(shell.ctx.nav.current.id, "SETUP has a back arrow, so its background is inert").toBe("setup");
+  });
+
+  it("keeps a sheet with no exits of its own open under a touch on the knob bar, assigned or not", async () => {
+    const shell = await mount();
+    document.body.appendChild(shell.root);
+    try {
+      await shell.ctx.store.set("ui.userDefinedKnobs", true);
+      shell.ctx.nav.push({ id: "scene" });
+      shell.ctx.nav.push({ id: "scene.title" });
+      await flush();
+      for (const key of "abc") {
+        const field = shell.root.querySelector<HTMLElement>(".title-field");
+        field?.focus();
+        field?.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+        await flush();
+      }
+      const typed = (): string | null | undefined => shell.root.querySelector(".title-text")?.textContent;
+      const cells = [...shell.root.querySelectorAll<HTMLElement>(".knob-strip .knob-cell")];
+      expect(cells.map((c) => c.getAttribute("aria-label") ?? c.textContent), "two assigned knobs and two with nothing on them").toEqual([
+        "Phones 1 Level",
+        "Phones 2 Level",
+        "---",
+        "---",
+      ]);
+      const seen: (string | null | undefined)[] = [];
+      for (const cell of cells) {
+        cell.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        await flush();
+        seen.push(`${shell.ctx.nav.current.id} ${typed()}`);
+      }
+      expect(seen, "the knobs are not bare screen").toEqual(Array(4).fill("scene.title abc"));
+
+      // A drag from a knob let go over the sheet: the click lands on what holds both.
+      cells[3]?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+      shell.root.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flush();
+      expect(`${shell.ctx.nav.current.id} ${typed()}`, "a drag that starts on a knob is no tap on the bare screen").toBe("scene.title abc");
+
+      // The bare screen around the sheet still closes it.
+      shell.root.querySelector(".toolbar")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flush();
+      expect(shell.ctx.nav.current.id).toBe("scene");
+    } finally {
+      shell.root.remove();
+    }
+  });
+
+  it("closes on a touch on the knob bar under its dark, as on the rest of the dark", async () => {
+    const shell = await mount();
+    await shell.ctx.store.set("ui.userDefinedKnobs", true);
+    await flush();
+    await openList(shell);
+    const empty = [...shell.root.querySelectorAll(".knob-strip .knob-cell")].find((c) => c.textContent === "---");
+    empty?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+    expect([empty !== undefined, shell.ctx.nav.current.id]).toEqual([true, "home"]);
+  });
+
+  it("leaves a sheet with no exits of its own open under a touch on what is laid over it", async () => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "scene" });
+    shell.ctx.nav.push({ id: "scene.title" });
+    await flush();
+    try {
+      shell.ctx.overlay(dialog({ message: "Name taken", okOnly: true, onOk: () => undefined }));
+      await flush();
+      shell.root.querySelector(".dialog-overlay")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flush();
+      expect([shell.ctx.nav.current.id, shell.root.querySelector(".dialog-overlay") !== null]).toEqual(["scene.title", true]);
+    } finally {
+      // The dialog holds the window's keys while it is up.
+      shell.destroy();
+    }
   });
 
   it("reads the names off the strips, so a model with other banks gets other names", () => {
