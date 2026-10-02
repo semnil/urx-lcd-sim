@@ -7,7 +7,8 @@ own, which no figure shows, says so in its row or in "Outside the screen".
 ## How the values were sampled
 
 The user guide PDF embeds bitmaps of the unit's screen pasted as they are. Some are exactly the
-480x272 screen; others sit on a canvas with white margin added around the screen.
+480x272 screen; others sit on a canvas with white margin added around the screen, and others are part
+of a screen cut out on its own (crops).
 `scripts/extract-ug-screens.mjs` extracts them and writes each as `p<3-digit page number>-<n>.png` to
 the location in the table below. `<n>` counts, within the page, only the captures that go to the same
 directory. The capture IDs in this document and in [screen-inventory.md](screen-inventory.md)
@@ -25,6 +26,25 @@ directory. The capture IDs in this document and in [screen-inventory.md](screen-
 
 Coordinates take the top-left of the screen as the origin. When measuring on a padded canvas,
 subtract the position in this table.
+
+A crop is an image at least 88 wide and 88 high that fits in 480 x 272 and has none of the sizes in
+the table above. It is written to `reference/ug-lcd/` under the same naming, numbered on after the
+page's whole-screen captures in `reference/ug-lcd/`. A value read off a crop is still given in screen
+coordinates, and the screen's (x, y) is read at the crop's pixel (x − top-left x, y − top-left y).
+The top-left on the screen of each crop this document, [screen-inventory.md](screen-inventory.md) and
+`src/style` cite is as follows.
+
+| Crop | Width x height | Top-left on the screen |
+| --- | --- | --- |
+| `p096-2` | 90 x 88 | (202, 48) |
+| `p096-4` | 88 x 88 | (297, 48) |
+| `p104-2` | 272 x 161 | (208, -8) |
+| `p106-2` | 278 x 147 | (202, -3) |
+
+The top 8 and bottom 9 rows of `p104-2` and `p106-2` are white, are not the screen's pixels, and are
+not used as the basis for any value. To cite another crop, lay it on a whole-screen capture of the
+same screen, find the position where the pixels of what no state changes (the toolbar, a block's
+heading and so on) match, and add it to this table.
 
 The guide shows some captures clipped by the PDF. `pdfimages` extracts each image whole, before the
 clip, so those files carry pixels the pages do not show. `scripts/ug-visible-ranges.py` walks the PDF's
