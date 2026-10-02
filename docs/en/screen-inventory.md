@@ -1687,8 +1687,10 @@ that is open, asks `File already exists. Replace it?` first; loading asks nothin
 the folder as it is and writes nothing, as the unit does. A [Save as] name that differs from a settings file's in the folder
 that is open in case alone asks nothing and writes over that file, which keeps its name as it was spelt, as the unit does; one
 that differs from a folder's in case alone asks nothing and writes nothing. [Save] and [Load] stand out of reach until a settings file is under the
-cursor. A settings file carries every value but the screen's own state (`ui.`) and the card itself
-(`sd.`). A source the file holds no D.Gain for comes back to 0 dB when it is loaded, and a scene number
+cursor. A settings file carries every value but the screen's own state (`ui.`, the tabs OUTPUT PATCH
+and PERIPHERAL stand on, and SCENE LIST's Standard / Simple tab and cursor) and the card itself
+(`sd.`), so a load leaves the tabs and the cursor where they stand. A source the file holds no D.Gain
+for comes back to 0 dB when it is loaded, and a scene number
 the file holds nothing under comes back empty.
 
 A playback runs against the take's length, writing the counter and the bar in place once a second.

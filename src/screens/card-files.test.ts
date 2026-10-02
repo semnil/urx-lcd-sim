@@ -966,6 +966,40 @@ describe("what the card's own actions do to it", () => {
     expect(held(), "the file's 192 kHz carries two").toEqual([192_000, 2]);
   });
 
+  it("leaves the screens' tabs and SCENE LIST's cursor where they stand when settings come back", async () => {
+    // The file is written with OUTPUT PATCH on USB, PERIPHERAL on HDMI and SCENE LIST on Simple's 05; all are moved back before loading.
+    const shell = await mount({ id: "microsd.saveload" }, card);
+    const store = shell.ctx.store;
+    const screens = (): unknown[] => [
+      store.str("setup.outputPatch.tab", ""),
+      store.str("setup.peripheral.tab", ""),
+      store.num("scene.selected", -1),
+      store.str("scene.bank", ""),
+    ];
+    await store.set("setup.outputPatch.tab", "USB");
+    await store.set("setup.peripheral.tab", "HDMI");
+    await store.set("scene.bank", "Simple");
+    await store.set("scene.selected", 5);
+    await store.set("ch.ch1.level", -10);
+    await flush();
+    action(shell, "Save as")?.click();
+    await flush();
+    await typeTitle(shell, "mine");
+
+    await store.set("setup.outputPatch.tab", "Analog");
+    await store.set("setup.peripheral.tab", "Main");
+    await store.set("scene.bank", "Standard");
+    await store.set("scene.selected", 0);
+    await store.set("ch.ch1.level", 0);
+    await store.set("sd.selectedFile", 1);
+    await flush();
+    action(shell, "Load")?.click();
+    await okDialog(shell);
+    await flush();
+    expect(screens(), "where they were moved before loading").toEqual(["Analog", "Main", 0, "Standard"]);
+    expect(store.num("ch.ch1.level", 0), "the settings the file was saved with").toBe(-10);
+  });
+
   it("keeps what a settings file holds when it is renamed", async () => {
     const shell = await mount({ id: "microsd.saveload" }, card);
     const store = shell.ctx.store;
