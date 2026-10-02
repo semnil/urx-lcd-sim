@@ -336,19 +336,40 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     expect([comp.store.num("ch.ch1.insFx.gain", NaN), control(comp.shell, "Gain").getAttribute("aria-valuenow")], "three down").toEqual([-0.3, "-0.3"]);
   });
 
-  it("holds the user-defined knobs still while 1-knob holds the screen's focus", async () => {
-    const { shell, store } = await mount();
-    const turn = async (oneKnob: boolean): Promise<number> => {
-      await store.set("phones.1.level", 5);
-      await store.set("ch.ch1.eq.oneKnob.on", oneKnob);
-      await open(shell, { id: "ch.eq", strip: "ch1" });
-      await store.set("ui.userDefinedKnobs", true);
-      await flush();
-      shell.root.querySelector<HTMLElement>(".knob-cell.is-udk")?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true, cancelable: true }));
-      return store.num("phones.1.level", 0);
-    };
-    expect(await turn(false), "with 1-knob off, Phones 1 turns").toBeGreaterThan(5);
-    expect(await turn(true), "with 1-knob on, it stays").toBe(5);
+  it("turns the user-defined knobs whether 1-knob is on or off, while 1-knob keeps the screen's focus", async () => {
+    const screens = [
+      { name: "CH 1's EQ", route: { id: "ch.eq", strip: "ch1" }, oneKnob: "ch.ch1.eq.oneKnob.on", setup: [] },
+      { name: "CH 1's COMP", route: { id: "ch.comp", strip: "ch1" }, oneKnob: "ch.ch1.comp.oneKnob.on", setup: [] },
+      {
+        name: "STEREO's M.B.Comp",
+        route: { id: "ch.insfx", strip: "bus.stereo" },
+        oneKnob: "ch.bus.stereo.insFx.oneKnobOn",
+        setup: [
+          ["ch.bus.stereo.insFx.effect", "M.B.Comp"],
+          ["ch.bus.stereo.insFx.on", true],
+        ],
+      },
+    ] as const;
+    for (const screen of screens) {
+      for (const oneKnob of [false, true]) {
+        const { shell, store } = await mount();
+        await open(shell, { id: "channel-view", strip: screen.route.strip });
+        for (const [path, value] of screen.setup) await store.set(path, value);
+        await store.set(screen.oneKnob, oneKnob);
+        await open(shell, screen.route);
+        await store.set("ui.userDefinedKnobs", true);
+        await store.set("phones.1.level", 5);
+        await flush();
+        const framed = (): string[] => [...shell.root.querySelectorAll(".is-focused")].map((n) => n.className);
+        const before = framed();
+        const label = `${screen.name}, 1-knob ${oneKnob ? "on" : "off"}`;
+        expect(before.some((c) => c.includes("oneknob-level")), `${label}: 1-knob's level holds the focus`).toBe(oneKnob);
+        shell.root.querySelector<HTMLElement>(".knob-cell.is-udk")?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true, cancelable: true }));
+        await flush();
+        expect(store.num("phones.1.level", 0), `${label}: knob A turns Phones 1`).toBeGreaterThan(5);
+        expect(framed(), `${label}: the focus stays where it was`).toEqual(before);
+      }
+    }
   });
 
   it("makes each filled division of the strip the knob under it", async () => {

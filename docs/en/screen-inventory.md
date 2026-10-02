@@ -365,8 +365,8 @@ stands on its output's sunk panel at x350..389 / y99..138 and turns its corners 
 On the unit the bar is a readout, and values are turned by the physical knobs below it. There are no
 physical knobs here, so a cell holding a value is itself the knob (drag, wheel, arrow keys). An empty
 cell turns nothing. USER DEFINED KNOBS mode is the same: a cell with an assignment turns that parameter,
-and a `---` cell turns nothing. On a screen with 1-knob on, the USER DEFINED KNOBS cells do not turn either
-(confirmed by the operator on 2026-09-24: with 1-knob on in CH 1's EQ screen, knob A's Phones 1 does not turn).
+and a `---` cell turns nothing. 1-knob does not stop USER DEFINED KNOBS mode: on every screen, with 1-knob
+on or off, a cell with an assignment turns that parameter, as on the unit.
 
 There are four cells, so when a screen passes five or more parameters they are shown four at a time,
 and `‹` / `›` appears at the end of the label band on the side where more follow (COMP in p099-1).
@@ -1669,7 +1669,8 @@ Screen, opens holding it.
   under 1-knob takes a frame a pixel clear of its panel (x300..381 / y83..128 in p096-4). Touching another value moves the
   focus away, and no more than one frame stands on the screen.
 - The level on the COMP and EQ screens while 1-knob is on: framed from the moment the screen opens until it changes.
-  Touching another control moves nothing, and no other value turns, the knobs along the bottom included.
+  Touching another control moves nothing, and no other value turns, the knobs along the bottom included. The USER
+  DEFINED KNOBS cells still turn their assignments.
 
 ## Button corners
 

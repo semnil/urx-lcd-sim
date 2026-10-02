@@ -382,8 +382,9 @@ export class Shell {
         const spec = assign.spec;
         const value = spec ? formatValue(spec, this.ctx.store.num(spec.path, spec.fallback)) : "---";
         const cell = this.knobCell(value, spec ? assign.short : "", "is-udk");
-        // A knob with something on it turns that, as a division does in the ordinary bar.
-        if (spec) this.turnCell(cell, spec, assign.value);
+        // A knob with something on it turns that, as a division does in the ordinary bar,
+        // and goes on turning it while a screen's 1-knob pins the focus.
+        if (spec) this.turnCell(cell, { ...spec, pinFree: true }, assign.value);
         this.knobStripNode.appendChild(cell);
       }
       // The page number sits astride the bar's top edge, and each end of the bar

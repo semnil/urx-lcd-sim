@@ -31,7 +31,7 @@
 - Pitch Fix の [Correction] と M.B.Comp の [Bypass] の角を、ほかのボタンと同じ画素で描く。
 - シーンのリコールと設定ファイルの Load で、保存した値をそのまま戻す。Sync の入ったまま手で回した Mono Delay / Ping Pong の時間や、リンクしたペアへ戻した別々の 2 チャンネルの値が、変わって戻っていた。
 - 1-knob のカーブを選んだとき、実機と同じく 4 バンドの入切を決める。Loudness は 4 バンドとも入、Vocal は LOW を切って残りの 3 バンドを入にする。
-- USER DEFINED KNOBS の割り当てた値を、ノブのバーの区画のドラッグ・ホイール・矢印キーで回せるようにする。1-knob が入の間は実機と同じく回らない。
+- USER DEFINED KNOBS の割り当てた値を、ノブのバーの区画のドラッグ・ホイール・矢印キーで回せるようにする。区画は実機と同じく 1-knob の入切に関わらず回る。
 - EQ 画面とチャンネルビューの EQ ブロックのカーブを、各バンドのフィルターの形 (Bell / L.Shelf / H.Shelf / HPF / LPF) どおりに描く。Bell の幅はガイドの図と同じにする。
 - ノブのバーを読み出しだけと書いていた README を直す。
 - ツールバーのチャンネルの箱、USER DEFINED KNOBS の割り当てのシートの行、MONITOR の [Source]、ドロップダウンの一覧の盆、Pitch Fix の鍵盤のパネル、1-knob のパネル、SSMCS の Sweet Spot Data の角を、ガイドの図と同じ画素で描く。Sweet Spot Data に帯を付ける。

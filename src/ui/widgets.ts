@@ -510,9 +510,12 @@ export function attachSpin(
   });
 }
 
-/** A pinned focus leaves every other value still, the knobs under the screen included, and so does a value the unit is holding itself. */
+/**
+ * A pinned focus leaves every other value on the screen still, the readout bar's included, and a value the unit is
+ * holding itself stands still too. A value turned from off the screen turns whatever the screen pins.
+ */
 function standsStill(ctx: AppContext, spec: NumericSpec): boolean {
-  return spec.locked === true || !ctx.focus.turns(spec.focusKey ?? spec.path);
+  return spec.locked === true || (spec.pinFree !== true && !ctx.focus.turns(spec.focusKey ?? spec.path));
 }
 
 function putValue(ctx: AppContext, spec: NumericSpec, v: number): void {

@@ -1128,7 +1128,7 @@ export const compScreen: ScreenDef = {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
     const b = `ch.${strip.id}`;
-    // While 1-knob is on, its level holds the focus and no other value turns.
+    // While 1-knob is on, its level holds the focus and no other value on the screen turns.
     const oneKnob = ctx.store.bool(`${b}.comp.oneKnob.on`, false);
     const level = oneKnobDepth(`${b}.comp.oneKnob.level`);
     if (oneKnob) ctx.focus.pin(level);
@@ -1437,8 +1437,8 @@ export const eqScreen: ScreenDef = {
     const base = `ch.${strip.id}`;
     const bandKey = ctx.store.str("ui.eqBand", "low");
     const band = EQ_BANDS.find((b) => b.key === bandKey) ?? EQ_BANDS[0];
-    // While 1-knob is on, its level holds the focus, no other value turns, and the
-    // grips shrink to marks that pick nothing.
+    // While 1-knob is on, its level holds the focus, no other value on the screen
+    // turns, and the grips shrink to marks that pick nothing.
     const oneKnob = ctx.store.bool(`${base}.eq.oneKnob.on`, false);
     const level = oneKnobDepth(`${base}.eq.oneKnob.level`);
     if (oneKnob) ctx.focus.pin(level);

@@ -43,6 +43,8 @@ export interface NumericSpec {
   centred?: boolean;
   /** A value the unit is holding itself: the control shows it and does not turn it. */
   locked?: boolean;
+  /** A value turned from off the screen, as a USER DEFINED KNOB turns its own: a screen's pinned focus does not hold it still. */
+  pinFree?: boolean;
 }
 
 /** How a control's value maps onto its travel, 0 at the start and 1 at the end. */
