@@ -2172,6 +2172,54 @@ describe("CH SETTING: what a channel is tapped at and what colour it carries", (
     expect(rail, "and its rail carries nothing").toBe("");
   });
 
+  it("writes a name left in the field once the press that takes the focus has its click, and one the keys commit at once", async () => {
+    const shell = await setting("ch1");
+    document.body.appendChild(shell.root);
+    try {
+      const name = (): string => shell.ctx.store.str("ch.ch1.name", "");
+      const field = (): HTMLInputElement | null => shell.root.querySelector<HTMLInputElement>(".chs-name");
+      const reopen = async (): Promise<void> => {
+        shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+        shell.ctx.nav.push({ id: "ch.setting", strip: "ch1" });
+        await flush();
+      };
+      const fire = (node: EventTarget | null | undefined, type: string): void => {
+        node?.dispatchEvent(new MouseEvent(type, { bubbles: true }));
+      };
+      // A mouse takes the focus as its button goes down; a finger at the mouse press
+      // that follows its lift. The field commits what it holds there.
+      for (const [by, typed] of [["mouse", "Gtr"], ["finger", "Vox"]] as const) {
+        const before = name();
+        const home = shell.root.querySelector<HTMLElement>('.icon-btn[aria-label="HOME"]');
+        expect([field(), home].includes(null), "the Name field and the toolbar's HOME").toBe(false);
+        field()?.focus();
+        (field() as HTMLInputElement).value = typed;
+        fire(home, "pointerdown");
+        if (by === "finger") {
+          fire(home, "pointerup");
+          await flush();
+        }
+        fire(home, "mousedown");
+        field()?.dispatchEvent(new Event("change", { bubbles: true }));
+        if (by === "mouse") fire(home, "pointerup");
+        fire(home, "mouseup");
+        for (let i = 0; i < 10; i++) await Promise.resolve();
+        expect([name(), home?.isConnected], `${by}: the pressed control is still on the glass for its click`).toEqual([before, true]);
+        home?.click();
+        await flush();
+        expect([shell.ctx.nav.current.id, name()], `${by}: the press goes home, and the name is kept`).toEqual(["home", typed]);
+        await reopen();
+      }
+
+      // Enter, or Tab out of the field, commits with no press under way.
+      (field() as HTMLInputElement).value = "Bass";
+      field()?.dispatchEvent(new Event("change", { bubbles: true }));
+      expect(name(), "the keys' commit is written at once").toBe("Bass");
+    } finally {
+      shell.root.remove();
+    }
+  });
+
   it("closes the palette on the way out without changing the colour", async () => {
     const shell = await setting("ch1");
     const before = shell.ctx.store.str("ch.ch1.color", "");

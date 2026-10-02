@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Let the first press on another control act after a name typed into CH SETTING's Name field without Enter, by mouse or by finger. That press only committed the name and did nothing else: HOME, the channel arrows and a pulldown took a second press. The name is still kept, written once the press has acted.
 - Take a value to either end of its range by Home and End on a value box, HOME's levels, the handles on the dynamics plots and the readout bar's cells: End sets HOME's CH 1 LEVEL to 10 dB and Home to -∞. Home and End did nothing, where only the arrow keys turned a value.
 - End a value's drag when the screen changes under it, by Escape or by a second finger on HOME. The drag went on turning the value of the screen left behind until the pointer was let go: BRIGHTNESS's Screen went on dimming the glass after Escape had gone back to SETUP.
 - Turn a value and scroll a list only by a drag of the main button, a finger or a pen's tip, and only by the pointer that started it. The right button started a drag as the main one does, a second finger's moves turned the value or scrolled the list the first finger held, and the second finger's lift or cancel ended the first finger's drag. A mouse that moves with no button held now ends its drag, as one let go where the page did not hear it.

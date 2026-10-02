@@ -644,6 +644,42 @@ function colorSheet(ctx: AppContext, strip: Strip): void {
   });
 }
 
+/** Whether a pointer is going down on the page in the task under way. */
+let pressStarting = false;
+let pressesWatched = false;
+
+/** Note each pointer going down on the page, from the first call on. */
+function watchPresses(): void {
+  if (pressesWatched) return;
+  pressesWatched = true;
+  const starting = (): void => {
+    pressStarting = true;
+    setTimeout(() => {
+      pressStarting = false;
+    }, 0);
+  };
+  // A finger's tap takes the focus at the mouse press that follows its lift.
+  for (const type of ["pointerdown", "mousedown"]) document.addEventListener(type, starting, true);
+}
+
+/**
+ * Run `write` now, or, where a pointer going down is what made it due, once
+ * that press has let go and its click has been handed out, so the control it
+ * pressed is still on the glass for the click.
+ */
+function afterPress(write: () => void): void {
+  if (!pressStarting) {
+    write();
+    return;
+  }
+  const ends = ["pointerup", "mouseup", "click", "pointercancel"];
+  const done = (): void => {
+    for (const type of ends) document.removeEventListener(type, done, true);
+    setTimeout(write, 0);
+  };
+  for (const type of ends) document.addEventListener(type, done, true);
+}
+
 export const chSettingScreen: ScreenDef = {
   id: "ch.setting",
   toolbar: "sub",
@@ -670,8 +706,13 @@ export const chSettingScreen: ScreenDef = {
     }) as HTMLInputElement;
     nameInput.value = ctx.store.str(`${base}.name`, "");
     // Committing on change rather than on every keystroke keeps an IME
-    // composition from writing half-formed text to the device.
-    nameInput.addEventListener("change", () => void ctx.store.set(`${base}.name`, nameInput.value));
+    // composition from writing half-formed text to the device. A press elsewhere
+    // that takes the focus commits the name once that press has acted.
+    watchPresses();
+    nameInput.addEventListener("change", () => {
+      const name = nameInput.value;
+      afterPress(() => void ctx.store.set(`${base}.name`, name));
+    });
 
     const colorBox = box("color", "copy", [el("span", { class: "chs-color", style: { background: stripColor(ctx, strip) } })]);
     makeTappable(colorBox, () => colorSheet(ctx, strip));
