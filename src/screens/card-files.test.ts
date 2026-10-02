@@ -590,6 +590,34 @@ describe("what the card's own actions do to it", () => {
     expect(names(shell)).toEqual(before);
   });
 
+  it("holds the screen out of reach while Format runs, so nothing under the modal can leave it", async () => {
+    const shell = await mount({ id: "home" }, card);
+    shell.ctx.nav.openTop({ id: "microsd" });
+    shell.ctx.nav.push({ id: "microsd.tools" });
+    await flush();
+    shell.root.querySelector<HTMLElement>(".tools-screen .btn")?.click();
+    await flush();
+    shell.root.querySelector<HTMLElement>(".pick-dialog-ok")?.click();
+    await flush();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === "OK")?.click();
+      for (let i = 0; i < 5; i++) await Promise.resolve();
+      expect(shell.root.querySelector(".dialog-text")?.textContent).toBe("Formatting in progress...");
+      const controls = [...shell.root.querySelectorAll<HTMLElement>(".toolbar button, .side button, .main button")];
+      expect(controls.map((n) => n.getAttribute("aria-label") ?? n.textContent), "the toolbar's way out is under it").toEqual(
+        expect.arrayContaining(["Back", "HOME", "Format microSD"]),
+      );
+      expect(controls.filter((n) => !n.closest("[inert]")).map((n) => n.getAttribute("aria-label") ?? n.textContent), "and none of them answers").toEqual([]);
+      vi.advanceTimersByTime(60_000);
+    } finally {
+      vi.useRealTimers();
+    }
+    await flush();
+    expect(names(shell), "the format went through").toEqual([]);
+    expect(shell.root.querySelectorAll("[inert]").length, "and the screen is back once the modal is down").toBe(0);
+  });
+
   it("names the card and what it has left", async () => {
     const shell = await mount({ id: "microsd.tools" }, card);
     expect(shell.root.querySelector(".tools-free")?.textContent).toBe("test\n116.4GB Free");

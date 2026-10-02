@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Shell } from "../app/shell";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
@@ -162,6 +162,32 @@ describe("moving between the RECORDER tabs", () => {
     expect(shell.root.querySelector(".dialog-actions"), "there is nothing to answer").toBeNull();
     expect(shell.root.querySelector(".dialog-spinner"), "it waits on a ring").not.toBeNull();
     expect(shell.ctx.store.str("ui.sdTab", "Record"), "the tab has not moved yet").toBe("Record");
+  });
+
+  it("holds the recorder out of reach while a tab loads, and stays on Record if recording mode comes on under it", async () => {
+    const shell = await mount();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      tab(shell, "Play")?.click();
+      for (let i = 0; i < 5; i++) await Promise.resolve();
+      expect(shell.root.querySelector(".dialog-text")?.textContent).toBe("Loading...");
+      const record = shell.root.querySelector<HTMLElement>('.rec-transport [aria-label="Record"]');
+      expect([record !== null, record?.closest("[inert]") !== null, tab(shell, "Edit")?.closest("[inert]") !== null], "[●] and the tabs are under it").toEqual([
+        true,
+        true,
+        true,
+      ]);
+
+      await shell.ctx.store.set("sd.rec", "armed");
+      for (let i = 0; i < 5; i++) await Promise.resolve();
+      vi.advanceTimersByTime(60_000);
+    } finally {
+      vi.useRealTimers();
+    }
+    await flush();
+    expect(shell.root.querySelector(".dialog-text"), "the modal takes itself down").toBeNull();
+    expect(shell.ctx.store.str("ui.sdTab", "Record"), "recording mode keeps the tab it came on in").toBe("Record");
+    expect(shell.root.querySelector(".rec-transport"), "with [■] there to leave it").not.toBeNull();
   });
 
   it("goes straight to Record, which is the tab the screen opens on", async () => {

@@ -805,6 +805,8 @@ const SD_TAB_LOADING_MS = 3000;
 /**
  * Move to another RECORDER tab. Play and Edit read the card, so they come up
  * behind a loading modal; Record is the tab the screen opens on and needs none.
+ * A tab still loading when recording mode comes on does not open: recording
+ * mode holds the tab it is in.
  */
 function openSdTab(ctx: AppContext, from: string, to: string): void {
   if (to === from) return;
@@ -815,7 +817,7 @@ function openSdTab(ctx: AppContext, from: string, to: string): void {
   let close = (): void => undefined;
   const timer = window.setTimeout(() => {
     close();
-    void ctx.store.set("ui.sdTab", to);
+    if (!recordMode(ctx.store)) void ctx.store.set("ui.sdTab", to);
   }, SD_TAB_LOADING_MS);
   close = ctx.overlay(loadingDialog(), () => window.clearTimeout(timer));
 }

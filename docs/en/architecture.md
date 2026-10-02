@@ -161,10 +161,11 @@ below. As a finger acts when it leaves the glass, a key acts when it is let go, 
 down on is the one it is let go on (`makeTappable`). Value boxes are `role="spinbutton"`
 and HOME's level readouts are `role="slider"`; both move by drag, wheel or arrow keys (`attachSpin`
 takes drag, wheel and arrow keys in one place). A 192px drag covers the whole range (1/5 of that with Shift),
-and the wheel and arrow keys move one detent (`fastStep` with Shift). While a dialog or a picker sheet is
-open, the screen behind it answers neither the keys nor the pointer (`inert`), and wherever the focus stands, Tab
-goes round the controls in it and Escape cancels it. Once it closes, the focus is back on the control that opened it.
-Meter animation stops under `prefers-reduced-motion`.
+and the wheel and arrow keys move one detent (`fastStep` with Shift). While a dialog, a picker sheet or a
+loading modal is up, the screen behind it answers neither the keys nor the pointer (`inert`). Wherever the focus
+stands, Tab goes round the controls of a dialog or a picker sheet and Escape cancels it, and once it closes, the
+focus is back on the control that opened it. A loading modal holds nothing to operate, and Escape does not take it
+down. Meter animation stops under `prefers-reduced-motion`.
 
 Where the keys stand is drawn by the simulator, in a layer over the glass (`src/ui/focus-ring.ts`). No control draws a
 ring of its own, so neither a neighbour nor a parent box can cover it. The ring stands outside the box of the control

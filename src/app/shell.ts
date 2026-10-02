@@ -169,7 +169,7 @@ export class Shell {
     return [...this.overlays.values()].at(-1);
   }
 
-  /** The screen behind a dialog or a sheet takes no keys and no pointer while one is up. */
+  /** The screen behind a modal takes no keys and no pointer while one is up. */
   private shutBehind(): void {
     const shut = [...this.overlays.values()].some((layer) => layer.modal !== undefined);
     for (const node of [this.toolbarNode, this.mainNode, this.sideNode, this.knobStripNode]) node.toggleAttribute("inert", shut);
@@ -491,8 +491,9 @@ export class Shell {
   }
 
   /**
-   * Tab and Shift+Tab go round the controls of the dialog or sheet on top,
-   * wherever the focus stands, so the keys cannot leave it.
+   * Tab and Shift+Tab go round the controls of the modal on top, wherever the
+   * focus stands, so the keys cannot leave it. A modal with none in it leaves
+   * Tab to the page.
    */
   private buildTabTrap(): (ev: KeyboardEvent) => void {
     return (ev) => {

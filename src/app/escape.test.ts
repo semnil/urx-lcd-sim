@@ -14,11 +14,22 @@ import { Shell } from "./shell";
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
+/** The shells a test builds, each holding the window until the test is over. */
+const alive: Shell[] = [];
+
+afterEach(() => {
+  for (const shell of alive.splice(0)) {
+    shell.destroy();
+    shell.root.remove();
+  }
+});
+
 async function mount(): Promise<Shell> {
   const model = unitById("URX44V");
   const store = new DeviceStore();
   await store.attach(new SimTransport(factoryState(model)));
   const shell = new Shell(buildRegistry(), store, model);
+  alive.push(shell);
   await flush();
   return shell;
 }
@@ -126,20 +137,10 @@ describe("Escape", () => {
 // the control it was opened from.
 
 describe("a dialog or a sheet over the screen", () => {
-  const mounted: Shell[] = [];
-
-  afterEach(() => {
-    for (const shell of mounted.splice(0)) {
-      shell.destroy();
-      shell.root.remove();
-    }
-  });
-
   /** A shell on the page, where the focus can stand, on the screen asked for. */
   async function onPage(...routes: Route[]): Promise<Shell> {
     const shell = await mount();
     document.body.appendChild(shell.root);
-    mounted.push(shell);
     for (const route of routes) shell.ctx.nav.push(route);
     await flush();
     return shell;
@@ -233,6 +234,21 @@ describe("a dialog or a sheet over the screen", () => {
       after.push(document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.tagName);
     }
     expect(after).toEqual(["Monitor 1 source", "Monitor 1 source", "Monitor 1 source"]);
+  });
+
+  it("leaves Tab and Escape alone under the loading modal, which has nothing to answer with", async () => {
+    const shell = await onPage({ id: "microsd" }, { id: "microsd.recorder" });
+    [...shell.root.querySelectorAll<HTMLElement>(".side-tab")].find((t) => t.textContent === "Play")?.click();
+    await flush();
+    expect(shell.root.querySelector(".dialog-text")?.textContent).toBe("Loading...");
+    expect(behind(shell), "the recorder is out of reach under it").toEqual([true, true, true, true]);
+    letGo();
+    expect(await press("Tab"), "Tab goes on past the glass").toBe(false);
+    expect(await press("Escape"), "nor Escape").toBe(false);
+    expect([shell.root.querySelector(".dialog-text")?.textContent, shell.ctx.nav.current.id], "which takes neither it nor the screen down").toEqual([
+      "Loading...",
+      "microsd.recorder",
+    ]);
   });
 
   it("leaves the focus where it went off the glass when the dialog goes with its screen", async () => {

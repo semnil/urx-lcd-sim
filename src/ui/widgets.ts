@@ -299,9 +299,10 @@ export function pulldown(
 }
 
 /**
- * What a dialog or a sheet is to the shell that lays it over the screen. While
- * one is up the screen behind it takes no keys and no pointer, Tab goes round
- * the controls in it wherever the focus stands, and Escape does its `cancel`.
+ * What a dialog, a sheet or a loading modal is to the shell that lays it over the
+ * screen. While one is up the screen behind it takes no keys and no pointer, Tab
+ * goes round the controls in it wherever the focus stands, and Escape does its
+ * `cancel`.
  */
 export interface Modal {
   /** What Escape does while it is the top layer. */
@@ -914,10 +915,11 @@ export function dropdown(ctx: AppContext, spec: DropdownSpec): HTMLElement {
 /**
  * The modal the unit holds up while a screen loads: the dialog's frame with a
  * turning ring where the question mark goes, and no way to answer it. It is not
- * a focus trap — nothing in it can be operated, and it takes itself down.
+ * a focus trap and Escape does not cancel it — nothing in it can be operated,
+ * and it takes itself down. The screen behind it takes nothing until it does.
  */
 export function loadingDialog(message = "Loading..."): HTMLElement {
-  return el("div", {
+  const node = el("div", {
     class: "dialog-overlay",
     attrs: { role: "status", "aria-live": "polite" },
     children: [
@@ -935,6 +937,8 @@ export function loadingDialog(message = "Loading..."): HTMLElement {
       }),
     ],
   });
+  MODALS.set(node, {});
+  return node;
 }
 
 export function dialog(options: DialogOptions): HTMLElement {
