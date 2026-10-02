@@ -499,6 +499,51 @@ describe("what the card's own actions do to it", () => {
     expect([store.num("ch.ch1.level", 0), store.num("setup.brightness", 0)]).toEqual([-12, 3]);
   });
 
+  it("leaves a scene number the settings file holds nothing under empty once the file is loaded", async () => {
+    const shell = await mount({ id: "microsd.saveload" }, card);
+    const store = shell.ctx.store;
+    const storeUnder = async (no: number, title: string): Promise<void> => {
+      shell.ctx.nav.push({ id: "scene.list" });
+      await store.set("scene.selected", no);
+      await flush();
+      [...shell.root.querySelectorAll<HTMLElement>(".scene-actions .btn")].find((b) => b.textContent === "Store")?.click();
+      await flush();
+      await typeTitle(shell, title);
+      shell.ctx.nav.back();
+      await flush();
+    };
+    const listed = async (): Promise<Record<string, string>> => {
+      shell.ctx.nav.push({ id: "scene.list" });
+      await flush();
+      const titles = Object.fromEntries(
+        [...shell.root.querySelectorAll(".scene-list .list-row")].map((r) => [...r.querySelectorAll(".list-cell")].map((c) => c.textContent ?? "")).map(([no, title]) => [no, title]),
+      );
+      shell.ctx.nav.back();
+      await flush();
+      return { "03": titles["03"] ?? "?", "05": titles["05"] ?? "?" };
+    };
+    await storeUnder(3, "EARLY");
+    action(shell, "Save as")?.click();
+    await flush();
+    await typeTitle(shell, "A");
+
+    await storeUnder(5, "LATER");
+    await store.set("scene.Standard.5.protect", 1);
+    await store.set("scene.Standard.3.title", "RENAMED");
+    expect(await listed(), "before [Load]").toEqual({ "03": "RENAMED", "05": "LATER" });
+
+    await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === "A.urxf"));
+    await flush();
+    action(shell, "Load")?.click();
+    await flush();
+    await flush();
+    expect(
+      [store.str("scene.Standard.5.title", "?"), store.str("scene.Standard.5.state", "?").length, store.num("scene.Standard.5.protect", -1)],
+      "05, stored after the file was written: its title, the length of its mixer, and its protection",
+    ).toEqual(["", 0, 0]);
+    expect(await listed(), "SCENE LIST after [Load]: 03 as the file holds it, 05 empty").toEqual({ "03": "EARLY", "05": "" });
+  });
+
   it("leaves the clock where it stands when settings come back", async () => {
     // The file is written with the clock set a year on; the clock is then set back before loading.
     const shell = await mount({ id: "microsd.saveload" }, card);

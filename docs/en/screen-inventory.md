@@ -1646,7 +1646,8 @@ with nothing on it. On SAVE/LOAD, [Save] writes the unit's settings over the sel
 back on the unit. Writing over a file that is already there asks `File alerady exists. Replace it?`
 first; loading asks nothing. [Save] and [Load] stand out of reach until a settings file is under the
 cursor. A settings file carries every value but the screen's own state (`ui.`) and the card itself
-(`sd.`). A source the file holds no D.Gain for comes back to 0 dB when it is loaded.
+(`sd.`). A source the file holds no D.Gain for comes back to 0 dB when it is loaded, and a scene number
+the file holds nothing under comes back empty.
 
 A playback runs against the take's length, writing the counter and the bar in place once a second.
 At the end of the file the counter goes back to the start and stops there, the file still held.
