@@ -1461,9 +1461,13 @@ so a new zone moves the date and time on the button; a unit as it ships is on To
 time all year, with no summer time, as the unit does ([known-issues.md](known-issues.md)). [OK] on the
 [Date/Time] dialog sets the clock to the start of the minute the dialog holds, in that zone, and it runs on from
 there. The dialog's Day stops at the last day of the month its Year and Month hold (28 in February 2026), and a
-Day past it comes down to that day as the Year or Month turns (both confirmed on the unit). The clock keeps
-running through a reload, and a settings file does not carry it (it carries the time zone and the display
-formats).
+Day past it comes down to that day as the Year or Month turns (both confirmed on the unit). The dialog's Year runs
+from 2000 to 2099 and turns round: the step after 2099 is 2000, and the one before 2000 is 2099. The clock itself runs
+on out of that range (past the end of 2099, or back before the start of 2000 under a zone further west), and the button
+and the dialog read the year it is in; a step of the dialog's Year takes that year into the range, which repeats every
+hundred years (from 2100, up to 2001 and down to 2099). What the unit's screens read across those turns of the year is in
+[known-issues.md](known-issues.md). The clock keeps running through a reload, and a settings file does not carry it (it
+carries the time zone and the display formats).
 
 SOFTWARE INTEGRATION sets `Post Fader Send for FX` at 13px in the middle of the band's width (x18..401) and `for FX1` /
 `for FX2` at 12.5px from x136, both in `--peripheral-text`, and sets its toolbar title at 12.5px (p065-1).

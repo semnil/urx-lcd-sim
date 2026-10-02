@@ -81,6 +81,11 @@ is built is in [screen-inventory.md](screen-inventory.md).
 - **GATE opens and closes at once.** It keeps Attack, Hold and Decay as values, but closes to RANGE as
   soon as the input is at or under the threshold and opens as soon as it is over, so the middle, yellow
   one of the channel view's GATE lamps, which shows the gate opening or closing, does not light.
+- **The clock outside 2000 to 2099.** Past midnight at the end of 31 December 2099, the unit's DATE / TIME screen
+  keeps its date at 31 December 2099 while the time runs on, and its [Date/Time] dialog opens on 1 January 2100.
+  Shortly into 1 January 2000, a [Time Zone] further west makes the screen read 1 January 2001 for a while, and then
+  31 December 2000. This simulator reads the year the clock has run into on the screen and in the dialog alike
+  (1 January 2100, 31 December 1999).
 
 ## What the unit itself does not do
 

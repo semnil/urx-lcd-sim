@@ -428,6 +428,66 @@ describe("the DATE / TIME popup buttons", () => {
     expect(shell.ctx.nav.current.id).toBe("setup.datetime");
   });
 
+  it("turns the Year round from 2099 to 2000, and a year the clock has run past either end into the range in one step", async () => {
+    const shell = await open();
+    const year = (): HTMLElement | null => shell.root.querySelector<HTMLElement>('.pick-dialog [role="spinbutton"][aria-label="Year"]');
+    const turn = async (key: "ArrowUp" | "ArrowDown"): Promise<string> => {
+      year()?.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+      await flush();
+      return year()?.textContent ?? "";
+    };
+    const setYear = async (value: number): Promise<void> => {
+      await shell.ctx.store.set("ui.dateTimeDraft.year", value);
+      await flush();
+    };
+    /** A drag of the Year up the screen by `px`, counted from the 4 px the press may move first. */
+    const drag = async (px: number): Promise<string> => {
+      year()?.dispatchEvent(new MouseEvent("pointerdown", { clientX: 100, clientY: 100, bubbles: true }));
+      window.dispatchEvent(new MouseEvent("pointermove", { clientX: 100, clientY: 100 - px, bubbles: true }));
+      window.dispatchEvent(new MouseEvent("pointerup", { clientX: 100, clientY: 100 - px, bubbles: true }));
+      await flush();
+      return year()?.textContent ?? "";
+    };
+    await tap(shell, ".dt-value");
+    await setYear(2050);
+    expect(await turn("ArrowUp"), "a year in the range turns by one").toBe("2051");
+    await setYear(2099);
+    expect(await turn("ArrowUp"), "the Year runs on from 2099 to 2000").toBe("2000");
+    expect(await turn("ArrowUp")).toBe("2001");
+    await setYear(2000);
+    expect(await turn("ArrowDown"), "and back from 2000 to 2099").toBe("2099");
+    await setYear(2098);
+    expect(await drag(10), "a drag runs on round the top as well").toBe("2001");
+    await press(shell, ".pick-dialog-cancel");
+
+    // The clock runs on past 2099, and the screen and the dialog read the year it has run into.
+    await setClock(shell.ctx.store, { year: 2099, month: 12, day: 31, hour: 23, minute: 59 });
+    vi.setSystemTime(NOW + 90_000);
+    refreshDateTime(shell.ctx.store, shell.root);
+    expect(reading(shell)).toBe("01 / 01 / 2100 00 : 00");
+    await tap(shell, ".dt-value");
+    expect(year()?.textContent, "the dialog opens on the clock's own year").toBe("2100");
+    expect(await turn("ArrowUp"), "a year past the top turns round with the others").toBe("2001");
+    await setYear(2100);
+    expect(await turn("ArrowDown")).toBe("2099");
+    await setYear(2100);
+    expect(await drag(6), "and so does a drag up").toBe("2001");
+    await setYear(2100);
+    await press(shell, ".pick-dialog-ok");
+    expect(clockParts(shell.ctx.store).year, "[OK] on a year the dialog was not turned on sets the clock to it").toBe(2100);
+
+    // A time zone further west takes the first of January 2000 back into 1999.
+    await setClock(shell.ctx.store, { year: 2000, month: 1, day: 1, hour: 0, minute: 0 });
+    await shell.ctx.store.set("setup.dateTime.timeZone", "Hawaii");
+    await flush();
+    expect(reading(shell)).toBe("12 / 31 / 1999 05 : 00");
+    await tap(shell, ".dt-value");
+    expect(year()?.textContent).toBe("1999");
+    expect(await turn("ArrowUp"), "a year under the bottom turns up into 2000").toBe("2000");
+    await setYear(1999);
+    expect(await turn("ArrowDown"), "and down round to the top").toBe("2098");
+  });
+
   it("stands [Cancel] and [OK] on the dialog the way the USER DEFINED KNOBS dialog does", async () => {
     const shell = await open();
     await tap(shell, ".dt-value");

@@ -48,6 +48,12 @@ export interface NumericSpec {
   locked?: boolean;
   /** A value turned from off the screen, as a USER DEFINED KNOB turns its own: a screen's pinned focus does not hold it still. */
   pinFree?: boolean;
+  /**
+   * Turned past one end of its range, the value comes round from the other: the
+   * range repeats, so a value outside it turns as the value in the range a whole
+   * number of ranges away does.
+   */
+  wraps?: boolean;
 }
 
 /** How a control's value maps onto its travel, 0 at the start and 1 at the end. */
