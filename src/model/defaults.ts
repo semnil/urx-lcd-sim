@@ -258,6 +258,9 @@ function seedStrip(out: Map<ParamPath, ParamValue>, strip: Strip, model: UnitMod
     out.set(p("panLink"), false);
   }
 
+  // An FX channel and the MIX and stereo buses ship with their BALANCE at the centre.
+  if (strip.kind === "fx" || strip.kind === "mix" || strip.kind === "stereo") out.set(p("balance"), 0);
+
   if (strip.side === "output") {
     out.set(p("insFx.on"), false);
     out.set(p("insFx.effect"), "No Effect");

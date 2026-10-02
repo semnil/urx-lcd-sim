@@ -164,6 +164,37 @@ describe("storing and recalling a scene", () => {
     expect(shell.ctx.store.num("scene.current", -1)).toBe(0);
   });
 
+  it("brings an FX channel's and an output bus's BALANCE back from scene 00, and from a scene stored before it moved", async () => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    const strips = [...shell.ctx.model.inputs, ...shell.ctx.model.outputs].filter((x) => ["fx", "mix", "stereo"].includes(x.kind));
+    const paths = strips.map((x) => `ch.${x.id}.balance`);
+    const turn = async (): Promise<void> => {
+      for (const strip of strips) {
+        shell.ctx.nav.openTop({ id: "channel-view", strip: strip.id });
+        await flush();
+        for (let i = 0; i < 5; i++) {
+          shell.root
+            .querySelector('.knob-cell[role="slider"][aria-label="BALANCE"]')
+            ?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true, cancelable: true }));
+          await flush();
+        }
+      }
+      expect(paths.map((p) => s.num(p, 99)), "the channel view's BALANCE cell turns each").toEqual(paths.map(() => 5));
+    };
+    expect(paths).toEqual(["ch.fx1.balance", "ch.fx2.balance", "ch.bus.mix1.balance", "ch.bus.mix2.balance", "ch.bus.stereo.balance"]);
+
+    await s.set("scene.Standard.1.title", "take one");
+    await storeScene(shell.ctx, "Standard", 1);
+    await turn();
+    await recallScene(shell.ctx, 1);
+    expect(paths.map((p) => s.num(p, 99)), "a scene stored before it moved").toEqual(paths.map(() => 0));
+
+    await turn();
+    await recallScene(shell.ctx, 0);
+    expect(paths.map((p) => s.num(p, 99)), "scene 00").toEqual(paths.map(() => 0));
+  });
+
   it("lays each preset over the unit's own mixer, as the unit holds P01 to P03", async () => {
     const shell = await mount();
     const s = shell.ctx.store;

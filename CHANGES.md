@@ -117,6 +117,7 @@
 - Keep a falling bar, clip mark or indicator dot where it stands when an edit draws the screen again, so it goes on falling at 30 dB a second. It dropped to the level of that moment and sprang back as the meters moved on.
 - Meter on the INPUT screen's two bars what the channel view's input area meters: the side in view of a two-channel strip, where both bars read its left side, and a MIX or STEREO bus's sum, where both bars stood empty.
 - Hold nothing down on an M.B.Comp band's reduction bar while the INS FX is switched off or the band's [Bypass] is in. The bars went on reading how far the level was over each band's threshold.
+- Ship FX 1-2, MIX 1-2 and STEREO with their BALANCE at the centre. Recalling 00 Initial Data or a preset puts it back there, and a scene or a settings file stored with this version puts back the BALANCE it holds; they left it where it had been turned.
 - Keep carrying an edit onto what goes with it after SETUP's Operation Mode has been opened: a linked pair's other channel, A.Gain under HI-Z, the DATE / TIME popup's Day, a synced delay's time, 1-knob EQ's bands and Pan Link's sends. They stopped until the page was reloaded.
 - Read a send into a FIXED MIX bus as the unit does: `Fixed` under `Level` on SEND TO's readout bar, where the division stood empty, and `Fixed` for the level on HOME's [Sends] view, where the stored level stayed.
 - Switch a MIX bus's Pan Link off when its BUS Type goes to FIXED, as the unit does; it stays off when the bus goes back to VARI.
