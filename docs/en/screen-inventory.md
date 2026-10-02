@@ -1804,9 +1804,8 @@ title's keyboard.
 Of the controls the unit's knob turns, only the one touched holds the focus, shown in magenta (`--accent-focus`). None
 holds it when a screen opens or after moving to another screen, with three exceptions: EQ opens holding the band picked
 last (LOW at first), one band shared by every channel's EQ, which a reload keeps and [Reset the unit] brings back to
-LOW; the COMP and EQ
-screens with 1-knob on open with the focus pinned on the level (below); and BRIGHTNESS, whose only turnable value is
-Screen, opens holding it.
+LOW; the COMP and EQ screens with 1-knob on open with the focus pinned on the level (below); and BRIGHTNESS, whose only
+turnable value is Screen, opens holding it.
 
 - Value boxes: a frame and a fill (`--accent-focus-fill`). A popup's values (DATE / TIME's date and time), HOME's strip
   levels and the knob readout along the bottom of the screen take none.
