@@ -9,7 +9,7 @@ import { bankStrips } from "../model/types";
 import { bankName, channelLabel } from "./strip-state";
 import { buildRegistry } from "./index";
 import { meterLevels, setMeterSource, startMeterTicker } from "./meters";
-import { declarations, px, readStyle } from "../style/css-read";
+import { declarations, declarationsOn, px, readStyle } from "../style/css-read";
 import { version as packageVersion } from "../../package.json";
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
@@ -449,7 +449,7 @@ describe("the STEREO/CUE meter", () => {
   it("holds the whole rail in place whether or not a cue is up", () => {
     // The name and the frame the cue state adds cost the box nothing: the frame
     // is drawn over it and the name stands in a row the box holds either way.
-    expect(Object.keys(declarations(CSS, ".master-meter.is-cue")), "the state itself sets nothing").toEqual([]);
+    expect(Object.keys(declarationsOn(CSS, ".master-meter.is-cue")), "the state itself sets nothing").toEqual([]);
     const frame = declarations(CSS, ".master-meter.is-cue::before");
     expect([frame["position"], frame["inset"]]).toEqual(["absolute", "0"]);
     const box = declarations(CSS, ".master-meter");

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { KNOB_SIZE } from "../ui/param-spec";
-import { columnGap, declarations, px, readStyle, styleRules } from "./css-read";
+import { columnGap, declarations, declarationsOn, px, readStyle, styleRules } from "./css-read";
 
 // A value has to read under the panel it belongs to. The HOME bank, the knob
 // readout strip and the head-amp column of a channel view therefore stand on one
@@ -2892,7 +2892,7 @@ describe("the parts measured against the guide's figures", () => {
     expect([0, 1].map((r) => px(declarations(CSS, `.version-row-${r}`)["top"]))).toEqual([20, 56]);
     expect(px(declarations(CSS, ".version-entry")["left"])).toBe(26);
     expect([".version-colon", ".version-value"].map((s) => px(declarations(CSS, s)["left"]))).toEqual([95, 101]);
-    expect(declarations(CSS, ".version-key")["font-weight"], "the names are no heavier than the values").toBeUndefined();
+    expect(declarationsOn(CSS, ".version-key")["font-weight"], "the names are no heavier than the values").toBeUndefined();
   });
 
   it("leads a whole-screen menu's names 18px apart and lifts a one-line name a pixel", () => {
@@ -3229,7 +3229,7 @@ describe("the channel, monitor and microSD parts measured against the guide's fi
   it("sets the card's name and free space top right on every card screen, and a test's report a line every 25px", () => {
     const free = declarations(CSS, ".sd-free");
     expect([free["position"], px(free["left"]), px(free["top"]), free["text-align"]]).toEqual(["absolute", 312, 5, "left"]);
-    expect(declarations(CSS, ".sd-free.tools-free"), "TOOLS takes the same place").toEqual({});
+    expect(declarationsOn(CSS, ".sd-free.tools-free"), "TOOLS takes the same place").toEqual({});
     expect([2, 3, 4, 5, 6, 7].map((n) => px(declarations(CSS, `.tools-report-row:nth-child(${n})`)["top"]))).toEqual([57, 82, 107, 132, 157, 182]);
     expect(px(declarations(CSS, ".tools-report-value")["left"])).toBe(146);
     expect(px(declarations(CSS, ".tools-report-row.is-sub .tools-report-value")["left"])).toBe(101);
@@ -3470,7 +3470,7 @@ describe("the marks on the control holding the focus", () => {
       "var(--oneknob-panel)", "var(--corner-oneknob-lit-a)", "var(--corner-oneknob-lit-b)", "var(--corner-oneknob-lit-c)", "var(--corner-oneknob-lit-in)",
       "var(--oneknob-lit-band)", "var(--oneknob-lit-band)", "var(--oneknob-lit-band)",
     ]);
-    expect(declarations(CSS, ".lcd .oneknob.is-on::after")["background"], "no other corner laid over the switch's").toBeUndefined();
+    expect(declarationsOn(CSS, ".oneknob.is-on::after")["background"], "no other corner laid over the switch's").toBeUndefined();
     const panel = declarations(CSS, ".oneknob-panel");
     expect([px(panel["height"]), panel["background"]]).toEqual([44, "var(--oneknob-panel)"]);
     const level = declarations(CSS, ".lcd .oneknob-panel > .oneknob-level");
