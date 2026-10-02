@@ -1801,7 +1801,8 @@ title's keyboard.
 
 Of the controls the unit's knob turns, only the one touched holds the focus, shown in magenta (`--accent-focus`). None
 holds it when a screen opens or after moving to another screen, with three exceptions: EQ opens holding the band picked
-last (LOW at first), one band shared by every channel's EQ, until the power goes off (a reload); the COMP and EQ
+last (LOW at first), one band shared by every channel's EQ, which a reload keeps and [Reset the unit] brings back to
+LOW; the COMP and EQ
 screens with 1-knob on open with the focus pinned on the level (below); and BRIGHTNESS, whose only turnable value is
 Screen, opens holding it.
 

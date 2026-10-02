@@ -27,7 +27,7 @@ afterEach(() => {
 
 describe("what a reload carries over", () => {
   it("leaves out what the unit was doing at that moment", () => {
-    for (const path of ["ch.ch1.level", "setup.brightness", "sd.card", "ui.selectedStrip", "scene.Standard.1.state"]) {
+    for (const path of ["ch.ch1.level", "setup.brightness", "sd.card", "ui.selectedStrip", "ui.eqBand", "scene.Standard.1.state"]) {
       expect(persisted(path), path).toBe(true);
     }
     for (const path of ["sd.rec", "sd.playing", "sd.playSeconds", "sd.playingFile", "ui.titleEntry.text", "ui.dateTimeDraft.hour"]) {
