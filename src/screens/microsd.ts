@@ -318,6 +318,7 @@ function deleteSelected(ctx: AppContext): void {
       message: "Delete the selected file?",
       onOk: () => {
         if (row === playingFile(ctx)) stopPlayback(ctx.store);
+        else if (row < playingFile(ctx)) void ctx.store.set("sd.playingFile", playingFile(ctx) - 1);
         void ctx.store.set(filePath(entry.name), "");
         void ctx.store.set("sd.selectedFile", Math.max(0, Math.min(row, entries.length - 2)));
         updateCard(ctx, entries.filter((_, i) => i !== row));
