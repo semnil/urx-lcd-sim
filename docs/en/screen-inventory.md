@@ -1302,7 +1302,7 @@ and URX44 run the same laws, bar the number of channels.
 
 | Meter | What it reads |
 | --- | --- |
-| A HOME strip's meter | On a channel, MIX and STEREO, after the EQ and INS FX and before [ON] and the fader; on FX, the effect's output; on STREAMING, before its DELAY |
+| A HOME strip's meter | On a channel, after the EQ and INS FX and before [ON] and the fader; on MIX and STEREO, after the EQ and before [ON], the fader and the INS FX; on FX, the effect's output; on STREAMING, before its DELAY |
 | The two dots in a HOME strip's indicator block | On a channel, its input; on FX, the effect's output; on MIX and STEREO, the sum (before the EQ) |
 | HOME's STEREO/CUE meter | The stereo bus after its INS FX; the cue while anything is cued |
 | The channel view's LEVEL meter | After the fader (on MIX and STEREO, after the INS FX; on STREAMING, after its DELAY) |

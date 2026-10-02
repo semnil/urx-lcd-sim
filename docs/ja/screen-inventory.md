@@ -1120,7 +1120,7 @@ URX22 と URX44 も、チャンネル数の違いのほかは同じ法則で動�
 
 | メーター | 読む点 |
 | --- | --- |
-| HOME のストリップのメーター | チャンネルと MIX・STEREO は EQ と INS FX の後・[ON] とフェーダーの前、FX はエフェクトの出力、STREAMING は DELAY の前 |
+| HOME のストリップのメーター | チャンネルは EQ と INS FX の後・[ON] とフェーダーの前、MIX と STEREO は EQ の後・[ON]・フェーダー・INS FX の前、FX はエフェクトの出力、STREAMING は DELAY の前 |
 | HOME の表示部の 2 つの点 | チャンネルは入力、FX はエフェクトの出力、MIX と STEREO は足し合わせ (EQ の前) |
 | HOME の STEREO/CUE メーター | ステレオバスの INS FX の後。CUE に何か入っているあいだは CUE |
 | チャンネルビューの LEVEL メーター | フェーダーの後 (MIX と STEREO は INS FX の後、STREAMING は DELAY の後) |

@@ -44,9 +44,10 @@ export function setMeterSource(next: MeterSource | null): void {
 export const inputMeterId = (stripId: string): string => tapId(stripId, "input");
 
 /**
- * Where a strip's meter on HOME reads: a channel and a bus after its EQ and
- * insert and before its [ON] and fader, an FX channel off its effect, STREAMING
- * before its DELAY.
+ * Where a strip's meter on HOME reads: a channel after its EQ and insert and
+ * before its [ON] and fader, a MIX or STEREO bus after its EQ and before its
+ * [ON], fader and insert, an FX channel off its effect, STREAMING before its
+ * DELAY.
  */
 export function homeMeterTap(strip: Strip): Tap {
   if (strip.kind === "fx") return "effect";

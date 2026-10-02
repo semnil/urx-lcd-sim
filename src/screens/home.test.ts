@@ -737,6 +737,48 @@ describe("the pair of lamps at the top of a strip's indicator block", () => {
     }
   });
 
+  it("read a MIX bus's meter on HOME after its EQ, before its fader and the INS FX that follows the fader", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(1_700_000_000_000);
+    try {
+      const shell = await mount();
+      const store = shell.ctx.store;
+      for (const [path, value] of [
+        ["osc.on", true],
+        ["osc.assign.stereoL", false],
+        ["osc.assign.stereoR", false],
+        ["osc.assign.mix1L", true],
+        ["osc.assign.mix1R", true],
+        ["ui.bankSide", "output"],
+      ] as const) {
+        await store.set(path, value);
+      }
+      await flush();
+      const mix1 = [...shell.root.querySelectorAll(".strip")].find((n) => n.getAttribute("aria-label")?.startsWith("MIX 1"));
+      const source = mix1?.querySelector<HTMLElement>(".strip-mid .meter")?.dataset["meterSource"] ?? "";
+      const home = (): number[] => meterLevels(store, source, 2);
+      const output = (): number[] => meterLevels(store, "bus.mix1@post", 2);
+      const shipped = home();
+      const [level = -96] = shipped;
+      expect(level, "the tone reaches the meter").toBeGreaterThan(-40);
+      await store.set("ch.bus.mix1.insFx.effect", "M.B.Comp");
+      await store.set("ch.bus.mix1.insFx.on", true);
+      await store.set("ch.bus.mix1.insFx.outGain", 12);
+      expect(output()[0], "the INS FX lifts what the bus puts out").toBeGreaterThan(level + 6);
+      expect(home(), "and leaves HOME's meter where it was").toEqual(shipped);
+      await store.set("ch.bus.mix1.insFx.outGain", -12);
+      expect(home(), "the other way too").toEqual(shipped);
+      await store.set("ch.bus.mix1.level", store.num("ch.bus.mix1.level", 0) - 20);
+      expect(output()[0], "the fader takes the output down").toBeLessThan(level - 20);
+      expect(home(), "and not HOME's meter").toEqual(shipped);
+      await store.set("ch.bus.mix1.eq.low.shape", "HPF");
+      await store.set("ch.bus.mix1.eq.low.freq", 2000);
+      expect(home()[0], "the bus's EQ moves HOME's meter").toBeLessThan(level - 6);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("stands them in the block's first row on every kind of strip", async () => {
     const shell = await mount();
     // Input channels, the stereo inputs, the FX returns and the output bank.
