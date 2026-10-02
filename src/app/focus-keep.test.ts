@@ -207,6 +207,53 @@ describe("the focus through a redraw", () => {
     expect(seen).toEqual(["Knob page 1 of 2", "Knob page 2 of 2", "1 User defined knobs page 2"]);
   });
 
+  it("goes to the step the other way when the page stepped to has no step where the pressed one stood", async () => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    await flush();
+    const name = (): string | null | undefined => (shell.root.contains(document.activeElement) ? document.activeElement?.getAttribute("aria-label") : "off the glass");
+    /** Enter pressed `times` over on whatever holds the focus, each landing read with where the page stands. */
+    const walk = async (times: number, where: () => string): Promise<string[]> => {
+      const seen: string[] = [];
+      for (let i = 0; i < times; i++) {
+        await press("Enter");
+        seen.push(`${where()} ${name()}`);
+      }
+      return seen;
+    };
+    // The USER DEFINED KNOBS bar, out to its last page and back to its first.
+    await shell.ctx.store.set("ui.userDefinedKnobs", true);
+    await flush();
+    const bank = (): string => String(shell.ctx.store.num("setup.udk.bank", 0));
+    shell.root.querySelector<HTMLElement>(".knob-bank-next")?.focus();
+    expect(await walk(6, bank)).toEqual([
+      "2 User defined knobs page 3",
+      "3 User defined knobs page 4",
+      "4 User defined knobs page 3",
+      "3 User defined knobs page 2",
+      "2 User defined knobs page 1",
+      "1 User defined knobs page 2",
+    ]);
+    // The effect pages: M.B.Comp's four, and Pitch Fix's three, the first of which carries [Correction].
+    const page = (): string => String(shell.ctx.store.num("ui.effectPage", 0));
+    for (const [strip, effect, landings] of [
+      ["bus.stereo", "M.B.Comp", ["1 Next", "2 Next", "3 Previous", "2 Previous", "1 Previous", "0 Next"]],
+      ["ch1", "Pitch Fix", ["1 Next", "2 Previous", "1 Previous", "0 Next"]],
+    ] as const) {
+      await shell.ctx.store.set("ui.userDefinedKnobs", false);
+      shell.ctx.nav.home();
+      shell.ctx.nav.push({ id: "channel-view", strip });
+      shell.ctx.nav.push({ id: "ch.insfx", strip });
+      await flush();
+      shell.root.querySelector<HTMLElement>(".insfx-effect")?.click();
+      await flush();
+      [...shell.root.querySelectorAll<HTMLElement>(".source-sheet .source-btn")].find((b) => b.textContent === effect)?.click();
+      await flush();
+      shell.root.querySelector<HTMLElement>(".efx-page-next")?.focus();
+      expect(await walk(landings.length, page), effect).toEqual(landings.map((l) => `${l} page of settings`));
+    }
+  });
+
   it("leaves the focus off a place a pressed control gives up to something that is no control", async () => {
     // A button that gives its place to a text the Tab key stops on once it is pressed.
     let pressed = false;
@@ -238,6 +285,48 @@ describe("the focus through a redraw", () => {
     expect([shell.root.querySelector(".given") !== null, document.activeElement === document.body]).toEqual([true, true]);
   });
 
+  it("goes to the control a pressed control gives its place to, but to no step the other way where two stand, nor to one of its kind with other words", async () => {
+    // Each control on the first face gives its place: to another button, to a text with two steps the other way
+    // after it, and to a text with a button of the pressed one's kind and other words after it.
+    let drawn = 0;
+    const screen: ScreenDef = {
+      id: "gives.way",
+      toolbar: "sub",
+      build: (ctx) => {
+        const to = (n: number) => (): void => {
+          drawn = n;
+          ctx.repaint();
+        };
+        const text = (words: string): HTMLElement => el("span", { text: words });
+        const faces = [
+          [
+            el("button", { class: "giver", text: "Go", onTap: to(1) }),
+            el("button", { class: "step step-next", text: ">", onTap: to(2) }),
+            el("button", { class: "lone", text: "One", onTap: to(3) }),
+          ],
+          [el("button", { class: "taker", text: "Went" })],
+          [text("Page"), text("2"), el("button", { class: "step step-prev", text: "<" }), el("button", { class: "step step-prev", text: "<" })],
+          [text("a"), text("b"), text("c"), el("button", { class: "lone", text: "Two" })],
+        ];
+        return { main: el("div", { children: faces[drawn] ?? [] }) };
+      },
+    };
+    const shell = await mount(buildRegistry().register(screen));
+    shell.ctx.nav.push({ id: "gives.way" });
+    await flush();
+    const at = (): string => (shell.root.contains(document.activeElement) ? (document.activeElement?.textContent ?? "") : "off the glass");
+    const seen: string[] = [];
+    for (const pressed of [".giver", ".step-next", ".lone"]) {
+      drawn = 0;
+      shell.ctx.repaint();
+      await flush();
+      shell.root.querySelector<HTMLElement>(pressed)?.focus();
+      await press("Enter");
+      seen.push(at());
+    }
+    expect(seen).toEqual(["Went", "off the glass", "off the glass"]);
+  });
+
   it("follows [Next SSMCS screen] onto the screen it steps to in place of this one, so Enter steps on", async () => {
     const shell = await mount();
     shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
@@ -251,6 +340,28 @@ describe("the focus through a redraw", () => {
       seen.push(`${shell.ctx.nav.current.id} ${shell.ctx.nav.depth} ${document.activeElement?.getAttribute("aria-label")}`);
     }
     expect(seen).toEqual(["ch.ssmcs.comp 3 Next SSMCS screen", "ch.ssmcs.sc 3 Next SSMCS screen"]);
+  });
+
+  it("takes the focus onto the arrow the other way on the SSMCS screen at either end, so Enter steps back", async () => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    shell.ctx.nav.push({ id: "ch.ssmcs", strip: "ch1" });
+    await flush();
+    shell.root.querySelector<HTMLElement>(".ssmcs-page-next")?.focus();
+    const seen: string[] = [];
+    for (let i = 0; i < 6; i++) {
+      await press("Enter");
+      await flush();
+      seen.push(`${shell.ctx.nav.current.id} ${shell.root.contains(document.activeElement) ? document.activeElement?.getAttribute("aria-label") : "off the glass"}`);
+    }
+    expect(seen).toEqual([
+      "ch.ssmcs.comp Next SSMCS screen",
+      "ch.ssmcs.sc Next SSMCS screen",
+      "ch.ssmcs.eq Previous SSMCS screen",
+      "ch.ssmcs.sc Previous SSMCS screen",
+      "ch.ssmcs.comp Previous SSMCS screen",
+      "ch.ssmcs Next SSMCS screen",
+    ]);
   });
 
   it("takes onto a screen put in place of this one only its one control of the same kind and name, wherever it stands", async () => {

@@ -245,10 +245,11 @@ export class Shell {
   /**
    * The step that puts the page's focus back on the control it stood on once the
    * same screen is drawn again: the control of the same kind at the same place, or
-   * else the one control of that kind with the same words, or else the control that
-   * now stands at that place. A screen put in place of this one takes the focus
-   * onto its one control of the same kind and name. Any other screen leaves the
-   * focus where the rebuild left it.
+   * else the one control of that kind with the same words, or else, for a page step,
+   * the one step the other way, or else the control that now stands at that place.
+   * A screen put in place of this one takes the focus onto its one control of the
+   * same kind and name, or else, for a page step, its one step the other way. Any
+   * other screen leaves the focus where the rebuild left it.
    */
   private focusPlace(): () => void {
     const active = document.activeElement;
@@ -256,13 +257,21 @@ export class Shell {
     // A control's kind is its tag and its classes, less the ones naming its state.
     const kind = (node: Element): string => [node.tagName, ...[...node.classList].filter((c) => !c.startsWith("is-"))].join(" ");
     const was = kind(active);
+    // A page step carries its way in its classes, as `-prev` or `-next`.
+    const turned = was.replace(/-(prev|next)\b/g, (_step, way: string) => (way === "prev" ? "-next" : "-prev"));
+    const otherWay = (): Element | undefined => {
+      if (turned === was) return undefined;
+      const steps = [...this.root.querySelectorAll(active.tagName)].filter((n) => kind(n) === turned);
+      return steps.length === 1 ? steps[0] : undefined;
+    };
     if (this.drawn !== this.ctx.nav.current.id) {
       if (this.moves.length === 0 || this.moves.some((move) => move !== "replace")) return () => undefined;
       const name = (node: Element): string | null => node.getAttribute("aria-label") ?? node.textContent;
       const said = name(active);
       return () => {
         const alike = [...this.root.querySelectorAll(active.tagName)].filter((n) => kind(n) === was && name(n) === said);
-        if (alike.length === 1) (alike[0] as HTMLElement).focus({ preventScroll: true });
+        const node = alike.length === 1 ? alike[0] : otherWay();
+        if (node) (node as HTMLElement).focus({ preventScroll: true });
       };
     }
     const path: number[] = [];
@@ -275,7 +284,7 @@ export class Shell {
       const there = node !== this.root ? node : undefined;
       if (!node || node === this.root || kind(node) !== was) {
         const alike = [...this.root.querySelectorAll(active.tagName)].filter((n) => kind(n) === was && n.textContent === active.textContent);
-        node = alike.length === 1 ? alike[0] : there?.matches(INTERACTIVE) ? there : undefined;
+        node = alike.length === 1 ? alike[0] : (otherWay() ?? (there?.matches(INTERACTIVE) ? there : undefined));
       }
       if (node && "focus" in node) (node as HTMLElement).focus({ preventScroll: true });
     };

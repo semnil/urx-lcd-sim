@@ -183,10 +183,11 @@ draws nowhere else.
 
 Every change draws the screen again, and while the screen stays the same the focus goes back to the
 control it stood on: the control of the same kind at the same place, or else the one control of that kind
-with the same words, or else the control that now stands at that place, as when a page step goes and the step the
-other way takes its place (the shell's `focusPlace`). A value therefore turns press after press, and a switch can
+with the same words, or else, for a page step that goes, the one step the other way, or else the control that now
+stands at that place (the shell's `focusPlace`). A value therefore turns press after press, and a switch can
 be pressed again without Tab. A screen put in place of the current one, as the four SSMCS screens step from one to
-the next, takes the focus onto its one control of the same kind and name. A rotary drawn beside a value box stays out of the Tab order, the box
+the next, takes the focus onto its one control of the same kind and name, or else, for an arrow the screen at either
+end does not carry, onto its one arrow the other way. A rotary drawn beside a value box stays out of the Tab order, the box
 carrying its keys. A list's scroll bar answers the pointer alone; the keys scroll a list by moving through
 its rows, and the LICENSE text, which holds no rows, is a Tab stop of its own that rims its bar when it
 takes the focus. On SCENE LIST and the microSD lists the up and down arrow keys, Home and End move the focus
