@@ -841,7 +841,9 @@ An input channel's compander and a bus's M.B.Comp hold different slots, so the t
 M.B.Comp the other buses can take nothing (URX44V, the operator, 2026-09-22).
 
 Taking an effect switches the block on and fills the effect with the unit's own settings; taking the
-same one again puts them back. While the channel reads [No Effect] the INS FX switch does nothing.
+same one again puts them back. While the channel reads [No Effect] the INS FX name is no switch: a touch on
+it on the channel view's block sinks the whole block and opens the INS FX screen, and the INS FX screen's
+title opens the `EFFECT TYPE` sheet.
 
 Raising the sampling frequency past an effect's ceiling takes the insert off the channel, which then
 reads [No Effect], and lowering the frequency again does not put it back. An FX channel has no

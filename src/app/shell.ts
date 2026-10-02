@@ -11,7 +11,7 @@ import { FocusController } from "../ui/focus";
 import { Icons } from "../ui/icons";
 import { attachFocusRing } from "../ui/focus-ring";
 import { attachPress } from "../ui/press";
-import { attachSpin, modalOf } from "../ui/widgets";
+import { attachSpin, modalOf, standsStill } from "../ui/widgets";
 import type { Modal } from "../ui/widgets";
 import type { NumericSpec } from "../ui/param-spec";
 import { BRIGHTNESS_MAX, formatValue } from "../ui/param-spec";
@@ -410,7 +410,7 @@ export class Shell {
     cell.setAttribute("aria-valuemin", String(spec.min));
     cell.setAttribute("aria-valuemax", String(spec.max));
     cell.setAttribute("aria-valuetext", formatValue(spec, v));
-    if (spec.locked === true) cell.setAttribute("aria-disabled", "true");
+    if (standsStill(this.ctx, spec)) cell.setAttribute("aria-disabled", "true");
     attachSpin(this.ctx, cell, spec, onEngage);
   }
 

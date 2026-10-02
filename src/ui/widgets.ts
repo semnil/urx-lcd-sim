@@ -529,7 +529,7 @@ export function attachSpin(
 }
 
 /** A pinned focus leaves every other value still, the knobs under the screen included, and so does a value the unit is holding itself. */
-function standsStill(ctx: AppContext, spec: NumericSpec): boolean {
+export function standsStill(ctx: AppContext, spec: NumericSpec): boolean {
   return spec.locked === true || !ctx.focus.turns(spec.focusKey ?? spec.path);
 }
 
@@ -615,8 +615,9 @@ export function valueBox(ctx: AppContext, spec: NumericSpec, extraClass = "", fr
       "aria-valuemax": String(spec.max),
       "aria-valuetext": formatValue(spec, value),
       // A box the unit reads out but does not let the operator turn keeps its
-      // reading and its name, and takes no key and no drag.
-      ...(locked ? { "aria-disabled": "true" } : {}),
+      // reading and its name, and takes no key and no drag. A box that stands
+      // still for now reads as out of reach as well.
+      ...(locked || standsStill(ctx, spec) ? { "aria-disabled": "true" } : {}),
     },
   });
   if (locked) return node;

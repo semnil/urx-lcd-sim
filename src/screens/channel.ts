@@ -175,7 +175,8 @@ export function channelSelector(ctx: AppContext, strip: Strip, route: Route, nar
 }
 
 /**
- * One processing block. Its name is the switch that turns the block on and off.
+ * One processing block. Its name is the switch that turns the block on and off;
+ * an `inert` block's name switches nothing, and a touch on it is the block's own.
  * A block with a value the knob turns takes the focus at the first touch, framing
  * `knob.frame`, and opens the screen that sets it at the next; a block with none
  * opens the screen at once.
@@ -192,14 +193,10 @@ export function block(
   inert = false,
 ): HTMLElement {
   const on = ctx.store.bool(onPath, fallback);
-  const badge = el("button", {
-    class: `badge badge-${kind} badge-switch`,
-    text: title,
-    onTap: () => {
-      if (!inert) void ctx.store.set(onPath, !on);
-    },
-  });
-  setPressed(badge, on);
+  const badge = inert
+    ? el("span", { class: `badge badge-${kind} badge-switch${on ? " is-on" : ""}`, text: title })
+    : el("button", { class: `badge badge-${kind} badge-switch`, text: title, onTap: () => void ctx.store.set(onPath, !on) });
+  if (!inert) setPressed(badge, on);
   const key = knob ? (knob.spec.focusKey ?? knob.spec.path) : "";
   const node = el("div", {
     class: `cv-block cv-block-${kind}`,

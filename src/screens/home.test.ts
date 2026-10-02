@@ -4493,6 +4493,46 @@ describe("the control the knob turns", () => {
     expect(shell.root.querySelectorAll(".is-focused, .is-held")).toHaveLength(1);
   });
 
+  it("reads every value 1-knob holds still on the COMP and EQ screens as out of reach, the bar's included, and its level as live", async () => {
+    const shell = await mount();
+    /** Each value box and each division of the bar that turns a value, by name, with whether it reads as out of reach. */
+    const reach = (): string[] =>
+      [...shell.root.querySelectorAll<HTMLElement>(".value-box, .knob-cell[role='slider']")].map(
+        (n) => `${accessibleName(n)}: ${n.getAttribute("aria-disabled") ?? "live"}`,
+      );
+    await shell.ctx.store.set("ch.ch1.comp.oneKnob.on", true);
+    await shell.ctx.store.set("ch.ch1.eq.oneKnob.on", true);
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    shell.ctx.nav.push({ id: "ch.comp", strip: "ch1" });
+    await flush();
+    expect(reach(), "COMP").toEqual([
+      "1-knob: live",
+      "Attack: true",
+      "Release: true",
+      "Threshold: true",
+      "Ratio: true",
+      "Gain: true",
+      "Attack: true",
+    ]);
+    await shell.ctx.store.set("ch.ch1.comp.oneKnob.on", false);
+    await flush();
+    expect(reach(), "COMP with 1-knob off").toEqual([
+      "Attack: live",
+      "Release: live",
+      "Threshold: live",
+      "Ratio: live",
+      "Gain: live",
+      "Attack: live",
+    ]);
+
+    shell.ctx.nav.replace({ id: "ch.eq", strip: "ch1" });
+    await flush();
+    expect(reach(), "EQ").toEqual(["1-knob: live", "LOW Q: true", "LOW Freq.: true", "LOW Gain: true"]);
+    await shell.ctx.store.set("ch.ch1.eq.oneKnob.on", false);
+    await flush();
+    expect(reach(), "EQ with 1-knob off").toEqual(["LOW Q: live", "LOW Freq.: live", "LOW Gain: live"]);
+  });
+
   it("rims only the touched column in the USER DEFINED KNOBS picker, and the input source sheet's bar", async () => {
     const shell = await mount();
     shell.ctx.nav.openTop({ id: "setup" });
