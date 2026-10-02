@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Hold the keys inside a dialog or a picker sheet while it is open: Tab goes round its own controls and no longer reaches the screen behind it, Escape cancels it wherever the focus stands, and once it closes the focus is back on the control that opened it.
 - Read a send into a FIXED MIX bus as the unit does: `Fixed` under `Level` on SEND TO's readout bar, where the division stood empty, and `Fixed` for the level on HOME's [Sends] view, where the stored level stayed.
 - Switch a MIX bus's Pan Link off when its BUS Type goes to FIXED, as the unit does; it stays off when the bus goes back to VARI.
 - Leave each send into a MIX bus where Pan Link put it when Pan Link goes off, as the unit does: switching Pan Link on moves each send's own placing to its source's position, and it no longer comes back to the placing it had before. On SEND TO, the cell of a bus on Pan Link is named `Pan` for a channel placed by its PAN, and turning it turns the channel's own position.

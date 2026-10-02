@@ -514,7 +514,7 @@ export const ssmcsScreen: ScreenDef = {
           knobPanel("ssmcs-morphing", "Morphing", morphing, [
             el("button", {
               class: "ssmcs-data",
-              onTap: () => ctx.overlay(sweetSpotSheet(ctx, b)),
+              onTap: () => void sweetSpotSheet(ctx, b),
               children: [el("span", { text: data }), el("span", { class: "ssmcs-data-mark", children: [Icons.copy()] })],
             }),
           ]),

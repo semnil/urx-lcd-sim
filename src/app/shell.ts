@@ -11,7 +11,8 @@ import { FocusController } from "../ui/focus";
 import { Icons } from "../ui/icons";
 import { attachFocusRing } from "../ui/focus-ring";
 import { attachPress } from "../ui/press";
-import { attachSpin } from "../ui/widgets";
+import { attachSpin, modalOf } from "../ui/widgets";
+import type { Modal } from "../ui/widgets";
 import type { NumericSpec } from "../ui/param-spec";
 import { BRIGHTNESS_MAX, formatValue } from "../ui/param-spec";
 import type { ScreenBody, ScreenRegistry } from "../screens/types";
@@ -50,8 +51,9 @@ export class Shell {
   private repaintScheduled = false;
   /** The screen the glass last drew. */
   private drawn: string | null = null;
-  /** Closers for what is layered over the screen, so nothing is dropped unclosed. */
-  private readonly overlays = new Set<() => void>();
+  /** What is layered over the screen, by its closer and bottom first, so nothing is dropped unclosed. */
+  private readonly overlays = new Map<() => void, { node: HTMLElement; modal: Modal | undefined }>();
+  private readonly onTab: (ev: KeyboardEvent) => void;
   private readonly onEscape: (ev: KeyboardEvent) => void;
   private readonly offStore: () => void;
   private readonly offPress: () => void;
@@ -76,13 +78,24 @@ export class Shell {
       overlay: (node, onClose) => {
         // Marked so the Escape handler knows something is layered over the screen.
         node.dataset["overlay"] = "";
+        // Where the focus stood when it went up.
+        const opener = document.activeElement;
+        const refocus = this.focusPlace();
         this.lcd.appendChild(node);
         const close = (): void => {
           if (!this.overlays.delete(close)) return;
           node.remove();
+          this.shutBehind();
           onClose?.();
+          // A focus it leaves on nothing goes back there, or to the control drawn in that place since.
+          if (document.activeElement && document.activeElement !== document.body) return;
+          if (opener instanceof HTMLElement && opener !== document.body && opener.isConnected) opener.focus({ preventScroll: true });
+          else refocus();
         };
-        this.overlays.add(close);
+        const modal = modalOf(node);
+        if (modal) modal.close = close;
+        this.overlays.set(close, { node, modal });
+        this.shutBehind();
         return close;
       },
     };
@@ -129,6 +142,8 @@ export class Shell {
     this.attachBackdrop();
     this.offPress = attachPress(this.lcd);
     this.offFocusRing = attachFocusRing(this.lcd);
+    this.onTab = this.buildTabTrap();
+    window.addEventListener("keydown", this.onTab);
     this.onEscape = this.buildEscapeHandler();
     window.addEventListener("keydown", this.onEscape);
     this.render();
@@ -136,6 +151,7 @@ export class Shell {
 
   /** Give up the window and anything layered over the screen. */
   destroy(): void {
+    window.removeEventListener("keydown", this.onTab);
     window.removeEventListener("keydown", this.onEscape);
     this.offStore();
     this.ctx.store.setWriteRule(null);
@@ -145,7 +161,18 @@ export class Shell {
   }
 
   private closeOverlays(): void {
-    for (const close of [...this.overlays]) close();
+    for (const close of [...this.overlays.keys()]) close();
+  }
+
+  /** The layer over the screen that is on top, if anything is. */
+  private topLayer(): { node: HTMLElement; modal: Modal | undefined } | undefined {
+    return [...this.overlays.values()].at(-1);
+  }
+
+  /** The screen behind a dialog or a sheet takes no keys and no pointer while one is up. */
+  private shutBehind(): void {
+    const shut = [...this.overlays.values()].some((layer) => layer.modal !== undefined);
+    for (const node of [this.toolbarNode, this.mainNode, this.sideNode, this.knobStripNode]) node.toggleAttribute("inert", shut);
   }
 
   private scheduleRepaint(): void {
@@ -464,15 +491,42 @@ export class Shell {
   }
 
   /**
+   * Tab and Shift+Tab go round the controls of the dialog or sheet on top,
+   * wherever the focus stands, so the keys cannot leave it.
+   */
+  private buildTabTrap(): (ev: KeyboardEvent) => void {
+    return (ev) => {
+      if (ev.key !== "Tab") return;
+      const top = this.topLayer();
+      if (!top?.modal) return;
+      const stops = [...top.node.querySelectorAll<HTMLElement>("*")].filter((n) => n.tabIndex >= 0);
+      if (stops.length === 0) return;
+      ev.preventDefault();
+      const at = stops.indexOf(document.activeElement as HTMLElement);
+      const step = ev.shiftKey ? -1 : 1;
+      const next = at < 0 ? (ev.shiftKey ? stops.length - 1 : 0) : (at + step + stops.length) % stops.length;
+      stops[next]?.focus();
+    };
+  }
+
+  /**
    * Escape does what the toolbar's back arrow does, on every screen. Anything
-   * layered over the screen owns the key while it is up, and a field being typed
-   * into keeps it for the edit in hand — an IME composition included.
+   * layered over the screen owns the key while it is up: it cancels the dialog
+   * or the sheet on top wherever the focus stands, and a list takes it itself.
+   * A field being typed into keeps it for the edit in hand — an IME composition
+   * included.
    */
   private buildEscapeHandler(): (ev: KeyboardEvent) => void {
     // On the window: a screen that draws no exits leaves focus on the document.
     return (ev) => {
       if (ev.key !== "Escape" || ev.isComposing) return;
-      if (this.lcd.querySelector("[data-overlay]")) return;
+      if (this.lcd.querySelector("[data-overlay]")) {
+        const cancel = this.topLayer()?.modal?.cancel;
+        if (!cancel) return;
+        ev.preventDefault();
+        cancel();
+        return;
+      }
       const target = ev.target instanceof HTMLElement ? ev.target : null;
       if (target?.closest("input, textarea, [contenteditable]")) return;
       ev.preventDefault();

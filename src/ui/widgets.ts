@@ -298,6 +298,25 @@ export function pulldown(
   return node;
 }
 
+/**
+ * What a dialog or a sheet is to the shell that lays it over the screen. While
+ * one is up the screen behind it takes no keys and no pointer, Tab goes round
+ * the controls in it wherever the focus stands, and Escape does its `cancel`.
+ */
+export interface Modal {
+  /** What Escape does while it is the top layer. */
+  cancel?: () => void;
+  /** Takes it down. The shell sets it when it lays the modal over the screen. */
+  close?: () => void;
+}
+
+const MODALS = new WeakMap<HTMLElement, Modal>();
+
+/** The modal `node` is, where it is one. */
+export function modalOf(node: HTMLElement): Modal | undefined {
+  return MODALS.get(node);
+}
+
 export interface PickerSheetSpec {
   /** The name band across the top of the sheet. */
   title: string;
@@ -343,12 +362,7 @@ export function pickerSheet(ctx: AppContext, spec: PickerSheetSpec): HTMLElement
     attrs: { role: "dialog", "aria-modal": "true", "aria-label": spec.label ?? spec.title },
     children: [panel],
   });
-  sheet.addEventListener("keydown", (ev) => {
-    if (ev.key !== "Escape") return;
-    ev.preventDefault();
-    ev.stopPropagation();
-    close();
-  });
+  MODALS.set(sheet, { cancel: () => close() });
   close = ctx.overlay(sheet);
   queueMicrotask(() => back.focus());
   return sheet;
@@ -924,7 +938,8 @@ export function loadingDialog(message = "Loading..."): HTMLElement {
 }
 
 export function dialog(options: DialogOptions): HTMLElement {
-  const close = (): void => overlay.remove();
+  const modal: Modal = {};
+  const close = (): void => modal.close?.();
   const overlay = el("div", {
     class: "dialog-overlay",
     attrs: { role: "dialog", "aria-modal": "true", "aria-label": options.message },
@@ -933,10 +948,11 @@ export function dialog(options: DialogOptions): HTMLElement {
     close();
     options.onOk();
   });
-  const cancel = button(options.cancelLabel ?? "Cancel", () => {
+  modal.cancel = () => {
     close();
     options.onCancel?.();
-  });
+  };
+  const cancel = button(options.cancelLabel ?? "Cancel", modal.cancel);
   const focusable = options.okOnly === true ? [ok] : [cancel, ok];
   overlay.appendChild(
     el("div", {
@@ -953,23 +969,8 @@ export function dialog(options: DialogOptions): HTMLElement {
       ],
     }),
   );
-  // Focus trap: the guide's dialog blocks the screen behind it, so Tab has to
-  // stay inside and Escape has to be the same as Cancel.
-  overlay.addEventListener("keydown", (ev) => {
-    if (ev.key === "Escape") {
-      ev.preventDefault();
-      // A modal takes the key: whatever is behind it must not act on it too.
-      ev.stopPropagation();
-      close();
-      options.onCancel?.();
-      return;
-    }
-    if (ev.key !== "Tab") return;
-    const idx = focusable.indexOf(document.activeElement as HTMLElement);
-    ev.preventDefault();
-    const next = focusable[(idx + (ev.shiftKey ? -1 : 1) + focusable.length) % focusable.length];
-    next?.focus();
-  });
+  // The guide's dialog blocks the screen behind it, and Escape is the same as Cancel.
+  MODALS.set(overlay, modal);
   queueMicrotask(() => ok.focus());
   return overlay;
 }
