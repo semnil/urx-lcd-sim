@@ -37,8 +37,12 @@ export class BridgeTransport implements DeviceTransport {
 
   private unsubscribe: (() => void) | null = null;
   private readonly listeners = new Set<(n: Notify) => void>();
-  /** Addresses we wrote and have not yet seen come back, so echoes are flagged. */
-  private readonly inFlight = new Map<string, number>();
+  /**
+   * The newest write to each address that no notify has followed yet. A notify
+   * carrying its raw value is flagged as its echo, and any notify for the
+   * address clears it.
+   */
+  private readonly inFlight = new Map<string, { raw: number }>();
 
   constructor(
     private readonly bridge: DeviceLink,
@@ -66,9 +70,13 @@ export class BridgeTransport implements DeviceTransport {
       return;
     }
     const raw = b.codec.encode(value);
-    this.inFlight.set(b.addr, raw);
+    const sent = { raw };
+    this.inFlight.set(b.addr, sent);
     await this.bridge.set(b.addr, raw);
-    this.emit({ path, value, echo: true });
+    // The echo carries the value as encoded for the unit, and goes out only
+    // while neither a notify for the address nor a later write to it has come
+    // since.
+    if (this.inFlight.get(b.addr) === sent) this.emit({ path, value: b.codec.decode(raw), echo: true });
   }
 
   onNotify(listener: (n: Notify) => void): () => void {
@@ -100,8 +108,8 @@ export class BridgeTransport implements DeviceTransport {
       if (p === undefined) return;
       const b = this.bindings.forPath(p);
       if (!b) return;
-      const echo = this.inFlight.get(addr) === raw;
-      if (echo) this.inFlight.delete(addr);
+      const echo = this.inFlight.get(addr)?.raw === raw;
+      this.inFlight.delete(addr);
       this.emit({ path: p, value: b.codec.decode(raw), echo });
     });
   }

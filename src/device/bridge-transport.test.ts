@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { BindingTable, boolCodec, identityCodec, scaledCodec } from "./binding";
 import { BridgeTransport, UnboundPathError, type DeviceLink } from "./bridge-transport";
+import { DeviceStore } from "./store";
 
 /** What the stand-in unit holds before the test starts, and the addresses that do not answer a read. */
 interface FakeUnit {
@@ -51,6 +52,40 @@ function fakeBridge(unit: FakeUnit = {}): DeviceLink & {
   };
 }
 
+/** A unit that keeps a written value within [0, max] and announces what it kept before it answers the write. */
+function clampingUnit(max: number): DeviceLink & { held: Map<string, number> } {
+  const held = new Map<string, number>();
+  let handler: ((addr: string, raw: number) => void) | null = null;
+  return {
+    held,
+    get: (addr) => Promise.resolve(held.get(addr) ?? 0),
+    set: (addr, value) => {
+      const kept = Math.max(0, Math.min(value, max));
+      held.set(addr, kept);
+      handler?.(addr, kept);
+      return Promise.resolve();
+    },
+    getStr: () => Promise.resolve(""),
+    setStr: () => Promise.resolve(),
+    subscribe: (_addrs, onUpdate) => {
+      handler = onUpdate;
+      return Promise.resolve(() => {
+        handler = null;
+      });
+    },
+  };
+}
+
+/** A store on a unit that clamps and announces, with ch.ch1.gain stored in tenths of a dB. */
+async function storeOnClampingUnit(): Promise<{ store: DeviceStore; unit: ReturnType<typeof clampingUnit> }> {
+  const unit = clampingUnit(100);
+  const bindings = new BindingTable();
+  bindings.bind("ch.ch1.gain", { addr: "gain-addr", codec: scaledCodec(10) });
+  const store = new DeviceStore();
+  await store.attach(new BridgeTransport(unit, bindings));
+  return { store, unit };
+}
+
 describe("BridgeTransport", () => {
   it("refuses a path with no validated address rather than guessing one", async () => {
     const bridge = fakeBridge();
@@ -99,6 +134,60 @@ describe("BridgeTransport", () => {
     bridge.fire("brightness-addr", 3); // somebody turning the knob on the unit
 
     expect(seen).toEqual([true, true, false]);
+  });
+
+  it("leaves what the unit clamped a write to on screen when the unit announces it before answering", async () => {
+    const { store, unit } = await storeOnClampingUnit();
+
+    await store.set("ch.ch1.gain", 15);
+
+    expect(unit.held.get("gain-addr")).toBe(100);
+    expect(store.num("ch.ch1.gain")).toBe(10);
+  });
+
+  it("leaves what the unit rounded a write to on screen when the unit announces it before answering", async () => {
+    const { store, unit } = await storeOnClampingUnit();
+
+    await store.set("ch.ch1.gain", 1.25);
+
+    expect(unit.held.get("gain-addr")).toBe(13);
+    expect(store.num("ch.ch1.gain")).toBe(1.3);
+  });
+
+  it("echoes a write as encoded for the unit when the unit announces nothing", async () => {
+    const bridge = fakeBridge();
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.gain", { addr: "gain-addr", codec: scaledCodec(10) });
+    const store = new DeviceStore();
+    await store.attach(new BridgeTransport(bridge, bindings));
+
+    await store.set("ch.ch1.gain", 1.25);
+
+    expect(bridge.writes).toEqual([["gain-addr", 13]]);
+    expect(store.num("ch.ch1.gain")).toBe(1.3);
+  });
+
+  it("sends no echo for a write a later write has overtaken", async () => {
+    const answers: (() => void)[] = [];
+    const link: DeviceLink = {
+      ...fakeBridge(),
+      set: () => new Promise<void>((resolve) => answers.push(resolve)),
+    };
+    const bindings = new BindingTable();
+    bindings.bind("setup.brightness", { addr: "brightness-addr", codec: identityCodec });
+    const transport = new BridgeTransport(link, bindings);
+    await transport.snapshot();
+    const seen: [unknown, boolean][] = [];
+    transport.onNotify((n) => seen.push([n.value, n.echo]));
+
+    const first = transport.write("setup.brightness", 7);
+    const second = transport.write("setup.brightness", 3);
+    answers[0]!();
+    await first;
+    answers[1]!();
+    await second;
+
+    expect(seen).toEqual([[3, true]]);
   });
 
   it("flags only the first notify of the value it wrote as its own", async () => {
