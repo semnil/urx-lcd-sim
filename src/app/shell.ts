@@ -241,8 +241,10 @@ export class Shell {
     // USER DEFINED KNOBS mode replaces the readout strip with the bank
     // assignments, so it shows even where the screen suppresses the normal one.
     const udkMode = this.ctx.store.bool("ui.userDefinedKnobs", false);
-    const showStrip = udkMode || (body.knobStrip ?? def.knobStrip ?? this.knobs.some(Boolean));
+    const ownStrip = body.knobStrip ?? def.knobStrip ?? this.knobs.some(Boolean);
+    const showStrip = udkMode || ownStrip;
     this.lcd.classList.toggle("has-knobs", showStrip);
+    this.lcd.classList.toggle("has-readout", ownStrip);
     this.lcd.classList.toggle("is-udk", udkMode);
     this.lcd.classList.toggle("is-dimmed", def.dimsBehind === true);
     this.lcd.classList.toggle("side-at-top", def.sideAtTop === true);

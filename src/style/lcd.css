@@ -285,10 +285,6 @@
   right: 62px;
 }
 
-.lcd.has-knobs .main {
-  bottom: 39px;
-}
-
 .lcd.has-knobs .knob-strip {
   display: grid;
 }
@@ -396,6 +392,13 @@
  * it, so nothing underneath moves when the mode is switched on. */
 .lcd.is-udk .main {
   bottom: 2px;
+}
+
+/* A screen with a readout bar of its own ends its main area where the bar
+ * starts, with USER DEFINED KNOBS on or off, so the panels stacked from its foot
+ * stay where they are when the mode is switched on. */
+.lcd.has-readout .main {
+  bottom: 39px;
 }
 
 .lcd.is-udk .knob-strip {

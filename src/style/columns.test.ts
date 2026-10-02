@@ -95,8 +95,21 @@ describe("the four columns the screens share", () => {
 
     // The main area stops where the bar starts: the unit's screens draw right up
     // to its top edge rather than holding a margin off it.
-    const clearance = px(declarations(CSS, ".lcd.has-knobs .main")["bottom"]);
+    const clearance = px(declarations(CSS, ".lcd.has-readout .main")["bottom"]);
     expect(clearance).toBe(px(strip["height"]));
+  });
+
+  it("lays the USER DEFINED KNOBS bar over the main area only on a screen without a readout bar of its own", () => {
+    // A screen with its own readout bar keeps its main area above the bar when the
+    // mode is switched on, so the panels stacked from its foot stay where they were.
+    // The readout bar's rule follows the mode's, so it holds with the mode on.
+    const bottoms = styleRules(CSS).flatMap((r) =>
+      r.body["bottom"] === undefined ? [] : r.selectors.filter((s) => /^\.lcd\.(is-udk|has-knobs|has-readout) \.main$/.test(s)).map((s) => [s, px(r.body["bottom"])]),
+    );
+    expect(bottoms).toEqual([
+      [".lcd.is-udk .main", 2],
+      [".lcd.has-readout .main", 39],
+    ]);
   });
 
   it("lays a channel view's blocks on the columns of the controls under them", () => {
@@ -3706,7 +3719,7 @@ describe("what lies over the USER DEFINED KNOBS bar", () => {
       r.selectors.filter((s) => /^\.lcd(\.[\w-]+)+ \.main$/.test(s) && edges.some((e) => e in r.body)).map((s) => ({ s, at })),
     );
     expect(rivals.map(({ s }) => s), "the bars and the side rail move the main area's edges").toEqual(
-      expect.arrayContaining([".lcd.has-knobs .main", ".lcd.is-udk .main", ".lcd.has-side .main"]),
+      expect.arrayContaining([".lcd.has-readout .main", ".lcd.is-udk .main", ".lcd.has-side .main"]),
     );
     expect(
       rivals.filter(({ s, at }) => classes(s) > classes(sheetSelector) || (classes(s) === classes(sheetSelector) && at > sheetAt)).map(({ s }) => s),

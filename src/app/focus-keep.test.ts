@@ -583,3 +583,17 @@ describe("the grips on a dynamics plot", () => {
     expect(shell.root.querySelector(".dyn-curve")?.getAttribute("aria-hidden"), "the plot itself").toBe("true");
   });
 });
+
+describe("the USER DEFINED KNOBS bar", () => {
+  it("marks a screen with a readout bar of its own apart from one that carries the bar only for the mode", async () => {
+    const shell = await mount();
+    await shell.ctx.store.set("ui.userDefinedKnobs", true);
+    await flush();
+    const marks = (): boolean[] => ["has-readout", "is-udk"].map((c) => shell.root.classList.contains(c));
+    const home = marks();
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    shell.ctx.nav.push({ id: "ch.comp", strip: "ch1" });
+    await flush();
+    expect([home, marks()], "HOME, then CH 1's COMP").toEqual([[false, true], [true, true]]);
+  });
+});
