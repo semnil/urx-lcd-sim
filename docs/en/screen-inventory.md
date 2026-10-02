@@ -1643,7 +1643,8 @@ On the Edit tab, [Delete] asks `Delete the selected file?` before it takes the e
 entry sheet"). [Rename] onto a name the folder
 already carries brings up `File already exists.` with the i mark and [OK] alone, as the unit does,
 and renames nothing: [OK] goes back to the sheet as it was typed (on SAVE/LOAD's and RECORDER's
-Edit tabs alike). TOOLS' [Format] leaves the card
+Edit tabs alike). [New folder] under a name the folder already carries, a folder's or a file's, closes the
+sheet and goes back to the Edit tab saying nothing and making nothing, as the unit does. TOOLS' [Format] leaves the card
 with nothing on it. On SAVE/LOAD, [Save] writes the unit's settings over the selected settings file,
 [Save as] writes them under the name that is typed with `.urxf` after it, and [Load] puts a file
 back on the unit. Writing over a file that is already there asks `File alerady exists. Replace it?`

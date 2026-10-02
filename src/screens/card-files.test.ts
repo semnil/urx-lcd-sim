@@ -461,6 +461,30 @@ describe("what the card's own actions do to it", () => {
     expect(readCard(shell.ctx.store)[1]?.kind).toBe("folder");
   });
 
+  it("makes no folder under a name the folder already carries, folder or file, and goes back to Edit saying nothing", async () => {
+    const shell = await mount({ id: "microsd.saveload" }, [...card, { name: "a.urxf", kind: "data", seconds: 0, tracks: 0, stamp: "", dir: "/" }]);
+    const store = shell.ctx.store;
+    await store.set("ui.sdSaveTab", "Edit");
+    await flush();
+    const before = readCard(store);
+    const made = async (name: string): Promise<[string, string, string | null]> => {
+      action(shell, "New folder")?.click();
+      await flush();
+      await typeTitle(shell, name);
+      return [shell.ctx.nav.current.id, store.str("ui.sdSaveTab", ""), shell.root.querySelector(".dialog-text")?.textContent ?? null];
+    };
+    for (const name of ["Recordings", "take.wav", "a.urxf"]) {
+      expect(await made(name), `${name}: back on Edit, nothing said`).toEqual(["microsd.saveload", "Edit", null]);
+      expect(readCard(store), `${name}: nothing made`).toEqual(before);
+    }
+
+    expect(await made("Takes"), "the control: a name the folder does not carry").toEqual(["microsd.saveload", "Edit", null]);
+    await store.set("sd.path", "/Recordings/");
+    await flush();
+    await made("Recordings");
+    expect(readCard(store).filter((e) => e.kind === "folder").map((e) => `${e.dir}${e.name}`), "a name another folder carries").toEqual(["/Recordings", "/Takes", "/Recordings/Recordings"]);
+  });
+
   it("puts what is made next into the folder that is open", async () => {
     const shell = await mount({ id: "microsd.saveload" }, card);
     const store = shell.ctx.store;

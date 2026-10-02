@@ -384,10 +384,15 @@ function renameSelected(ctx: AppContext): void {
   }, { suffix, max: NAME_MAX - suffix.length, refuse: (name) => (folderCarries(entries, entry.dir, name, row) ? NAME_TAKEN : undefined) });
 }
 
-/** Put a folder on the card under the name that is typed. */
+/**
+ * Put a folder on the card under the name that is typed. A name the folder that
+ * is open already carries, a folder's or a file's, makes nothing and says nothing.
+ */
 function newFolder(ctx: AppContext): void {
   nameOnCard(ctx, "", (name) => {
-    updateCard(ctx, [...cardEntries(ctx), { name, kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: cardPath(ctx) }]);
+    const entries = cardEntries(ctx);
+    if (folderCarries(entries, cardPath(ctx), name)) return;
+    updateCard(ctx, [...entries, { name, kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: cardPath(ctx) }]);
   }, { max: NAME_MAX });
 }
 
