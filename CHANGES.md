@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Give a screen reader COMP's and SSMCS's Ratio in numbers: `aria-valuemax` is 500, the last stop before INF, and at INF `aria-valuenow` is 500 while `aria-valuetext` reads `INF:1`. `aria-valuemax` read `Infinity`, and at INF so did `aria-valuenow`.
 - Leave GATE's and COMP's Threshold where it is under the arrow keys while the keys are on the block's switch on the channel view. An arrow key there turned the block's Threshold a detent and moved the pink frame onto it.
 - Step HOME's channel bank only for a swipe let go on the main area. A press on the main area let go on the toolbar or the side rail, or cancelled, left its start behind, and the next tap on a button in a strip, such as [ON], stepped the bank as well.
 - Move a list and its scroll thumb as far on the screen as the pointer drags them, at every display scale. At the default 100% they moved twice as far as the pointer, and at 200% four times as far.

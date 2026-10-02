@@ -16,8 +16,8 @@ import { el, makeTappable, setPressed } from "../ui/dom";
 import { inkOn } from "../ui/color";
 import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
-import { compRatioSpec, dbSpec, faderSpec, formatValue, freqSpec, intSpec, logFreqSpec, msSpec, panSpec } from "../ui/param-spec";
-import { attachDrag, attachSpin, followFocus, knobControl, markFocus, meter, panSlider, pickerSheet, pulldown, sideTab, toggle, unbuilt, valueBox } from "../ui/widgets";
+import { compRatioSpec, dbSpec, faderSpec, freqSpec, intSpec, logFreqSpec, msSpec, panSpec } from "../ui/param-spec";
+import { attachDrag, attachSpin, followFocus, knobControl, markFocus, meter, panSlider, pickerSheet, pulldown, setAriaValue, sideTab, toggle, unbuilt, valueBox } from "../ui/widgets";
 import { type GrSpec, type LampState, blockReduction, inputMeterId, markBlockLamps, markClipSafe, markLevelBar, markReduction, meterLevels, showBlockLamps, simulatedInput, simulatedLevel } from "./meters";
 import { type Tap, compSpec, duckerSources, duckerSpec, gateSpec, stripTap, tapId } from "./signal-flow";
 import { PAN_BAL, SIGNAL_TYPES, carriesStereo, enterSsmcs, setPanBal, setSignalType, signalType, stripPosition } from "./stereo-link";
@@ -972,10 +972,7 @@ export function plotHandle(
   const value = ctx.store.num(turns.spec.path, turns.spec.fallback);
   grp.setAttribute("role", "slider");
   grp.setAttribute("tabindex", "0");
-  grp.setAttribute("aria-valuenow", String(value));
-  grp.setAttribute("aria-valuemin", String(turns.spec.min));
-  grp.setAttribute("aria-valuemax", String(turns.spec.max));
-  grp.setAttribute("aria-valuetext", formatValue(turns.spec, value));
+  setAriaValue(grp, turns.spec, value);
   // Every handle's marks go in the one layer, kept after the last handle drawn.
   // The grip stands on its plot before it takes the drag, so a finger on it holds the plot.
   const layer = [...svg.children].find((n) => n.classList.contains("dyn-handle-marks")) ?? document.createElementNS(NS, "g");

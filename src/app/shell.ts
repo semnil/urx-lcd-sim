@@ -11,7 +11,7 @@ import { FocusController } from "../ui/focus";
 import { Icons } from "../ui/icons";
 import { attachFocusRing } from "../ui/focus-ring";
 import { attachPress } from "../ui/press";
-import { attachSpin } from "../ui/widgets";
+import { attachSpin, setAriaValue } from "../ui/widgets";
 import type { NumericSpec } from "../ui/param-spec";
 import { BRIGHTNESS_MAX, formatValue } from "../ui/param-spec";
 import type { ScreenBody, ScreenRegistry } from "../screens/types";
@@ -364,10 +364,7 @@ export class Shell {
     cell.tabIndex = 0;
     cell.setAttribute("role", "slider");
     cell.setAttribute("aria-label", name);
-    cell.setAttribute("aria-valuenow", String(v));
-    cell.setAttribute("aria-valuemin", String(spec.min));
-    cell.setAttribute("aria-valuemax", String(spec.max));
-    cell.setAttribute("aria-valuetext", formatValue(spec, v));
+    setAriaValue(cell, spec, v);
     if (spec.locked === true) cell.setAttribute("aria-disabled", "true");
     attachSpin(this.ctx, cell, spec, onEngage);
   }

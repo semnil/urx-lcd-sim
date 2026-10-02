@@ -621,6 +621,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     // looks like from the glass.
     const registry = buildRegistry();
     const outside: string[] = [];
+    const unreadable: string[] = [];
     let checked = 0;
     for (const id of registry.ids()) {
       const { shell } = await mount();
@@ -629,15 +630,49 @@ describe("every knob-bound parameter is reachable on the glass", () => {
         const min = Number(node.getAttribute("aria-valuemin"));
         const max = Number(node.getAttribute("aria-valuemax"));
         const now = Number(node.getAttribute("aria-valuenow"));
-        if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(now)) continue;
         checked += 1;
+        // A screen reader takes the range and the reading as numbers, and infinity is not one.
+        if (![min, max, now].every(Number.isFinite)) {
+          unreadable.push(`${id} (${strip}): ${node.getAttribute("aria-label")} = ${now}, range ${min}..${max}`);
+        }
         if (now < min || now > max) {
           outside.push(`${id} (${strip}): ${node.getAttribute("aria-label")} = ${now}, range ${min}..${max}`);
         }
       }
     }
     expect(checked, "the sweep found controls to check").toBeGreaterThan(30);
+    expect(unreadable).toEqual([]);
     expect(outside).toEqual([]);
+  });
+
+  it("reads a ratio of INF out as the top of its travel in numbers, and names it INF", async () => {
+    for (const [route, path] of [
+      ["ch.comp", "ch.ch1.comp.ratio"],
+      ["ch.ssmcs.comp", "ch.ch1.ssmcs.comp.ratio"],
+    ] as const) {
+      const { shell, store } = await mount();
+      await open(shell, { id: "channel-view", strip: "ch1" });
+      await open(shell, { id: route, strip: "ch1" });
+      const ratios = (): HTMLElement[] => turnables(shell.root).filter((n) => n.getAttribute("aria-label")?.endsWith("Ratio"));
+      expect(ratios().length, `${route} draws the ratio as a control`).toBeGreaterThan(0);
+      // 500:1 is the last stop before INF.
+      await store.set(path, 500);
+      await flush();
+      ratios()[0]?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true, cancelable: true }));
+      await flush();
+      expect(store.num(path, 0), `${route}: one detent up from 500:1`).toBe(Number.POSITIVE_INFINITY);
+
+      for (const node of turnables(shell.root)) {
+        const read = ["aria-valuemin", "aria-valuemax", "aria-valuenow"].map((a) => Number(node.getAttribute(a)));
+        expect(read.every(Number.isFinite), `${route}: ${node.getAttribute("aria-label")} reads ${read.join(" / ")}`).toBe(true);
+      }
+      for (const node of ratios()) {
+        expect(
+          ["aria-valuemin", "aria-valuemax", "aria-valuenow", "aria-valuetext"].map((a) => node.getAttribute(a)),
+          `${route}: ${node.getAttribute("aria-label")}`,
+        ).toEqual(["1", "500", "500", "INF:1"]);
+      }
+    }
   });
 
   it.each(STRIPS)("keeps a finger dragging what it took, rather than the page (%s)", async (strip) => {

@@ -593,6 +593,19 @@ export interface DragAxis {
 }
 
 /**
+ * Give `node` the range and the reading of `spec` at `value` as numbers. A travel
+ * whose last stop no number names (a ratio of INF) reads out the stop before it
+ * as its top, and the text names the value itself.
+ */
+export function setAriaValue(node: Element, spec: NumericSpec, value: number): void {
+  const top = Number.isFinite(spec.max) || !spec.travel ? spec.max : spec.travel.step(spec.max, -1);
+  node.setAttribute("aria-valuenow", String(Number.isFinite(value) ? value : clamp(value, spec.min, top)));
+  node.setAttribute("aria-valuemin", String(spec.min));
+  node.setAttribute("aria-valuemax", String(top));
+  node.setAttribute("aria-valuetext", formatValue(spec, value));
+}
+
+/**
  * A numeric value box. Touching it draws the pink focus border; dragging it
  * vertically, the wheel and the arrow keys turn the value.
  */
@@ -604,15 +617,12 @@ export function valueBox(ctx: AppContext, spec: NumericSpec, extraClass = "", fr
     attrs: {
       role: "spinbutton",
       "aria-label": spec.label,
-      "aria-valuenow": String(value),
-      "aria-valuemin": String(spec.min),
-      "aria-valuemax": String(spec.max),
-      "aria-valuetext": formatValue(spec, value),
       // A box the unit reads out but does not let the operator turn keeps its
       // reading and its name, and takes no key and no drag.
       ...(locked ? { "aria-disabled": "true" } : {}),
     },
   });
+  setAriaValue(node, spec, value);
   if (locked) return node;
   node.tabIndex = 0;
   if (framed) markFocus(ctx, node, spec.focusKey ?? spec.path);
