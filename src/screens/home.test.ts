@@ -2276,7 +2276,8 @@ describe("the SCENE menu the scene box opens", () => {
   });
 
   it("asks before deleting a scene by its number, and clears it on OK alone", async () => {
-    const shell = await sceneList({ "scene.Standard.5.title": "Band", "scene.Standard.5.protect": 0, "scene.selected": 5, "scene.current": 5, "ui.sceneMenu": "Edit" });
+    const mixer = '{"ch.ch1.level":-3}';
+    const shell = await sceneList({ "scene.Standard.5.title": "Band", "scene.Standard.5.protect": 0, "scene.Standard.5.state": mixer, "scene.selected": 5, "scene.current": 5, "ui.sceneMenu": "Edit" });
     const sceneBox = (): string[] => [...(shell.root.querySelector(".scene-box")?.children ?? [])].map((c) => c.textContent ?? "");
     await tap(editButtons(shell)[1]);
     const box = shell.root.querySelector(".dialog");
@@ -2284,10 +2285,12 @@ describe("the SCENE menu the scene box opens", () => {
     expect([...(box?.querySelectorAll(".dialog-actions .btn") ?? [])].map((b) => b.textContent)).toEqual(["Cancel", "OK"]);
     await tap(pick(shell, ".dialog-actions .btn", "Cancel"));
     expect(shell.ctx.store.str("scene.Standard.5.title", ""), "Cancel keeps it").toBe("Band");
+    expect(shell.ctx.store.str("scene.Standard.5.state", ""), "and its mixer").toBe(mixer);
 
     await tap(editButtons(shell)[1]);
     await tap(pick(shell, ".dialog-actions .btn", "OK"));
     expect(shell.ctx.store.str("scene.Standard.5.title", "")).toBe("");
+    expect(shell.ctx.store.str("scene.Standard.5.state", "-"), "the mixer it stored goes too").toBe("");
     expect(shell.root.querySelectorAll(".scene-list .list-row")[5]?.querySelectorAll(".list-cell")[1]?.textContent, "the title goes with it").toBe("");
     expect(sceneBox(), "the recalled scene deleted leaves its number alone in the box").toEqual(["05", ""]);
   });

@@ -291,6 +291,7 @@ export const sceneScreen: ScreenDef = {
             onOk: () => {
               void ctx.store.set(titlePath, "");
               void ctx.store.set(protectPath, 0);
+              void ctx.store.set(statePath(`${owner}`, selected), "");
             },
           }),
         );
