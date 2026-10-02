@@ -297,7 +297,7 @@ PY
 | `--corner-flag-d` | `#3a3942` | INPUT's flags: bottom corner over the band, the outer shade (p100-1 at x107..174 / y147..170) |
 | `--corner-flag-e` | `#737573` | INPUT's flags: bottom corner over the band, the second shade (p100-1 at x107..174 / y147..170) |
 | `--corner-flag-f` | `#949694` | INPUT's flags: bottom corner over the band, the third shade (p100-1 at x107..174 / y147..170) |
-| `--band-sends` | `#8c3119` | HOME's [Sends] tab: its 3px band (p045-1 at x422..479 / y50..106) |
+| `--px-band-cast` | `31%` | The share of black laid over a face to draw its 3px band. HOME's [Sends] tab draws its band so, over `--accent-sends`. The share comes from that tab in p045-1, whose band reads `#8c3119` under the face's `#ce4529` (x422..479 / y50..106) |
 | `--band-wizard` | `#a6a6a6` | the band under the mode wizard's buttons |
 | `--corner-eq-band-a` | `#213131` | an EQ band's box: top corner, the outer shade (p106-1 at x2..56 / y49..86) |
 | `--corner-eq-band-b` | `#8cbace` | an EQ band's box: top corner, the second shade (p106-1 at x2..56 / y49..86) |
