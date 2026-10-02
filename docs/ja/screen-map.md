@@ -82,6 +82,7 @@ flowchart LR
   SD --> SDTOOL["TOOLS<br>(microsd.tools)"]
   SDSL --> SDNAME["(microsd.name)"]
   SDTOOL --> SDNAME
+  SDREC --> SDNAME
 
   MON[["MONITOR トップメニュー<br>(monitor)"]]:::ref
   MON --> MLEV["Monitor<br>(monitor.level)"]
@@ -111,3 +112,5 @@ flowchart LR
   (`microsd.name`) は同じ画面の作りで、開いた元へ戻る。
 - **チャンネルの画面はストリップを持ち歩く。** ツールバーの左右の矢印がストリップを替えても画面は
   そのままで、そのストリップが持たないブロックの画面は開かない。
+- **名前の箱は CH SETTING を開く。** CH SETTING 以外のチャンネル画面は、ツールバーの名前の箱からそのストリップの
+  CH SETTING を開く。地図はこの矢印をチャンネルビューからだけ描く。

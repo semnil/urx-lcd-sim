@@ -82,6 +82,7 @@ flowchart LR
   SD --> SDTOOL["TOOLS<br>(microsd.tools)"]
   SDSL --> SDNAME["(microsd.name)"]
   SDTOOL --> SDNAME
+  SDREC --> SDNAME
 
   MON[["MONITOR top menu<br>(monitor)"]]:::ref
   MON --> MLEV["Monitor<br>(monitor.level)"]
@@ -113,3 +114,5 @@ flowchart LR
   name (`microsd.name`) are built the same way, and each returns where it was opened from.
 - **A channel screen carries its strip.** The arrows either side of the toolbar's channel name change
   the strip without leaving the screen, and a block the strip does not carry opens no screen.
+- **The name box opens CH SETTING.** Every channel screen but CH SETTING opens CH SETTING for its strip
+  from the name box in the toolbar. The map draws that arrow from the channel view alone.
