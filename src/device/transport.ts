@@ -21,8 +21,10 @@ export interface Notify {
   path: ParamPath;
   value: ParamValue;
   /**
-   * True when this notify is the transport echoing a write we just issued.
-   * The store uses it to avoid re-rendering a control the operator is dragging.
+   * True when this notify is the transport echoing a write we issued. A
+   * transport sends no echo for a write that a later write has overtaken; the
+   * store does not tell echoes apart and takes every notify that differs from
+   * its mirror.
    */
   echo: boolean;
 }

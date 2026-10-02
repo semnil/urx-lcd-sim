@@ -10,11 +10,11 @@ function simStore(initial: [ParamPath, ParamValue][] = []): { store: DeviceStore
   return { store, transport };
 }
 
-/** A device whose writes wait until the test takes or refuses each one, and that can announce a change of its own. */
+/** A device whose writes wait until the test takes or refuses each one, and that can announce a value, its own change or an echo. */
 function heldDevice(initial: [ParamPath, ParamValue][]): {
   transport: DeviceTransport;
   writes: { take: () => void; refuse: () => void }[];
-  announce: (path: ParamPath, value: ParamValue) => void;
+  announce: (path: ParamPath, value: ParamValue, echo?: boolean) => void;
 } {
   const writes: { take: () => void; refuse: () => void }[] = [];
   let listener: ((n: Notify) => void) | null = null;
@@ -33,7 +33,7 @@ function heldDevice(initial: [ParamPath, ParamValue][]): {
     },
     close: () => {},
   };
-  return { transport, writes, announce: (path, value) => listener?.({ path, value, echo: false }) };
+  return { transport, writes, announce: (path, value, echo = false) => listener?.({ path, value, echo }) };
 }
 
 /** A store on `device`, and each refusal it reports as [attempted, restored]. */
@@ -115,6 +115,24 @@ describe("DeviceStore", () => {
 
     expect(store.num("ch.ch1.level")).toBe(-3);
     expect(failures).toHaveLength(1);
+  });
+
+  it("takes every notify that differs from the mirror, whether it is an echo or not", async () => {
+    const device = heldDevice([["ch.ch1.level", 0]]);
+    const { store } = await storeOn(device);
+    const shown: number[] = [];
+    store.onChange(() => shown.push(store.num("ch.ch1.level")));
+
+    void store.set("ch.ch1.level", -2);
+    store.flush();
+    device.announce("ch.ch1.level", -1, true);
+    store.flush();
+    device.announce("ch.ch1.level", -3, false);
+    store.flush();
+    device.announce("ch.ch1.level", -3, true);
+    store.flush();
+
+    expect(shown).toEqual([-2, -1, -3]);
   });
 
   it("keeps a later write the device took when an earlier one is refused", async () => {

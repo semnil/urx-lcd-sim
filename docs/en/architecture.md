@@ -74,8 +74,10 @@ the unit is asynchronous, which is why the values are held twice.
 - **Changes on the device side** — arrive as notifies from the transport. Scene recall, turning a
   knob on the unit, and Auto Gain completing all take this path. A notify with `echo: false` is
   always taken.
-- **Echoes** — a write of our own coming back is told apart by `echo: true`, which is what lets a
-  re-render leave alone a control that is being operated.
+- **Echoes** — the transport marks a notify that is a write of our own coming back with
+  `echo: true`. Sending no echo for an older write that a later write has overtaken is the
+  transport's responsibility (`BridgeTransport` for a unit); `DeviceStore` does not tell echoes
+  apart and takes every notify that differs from the mirror.
 
 Change notifications are batched per microtask and fire once (`markChanged` → `flush`).
 

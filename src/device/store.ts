@@ -6,9 +6,11 @@
 // write still on screen goes back to the value the unit last took, so a screen
 // never keeps showing a value the unit refused.
 //
-// Device-originated notifies (`echo: false`) are adopted unconditionally — that
-// is the path a scene recall, or somebody turning a knob on the unit itself,
-// reaches the screen by.
+// Every notify that differs from the mirror is adopted, an echo of our own write
+// (`echo: true`) and a change made on the device (`echo: false`) alike; the
+// latter is the path a scene recall, or somebody turning a knob on the unit
+// itself, reaches the screen by. It relies on the transport to send no echo for
+// a write that a later write has overtaken.
 
 import type { ParamPath, ParamValue } from "./path";
 import { inSubtree } from "./path";

@@ -32,8 +32,8 @@ export class SimTransport implements DeviceTransport {
 
   /**
    * A change made on the device itself: a scene recall, an automatic level
-   * adjustment finishing, a physical knob being turned. Not an echo, so the
-   * store adopts it even while the operator is holding another control.
+   * adjustment finishing, a physical knob being turned. Not an echo; the store
+   * adopts it even while the operator is holding another control.
    */
   inject(path: ParamPath, value: ParamValue): void {
     if (this.closed) return;
