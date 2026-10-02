@@ -209,9 +209,11 @@ async function boot(modelId: ModelId, mount: HTMLElement): Promise<void> {
   };
 }
 
-window.addEventListener("beforeunload", () => {
+// Leaving the page stores a change still waiting. A page the browser keeps to
+// bring back on [Back] runs on as it was; a page let go is torn down.
+window.addEventListener("pagehide", (ev) => {
   flushMounted?.();
-  disposeMounted?.();
+  if (!ev.persisted) disposeMounted?.();
 });
 
 const mount = document.getElementById("app");

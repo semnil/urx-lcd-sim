@@ -12,14 +12,18 @@ const KEY = "urx-lcd-sim.state";
 const SAVED = JSON.stringify({ version: 1, model: "URX44V", values: { "ch.ch1.level": -9 } });
 
 /** What the page does when it is left, for the page a test opened. */
-let leave: ((ev: Event) => void) | null = null;
+let unload: ((ev: Event) => void) | null = null;
+
+/** The page a test opened, let go as the browser lets a page go. */
+function letGo(): void {
+  if (!unload) return;
+  unload(new PageTransitionEvent("pagehide", { persisted: false }));
+  window.removeEventListener("pagehide", unload);
+  unload = null;
+}
 
 afterEach(() => {
-  if (leave) {
-    leave(new Event("beforeunload"));
-    window.removeEventListener("beforeunload", leave);
-    leave = null;
-  }
+  letGo();
   document.getElementById("app")?.remove();
   window.localStorage.clear();
 });
@@ -33,8 +37,8 @@ async function open(saved: string): Promise<HTMLElement> {
   const listen = vi.spyOn(window, "addEventListener");
   vi.resetModules();
   await import("./main");
-  const unload = listen.mock.calls.find(([type]) => type === "beforeunload")?.[1];
-  leave = typeof unload === "function" ? (unload as (ev: Event) => void) : null;
+  const left = listen.mock.calls.find(([type]) => type === "pagehide")?.[1];
+  unload = typeof left === "function" ? (left as (ev: Event) => void) : null;
   listen.mockRestore();
   for (let i = 0; i < 100 && !app.querySelector(".chrome-reset button"); i++) await flush();
   return app;
@@ -134,9 +138,7 @@ describe("[Reset the unit]", () => {
         app.querySelector<HTMLElement>(".lcd .toolbar")?.dataset["screen"],
         window.localStorage.getItem(KEY) === SAVED,
       ]);
-      leave?.(new Event("beforeunload"));
-      if (leave) window.removeEventListener("beforeunload", leave);
-      leave = null;
+      letGo();
       app.remove();
     }
     expect(seen).toEqual([
@@ -198,9 +200,15 @@ const modelSelect = (): HTMLSelectElement | null => document.querySelector<HTMLS
 const lcdModel = (): string | null => document.querySelector(".lcd[role='application']")?.getAttribute("aria-label") ?? null;
 const firstLevel = (): HTMLElement | null => document.querySelector<HTMLElement>(".strip-level[role='slider']");
 
+/** What the browser fires on the page as it is left; `kept` where it keeps the page to bring back. */
+function leave(kept: boolean): void {
+  window.dispatchEvent(new Event("beforeunload"));
+  window.dispatchEvent(new PageTransitionEvent("pagehide", { persisted: kept }));
+}
+
 /** Open the page, or reload it: the page before is let go, then main.ts runs again. */
 async function openPage(): Promise<void> {
-  window.dispatchEvent(new Event("beforeunload"));
+  leave(false);
   document.body.replaceChildren();
   const app = document.createElement("div");
   app.id = "app";
@@ -238,7 +246,7 @@ async function nudgeLevel(model: string): Promise<string | null> {
 
 afterEach(() => {
   vi.useRealTimers();
-  window.dispatchEvent(new Event("beforeunload"));
+  leave(false);
   document.body.replaceChildren();
   window.localStorage.clear();
 });
@@ -366,6 +374,21 @@ describe("a change still waiting to be stored", () => {
     reset.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
     await until("the unit as it ships", () => shownLevel() === "0");
     expect(window.localStorage.getItem(STATE_KEY), "nothing is written back").toBeNull();
+  });
+});
+
+describe("a page the browser brings back", () => {
+  const screenId = (): string | undefined => document.querySelector<HTMLElement>(".toolbar")?.dataset["screen"];
+
+  it("changes and stores its values, and steps back on Escape, after another page and [Back]", async () => {
+    await openPage();
+    leave(true);
+    window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+    expect(await nudgeLevel("URX44V")).not.toBe("0");
+    document.querySelector<HTMLElement>('.toolbar [aria-label="SETUP"]')!.click();
+    await until("SETUP", () => screenId() === "setup");
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    await until("HOME again", () => screenId() === "home");
   });
 });
 

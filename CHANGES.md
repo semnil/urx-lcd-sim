@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Keep a page the browser brings back on [Back] running as it was left. After leaving for another page and coming back, the values did not change, the meters stood still, Escape did nothing and no change was stored until a reload.
 - Say, on a line under the controls outside the screen, when the browser does not take the unit (it is full, or stores nothing), until a write is taken again. A change the browser did not take was lost on the next reload without a word.
 - Write each scene memory's mixer once in the browser however many settings files hold it, and a settings file as its values rather than as text. A unit holding 63 scene memories ran out of the browser's room at its second settings file.
 - Keep a change made just before reloading, closing the page or switching the model: what was changed in the last 400 ms was dropped.
