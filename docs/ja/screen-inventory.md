@@ -30,7 +30,7 @@ URX44V/44/22 ユーザーガイド (英語版 revision D0) が載せている LC
 | SETUP GENERAL (トップメニュー) | `setup` | p52 | 実装済み |
 | Operation Mode | `setup.mode` | p41-42, p117 | 実装済み (Simple 選択後の画面は作らない) |
 | Version | `setup.version` | p53 | 実装済み (Total Version とシミュレーター自身の APP Version) |
-| License | `setup.license` | p54 | 実装済み (本文は実機から読む) |
+| License | `setup.license` | p54 | 実装済み (文面はシミュレーター自身のライセンス = リポジトリの LICENSE) |
 | Language | `setup.language` | p55 | 実装済み (英語のみ。日本語と中国語は選べない) |
 | Brightness | `setup.brightness` | p56 | 実装済み |
 | User Defined Knobs | `setup.udk` | p57, p152 | 実装済み |

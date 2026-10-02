@@ -31,7 +31,7 @@ Which screen leads to which is drawn in [screen-map.md](screen-map.md).
 | SETUP GENERAL (top menu) | `setup` | p52 | Built |
 | Operation Mode | `setup.mode` | p41-42, p117 | Built (the screens after choosing Simple are left out) |
 | Version | `setup.version` | p53 | Built (Total Version and the simulator's own APP Version) |
-| License | `setup.license` | p54 | Built (the text is read from the unit) |
+| License | `setup.license` | p54 | Built (the simulator's own license, the repository's LICENSE) |
 | Language | `setup.language` | p55 | Built (English only; Japanese and Chinese cannot be chosen) |
 | Brightness | `setup.brightness` | p56 | Built |
 | User Defined Knobs | `setup.udk` | p57, p152 | Built |
