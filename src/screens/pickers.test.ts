@@ -550,6 +550,103 @@ describe("a pulldown's list on the glass", () => {
   });
 });
 
+describe("what a box tells assistive technology it opens", () => {
+  /** The shells laid on the page, each let go when its test is over so no other answers the keys. */
+  const shown: Shell[] = [];
+  afterEach(() => {
+    for (const shell of shown.splice(0)) {
+      shell.destroy();
+      shell.root.remove();
+    }
+  });
+  const onPage = async (stack: Route[]): Promise<Shell> => {
+    const shell = await mount(stack);
+    shown.push(shell);
+    document.body.appendChild(shell.root);
+    return shell;
+  };
+  const escape = async (): Promise<void> => {
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    await flush();
+  };
+  /** What a box says it opens, and whether it says that is open. */
+  const told = (node: Element | null): (string | null | undefined)[] => [node?.getAttribute("aria-haspopup"), node?.getAttribute("aria-expanded")];
+
+  it("names the list a pulldown opens on the glass, open while it is up", async () => {
+    const shell = await onPage([{ id: "channel-view", strip: "ch1" }, { id: "ch.setting", strip: "ch1" }]);
+    const box = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".chs-rec-field .pulldown");
+    const seen = [told(box())];
+    box()?.click();
+    await flush();
+    seen.push(told(box()));
+    await escape();
+    seen.push(told(box()));
+    box()?.click();
+    await flush();
+    [...shell.root.querySelectorAll<HTMLElement>(".dropdown-list > *")].find((o) => o.textContent === "PRE EQ")?.click();
+    await flush();
+    seen.push(told(box()));
+    expect(seen).toEqual([
+      ["listbox", "false"],
+      ["listbox", "true"],
+      ["listbox", "false"],
+      ["listbox", "false"],
+    ]);
+  });
+
+  it("names the sheet a pulldown with more choices than the glass shows opens, open while it is up", async () => {
+    const shell = await onPage([{ id: "channel-view", strip: "bus.stream" }, { id: "ch.delay", strip: "bus.stream" }]);
+    const box = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".delay-rate .pulldown");
+    const seen = [told(box())];
+    box()?.click();
+    await flush();
+    seen.push(told(box()), [shell.root.querySelector(".source-overlay")?.getAttribute("role"), String(shell.root.querySelectorAll(".source-sheet .source-btn").length)]);
+    shell.root.querySelector<HTMLElement>(".source-sheet .source-back")?.click();
+    await flush();
+    seen.push(told(box()));
+    expect(seen).toEqual([
+      ["dialog", "false"],
+      ["dialog", "true"],
+      ["dialog", "8"],
+      ["dialog", "false"],
+    ]);
+  });
+
+  it("names the list the RECORDER's Track Count box opens, open while it is up", async () => {
+    const shell = await onPage([{ id: "microsd.recorder" }]);
+    const box = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".dropdown-box");
+    const seen = [told(box())];
+    box()?.click();
+    await flush();
+    seen.push(told(box()));
+    await escape();
+    seen.push(told(box()));
+    expect(seen).toEqual([
+      ["listbox", "false"],
+      ["listbox", "true"],
+      ["listbox", "false"],
+    ]);
+  });
+
+  it("tells the channel-bank button open while the bank list is up, a list of switches it does not name a listbox", async () => {
+    const shell = await onPage([]);
+    const bank = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".bank-btn");
+    const seen = [told(bank())];
+    bank()?.click();
+    await flush();
+    seen.push(told(bank()), [shell.ctx.nav.current.id, String(shell.root.querySelectorAll("[role='listbox']").length)]);
+    bank()?.click();
+    await flush();
+    seen.push(told(bank()));
+    expect(seen).toEqual([
+      [null, "false"],
+      [null, "true"],
+      ["bank-select", "0"],
+      [null, "false"],
+    ]);
+  });
+});
+
 describe("the INPUT Input Source button", () => {
   const open = (strip: string, id: "URX44V" | "URX44" | "URX22" = "URX44V"): Promise<Shell> =>
     mount([{ id: "channel-view", strip }, { id: "ch.input", strip }], id);

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Tell assistive technology what a box opens and while it is open. A pulldown names the list it opens on the glass, or the sheet it opens where its choices are more than the glass shows, and stands expanded while either is up, as the RECORDER's Track Count box does with its list. The channel-bank button stands expanded while the bank list is up. A pulldown named a list for its sheet as well, the channel-bank button named a list its bank list is not, and none of them told whether what it opens was up.
 - Keep the focus on the glass when a page step pressed with the keys gives its place to the step the other way, on the readout bar, an effect's pages and the USER DEFINED KNOBS bar, and carry it from [Next SSMCS screen] or [Previous SSMCS screen] onto the same arrow of the SSMCS screen they step to. The focus fell off the glass, so a second Enter stepped nowhere.
 - Keep the focus on the page's own controls as they are drawn again: on [Reset the unit] once [Cancel] takes its question back or [Reset] starts the unit again, and on the model selector once it changes the model. The focus fell off every control onto the page itself.
 - Leave Escape pressed on the page around the glass to the control holding the focus there: on the model and display scale selectors or [Reset the unit] it no longer steps the screen back or cancels a dialog on it. Escape on [Reset the unit]'s question takes it back as [Cancel] does, with the focus on [Reset the unit]; the question stayed up while the screen stepped back.

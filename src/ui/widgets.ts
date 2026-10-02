@@ -215,10 +215,12 @@ export function optionSheet(
   current: string,
   onPick: (value: string) => void,
   columns = SHEET_COLUMNS,
+  onClose?: () => void,
 ): HTMLElement {
   return pickerSheet(ctx, {
     title: label,
     label,
+    ...(onClose ? { onClose } : {}),
     build: (close) => {
       const rows: (HTMLElement | null)[][] = [];
       for (let i = 0; i < options.length; i += columns) {
@@ -270,7 +272,6 @@ export function pulldown(
 ): HTMLElement {
   const node = el("div", {
     class: "pulldown",
-    attrs: { "aria-haspopup": "listbox" },
     children: [drawFace(el("span", { class: "pulldown-value", text: value }), value, look.face), el("span", { class: "pulldown-mark" })],
   });
   const { label, open, columns, current, face, ...list } = look;
@@ -280,20 +281,30 @@ export function pulldown(
   // tiles carry names alone, and so does one the caller has given a place.
   const onSheet = !open && !list.render && !list.listClass && options.length > OPTIONS_ON_THE_GLASS;
   const render = face ? (o: string): Node => face(o) ?? document.createTextNode(o) : undefined;
+  node.setAttribute("aria-haspopup", onSheet ? "dialog" : "listbox");
+  // The box stands expanded while the list or the sheet it opens is up.
+  const expand = (on: boolean): void => node.setAttribute("aria-expanded", String(on));
+  if (!open) expand(false);
   makeTappable(
     node,
     open ??
       (onSheet
-        ? () => optionSheet(ctx, label, options, held, onPick, columns)
-        : () =>
+        ? () => {
+            expand(true);
+            optionSheet(ctx, label, options, held, onPick, columns, () => expand(false));
+          }
+        : () => {
+            expand(true);
             openOptions(ctx, {
               value: held,
               options,
               onPick,
               anchor: node,
+              onClose: () => expand(false),
               ...(render ? { render } : {}),
               ...list,
-            })),
+            });
+          }),
   );
   node.setAttribute("aria-label", `${label ? `${label}: ` : ""}${value} (${options.length} options)`);
   return node;
@@ -328,6 +339,8 @@ export interface PickerSheetSpec {
   sheetClass?: string;
   /** Builds what stands under the band. `close` shuts the sheet. */
   build: (close: () => void) => HTMLElement;
+  /** Runs once the sheet is down, however it was shut. */
+  onClose?: () => void;
   /** The well the bar runs in, for choices that do not all fit. */
   scroll?: { track: number; unit: number };
 }
@@ -365,7 +378,7 @@ export function pickerSheet(ctx: AppContext, spec: PickerSheetSpec): HTMLElement
     children: [panel],
   });
   MODALS.set(sheet, { cancel: () => close() });
-  close = ctx.overlay(sheet);
+  close = ctx.overlay(sheet, spec.onClose);
   queueMicrotask(() => back.focus());
   return sheet;
 }
@@ -843,6 +856,8 @@ interface OptionListSpec {
   disabled?: readonly string[];
   /** Where an option stands in the list's own grid, for a list the unit lays out. */
   place?: (option: string, index: number) => { row: number; column: number };
+  /** Runs once the list is down, however it was shut. */
+  onClose?: () => void;
 }
 
 /** A choice on a list: lit while it is the value held, which a reader hears as the option selected. */
@@ -864,7 +879,7 @@ function openOptions(ctx: AppContext, spec: OptionListSpec): void {
   const list = el("div", { class: `dropdown-list ${spec.listClass ?? ""}`.trim(), attrs: { role: "listbox" } });
   const sheet = el("div", { class: "dropdown-sheet", children: [list] });
   MODALS.set(sheet, { cancel: () => close() });
-  const close = ctx.overlay(sheet);
+  const close = ctx.overlay(sheet, spec.onClose);
   let held: HTMLElement | null = null;
   for (const option of spec.options) {
     const out = spec.disabled?.includes(option) === true;
@@ -907,14 +922,18 @@ function openOptions(ctx: AppContext, spec: OptionListSpec): void {
   (held ?? (list.firstElementChild as HTMLElement | null))?.focus();
 }
 
-/** A box that names a setting and opens the list of values it can take. */
+/** A box that names a setting and opens the list of values it can take, standing expanded while the list is up. */
 export function dropdown(ctx: AppContext, spec: DropdownSpec): HTMLElement {
-  return el("button", {
+  const node = el("button", {
     class: "dropdown-box",
-    attrs: { "aria-haspopup": "listbox", "aria-label": `${spec.label}: ${spec.value}` },
+    attrs: { "aria-haspopup": "listbox", "aria-expanded": "false", "aria-label": `${spec.label}: ${spec.value}` },
     children: [el("span", { text: spec.label }), el("span", { class: "dropdown-mark", text: "▼" })],
-    onTap: () => openOptions(ctx, spec),
+    onTap: () => {
+      node.setAttribute("aria-expanded", "true");
+      openOptions(ctx, { ...spec, onClose: () => node.setAttribute("aria-expanded", "false") });
+    },
   });
+  return node;
 }
 
 /**

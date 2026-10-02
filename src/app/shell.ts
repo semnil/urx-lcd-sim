@@ -361,7 +361,7 @@ export class Shell {
       class: `bank-btn bank-${side}${this.ctx.nav.current.id === "bank-select" ? " is-lit" : ""}`,
       attrs: {
         "aria-label": `${side === "input" ? "INPUT" : "OUTPUT"} channel bank ${active + 1} of ${total}`,
-        "aria-haspopup": "listbox",
+        "aria-expanded": String(this.ctx.nav.current.id === "bank-select"),
       },
       onTap: () => {
         if (this.ctx.nav.current.id === "bank-select") this.ctx.nav.back();
