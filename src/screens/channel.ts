@@ -287,7 +287,7 @@ function liveLamps(ctx: AppContext, spec: GrSpec): HTMLElement {
   return node;
 }
 
-/** GATE opens for a signal over the threshold and shuts once it is a range under. */
+/** GATE opens for a signal over the threshold and shuts once it takes off its whole range. */
 function gateLamps(ctx: AppContext, strip: Strip, base: string): HTMLElement {
   return liveLamps(ctx, { ...gateSpec(ctx, strip), base });
 }

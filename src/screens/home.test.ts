@@ -1299,8 +1299,9 @@ describe("what a channel view's blocks draw", () => {
     expect([firstPoint(curves[0])[0], lastX], "across the whole panel").toEqual([0, 78]);
     expect(firstPoint(curves[1])[1]! - firstPoint(curves[0])[1]!, "the lighter row half a pixel down").toBe(0.5);
 
-    // The lamps read the signal against the threshold and the range: shut, held
-    // under the threshold, or passing. A gate that is off lights none of them.
+    // The lamps read what the gate takes off: shut once it takes off its whole
+    // range, which it does at once at or under the threshold, and passing over
+    // it. A gate that is off lights none of them.
     const lamps = (): string[] =>
       [...shell.root.querySelectorAll(".block-lamp")].map((l) =>
         l.classList.contains("is-on")
@@ -1321,7 +1322,7 @@ describe("what a channel view's blocks draw", () => {
     await shell.ctx.store.set("ch.ch1.gate.on", true);
     await shell.ctx.store.set("ch.ch1.gate.range", -60);
     await flush();
-    expect(lamps(), "under the threshold but not yet down to the range").toEqual(["", "hold", ""]);
+    expect(lamps(), "under the threshold, shut to a range deeper than the level").toEqual(["shut", "", ""]);
 
     await shell.ctx.store.set("ch.ch1.gate.range", -10);
     await flush();
@@ -1330,6 +1331,35 @@ describe("what a channel view's blocks draw", () => {
     await shell.ctx.store.set("ch.ch1.gate.threshold", -96);
     await flush();
     expect(lamps(), "over the threshold").toEqual(["", "", "on"]);
+  });
+
+  it("shuts the gate's lamps on silence at its factory threshold and range, while its reduction bar reads the whole range", async () => {
+    const shell = await mount();
+    const store = shell.ctx.store;
+    expect([store.num("ch.ch1.gate.threshold", 0), store.num("ch.ch1.gate.range", 0)], "the factory values").toEqual([-50, -56]);
+    await store.set("ch.ch1.source", "None");
+    await store.set("ch.ch1.gate.on", true);
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    await flush();
+    const lamps = (): string[] =>
+      [...shell.root.querySelectorAll(".block-lamp")].map((l) =>
+        l.classList.contains("is-on") ? "on" : l.classList.contains("is-holding") ? "hold" : l.classList.contains("is-shut") ? "shut" : "",
+      );
+    expect(lamps(), "the left lamp red").toEqual(["shut", "", ""]);
+    // A level at the threshold itself has the gate take off its whole range, and one just over it none.
+    for (const [db, lit] of [[-50, ["shut", "", ""]], [-49, ["", "", "on"]]] as const) {
+      setMeterSource(() => [db]);
+      try {
+        shell.ctx.repaint();
+        await flush();
+        expect(lamps(), `at ${db} dB`).toEqual(lit);
+      } finally {
+        setMeterSource(null);
+      }
+    }
+    shell.ctx.nav.push({ id: "ch.gate", strip: "ch1" });
+    await flush();
+    expect(shell.root.querySelector<HTMLElement>(".dyn-gr i")?.style.height, "the bar at 56 dB").toBe(`${grBarShare(56) * 100}%`);
   });
 
   it("lights the ducker's lamps for its source against the threshold and the range", async () => {

@@ -479,9 +479,12 @@ bars (x209..224 / y86..100 in p096-2), and keeps `--accent-focus-fill` whether o
 (x305..320 / y87..101 and x350..376 / y89..98 in p096-4), its curve and the area under it in `--eq-focus-edge`,
 `--eq-focus-line` and `--eq-focus-fill` whether or not the block holds the focus.
 
-The GATE lamps light by comparing the input level with the threshold (p95): the middle one yellow
-while the level is below it, the right one green when above, and the left one red when the gain
-reduction has reached RANGE and the gate is fully closed. No lamp lights while GATE is off.
+The GATE lamps light by the gain reduction (p95): the left one red when it has reached RANGE and the
+gate is fully closed, the middle one yellow while the gate is opening or closing, and the right one
+green when the reduction is 0 dB and the gate is fully open. This simulator's GATE closes to RANGE as
+soon as the input is at or under the threshold and opens as soon as it is over, so the yellow one does
+not light ([known-issues.md](known-issues.md)). Silence at the shipped Threshold -50 dB and Range -56 dB
+lights the left one. No lamp lights while GATE is off.
 
 A DUCKER can listen to every input channel, mono and stereo alike, and to the STEREO, MIX 1 and MIX 2
 buses. The list names a channel by its numbers alone (`1`, `5/6`), the stereo bus `ST`, and a MIX bus

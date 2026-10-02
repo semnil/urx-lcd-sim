@@ -78,6 +78,9 @@ is built is in [screen-inventory.md](screen-inventory.md).
   screen stepped one bank, while a quick one across the whole screen went from CH 1 - 4 to FX 1 - 2 and back
   (URX44V, read by the operator on 2026-10-04). This simulator steps one bank a swipe, and stops at the INPUT
   side's first and last bank as the unit does.
+- **GATE opens and closes at once.** It keeps Attack, Hold and Decay as values, but closes to RANGE as
+  soon as the input is at or under the threshold and opens as soon as it is over, so the middle, yellow
+  one of the channel view's GATE lamps, which shows the gate opening or closing, does not light.
 
 ## What the unit itself does not do
 

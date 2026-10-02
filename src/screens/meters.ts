@@ -9,7 +9,7 @@
 
 import type { AppContext } from "../app/context";
 import type { DeviceStore } from "../device/store";
-import { grBarShare, levelBarShare } from "../model/dynamics";
+import { gateReductionDb, grBarShare, levelBarShare } from "../model/dynamics";
 import { DETECTOR_OFFSET, type DetectorKind, METER_FALL_DB_PER_S, SIGNAL_LAMP_DB } from "../model/levels";
 import { SILENT_DB } from "../model/signal";
 import type { Strip } from "../model/types";
@@ -165,8 +165,8 @@ export type LampState = "off" | "open" | "holding" | "shut";
 
 /**
  * How the lamps of the block named by `spec` stand: GATE opens over its threshold
- * and shuts a range under it, DUCKER opens under its threshold on its key and
- * shuts a range over it. A block that is off lights none.
+ * and shuts once it takes off its whole range, DUCKER opens under its threshold on
+ * its key and shuts a range over it. A block that is off lights none.
  */
 export function blockLampState(store: DeviceStore, spec: GrSpec, at = readingMoment()): LampState {
   const level = detectorLevel(store, spec, at);
@@ -175,7 +175,8 @@ export function blockLampState(store: DeviceStore, spec: GrSpec, at = readingMom
     if (!store.bool(`${b}.gate.on`, false)) return "off";
     const threshold = store.num(`${b}.gate.threshold`, GATE_DEFAULTS.threshold);
     const range = store.num(`${b}.gate.range`, GATE_DEFAULTS.range);
-    return level > threshold ? "open" : level <= threshold + range ? "shut" : "holding";
+    if (level > threshold) return "open";
+    return gateReductionDb(level, threshold, range) >= -range ? "shut" : "holding";
   }
   if (spec.kind === "ducker") {
     if (!store.bool(`${b}.ducker.on`, false)) return "off";
