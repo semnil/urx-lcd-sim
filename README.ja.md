@@ -46,7 +46,7 @@ pnpm dev
 | `pnpm test` | ユニットテスト |
 | `pnpm typecheck` | 型チェックのみ |
 
-外部ランタイム依存は無い。開発用の依存は TypeScript / Vite / Vitest だけ。
+外部ランタイム依存は無い。開発用の依存は `package.json` の `devDependencies` に記載したもの。
 
 ## ホスティング
 

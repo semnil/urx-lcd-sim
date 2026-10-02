@@ -49,7 +49,7 @@ pnpm dev
 | `pnpm test` | Unit tests |
 | `pnpm typecheck` | Typecheck only |
 
-No runtime dependencies. The dev dependencies are TypeScript, Vite and Vitest.
+No runtime dependencies. The dev dependencies are the ones `devDependencies` in `package.json` lists.
 
 ## Hosting
 
