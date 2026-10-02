@@ -2,7 +2,7 @@
 //
 // A few cities between the ends of the list are not confirmed against a unit. The time a city
 // keeps is its standard time, read through the browser's own time-zone data: the unit keeps no
-// summer time.
+// summer time. Casablanca keeps UTC+1 in every year (`Etc/GMT-1`, whose sign runs the POSIX way).
 
 /** Each city the [Time Zone] dialog lists, with the time zone it keeps. */
 const ZONES: readonly (readonly [string, string])[] = [
@@ -40,7 +40,7 @@ const ZONES: readonly (readonly [string, string])[] = [
   ["Canberra", "Australia/Sydney"],
   ["Cape Verde Is.", "Atlantic/Cape_Verde"],
   ["Caracas", "America/Caracas"],
-  ["Casablanca", "Africa/Casablanca"],
+  ["Casablanca", "Etc/GMT-1"],
   ["Cayenne", "America/Cayenne"],
   ["Central America", "America/Guatemala"],
   ["Central Time (US & Canada)", "America/Chicago"],

@@ -35,4 +35,10 @@ describe("the time zone cities", () => {
     expect(zoneOffsetMs("Pacific Time (US & Canada)", july)).toBe(-8 * HOUR);
     expect(zoneOffsetMs("Sydney", Date.UTC(2026, 0, 15)), "nor through the southern summer").toBe(10 * HOUR);
   });
+
+  it("keeps Casablanca an hour ahead of UTC in every year", () => {
+    for (const year of [2026, 2030, 2034]) {
+      expect([zoneOffsetMs("Casablanca", Date.UTC(year, 0, 1)), zoneOffsetMs("Casablanca", Date.UTC(year, 6, 1))], `${year}`).toEqual([HOUR, HOUR]);
+    }
+  });
 });
