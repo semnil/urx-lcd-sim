@@ -283,7 +283,9 @@ with the same words, or else, for a page step that goes, the one step the other 
 stands at that place (the shell's `focusPlace`). A value therefore turns press after press, and a switch can
 be pressed again without Tab. A screen put in place of the current one, as the four SSMCS screens step from one to
 the next, takes the focus onto its one control of the same kind and name, or else, for an arrow the screen at either
-end does not carry, onto its one arrow the other way. A rotary drawn beside a value box stays out of the Tab order, the box
+end does not carry, onto its one arrow the other way. The SCENE LIST and the card's lists likewise stay where they
+were scrolled before the redraw, so a row touched stays in view; the other bank of SCENE LIST and another folder on
+the card start from the top (the shell's `scrollPlace`). A rotary drawn beside a value box stays out of the Tab order, the box
 carrying its keys. A list's scroll bar answers the pointer alone; the keys scroll a list by moving through
 its rows, and the LICENSE text, which holds no rows, is a Tab stop of its own that rims its bar when it
 takes the focus. On SCENE LIST and the microSD lists the up and down arrow keys, Home and End move the focus

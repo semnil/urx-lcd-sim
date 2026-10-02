@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Keep SCENE LIST and the card's lists where they were scrolled when a row is touched. Each touch drew the list again from its top, so the row just picked went out of view, and a second touch on a folder to open it landed on another row.
 - Let go of the channel view a change of value has drawn again. Each change kept the screen it replaced in memory, and each later move of the focus ran over all of them.
 - Hold the marks either side of a held EQ band still when the browser asks for reduced motion, as the other blinking marks already were. They kept blinking.
 - Keep a channel name with a space in it on one line in the narrow name box of the screens under a channel view. It broke in two at the space and pushed `CH 1` off the top of the box.

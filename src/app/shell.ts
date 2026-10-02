@@ -221,6 +221,7 @@ export class Shell {
     const refocus = this.focusPlace();
     // The same screen of the same strip drawn again keeps down what is held down.
     const repress = this.drawn === route.id && this.drawnStrip === route.strip ? this.press.carry() : () => undefined;
+    const rescroll = this.scrollPlace();
     this.dim();
     this.drawn = route.id;
     this.moves = [];
@@ -274,7 +275,24 @@ export class Shell {
       for (const control of this.knobStripNode.querySelectorAll(INTERACTIVE)) control.toggleAttribute("inert", true);
     }
     repress();
+    rescroll();
     refocus();
+  }
+
+  /**
+   * The step that puts each list carrying `data-scroll-keep` back where the list
+   * of the same mark was scrolled before the redraw. A list whose mark no list
+   * carried before the redraw starts from its top.
+   */
+  private scrollPlace(): () => void {
+    const lists = (): HTMLElement[] => [...this.mainNode.querySelectorAll<HTMLElement>("[data-scroll-keep]")];
+    const was = new Map(lists().map((node) => [node.dataset.scrollKeep, node.scrollTop]));
+    return () => {
+      for (const node of lists()) {
+        const top = was.get(node.dataset.scrollKeep);
+        if (top !== undefined) node.scrollTop = top;
+      }
+    };
   }
 
   /**

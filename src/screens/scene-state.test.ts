@@ -623,3 +623,24 @@ describe("drawing the glass over a recall and a load", () => {
     expect(Math.max(p01, back, loaded), `drawn ${JSON.stringify({ p01, back, loaded })}`).toBeLessThanOrEqual(3);
   });
 });
+
+describe("the SCENE LIST", () => {
+  it("stays where it was scrolled when a row is touched, and opens the other bank at its top", async () => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "scene" });
+    shell.ctx.nav.push({ id: "scene.list" });
+    await flush();
+    const body = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".scene-list .list-body");
+    const before = body();
+    if (before) before.scrollTop = 1400;
+    before?.querySelectorAll<HTMLElement>(".list-row")[40]?.click();
+    await flush();
+    expect(shell.ctx.store.num("scene.selected", -1)).toBe(40);
+    expect(body(), "the touch drew the list again").not.toBe(before);
+    expect(body()?.scrollTop, "the row touched stays in view").toBe(1400);
+
+    [...shell.root.querySelectorAll<HTMLElement>(".scene-bank")].find((b) => b.textContent === "Simple")?.click();
+    await flush();
+    expect(body()?.scrollTop, "Simple's list from its first row").toBe(0);
+  });
+});

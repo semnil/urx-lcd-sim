@@ -183,8 +183,9 @@ function cardBrowser(ctx: AppContext, opts: BrowserOptions): HTMLElement {
   const body = list.querySelector<HTMLElement>(".list-body");
   // The well the thumb runs in, between the rims at each end of the bar. The
   // list's padding and the gaps between its rows come to whole rows, so the bar
-  // adds nothing before counting them.
-  const bar = body ? scrollbar(body, LIST_TRACK_PX, LIST_ROW_PITCH_PX, false, 0, LIST_THUMB_MIN_PX, { ctx, key: "sd.list" }) : null;
+  // adds nothing before counting them. A touch on a row leaves the list where it
+  // was scrolled; another folder starts from its top.
+  const bar = body ? scrollbar(body, LIST_TRACK_PX, LIST_ROW_PITCH_PX, false, 0, LIST_THUMB_MIN_PX, { ctx, key: "sd.list", keep: path }) : null;
   bar?.classList.add("sd-scrollbar");
 
   return el("div", {
