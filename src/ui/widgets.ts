@@ -479,10 +479,11 @@ const DRAG_FULL_RANGE_PX = 192;
 const DRAG_FINE = 0.2;
 
 /**
- * Make `node` turn `spec`. A vertical drag runs the whole range in
- * DRAG_FULL_RANGE_PX, or a fifth of it with Shift held; the wheel and the arrow
- * keys move one detent, or `fastStep` with Shift, and Home and End go to either
- * end; a key held with Alt, Cmd or Ctrl is left to the browser. `onEngage` runs
+ * Make `node` turn `spec`. A drag along `drag`'s axis (up the screen by default)
+ * runs the whole range in DRAG_FULL_RANGE_PX, or a fifth of it with Shift held;
+ * the wheel and the arrow keys move one detent, or with Shift `fastStep`, or four
+ * stops on a control with a `travel`, and Home and End go to either end; a key
+ * held with Alt, Cmd or Ctrl is left to the browser. `onEngage` runs
  * when a pointer or a key starts a turn. The value box, the rotaries and the
  * HOME strip level share this, so a parameter behaves the same wherever it is
  * reachable.
