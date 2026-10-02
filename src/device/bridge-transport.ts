@@ -42,6 +42,10 @@ export class BridgeTransport implements DeviceTransport {
   private unsubscribe: (() => void) | null = null;
   /** The subscribe the link has not answered yet, which every snapshot waiting on it shares. */
   private subscribing: Promise<void> | null = null;
+  /** How many snapshots are under way, each of them relying on the subscription. */
+  private snapshotsUnderWay = 0;
+  /** Whether a snapshot has been read in full, after which the following stays. */
+  private snapshotRead = false;
   private closed = false;
   private readonly listeners = new Set<(n: Notify) => void>();
   /**
@@ -61,16 +65,17 @@ export class BridgeTransport implements DeviceTransport {
   /**
    * Follow every bound address, then read each one. What the unit announces
    * while they are read goes to the listeners as it comes. A snapshot that
-   * cannot be read stops the following it started. A snapshot taken after
+   * cannot be read stops the following, unless another snapshot is still
+   * under way or one has already been read in full. A snapshot taken after
    * close is refused, and one the transport is closed during reads no further
    * address and is refused.
    */
   async snapshot(): Promise<Map<ParamPath, ParamValue>> {
     if (this.closed) throw new Error("transport closed");
-    const following = this.unsubscribe !== null;
-    await this.startFollowing();
-    const out = new Map<ParamPath, ParamValue>();
+    this.snapshotsUnderWay++;
     try {
+      await this.startFollowing();
+      const out = new Map<ParamPath, ParamValue>();
       for (const p of this.bindings.boundPaths()) {
         if (this.closed) throw new Error("transport closed");
         const b = this.bindings.forPath(p);
@@ -78,15 +83,18 @@ export class BridgeTransport implements DeviceTransport {
         if (b.isString) out.set(p, await this.bridge.getStr(b.addr));
         else out.set(p, b.codec.decode(await this.bridge.get(b.addr)));
       }
+      if (this.closed) throw new Error("transport closed");
+      this.snapshotRead = true;
+      return out;
     } catch (error) {
-      if (!following) {
+      if (this.snapshotsUnderWay === 1 && !this.snapshotRead) {
         this.unsubscribe?.();
         this.unsubscribe = null;
       }
       throw error;
+    } finally {
+      this.snapshotsUnderWay--;
     }
-    if (this.closed) throw new Error("transport closed");
-    return out;
   }
 
   async write(path: ParamPath, value: ParamValue): Promise<void> {

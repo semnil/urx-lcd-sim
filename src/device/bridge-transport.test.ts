@@ -96,6 +96,23 @@ function subscribingUnit(): DeviceLink & { subscribes: () => number; open: Set<(
   };
 }
 
+/** A transport bound to ch.ch1.level on a `subscribingUnit`, whose reads wait until the test answers or refuses each one. */
+function levelReadOnAnswer(): {
+  unit: ReturnType<typeof subscribingUnit>;
+  transport: BridgeTransport;
+  reads: { answer: (raw: number) => void; refuse: () => void }[];
+} {
+  const unit = subscribingUnit();
+  const reads: { answer: (raw: number) => void; refuse: () => void }[] = [];
+  const link: DeviceLink = {
+    ...unit,
+    get: () => new Promise<number>((resolve, reject) => reads.push({ answer: resolve, refuse: () => reject(new Error("read failed")) })),
+  };
+  const bindings = new BindingTable();
+  bindings.bind("ch.ch1.level", { addr: "level-addr", codec: identityCodec });
+  return { unit, transport: new BridgeTransport(link, bindings), reads };
+}
+
 /** A transport following ch.ch1.name, whose reads of the name after the snapshot wait until the test answers each one. */
 async function nameReadAgainOnAnswer(): Promise<{
   bridge: ReturnType<typeof fakeBridge>;
@@ -624,6 +641,52 @@ describe("BridgeTransport", () => {
     transport.close();
 
     expect([unit.subscribes(), seen, unit.open.size]).toEqual([1, [33], 0]);
+  });
+
+  it("keeps following the unit when the first of two overlapping snapshots cannot be read and the second is", async () => {
+    const { unit, transport, reads } = levelReadOnAnswer();
+    const store = new DeviceStore();
+
+    const first = store.attach(transport);
+    const second = store.attach(transport);
+    await tick();
+    reads[0]!.refuse();
+    await expect(first).rejects.toThrow("read failed");
+    reads[1]!.answer(10);
+    await second;
+    for (const onUpdate of [...unit.open]) onUpdate("level-addr", 55);
+
+    expect([store.kind, unit.open.size, store.num("ch.ch1.level")]).toEqual(["bridge", 1, 55]);
+  });
+
+  it("keeps following the unit when the first of two overlapping snapshots cannot be read after the second is", async () => {
+    const { unit, transport, reads } = levelReadOnAnswer();
+    const store = new DeviceStore();
+
+    const first = store.attach(transport);
+    const second = store.attach(transport);
+    await tick();
+    reads[1]!.answer(10);
+    await second;
+    reads[0]!.refuse();
+    await expect(first).rejects.toThrow("read failed");
+    for (const onUpdate of [...unit.open]) onUpdate("level-addr", 55);
+
+    expect([store.kind, unit.open.size, store.num("ch.ch1.level")]).toEqual(["bridge", 1, 55]);
+  });
+
+  it("leaves no subscription open when neither of two overlapping snapshots can be read", async () => {
+    const { unit, transport, reads } = levelReadOnAnswer();
+
+    const first = transport.snapshot();
+    const second = transport.snapshot();
+    await tick();
+    reads[0]!.refuse();
+    await expect(first).rejects.toThrow("read failed");
+    reads[1]!.refuse();
+    await expect(second).rejects.toThrow("read failed");
+
+    expect([unit.subscribes(), unit.open.size]).toEqual([1, 0]);
   });
 });
 
