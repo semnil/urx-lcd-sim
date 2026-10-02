@@ -1296,7 +1296,9 @@ and URX44 run the same laws, bar the number of channels.
 - The detectors of GATE, COMP, DUCKER, the SSMCS compressor and M.B.Comp hear
   a set distance off the meter's reading, set by the block and by whether the signal is a tone or a noise
   (`DETECTOR_OFFSET`). A DUCKER keyed by a stereo source (a stereo channel or a bus) hears from the two
-  sides summed. A channel key is taken at that channel's Rec Point.
+  sides summed. A channel key is taken at that channel's Rec Point. The SSMCS compressor hears the SSMCS input taken through
+  the side chain's bell (SC-Q, SC-Freq., SC-Gain) as the EQ takes a signal while the side chain is on, and the input
+  itself while it is off.
 
 ### What each meter reads
 
@@ -1308,7 +1310,7 @@ and URX44 run the same laws, bar the number of channels.
 | The channel view's LEVEL meter | After the fader (on MIX and STEREO, after the INS FX; on STREAMING, after its DELAY) |
 | The channel view's input area and the INPUT screen's meters | On a channel, its input; on FX, what its bus brings (one bar); on MIX and STEREO, the sum (before the EQ); on STREAMING, before its DELAY |
 | A block screen's IN / OUT | The block's own input and output; the three SSMCS screens the whole strip's, DELAY's OUT after the delay |
-| The COMP Side Chain screen's SC meter | The SSMCS input plus the SC-Gain |
+| The COMP Side Chain screen's SC meter | The SSMCS input through the side chain's bell (SC-Q, SC-Freq., SC-Gain) |
 | The MONITOR screen's meter | After the LEVEL |
 | A RECORDER track's meter | A channel at its Rec Point, a bus as it goes out |
 | OUT on RECORDER's Play and Edit tabs | What the file playing puts out (after microSD Playback's D.Gain); silent while stopped or paused (after [■] and paused, URX44V, the operator, 2026-10-03) |

@@ -1114,7 +1114,8 @@ URX22 と URX44 も、チャンネル数の違いのほかは同じ法則で動�
   `FX_RETURN_DB`)。FX2 は 176.4 / 192 kHz で入力も戻りも無音になる。
 - GATE・COMP・DUCKER・SSMCS のコンプ・M.B.Comp の検出器は、メーターの読みから決まった量だけ離れた大きさを
   聞く。量はブロックと、信号がトーンかノイズかで決まる (`DETECTOR_OFFSET`)。DUCKER のキーがステレオ (ステレオのチャンネルとバス) のときは
-  L と R を足した大きさから聞く。キーがチャンネルのときは、そのチャンネルの Rec Point で取る。
+  L と R を足した大きさから聞く。キーがチャンネルのときは、そのチャンネルの Rec Point で取る。SSMCS のコンプは、Side Chain が入のあいだは
+  SSMCS の入口を Side Chain のベル (SC-Q・SC-Freq.・SC-Gain) に EQ と同じ形で通した大きさから、切のあいだは入口そのものから聞く。
 
 ### 各メーターが読む点
 
@@ -1126,7 +1127,7 @@ URX22 と URX44 も、チャンネル数の違いのほかは同じ法則で動�
 | チャンネルビューの LEVEL メーター | フェーダーの後 (MIX と STEREO は INS FX の後、STREAMING は DELAY の後) |
 | チャンネルビューの入力部と INPUT 画面のメーター | チャンネルは入力、FX はバスから受け取るもの (1 本)、MIX と STEREO は足し合わせ (EQ の前)、STREAMING は DELAY の前 |
 | 処理ブロックの画面の IN / OUT | そのブロックの入口と出口。SSMCS の 3 画面は SSMCS 全体の入口と出口、DELAY の OUT は遅延の後 |
-| COMP Side Chain 画面の SC メーター | SSMCS の入口に SC-Gain を足した大きさ |
+| COMP Side Chain 画面の SC メーター | SSMCS の入口を Side Chain のベル (SC-Q・SC-Freq.・SC-Gain) に通した大きさ |
 | MONITOR 画面のメーター | LEVEL の後 |
 | RECORDER のトラックのメーター | チャンネルはその Rec Point、バスは出力 |
 | RECORDER の Play・Edit タブの OUT | 再生中のファイルが出すもの (microSD Playback の D.Gain の後)。止まっている・一時停止中は無音 ([■] の後と一時停止中は URX44V、2026-10-03 操作者確認) |

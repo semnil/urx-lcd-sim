@@ -12,7 +12,7 @@ import type { DeviceStore } from "../device/store";
 import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, GATE_DEFAULTS, SSMCS_DEFAULTS, faderShipped } from "../model/defaults";
 import { COMPANDER_EXPANSION, COMP_KNEE_WIDTH, OVER_REDUCTION_MAX_DB, SSMCS_CORNER_FLOOR_DB, compReductionDb, companderResponse, duckerReductionDb, gateReductionDb, ssmcsCorner } from "../model/dynamics";
 import { bandResponse } from "../model/eq-response";
-import { SSMCS_BAND_KEYS, fourBandResponse, fourBands, pinkGainDb, ssmcsBand, ssmcsEqResponse } from "../model/channel-eq";
+import { SSMCS_BAND_KEYS, fourBandResponse, fourBands, pinkGainDb, ssmcsBand, ssmcsEqResponse, ssmcsSideChain, ssmcsSideChainResponse } from "../model/channel-eq";
 import { type EffectOption, FX_EFFECTS, FX_EFFECT_DEFAULT, INPUT_INSERT_EFFECTS, NO_EFFECT, OUTPUT_INSERT_EFFECTS, effectParams, guitarOutputDb } from "../model/effects";
 import {
   DETECTOR_OFFSET,
@@ -56,7 +56,7 @@ export type Tap =
   | "preGate"
   /** After GATE: into COMP, or into the SSMCS strip. */
   | "preComp"
-  /** What the SSMCS compressor listens through; on COMP -> EQ the same as preComp. */
+  /** On SSMCS what the side chain's bell feeds the compressor, nothing while the chain or the compressor is off; on COMP -> EQ the same as preComp. */
   | "sideChain"
   /** Into the EQ: after COMP, and on a stereo channel after Φ. */
   | "preEq"
@@ -398,9 +398,11 @@ export function compSpec(fc: FlowCtx, strip: Strip): GrSpec {
   return { kind: "comp", base, level, makeup: fc.store.num(`${base}.comp.gain`, COMP_DEFAULTS.gain) };
 }
 
-/** The SSMCS compressor, which hears its own channel. */
-export function ssmcsSpec(strip: Strip): GrSpec {
-  return { kind: "ssmcs", base: `ch.${strip.id}`, level: tapId(strip.id, "preComp"), makeup: 0 };
+/** The SSMCS compressor, which hears its own channel through the side chain's bell, and what goes into the strip while the chain is open. */
+export function ssmcsSpec(fc: FlowCtx, strip: Strip): GrSpec {
+  const base = `ch.${strip.id}`;
+  const keyed = fc.store.bool(`${base}.ssmcs.sc.on`, SSMCS_DEFAULTS.sc.on);
+  return { kind: "ssmcs", base, level: tapId(strip.id, keyed ? "sideChain" : "preComp"), makeup: 0 };
 }
 
 /**
@@ -558,6 +560,13 @@ function ssmcsEqOf(store: DeviceStore, base: string): Eq {
   return { db: pinkGainOf(store, `${base}.ssmcsEq`, () => ["ssmcs", SSMCS_BAND_KEYS.map((key) => ssmcsBand(store, base, key))], response), response };
 }
 
+/** The bell the SSMCS compressor listens through. */
+function sideChainOf(store: DeviceStore, base: string): Eq {
+  const sc = ssmcsSideChain(store, base);
+  const response = () => ssmcsSideChainResponse(sc);
+  return { db: pinkGainOf(store, `${base}.ssmcsSc`, () => ["ssmcsSc", sc], response), response };
+}
+
 /** Whether an effect runs at the sampling frequency the unit is at. */
 const runs = (option: EffectOption | undefined, rate: number): boolean => option !== undefined && (option.maxRate === undefined || rate <= option.maxRate);
 
@@ -690,9 +699,9 @@ function monoChannels(f: FlowBuilder, sums: Sums): void {
     if (store.str(`${b}.compEqOrder`, "COMP->EQ") === "SSMCS") {
       const strip = store.bool(`${b}.ssmcs.on`, SSMCS_DEFAULTS.on);
       const keyed = store.bool(`${b}.comp.on`, false) && strip && store.bool(`${b}.ssmcs.sc.on`, SSMCS_DEFAULTS.sc.on);
-      f.put(s.id, "sideChain", [keyed ? gain(into, store.num(`${b}.ssmcs.sc.gain`, SSMCS_DEFAULTS.sc.gain)) : []]);
+      f.put(s.id, "sideChain", [keyed ? through(into, sideChainOf(store, b)) : []]);
       const made = strip ? store.num(`${b}.ssmcs.outGain`, SSMCS_DEFAULTS.outGain) : 0;
-      f.put(s.id, "preIns", [gain(through(into, strip ? ssmcsEqOf(store, b) : FLAT), made - f.reduction(ssmcsSpec(s)))]);
+      f.put(s.id, "preIns", [gain(through(into, strip ? ssmcsEqOf(store, b) : FLAT), made - f.reduction(ssmcsSpec(fc, s)))]);
       continue;
     }
     f.put(s.id, "sideChain", [into]);
