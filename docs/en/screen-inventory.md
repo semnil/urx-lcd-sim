@@ -1829,15 +1829,17 @@ title's keyboard.
 ## The focus frame
 
 Of the controls the unit's knob turns, only the one touched holds the focus, shown in magenta (`--accent-focus`). None
-holds it when a screen opens or after moving to another screen, with three exceptions: EQ opens holding the band picked
+holds it when a screen opens or after moving to another screen, with these exceptions: EQ opens holding the band picked
 last (LOW at first), one band shared by every channel's EQ, which a reload keeps and [Reset the unit] brings back to
-LOW; the COMP and EQ screens with 1-knob on open with the focus pinned on the level (below); and BRIGHTNESS, whose only
-turnable value is Screen, opens holding it.
+LOW; SSMCS EQ opens holding the band picked last there (MID at first), one band shared by every channel and kept apart
+from EQ's; the COMP and EQ screens with 1-knob on open with the focus pinned on the level (below); and BRIGHTNESS, whose
+only turnable value is Screen, opens holding it.
 
 - Value boxes: a frame and a fill (`--accent-focus-fill`). A popup's values (DATE / TIME's date and time), HOME's strip
   levels and the knob readout along the bottom of the screen take none.
 - Scroll bars: touching the list or text, or the bar, turns the rim magenta. SCENE LIST, microSD's lists, LICENSE, the
-  input source sheet, DATE / TIME's TIME ZONE and USER DEFINED KNOBS' assignment columns (only the column touched).
+  input source sheet, SSMCS's Sweet Spot Data sheet, DATE / TIME's TIME ZONE and USER DEFINED KNOBS' assignment columns
+  (only the column touched).
   A pulldown's option list and the pulldown box take none.
 - The dynamics handles and EQ's band rings: the rim, and triangles blinking on both sides of the way the value moves
   (left and right for LOW and HIGH, above and below for LOW MID and HIGH MID).
