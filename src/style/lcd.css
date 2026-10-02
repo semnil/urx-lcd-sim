@@ -6967,15 +6967,27 @@
 }
 
 /* The card's name over what it leaves, top right in the same place on every
- * card screen. */
+ * card screen, the two lines no wider than the main area leaves them. */
 .sd-free {
   position: absolute;
   left: 312px;
+  right: 0;
   top: 5px;
   white-space: pre-line;
   text-align: left;
   font-size: 12px;
   color: var(--text);
+}
+
+/* A name too long for its line ends in `…`, as every other name too long for
+ * its box does. Its line stands as tall as the free space's, at the same place. */
+.sd-free-name {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: top;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* A list the unit draws as separate boxes on a tray: the 2px around and between

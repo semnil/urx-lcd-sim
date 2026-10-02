@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- End a card name too long for its line in `…` at the main area's right edge on TOOLS, SAVE/LOAD and RECORDER, the free space staying on the line under it. An 11-character volume label of wide letters such as `W` was cut off part-way through a letter at that edge, and a label with a space in it broke onto two lines and pushed the free space a line down.
 - Take a touch over 36x36 at the default scale on the readout bar's page steps, the USER DEFINED KNOBS bank steps and a list's scroll bar and thumb, which draw as they did. Only what they draw took a touch, as little as 16x17 screen pixels for a page step and 8 across for a thumb.
 - Show the end of a title wider than the title sheet's field, with the caret, and bring a caret moved back past the start of what shows to the field's left edge. Sixteen wide characters such as `W` ran past the field's right edge, the last of them and the caret out of sight.
 - Keep the title row above the screen and the notes under it inside a window narrower than the frame around the screen, the unit model, the display scale and [Reset the unit] wrapping onto further rows; only the frame runs past the window. They took the frame's width, so on a phone, or in a desktop window at 150% and 200%, the selectors and [Reset the unit] stood outside the window.

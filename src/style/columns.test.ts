@@ -3296,6 +3296,17 @@ describe("the channel, monitor and microSD parts measured against the guide's fi
     expect(px(declarations(CSS, ".tools-report-value")["left"])).toBe(146);
     expect(px(declarations(CSS, ".tools-report-row.is-sub .tools-report-value")["left"])).toBe(101);
   });
+
+  it("ends a card name too long for its line in `…` at the main area's right edge, the free space under it where it was", () => {
+    // The two lines run from x312 to the right edge of the box they stand in:
+    // the browser spans the main area, and TOOLS stands them on the main area.
+    expect(px(declarations(CSS, ".sd-free")["right"])).toBe(0);
+    expect(declarations(CSS, ".sd-browser")["width"]).toBe("100%");
+    const name = declarations(CSS, ".sd-free-name");
+    expect([name["white-space"], name["overflow"], name["text-overflow"]]).toEqual(["nowrap", "hidden", "ellipsis"]);
+    expect([name["display"], name["max-width"]], "no wider than the two lines' box").toEqual(["inline-block", "100%"]);
+    expect(name["vertical-align"], "the name's line as tall as the free space's").toBe("top");
+  });
 });
 
 describe("SCENE LIST's Edit tab and the title entry sheet", () => {

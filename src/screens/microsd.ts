@@ -207,7 +207,7 @@ function cardBrowser(ctx: AppContext, opts: BrowserOptions): HTMLElement {
           el("div", { class: "sd-path-field", children: [el("span", { text: path })] }),
         ],
       }),
-      el("div", { class: "sd-free", text: cardLabel(ctx) }),
+      el("div", { class: "sd-free", children: cardLabel(ctx) }),
       list,
       ...(bar ? [bar] : []),
       el("div", { class: "sd-actions", children: actions }),
@@ -280,9 +280,9 @@ function cardName(ctx: AppContext): string {
   return ctx.store.str("sd.cardName", "test");
 }
 
-/** The card's name over what it leaves, as every card screen carries it. */
-function cardLabel(ctx: AppContext): string {
-  return `${cardName(ctx)}\n${freeText(ctx)}`;
+/** The card's name over what it leaves, as every card screen carries it. The name stands on a line of its own. */
+function cardLabel(ctx: AppContext): Node[] {
+  return [el("span", { class: "sd-free-name", text: cardName(ctx) }), document.createTextNode(`\n${freeText(ctx)}`)];
 }
 
 /** Leave the card with nothing on it. */
@@ -834,7 +834,7 @@ export const toolsScreen: ScreenDef = {
         class: "tools-screen",
         children: [
           button(tab === "Format" ? "Format microSD" : "Test microSD", () => (tab === "Format" ? askVolumeLabel(ctx) : testCard(ctx))),
-          el("div", { class: "sd-free tools-free", text: cardLabel(ctx) }),
+          el("div", { class: "sd-free tools-free", children: cardLabel(ctx) }),
           ...(tested ? [testReport()] : []),
         ],
       }),

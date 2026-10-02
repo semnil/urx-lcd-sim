@@ -246,6 +246,7 @@ describe("the microSD card browser", () => {
     await shell.ctx.store.set("sd.cardName", "SONG 1");
     await flush();
     expect(shell.root.querySelector(".sd-free")?.textContent?.split("\n")[0], "the name follows the card").toBe("SONG 1");
+    expect(shell.root.querySelector(".sd-free > .sd-free-name")?.textContent, "on a line of its own, which ends a long name").toBe("SONG 1");
   });
 
   it("changes only the actions between the two SAVE/LOAD tabs", async () => {
