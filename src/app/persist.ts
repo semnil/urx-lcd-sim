@@ -186,7 +186,7 @@ export function keepModel(model: string): void {
   try {
     window.localStorage.setItem(MODEL_KEY, model);
   } catch {
-    // A browser that refuses to store it opens the simulator on its first model.
+    // A browser that refuses to store it opens the simulator next time on the model `lastModel` finds.
   }
 }
 
