@@ -521,6 +521,51 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     expect(outside).toEqual([]);
   });
 
+  it.each(STRIPS)("keeps a finger dragging what it took, rather than the page (%s)", async (strip) => {
+    // The browser hands a finger's travel to the page unless the place it lands
+    // takes the touch; the drag then ends in a cancel a few pixels in. A part of an
+    // SVG drawing takes it through the drawing.
+    const takes = (node: Element): string => {
+      const surface = node instanceof SVGElement ? (node.ownerSVGElement ?? node) : node;
+      return (surface as HTMLElement).style.touchAction;
+    };
+    const registry = buildRegistry();
+    const loose: string[] = [];
+    const seen = { drags: 0, drawn: 0, lists: 0 };
+    for (const id of registry.ids()) {
+      const { shell } = await mount();
+      await open(shell, { id, strip });
+      const drags = shell.root.querySelectorAll(
+        '[role="slider"]:not([aria-disabled="true"]), [role="spinbutton"]:not([aria-disabled="true"]), .knob-graphic.is-control, .eq-grip:not(.is-fixed)',
+      );
+      for (const node of drags) {
+        seen.drags += 1;
+        if (node instanceof SVGElement) seen.drawn += 1;
+        if (takes(node) !== "none") loose.push(`${id} (${strip}): ${node.getAttribute("aria-label") ?? node.className}`);
+      }
+      // A list is scrolled by dragging its rows or its bar's thumb.
+      for (const node of shell.root.querySelectorAll(".scroll-host, .scroll-thumb")) {
+        seen.lists += 1;
+        if (takes(node) !== "none") loose.push(`${id} (${strip}): ${node.className}`);
+      }
+    }
+    expect(seen.drags, "the sweep found controls a drag turns").toBeGreaterThan(30);
+    expect(seen.lists, "and lists").toBeGreaterThan(0);
+    if (strip === "ch1") expect(seen.drawn, "and grips drawn on a plot").toBeGreaterThan(0);
+    expect(loose).toEqual([]);
+  });
+
+  it("lets a sideways finger on HOME step the bank, and scroll the page on the other screens", async () => {
+    const { shell } = await mount();
+    const main = (): string | undefined => shell.root.querySelector<HTMLElement>(".main")?.style.touchAction;
+    expect(main(), "HOME keeps the page's own scroll up and down").toBe("pan-y");
+    await open(shell, { id: "setup" });
+    expect(main(), "SETUP leaves the touch to the page").toBe("");
+    shell.ctx.nav.home();
+    await flush();
+    expect(main()).toBe("pan-y");
+  });
+
   it("finds screens that bind knobs at all, so the sweep cannot pass vacuously", async () => {
     const registry = buildRegistry();
     let binding = 0;

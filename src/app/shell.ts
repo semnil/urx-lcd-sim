@@ -482,6 +482,13 @@ export class Shell {
 
   /** Swiping the main area left or right steps the channel bank. */
   private attachSwipe(): void {
+    // On HOME a sideways finger steps the bank, and one up or down still scrolls the page.
+    const swipes = (): boolean => this.ctx.nav.current.id === "home";
+    const takeTouch = (): void => {
+      this.mainNode.style.touchAction = swipes() ? "pan-y" : "";
+    };
+    takeTouch();
+    this.ctx.nav.onChange(takeTouch);
     let startX: number | null = null;
     this.mainNode.addEventListener("pointerdown", (ev) => {
       if ((ev.target as HTMLElement).closest(INTERACTIVE)) return;
@@ -491,7 +498,7 @@ export class Shell {
       if (startX === null) return;
       const dx = ev.clientX - startX;
       startX = null;
-      if (this.ctx.nav.current.id !== "home" || Math.abs(dx) < 40) return;
+      if (!swipes() || Math.abs(dx) < 40) return;
       stepBank(this.ctx, dx < 0 ? 1 : -1);
     });
   }

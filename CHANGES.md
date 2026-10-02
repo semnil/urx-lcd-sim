@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Let a finger drag the readout bar's cells, the EQ grips, the handles on the dynamics plots, and a list's rows and scroll thumb as far as the mouse does, and step HOME's channel bank by a sideways swipe; the page took the touch over a few pixels in. Elsewhere a sideways finger on the main area still scrolls the page.
 - Read a send into a FIXED MIX bus as the unit does: `Fixed` under `Level` on SEND TO's readout bar, where the division stood empty, and `Fixed` for the level on HOME's [Sends] view, where the stored level stayed.
 - Switch a MIX bus's Pan Link off when its BUS Type goes to FIXED, as the unit does; it stays off when the bus goes back to VARI.
 - Leave each send into a MIX bus where Pan Link put it when Pan Link goes off, as the unit does: switching Pan Link on moves each send's own placing to its source's position, and it no longer comes back to the placing it had before. On SEND TO, the cell of a bus on Pan Link is named `Pan` for a channel placed by its PAN, and turning it turns the channel's own position.

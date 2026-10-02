@@ -159,6 +159,9 @@ export function scrollbar(
     window.addEventListener("pointercancel", up);
   };
 
+  // A finger on the rows or on the thumb scrolls the list and leaves the page where it is.
+  target.style.touchAction = "none";
+  thumb.style.touchAction = "none";
   target.addEventListener("pointerdown", (ev) => {
     target.focus({ preventScroll: true });
     drag(ev, (moved) => -moved);
@@ -520,6 +523,10 @@ export function attachDrag(ctx: AppContext, node: HTMLElement, spec: NumericSpec
   const sense = (drag.sense ?? 1) * (axis === "x" ? -1 : 1);
   const along = (ev: { clientX: number; clientY: number }): number => (axis === "x" ? ev.clientX : ev.clientY) * sense;
   const put = (v: number): void => putValue(ctx, spec, v);
+  // A finger turns the value and leaves the page where it is. A grip drawn in an
+  // SVG holds its whole drawing still under the finger.
+  node.style.touchAction = "none";
+  if (node instanceof SVGElement) node.ownerSVGElement?.style.setProperty("touch-action", "none");
   node.addEventListener("pointerdown", (ev) => {
     onEngage?.();
     if (standsStill(ctx, spec)) return;

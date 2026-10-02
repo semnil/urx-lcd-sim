@@ -976,16 +976,17 @@ export function plotHandle(
   grp.setAttribute("aria-valuemin", String(turns.spec.min));
   grp.setAttribute("aria-valuemax", String(turns.spec.max));
   grp.setAttribute("aria-valuetext", formatValue(turns.spec, value));
+  // Every handle's marks go in the one layer, kept after the last handle drawn.
+  // The grip stands on its plot before it takes the drag, so a finger on it holds the plot.
+  const layer = [...svg.children].find((n) => n.classList.contains("dyn-handle-marks")) ?? document.createElementNS(NS, "g");
+  layer.setAttribute("class", "dyn-handle-marks");
+  layer.appendChild(marks);
+  svg.append(grp, layer);
   const node = grp as unknown as HTMLElement;
   makeTappable(node, () => ctx.focus.take(turns.spec));
   attachSpin(ctx, node, turns.spec, () => ctx.focus.take(turns.spec), { axis, ...(turns.sense ? { sense: turns.sense } : {}) });
   markFocus(ctx, grp, held, "is-held");
   markFocus(ctx, marks, held, "is-held");
-  // Every handle's marks go in the one layer, kept after the last handle drawn.
-  const layer = [...svg.children].find((n) => n.classList.contains("dyn-handle-marks")) ?? document.createElementNS(NS, "g");
-  layer.setAttribute("class", "dyn-handle-marks");
-  layer.appendChild(marks);
-  svg.append(grp, layer);
 }
 
 /** A caption over a value box, as the dynamics screens stack them down the right. */
