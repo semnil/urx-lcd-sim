@@ -5,13 +5,15 @@
 // integration: give it a link and a filled BindingTable and the same screens
 // drive hardware.
 //
-// Three rules it will not bend:
+// Four rules it will not bend:
 //   - An unbound path is refused, never guessed onto some nearby address.
 //   - A value its codec does not turn into a finite number is refused before
 //     anything is sent.
 //   - A snapshot that cannot be read completely is an error, not a partial
 //     answer: a half-read screen invites an edit against values that were
 //     never established.
+//   - After close, a write or a snapshot is refused and no subscription is
+//     left open on the link.
 
 import type { ParamPath, ParamValue } from "./path";
 import type { DeviceTransport, Notify } from "./transport";
@@ -38,6 +40,9 @@ export class BridgeTransport implements DeviceTransport {
   readonly kind = "bridge" as const;
 
   private unsubscribe: (() => void) | null = null;
+  /** The subscribe the link has not answered yet, which every snapshot waiting on it shares. */
+  private subscribing: Promise<void> | null = null;
+  private closed = false;
   private readonly listeners = new Set<(n: Notify) => void>();
   /**
    * The newest write to each address that no notify has followed yet. A notify
@@ -56,9 +61,11 @@ export class BridgeTransport implements DeviceTransport {
   /**
    * Follow every bound address, then read each one. What the unit announces
    * while they are read goes to the listeners as it comes. A snapshot that
-   * cannot be read stops the following it started.
+   * cannot be read stops the following it started. A snapshot taken after
+   * close, or one the transport is closed during, is refused.
    */
   async snapshot(): Promise<Map<ParamPath, ParamValue>> {
+    if (this.closed) throw new Error("transport closed");
     const following = this.unsubscribe !== null;
     await this.startFollowing();
     const out = new Map<ParamPath, ParamValue>();
@@ -76,10 +83,12 @@ export class BridgeTransport implements DeviceTransport {
       }
       throw error;
     }
+    if (this.closed) throw new Error("transport closed");
     return out;
   }
 
   async write(path: ParamPath, value: ParamValue): Promise<void> {
+    if (this.closed) throw new Error("transport closed");
     const b = this.bindings.forPath(path);
     if (!b) throw new UnboundPathError(path);
     if (b.isString) {
@@ -104,6 +113,7 @@ export class BridgeTransport implements DeviceTransport {
   }
 
   close(): void {
+    this.closed = true;
     this.unsubscribe?.();
     this.unsubscribe = null;
     this.listeners.clear();
@@ -114,16 +124,25 @@ export class BridgeTransport implements DeviceTransport {
   /**
    * Follow every bound address, so an edit made on the unit's own panel lands
    * on the simulated screen. This is the direction that makes the simulator a
-   * mirror rather than a one-way remote.
+   * mirror rather than a one-way remote. Snapshots that overlap share one
+   * subscribe.
    */
-  private async startFollowing(): Promise<void> {
-    if (this.unsubscribe) return;
+  private startFollowing(): Promise<void> {
+    if (this.unsubscribe) return Promise.resolve();
+    this.subscribing ??= this.follow().finally(() => {
+      this.subscribing = null;
+    });
+    return this.subscribing;
+  }
+
+  /** Subscribe to every bound address; a subscription the link answers after close is let go at once. */
+  private async follow(): Promise<void> {
     const addrs = this.bindings
       .boundPaths()
       .map((p) => this.bindings.forPath(p)?.addr)
       .filter((a): a is string => typeof a === "string");
     if (addrs.length === 0) return;
-    this.unsubscribe = await this.bridge.subscribe(addrs, (addr, raw) => {
+    const unsubscribe = await this.bridge.subscribe(addrs, (addr, raw) => {
       const p = this.bindings.pathForAddr(addr);
       if (p === undefined) return;
       const b = this.bindings.forPath(p);
@@ -136,6 +155,8 @@ export class BridgeTransport implements DeviceTransport {
       this.inFlight.delete(addr);
       this.emit({ path: p, value: b.codec.decode(raw), echo });
     });
+    if (this.closed) unsubscribe();
+    else this.unsubscribe = unsubscribe;
   }
 
   /**

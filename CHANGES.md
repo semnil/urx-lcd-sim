@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Write nothing to a unit connected through a `BridgeTransport` once the transport is closed, and leave no subscription open on it: a write or a snapshot after close is refused, where the rest of a settings file load still running went on to the unit, and a subscription the unit answers after close, or a second one taken by snapshots that overlap, no longer stays open.
 - Refuse a write to a unit connected through a `BridgeTransport` when its binding does not turn the value into a finite number, sending nothing and putting the screen back: an enumeration's tag bound with `identityCodec` went to the unit as `NaN` and was taken as written.
 - Show a name changed on a unit connected through a `BridgeTransport`: a notify for a string address reads the address again and passes on its string, where the notify's number replaced the name and left it blank.
 - Take a change made on a unit connected through a `BridgeTransport` while its snapshot is read: the transport subscribes before it reads, where a change made between the read of an address and the subscription stayed off the screen until the unit changed it again.

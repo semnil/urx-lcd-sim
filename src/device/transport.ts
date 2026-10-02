@@ -46,6 +46,6 @@ export interface DeviceTransport {
   /** Register for device-originated changes. Returns an unsubscribe function. */
   onNotify(listener: (n: Notify) => void): () => void;
 
-  /** Release any connection. Safe to call more than once. */
+  /** Release any connection. Safe to call more than once. A write after close is refused. */
   close(): void;
 }
