@@ -1582,7 +1582,8 @@ label. [Test microSD] on the Test tab holds up the modal `Loading...` uses, read
 3 seconds. Once the test has run, `Result : A` stands
 right of the button, and below it Card specs, BUS Interface, UHS Speed Class, Speed Class, 2 Tracks Recording and
 Multi Tracks Recording, one line every 25px, the grade and the two recording lines in `--test-pass` (p088-2). The
-report's values are the ones the guide's figure shows.
+report's values are the ones the guide's figure shows. The report stays through other screens and a format, and goes
+once the card is taken out, as the unit does.
 
 [Play/Pause] plays the file selected in the list; pressed while it plays, it pauses, and pressed again it goes back to
 playing that file. Another file plays once [■] has stopped this one (the NOTE under Play in the user guide's "RECORDER

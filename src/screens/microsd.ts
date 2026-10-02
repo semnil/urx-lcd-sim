@@ -77,7 +77,8 @@ export const microsdScreen: ScreenDef = {
 
 /**
  * The button that takes the card out. It asks what the unit asks, and [OK]
- * stands for the card being pulled from the slot. In recording mode and while a
+ * stands for the card being pulled from the slot, which lets go of the file
+ * playback holds and of the card test's result. In recording mode and while a
  * file plays it is out of reach, and so it is while `held` says playback holds
  * a file paused.
  */
@@ -90,6 +91,7 @@ function ejectButton(ctx: AppContext, held = false): HTMLElement {
         okOnly: true,
         onOk: () => {
           stopPlayback(ctx.store);
+          void ctx.store.set("sd.tested", false);
           void ctx.store.set("sd.mounted", false);
         },
       }),

@@ -80,7 +80,8 @@ flowchart TB
 `urx-lcd-sim.state`、機種とバージョンが合わないものは読まない。
 
 戻さないのは**そのときやっていたこと**で、録音・再生の走行 (`sd.rec` ほか) と入力中の下書き
-(`ui.titleEntry.` / `ui.dateTimeDraft.`) は電源を入れ直した実機と同じく止まった状態で開く。
+(`ui.titleEntry.` / `ui.dateTimeDraft.`) は電源を入れ直した実機と同じく止まった状態で開く。TOOLS の Test の結果
+(`sd.tested`) も、電源を入れ直した実機と同じく戻さない。
 工場出荷状態へ戻すのは画面外の [Reset the unit] で、その場で確認を出してから保存を消して起動し直す。
 
 前の形で保存した値は読むときに今の形へ直す。チャンネルビューの [SAFE] が [Clip Safe] と別のスイッチだった

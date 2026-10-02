@@ -5283,6 +5283,63 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
     expect(shell.ctx.store.bool("sd.tested", false)).toBe(false);
   });
 
+  it("keeps a card test's result across other screens and a format, and drops it once the card is taken out", async () => {
+    const shell = await mount();
+    const toolsTab = async (tab: string): Promise<void> => {
+      shell.ctx.nav.openTop({ id: "microsd" });
+      shell.ctx.nav.push({ id: "microsd.tools" });
+      await shell.ctx.store.set("ui.sdToolsTab", tab);
+      await flush();
+    };
+    const okDialog = async (): Promise<void> => {
+      [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === "OK")?.click();
+      await flush();
+    };
+    const run = async (start: () => void): Promise<void> => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        start();
+        for (let i = 0; i < 5; i++) await Promise.resolve();
+        vi.advanceTimersByTime(60_000);
+      } finally {
+        vi.useRealTimers();
+      }
+      await flush();
+    };
+    const report = (): boolean => shell.root.querySelector(".tools-report") !== null;
+
+    await toolsTab("Test");
+    await run(() => shell.root.querySelector<HTMLElement>(".tools-screen > .btn")?.click());
+    expect(report(), "the result once the test has run").toBe(true);
+
+    shell.ctx.nav.home();
+    await flush();
+    await toolsTab("Test");
+    expect(report(), "back from HOME").toBe(true);
+
+    await shell.ctx.store.set("sd.card", JSON.stringify([{ name: "a.wav", kind: "take", seconds: 10, tracks: 2, stamp: "", dir: "/" }]));
+    await toolsTab("Format");
+    shell.root.querySelector<HTMLElement>(".tools-screen .btn")?.click();
+    await flush();
+    shell.root.querySelector<HTMLElement>(".pick-dialog-ok")?.click();
+    await flush();
+    await run(() => [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === "OK")?.click());
+    expect(shell.ctx.store.str("sd.card", ""), "the card formatted").toBe("[]");
+    await toolsTab("Test");
+    expect(report(), "after a format").toBe(true);
+
+    shell.root.querySelector<HTMLElement>(".toolbar .sd-eject")?.click();
+    await flush();
+    await okDialog();
+    expect(shell.ctx.store.bool("sd.mounted", true), "the card out").toBe(false);
+    shell.root.querySelector<HTMLElement>(".sd-no-card")?.click();
+    await flush();
+    await okDialog();
+    await toolsTab("Test");
+    expect([shell.ctx.store.bool("sd.mounted", false), report()], "the card back in, and no result").toEqual([true, false]);
+    expect(shell.root.querySelector(".tools-screen > .btn")?.textContent).toBe("Test microSD");
+  });
+
   it("shows a take's frequency and time on RECORDER only while it records", async () => {
     const shell = await mount();
     shell.ctx.nav.push({ id: "microsd.recorder" });

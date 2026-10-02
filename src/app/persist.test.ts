@@ -32,6 +32,20 @@ describe("what a reload carries over", () => {
     }
   });
 
+  it("leaves out the result of a card test, as a unit switched off does", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = await unit();
+    const stop = startSaving(store, MODEL, 10);
+    await store.set("ui.sdToolsTab", "Test");
+    await store.set("sd.tested", true);
+    vi.advanceTimersByTime(20);
+    stop();
+
+    const next = await unit();
+    await restore(next, MODEL);
+    expect([next.str("ui.sdToolsTab", ""), next.bool("sd.tested", false)], "the tab back, and no result on it").toEqual(["Test", false]);
+  });
+
   it("brings the values back on the next start", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const store = await unit();

@@ -87,7 +87,8 @@ read.
 
 What is left out is **what the unit was doing** at that moment: a take or a playback running
 (`sd.rec` and the rest) and a name half typed (`ui.titleEntry.`, `ui.dateTimeDraft.`) come back
-stopped, as they do on a unit that has been switched off. [Reset the unit], outside the screen, asks
+stopped, as they do on a unit that has been switched off. The result of TOOLS' card test (`sd.tested`)
+is left out too, as a unit switched off no longer shows it. [Reset the unit], outside the screen, asks
 in place and then forgets what was stored and starts again from the unit as it ships.
 
 A value stored in an earlier form is brought to the current one as it is read. A state stored while

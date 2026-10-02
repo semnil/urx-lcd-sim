@@ -1368,7 +1368,8 @@ TOOLS のツールバーにもカード取り出しボタンを置く (p087-1)�
 ボリュームラベルにする。Test タブの [Test microSD] は、`Loading...` と同じ形のモーダルを `Testing in progress...` の
 文言で 3 秒出した後、ボタンの右に `Result : A`、その下に Card specs・
 BUS Interface・UHS Speed Class・Speed Class・2 Tracks Recording・Multi Tracks Recording を 25px ごとに並べ、
-評価と録音の 2 行を `--test-pass` にする (p088-2)。表の値はガイドの図のまま。
+評価と録音の 2 行を `--test-pass` にする (p088-2)。表の値はガイドの図のまま。結果は、実機と同じく、他の画面へ移っても
+フォーマットしても残り、カードを抜くと消える。
 
 [Play/Pause] は一覧で選んだファイルを再生し、再生中に押すと一時停止、もう一度押すとそのファイルの再生に戻る。
 別のファイルは [■] で止めてから再生する (ユーザーガイド「RECORDER menu」の Play の NOTE)。再生するのはカードに入った

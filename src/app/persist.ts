@@ -5,7 +5,8 @@
 // read back when the simulator opens on the same model. What the unit was doing
 // at that moment — a take running, a file playing, a name half typed — is not
 // part of that: those come back stopped, as they do on a unit that has been
-// switched off.
+// switched off. Nor is the result of a card test, which such a unit no longer
+// shows.
 
 import type { ParamPath, ParamValue } from "../device/path";
 import type { DeviceStore } from "../device/store";
@@ -34,6 +35,7 @@ const IN_FLIGHT = [
   "sd.playSince",
   "sd.playSeconds",
   "sd.playingFile",
+  "sd.tested",
   "ui.titleEntry.",
   "ui.dateTimeDraft.",
 ];
