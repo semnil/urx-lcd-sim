@@ -187,7 +187,9 @@ be pressed again without Tab. A screen put in place of the current one, as the f
 the next, takes the focus onto its one control of the same kind and name. A rotary drawn beside a value box stays out of the Tab order, the box
 carrying its keys. A list's scroll bar answers the pointer alone; the keys scroll a list by moving through
 its rows, and the LICENSE text, which holds no rows, is a Tab stop of its own that rims its bar when it
-takes the focus. The still of HOME on Operation Mode is `inert` and holds no Tab stop. The keys of the title sheet
+takes the focus. On SCENE LIST and the microSD lists the up and down arrow keys, Home and End move the focus
+from row to row too and leave the selection where it is; Enter or Space takes a row. The still of HOME on
+Operation Mode is `inert` and holds no Tab stop. The keys of the title sheet
 are pressed by a finger, so they hold no Tab stop either; the field itself holds one (`role="textbox"`) and takes
 what a browser's keyboard sends. A press on one of the keys or on the clear button leaves the focus in the field, and a
 focus standing outside the field goes into it, so the browser's keys go on typing. Only the characters the unit's own keys can type go in, and their case comes from

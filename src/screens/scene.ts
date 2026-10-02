@@ -231,7 +231,7 @@ export const sceneScreen: ScreenDef = {
       glyphButton("Title", Icons.rename(), editable && !guarded, () => openTitleEntry(ctx, titlePath, sceneTitle(ctx, selected))),
     ];
 
-    const list = listView(["No.", "Title", "Lock"], rows, "list-carded scene-list");
+    const list = listView("Scene List", ["No.", "Title", "Lock"], rows, "list-carded scene-list");
     const body = list.querySelector<HTMLElement>(".list-body");
     // The padding and the gaps between rows come to whole rows, as on the card's list.
     const bar = body ? scrollbar(body, SCENE_TRACK_PX, SCENE_ROW_PITCH_PX, false, 0, LIST_THUMB_MIN_PX, { ctx, key: "scene.list" }) : null;

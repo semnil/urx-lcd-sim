@@ -111,6 +111,8 @@ function insertCardLine(ctx: AppContext): HTMLElement {
 
 /** What a card browser is made of, beyond the entries themselves. */
 interface BrowserOptions {
+  /** What the list is named for a reader who cannot see the screen. */
+  listName: string;
   /** The name over the column that follows the file names. */
   metaColumn: string;
   /** What that column reads for an entry. */
@@ -131,7 +133,7 @@ interface BrowserOptions {
  * open, its entries as list rows, and the actions of the tab under them.
  */
 function cardBrowser(ctx: AppContext, opts: BrowserOptions): HTMLElement {
-  const { metaColumn, meta, actions, extraClass = "", fileIcon = () => Icons.file(), fileNote = () => undefined, listed = () => true } = opts;
+  const { listName, metaColumn, meta, actions, extraClass = "", fileIcon = () => Icons.file(), fileNote = () => undefined, listed = () => true } = opts;
   const entries = cardEntries(ctx);
   const selected = ctx.store.num("sd.selectedFile", 0);
   const path = cardPath(ctx);
@@ -152,7 +154,7 @@ function cardBrowser(ctx: AppContext, opts: BrowserOptions): HTMLElement {
     }))
     .filter((_, i) => (entries[i] as CardEntry).dir === path && listed(entries[i] as CardEntry, i));
 
-  const list = listView(["", "File Name", metaColumn], rows, "list-carded sd-list");
+  const list = listView(listName, ["", "File Name", metaColumn], rows, "list-carded sd-list");
   const body = list.querySelector<HTMLElement>(".list-body");
   // The well the thumb runs in, between the rims at each end of the bar. The
   // list's padding and the gaps between its rows come to whole rows, so the bar
@@ -552,6 +554,7 @@ export const recorderScreen: ScreenDef = {
       // tab lists a take recorded at another frequency than the unit is running.
       const playList = (entry: CardEntry): boolean => entry.kind === "folder" || (entry.tracks < MULTITRACK && recorderLists(ctx, entry));
       const browser = cardBrowser(ctx, {
+        listName: "RECORDER files",
         metaColumn: "Time",
         meta: (entry) => (entry.kind === "take" ? formatClock(entry.seconds) : ""),
         actions,
@@ -672,7 +675,7 @@ export const saveLoadScreen: ScreenDef = {
             return markShut(button(label, () => (usable ? saveLoadAction(ctx, label) : undefined)), !usable);
           });
     return {
-      main: cardBrowser(ctx, { metaColumn: "Date/Time", meta: (entry) => entry.stamp, actions }),
+      main: cardBrowser(ctx, { listName: "SAVE/LOAD files", metaColumn: "Date/Time", meta: (entry) => entry.stamp, actions }),
       side: (["Save/\nLoad", "Edit"] as const).map((t) =>
         sideTab(t, tab === t, () => void ctx.store.set("ui.sdSaveTab", t), t === "Edit" ? Icons.edit() : Icons.save(), t === "Edit" ? "is-name-raised" : "is-name-apart"),
       ),

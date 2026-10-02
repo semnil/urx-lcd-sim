@@ -784,12 +784,26 @@ export interface ListRow {
   description?: string | undefined;
 }
 
-export function listView(columns: string[], rows: ListRow[], extraClass = ""): HTMLElement {
+/**
+ * A list of rows under a head, named `name`. The arrow keys, Home and End move
+ * the focus along the rows and leave the selection where it is; Enter or Space
+ * takes the row, as a touch does.
+ */
+export function listView(name: string, columns: string[], rows: ListRow[], extraClass = ""): HTMLElement {
   const head = el("div", {
     class: "list-head",
     children: columns.map((c) => el("div", { class: "list-cell", text: c })),
   });
-  const body = el("div", { class: "list-body", attrs: { role: "listbox" } });
+  const body = el("div", { class: "list-body", attrs: { role: "listbox", "aria-label": name } });
+  body.addEventListener("keydown", (ev) => {
+    const all = [...body.children] as HTMLElement[];
+    const at = all.indexOf(ev.target as HTMLElement);
+    const to: Record<string, number> = { ArrowUp: at - 1, ArrowDown: at + 1, Home: 0, End: all.length - 1 };
+    const next = to[ev.key];
+    if (at < 0 || next === undefined) return;
+    ev.preventDefault();
+    all[next]?.focus();
+  });
   for (const r of rows) {
     const row = el("div", {
       class: `list-row${r.selected ? " is-selected" : ""}`,

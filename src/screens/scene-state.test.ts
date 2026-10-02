@@ -375,4 +375,42 @@ describe("what SCENE LIST's rows tell assistive technology", () => {
     expect(s.num("scene.current", -1)).toBe(2);
     expect(described(), "02 recalled").toEqual(["factory scene", "protected", "recalled"]);
   });
+
+  it("names the list, whose rows the arrow keys, Home and End step the focus along, the selection staying where it is", async () => {
+    const shell = await mount();
+    document.body.appendChild(shell.root);
+    try {
+      shell.ctx.nav.push({ id: "scene" });
+      shell.ctx.nav.push({ id: "scene.list" });
+      await flush();
+      const body = shell.root.querySelector(".scene-list .list-body");
+      const rows = [...shell.root.querySelectorAll<HTMLElement>(".scene-list .list-row")];
+      /** A key going down on the row holding the focus: whether the list took it, and the rows that hold the focus and the selection then. */
+      const key = (name: string): (boolean | number)[] => {
+        const ev = new KeyboardEvent("keydown", { key: name, bubbles: true, cancelable: true });
+        document.activeElement?.dispatchEvent(ev);
+        return [ev.defaultPrevented, rows.indexOf(document.activeElement as HTMLElement), shell.ctx.store.num("scene.selected", 0)];
+      };
+      expect([body?.getAttribute("role"), body?.getAttribute("aria-label"), rows.length]).toEqual(["listbox", "Scene List", 64]);
+      rows[0]?.focus();
+      const seen = ["ArrowDown", "ArrowDown", "ArrowUp", "End", "ArrowDown", "Home", "ArrowUp", "ArrowRight"].map((name) => [name, ...key(name)]);
+      expect(seen).toEqual([
+        ["ArrowDown", true, 1, 0],
+        ["ArrowDown", true, 2, 0],
+        ["ArrowUp", true, 1, 0],
+        ["End", true, 63, 0],
+        ["ArrowDown", true, 63, 0],
+        ["Home", true, 0, 0],
+        ["ArrowUp", true, 0, 0],
+        ["ArrowRight", false, 0, 0],
+      ]);
+      const selected = [...shell.root.querySelectorAll(".scene-list .list-row")].map((r) => r.getAttribute("aria-selected")).indexOf("true");
+      expect([shell.ctx.store.num("scene.selected", 0), selected], "the selection where it was").toEqual([0, 0]);
+      (body as HTMLElement | null)?.focus();
+      expect([document.activeElement === body, ...key("ArrowDown")], "the list itself leaves the key to its own scroll").toEqual([true, false, -1, 0]);
+    } finally {
+      shell.destroy();
+      shell.root.remove();
+    }
+  });
 });
