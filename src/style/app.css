@@ -13,7 +13,7 @@ body {
   font-size: 13px;
   display: flex;
   flex-direction: column;
-  /* "safe center" keeps a panel wider than the window from being clipped at the
+  /* "safe center" keeps an item wider than the window from being clipped at the
    * left, where centred overflow is unreachable. Browsers without it fall back
    * to the plain keyword on the line above. */
   align-items: center;
@@ -21,9 +21,16 @@ body {
   gap: 16px;
 }
 
-/* As wide as the glass and sitting over it, so the chrome's text wraps where the
- * screen ends. The frame around the glass is wider, and it is what the column is
- * sized by, so these two centre themselves inside it. */
+/* The column spans the window, so the chrome over and under the glass is bounded
+ * by it, and a frame around the glass wider than the window runs past its right
+ * edge, where the page scrolls to it. */
+#app {
+  width: 100%;
+}
+
+/* As wide as the glass, or as the window where that is narrower, so the chrome's
+ * text wraps where the screen ends. The chrome and the frame around the glass
+ * both centre themselves in the column, so the chrome sits over the glass. */
 .chrome,
 .chrome-foot {
   width: min(calc(var(--lcd-w) * var(--scale) * var(--zoom, 1)), 100%);
@@ -45,10 +52,12 @@ body {
   letter-spacing: 0.02em;
 }
 
+/* The controls wrap onto further rows in a chrome narrower than they are. */
 .chrome-controls {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .chrome-select {

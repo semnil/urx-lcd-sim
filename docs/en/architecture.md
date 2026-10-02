@@ -233,7 +233,9 @@ Outside that there is one more display scale. The selector at the top of the pag
 150% / 200%) and `?zoom=` supply `--zoom`, and the `transform: scale()` on `.lcd` scales the screen by
 the product of `--scale` and `--zoom`. The width and height of `.lcd-frame` come from the same
 product, so the space the screen takes in the layout follows the scale and the page scrolls to reach
-it. The scaling is one transform because an outer `zoom` over an inner `transform` shifts the edges of
+it. The rows above and below the screen (`.chrome` / `.chrome-foot`) take the width of the glass, and no
+more than the window's width inside the page's margins, so only the frame runs past a narrow window.
+The scaling is one transform because an outer `zoom` over an inner `transform` shifts the edges of
 the parts drawn pixel by pixel by one screen pixel at some scales.
 
 Dragging a value looks only at the difference in the pointer's movement on the page, so the same

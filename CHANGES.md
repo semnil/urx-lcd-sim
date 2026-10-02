@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Keep the title row above the screen and the notes under it inside a window narrower than the frame around the screen, the unit model, the display scale and [Reset the unit] wrapping onto further rows; only the frame runs past the window. They took the frame's width, so on a phone, or in a desktop window at 150% and 200%, the selectors and [Reset the unit] stood outside the window.
 - Keep SCENE LIST and the card's lists where they were scrolled when a row is touched. Each touch drew the list again from its top, so the row just picked went out of view, and a second touch on a folder to open it landed on another row.
 - Let go of the channel view a change of value has drawn again. Each change kept the screen it replaced in memory, and each later move of the focus ran over all of them.
 - Hold the marks either side of a held EQ band still when the browser asks for reduced motion, as the other blinking marks already were. They kept blinking.

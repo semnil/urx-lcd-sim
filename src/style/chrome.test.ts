@@ -20,6 +20,14 @@ describe("the chrome around the glass", () => {
     expect(/\b\d+px\b/.test(width ?? ""), `no fixed width in ${width}`).toBe(false);
   });
 
+  it("is bounded by a window narrower than the glass, which only the frame around the glass runs past", () => {
+    // The chrome's 100% is the column's width, and the column spans the window
+    // rather than growing to the frame's width.
+    expect(declarations(APP, "#app")["width"], "the column spans the window").toBe("100%");
+    // The controls wrap onto further rows inside the narrowed chrome.
+    expect(declarations(APP, ".chrome-controls")["flex-wrap"]).toBe("wrap");
+  });
+
   it("centres on the glass, which the frame around it is wider than", () => {
     expect(declarations(APP, ".chrome")["margin-inline"]).toBe("auto");
   });
