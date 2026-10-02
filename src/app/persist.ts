@@ -252,6 +252,8 @@ export interface Saving {
 /**
  * Write the unit to storage whenever it changes, and no more often than
  * `delayMs`, telling `onWrite` after each write whether the browser took it.
+ * Once another tab of the browser stores the unit or forgets it, stop writing,
+ * so as not to write over it, and tell `onElsewhere`.
  * Returns the steps that end it.
  */
 export function startSaving(
@@ -259,6 +261,7 @@ export function startSaving(
   model: string,
   delayMs = 400,
   onWrite: (kept: boolean) => void = () => {},
+  onElsewhere: () => void = () => {},
 ): Saving {
   let timer = 0;
   const save = (): void => {
@@ -278,17 +281,26 @@ export function startSaving(
     if (timer) return;
     timer = window.setTimeout(save, delayMs);
   });
+  const stop = (): void => {
+    if (timer) window.clearTimeout(timer);
+    timer = 0;
+    off();
+    window.removeEventListener("storage", elsewhere);
+  };
+  // A storage event reaches a tab only for a write another tab made.
+  const elsewhere = (ev: StorageEvent): void => {
+    if (ev.key !== KEY) return;
+    stop();
+    onElsewhere();
+  };
+  window.addEventListener("storage", elsewhere);
   return {
     flush: () => {
       if (!timer) return;
       window.clearTimeout(timer);
       save();
     },
-    stop: () => {
-      if (timer) window.clearTimeout(timer);
-      timer = 0;
-      off();
-    },
+    stop,
   };
 }
 

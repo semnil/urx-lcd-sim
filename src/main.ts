@@ -35,6 +35,9 @@ const RESET_HOLD_MS = 500;
 /** What the chrome says while the browser does not take the unit. */
 const UNKEPT_TEXT = "The browser is not keeping the unit: changes made now will not come back after a reload.";
 
+/** What the chrome says once another tab has stored the unit and this one stores it no more. */
+const ELSEWHERE_TEXT = "Another tab has stored the unit, so this tab no longer stores it: changes made here will not come back after a reload.";
+
 function applyZoom(percent: number): void {
   document.documentElement.style.setProperty("--zoom", String(percent / 100));
   document.documentElement.dataset["zoom"] = String(percent);
@@ -68,12 +71,22 @@ async function boot(modelId: ModelId, mount: HTMLElement): Promise<void> {
   await store.attach(transport);
   await restore(store, modelId);
   // Stands under the chrome's controls while the browser refuses the unit, full
-  // or blocked, and goes once a write is taken again.
+  // or blocked, and goes once a write is taken again. Once another tab has
+  // stored the unit, it says so instead and stays until the unit starts again.
   const unkept = el("p", { class: "chrome-unkept", text: UNKEPT_TEXT, attrs: { role: "status" } });
   unkept.hidden = true;
-  const saving = startSaving(store, modelId, undefined, (kept) => {
-    unkept.hidden = kept;
-  });
+  const saving = startSaving(
+    store,
+    modelId,
+    undefined,
+    (kept) => {
+      unkept.hidden = kept;
+    },
+    () => {
+      unkept.textContent = ELSEWHERE_TEXT;
+      unkept.hidden = false;
+    },
+  );
   flushMounted = saving.flush;
 
   const shell = new Shell(buildRegistry(), store, model);

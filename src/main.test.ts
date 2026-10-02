@@ -412,3 +412,24 @@ describe("a browser that does not take the unit", () => {
     await until("the notice to go", () => notice()?.hidden === true);
   });
 });
+
+describe("a unit another tab stores", () => {
+  const notice = (): HTMLElement | null => document.querySelector<HTMLElement>("header.chrome .chrome-unkept");
+
+  it("is left as that tab stored it, with the chrome saying so, until a reload", async () => {
+    await openPage();
+    const theirs = JSON.stringify({ version: 1, model: "URX44V", values: { "ch.ch1.level": -20 } });
+    window.localStorage.setItem(STATE_KEY, theirs);
+    window.dispatchEvent(new StorageEvent("storage", { key: STATE_KEY, newValue: theirs, storageArea: window.localStorage }));
+    await nudge();
+    await pause(600);
+    expect(window.localStorage.getItem(STATE_KEY), "what the other tab stored stays").toBe(theirs);
+    expect(notice()?.hidden, "the chrome says this tab stores no more").toBe(false);
+    expect(notice()?.textContent).toMatch(/another tab/i);
+
+    await openPage();
+    expect(shownLevel(), "a reload opens on what the other tab stored").toBe("-20");
+    expect(notice()?.hidden).toBe(true);
+    expect(await nudgeLevel("URX44V"), "and stores again").not.toBe("-20");
+  });
+});

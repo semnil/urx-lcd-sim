@@ -127,6 +127,10 @@ and takes this shape the next time it is written. When the browser refuses a wri
 it keeps the unit it last took; for as long as that lasts, a line under the controls outside the screen says the
 browser is not keeping the unit, and it goes once a write is taken again.
 
+When another tab of the same browser writes the unit or forgets it ([Reset the unit]), a tab that was open stops
+writing, so as not to write over the other tab's unit, and says so on the same line. It writes again once it starts
+again, on a reload or a switch of model.
+
 ```mermaid
 flowchart LR
   ST["DeviceStore"] -->|"on change, 400 ms after the last"| LS["localStorage<br/>urx-lcd-sim.state"]

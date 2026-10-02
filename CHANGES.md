@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Stop storing the unit in a tab once another tab of the same browser stores it or resets it, and say so on the line under the controls outside the screen. Two tabs each stored their own unit over the other's, so a reload dropped what the other tab had changed without a word.
 - Keep a page the browser brings back on [Back] running as it was left. After leaving for another page and coming back, the values did not change, the meters stood still, Escape did nothing and no change was stored until a reload.
 - Say, on a line under the controls outside the screen, when the browser does not take the unit (it is full, or stores nothing), until a write is taken again. A change the browser did not take was lost on the next reload without a word.
 - Write each scene memory's mixer once in the browser however many settings files hold it, and a settings file as its values rather than as text. A unit holding 63 scene memories ran out of the browser's room at its second settings file.

@@ -335,6 +335,46 @@ describe("what a reload carries over", () => {
     stop();
     expect(took).toEqual([false, true]);
   });
+
+  it("stops writing once another tab stores the unit, and tells so", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = await unit();
+    let told = 0;
+    const { stop, flush } = startSaving(store, MODEL, 10, undefined, () => told++);
+    /** Another tab of the same browser writing `value` under `key`, as this tab hears of it. */
+    const elsewhere = (key: string, value: string): void => {
+      window.localStorage.setItem(key, value);
+      window.dispatchEvent(new StorageEvent("storage", { key, newValue: value, storageArea: window.localStorage }));
+    };
+    elsewhere("urx-lcd-sim.model", MODEL);
+    await store.set("ch.ch1.level", -9);
+    flush();
+    expect(readSaved(MODEL)?.["ch.ch1.level"], "another tab opening on a model is no reason to stop").toBe(-9);
+    expect(told).toBe(0);
+
+    elsewhere("urx-lcd-sim.state", JSON.stringify({ version: 1, model: MODEL, values: { "ch.ch1.level": -20 } }));
+    await store.set("ch.ch2.level", -5);
+    vi.advanceTimersByTime(20);
+    flush();
+    expect(readSaved(MODEL), "what the other tab stored stays").toEqual({ "ch.ch1.level": -20 });
+    expect(told).toBe(1);
+    elsewhere("urx-lcd-sim.state", JSON.stringify({ version: 1, model: MODEL, values: { "ch.ch1.level": -21 } }));
+    expect(told, "told once, having stopped").toBe(1);
+    stop();
+  });
+
+  it("stops writing once another tab forgets the unit", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = await unit();
+    let told = 0;
+    const { stop } = startSaving(store, MODEL, 10, undefined, () => told++);
+    window.dispatchEvent(new StorageEvent("storage", { key: "urx-lcd-sim.state", newValue: null, storageArea: window.localStorage }));
+    await store.set("ch.ch1.level", -9);
+    vi.advanceTimersByTime(20);
+    expect(readSaved(MODEL), "[Reset the unit] in the other tab stays done").toBeNull();
+    expect(told).toBe(1);
+    stop();
+  });
 });
 
 describe("the room a unit takes in the browser", () => {
