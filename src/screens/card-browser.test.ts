@@ -115,6 +115,49 @@ describe("the microSD card browser", () => {
     expect(picked()).toBe(1);
   });
 
+  it("moves the list and its thumb as far on the screen as the pointer moves, however large the glass is drawn", async () => {
+    const card = Array.from({ length: 20 }, (_, i) => entry(`take${i}.wav`, "take", 10));
+    const shell = await mount({ id: "microsd.saveload" }, card);
+    // The glass drawn at twice its own size, as the page's default 100% draws it.
+    const glass = shell.root;
+    const drawn = { left: 0, top: 0, right: 960, bottom: 544, width: 960, height: 544, x: 0, y: 0 };
+    glass.getBoundingClientRect = () => ({ ...drawn, toJSON: () => drawn }) as DOMRect;
+    Object.defineProperty(glass, "offsetWidth", { value: 480, configurable: true });
+    const list = shell.root.querySelector<HTMLElement>(".sd-list .scroll-host") as HTMLElement;
+    const thumb = shell.root.querySelector<HTMLElement>(".sd-scrollbar .scroll-thumb") as HTMLElement;
+    let scrolled = 0;
+    Object.defineProperty(list, "scrollHeight", { value: 20 * 38, configurable: true });
+    Object.defineProperty(list, "clientHeight", { value: 114, configurable: true });
+    Object.defineProperty(list, "scrollTop", {
+      configurable: true,
+      get: () => scrolled,
+      set: (v: number) => {
+        scrolled = Math.max(0, Math.min(20 * 38 - 114, v));
+        list.dispatchEvent(new Event("scroll"));
+      },
+    });
+    const at = (type: string, y: number): MouseEvent => new MouseEvent(type, { bubbles: true, clientY: y });
+
+    list.scrollTop = 200;
+    list.dispatchEvent(at("pointerdown", 100));
+    window.dispatchEvent(at("pointermove", 97));
+    expect(list.scrollTop, "a move inside the slop is still a tap").toBe(200);
+    window.dispatchEvent(at("pointermove", 94));
+    expect(list.scrollTop, "the slop is measured on the page").toBe(203);
+    window.dispatchEvent(at("pointermove", 80));
+    window.dispatchEvent(at("pointerup", 80));
+    expect(list.scrollTop - 200, "20 page px up is 10 of the glass's own px").toBe(10);
+    await flush();
+
+    list.scrollTop = 100;
+    const top = (): number => Number.parseFloat(thumb.style.top);
+    const from = top();
+    thumb.dispatchEvent(at("pointerdown", 100));
+    window.dispatchEvent(at("pointermove", 110));
+    window.dispatchEvent(at("pointerup", 110));
+    expect(top() - from, "10 page px down is 5 of the glass's own px").toBeCloseTo(5, 6);
+  });
+
   it("carries the path bar and how much of the card is left", async () => {
     const shell = await mount({ id: "microsd.saveload" });
     expect(shell.root.querySelector(".sd-path-field")?.textContent).toBe("/");

@@ -8,7 +8,7 @@
 import type { AppContext } from "../app/context";
 import { clamp } from "../device/store";
 import { levelBarShare } from "../model/dynamics";
-import { OFF_MARK, el, makeTappable, setPressed } from "./dom";
+import { OFF_MARK, drawnScale, el, makeTappable, setPressed } from "./dom";
 import { Icons } from "./icons";
 import type { NumericSpec } from "./param-spec";
 import { KNOB_SIZE, KNOB_START_DEG, KNOB_SWEEP_DEG, formatValue, unitOf } from "./param-spec";
@@ -133,8 +133,12 @@ export function scrollbar(
   // directly. The gesture is followed on the window so it survives the pointer
   // leaving the list, and a drag that passed the slop swallows the click the
   // list would otherwise end it in, so a row under the finger does not fire.
+  // The list and the thumb move as far on the screen as the pointer does, at
+  // whatever scale the glass is drawn; the slop is measured on the page.
   const drag = (start: PointerEvent, reach: (moved: number) => number): void => {
     const from = target.scrollTop;
+    const glass = target.closest<HTMLElement>(".lcd");
+    const scale = glass ? drawnScale(glass) : 1;
     let dragged = false;
     const swallow = (ev: Event): void => {
       ev.stopPropagation();
@@ -144,7 +148,7 @@ export function scrollbar(
       const moved = m.clientY - start.clientY;
       if (!dragged && Math.abs(moved) < DRAG_SLOP_PX) return;
       dragged = true;
-      target.scrollTop = from + reach(moved);
+      target.scrollTop = from + reach(moved / scale);
     };
     const up = (): void => {
       window.removeEventListener("pointermove", move);

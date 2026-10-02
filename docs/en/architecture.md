@@ -151,7 +151,10 @@ it. The scaling is one transform because an outer `zoom` over an inner `transfor
 the parts drawn pixel by pixel by one screen pixel at some scales.
 
 Dragging a value looks only at the difference in the pointer's movement on the page, so the same
-physical distance moves the value by the same amount at any scale.
+physical distance moves the value by the same amount at any scale. Dragging a list or its
+scrollbar's thumb divides the pointer's movement by the scale the glass is drawn at, turning it into
+the glass's own pixels, so the list and the thumb move as far on the screen as the pointer at any
+scale.
 
 ## Accessibility
 
