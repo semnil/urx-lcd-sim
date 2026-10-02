@@ -128,6 +128,62 @@ describe("BridgeTransport", () => {
     expect(bridge.writes).toEqual([["level-addr", -650]]);
   });
 
+  it("refuses a value its codec does not turn into a number, sending nothing", async () => {
+    const bridge = fakeBridge();
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.signalType", { addr: "type-addr", codec: identityCodec });
+    const transport = new BridgeTransport(bridge, bindings);
+
+    await expect(transport.write("ch.ch1.signalType", "STEREO")).rejects.toThrow();
+    expect(bridge.writes).toEqual([]);
+  });
+
+  it("refuses an infinite value its codec passes on as it is, sending nothing", async () => {
+    const bridge = fakeBridge();
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.comp.ratio", { addr: "ratio-addr", codec: identityCodec });
+    const transport = new BridgeTransport(bridge, bindings);
+
+    await expect(transport.write("ch.ch1.comp.ratio", Number.POSITIVE_INFINITY)).rejects.toThrow();
+    expect(bridge.writes).toEqual([]);
+  });
+
+  it("puts back a value its codec does not turn into a number and reports the refusal", async () => {
+    const bridge = fakeBridge();
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.signalType", { addr: "type-addr", codec: identityCodec });
+    const store = new DeviceStore();
+    await store.attach(new BridgeTransport(bridge, bindings));
+    const failures: [unknown, unknown][] = [];
+    store.onWriteFailure((f) => failures.push([f.attempted, f.restored]));
+
+    await store.set("ch.ch1.signalType", "STEREO");
+
+    expect(store.get("ch.ch1.signalType", "unset")).toBe(0);
+    expect(failures).toEqual([["STEREO", 0]]);
+  });
+
+  it("keeps the echo of an earlier write when a later value cannot be encoded", async () => {
+    const answers: (() => void)[] = [];
+    const link: DeviceLink = {
+      ...fakeBridge(),
+      set: () => new Promise<void>((resolve) => answers.push(resolve)),
+    };
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.signalType", { addr: "type-addr", codec: identityCodec });
+    const transport = new BridgeTransport(link, bindings);
+    await transport.snapshot();
+    const seen: unknown[] = [];
+    transport.onNotify((n) => seen.push(n.value));
+
+    const first = transport.write("ch.ch1.signalType", 1);
+    await expect(transport.write("ch.ch1.signalType", "STEREO")).rejects.toThrow();
+    answers[0]!();
+    await first;
+
+    expect(seen).toEqual([1]);
+  });
+
   it("decodes a device notify back onto its path", async () => {
     const bridge = fakeBridge();
     const bindings = new BindingTable();

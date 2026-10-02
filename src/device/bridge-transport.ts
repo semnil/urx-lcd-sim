@@ -5,8 +5,10 @@
 // integration: give it a link and a filled BindingTable and the same screens
 // drive hardware.
 //
-// Two rules it will not bend:
+// Three rules it will not bend:
 //   - An unbound path is refused, never guessed onto some nearby address.
+//   - A value its codec does not turn into a finite number is refused before
+//     anything is sent.
 //   - A snapshot that cannot be read completely is an error, not a partial
 //     answer: a half-read screen invites an edit against values that were
 //     never established.
@@ -86,6 +88,7 @@ export class BridgeTransport implements DeviceTransport {
       return;
     }
     const raw = b.codec.encode(value);
+    if (!Number.isFinite(raw)) throw new Error(`"${path}" does not encode ${String(value)} to a number`);
     const sent = { raw };
     this.inFlight.set(b.addr, sent);
     await this.bridge.set(b.addr, raw);

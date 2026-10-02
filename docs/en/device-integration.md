@@ -33,6 +33,8 @@ export interface DeviceLink {
 **It starts empty**, and filling it is the responsibility of whoever supplies a validated catalog.
 Calling `BridgeTransport.write()` while it is empty throws `UnboundPathError`. There is no path by
 which a guessed address is written to the unit.
+A value whose encoding is not a finite number (an enumeration's tag given to `identityCodec`, say) is
+refused as well, without being sent to the unit.
 
 A catalog may carry only addresses and encodings confirmed against the unit one parameter at a time.
 This repository ships no catalog.
