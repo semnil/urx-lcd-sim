@@ -226,14 +226,14 @@ export class Shell {
     this.toolbarNode.dataset.screen = route.id;
     const dims = def.dimsBehind === true;
     this.buildToolbar(def.toolbar, def.title?.(this.ctx, route), body, def.bankButton === true, exits || dims);
+    if (showStrip) this.buildKnobStrip(udkMode);
     if (dims && !exits) {
-      for (const node of [this.toolbarNode, this.sideNode]) {
-        for (const control of node.querySelectorAll("button, [role='button']")) {
+      for (const node of [this.toolbarNode, this.sideNode, this.knobStripNode]) {
+        for (const control of node.querySelectorAll(INTERACTIVE)) {
           if (!control.classList.contains("is-lit")) control.toggleAttribute("inert", true);
         }
       }
     }
-    if (showStrip) this.buildKnobStrip(udkMode);
     refocus();
   }
 

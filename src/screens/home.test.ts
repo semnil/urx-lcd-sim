@@ -341,6 +341,16 @@ describe("the channel-bank list", () => {
     await flush();
     expect(shell.ctx.nav.current.id).toBe("home");
     expect(shownStrips(shell)).toEqual(before);
+
+    // USER DEFINED KNOBS mode draws its bar under the same dark: its knobs and its page step answer nothing either.
+    await shell.ctx.store.set("ui.userDefinedKnobs", true);
+    await flush();
+    const bar = (): string[] =>
+      [...(shell.root.querySelector(".knob-strip")?.querySelectorAll(INTERACTIVE) ?? [])].map((n) => `${accessibleName(n)} ${n.hasAttribute("inert")}`);
+    expect(bar(), "on HOME the bar answers").toEqual(["Phones 1 Level false", "Phones 2 Level false", "User defined knobs page 2 false"]);
+    await openList(shell);
+    expect(bar(), "under the dark it does not").toEqual(["Phones 1 Level true", "Phones 2 Level true", "User defined knobs page 2 true"]);
+    expect(bankButton(shell)?.hasAttribute("inert"), "the control that opened the list stays live").toBe(false);
   });
 
   it("closes on a tap in the bare screen around it, but not on the panel", async () => {
