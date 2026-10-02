@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Let the USER DEFINED KNOBS cells turn what they are assigned whether 1-knob is on or off, as on the unit, where COMP's and EQ's 1-knob held them still.
 - Turn GATE's Hold and DUCKER's Decay by 0.1 s a detent of the arrow keys or the wheel from one second up, the step their reading prints there, and land a drag past a second on the same steps. A detent moved them 1 ms throughout: DUCKER's Decay took 50 detents from its shipped `1.0s` to `1.1s`, and the reading stood still for up to 100 detents. Below a second a detent still moves 1 ms. With Shift a detent moves four of these steps, 4 ms below a second and 0.4 s from it, where it moved 10 ms throughout.
 - Start the readout bar from its first page when an effect's screen steps to another of its pages or takes another effect, as when the screen opens, so the value the page frames is on the bar. The bar stayed on the page its `›` had turned to: after `›`, Rev-X Hall stepped to its second page and back read Diffusion / Hi.Ratio / Lo.Ratio / Lo.Freq. with Rev.Time framed, and Clean taken over Compander-H read Volume / Distortion / Blend / Output with Treble framed.
 - Leave the arrow keys, Home and End held with Alt, Cmd or Ctrl to the browser on a value box, HOME's levels, the handles on the dynamics plots and the readout bar's cells. Alt+←, Cmd+← and Ctrl+← turned the value down a detent, as ← alone does, and the page kept the key from the browser.
@@ -40,7 +41,7 @@
 - Draw the corners of Pitch Fix's [Correction] and M.B.Comp's [Bypass] in the same pixels as the other buttons.
 - Recall a scene or load a settings file with every stored value as it was stored: a Mono Delay or Ping Pong time turned by hand under Sync, and two channels stored apart and recalled over a linked pair, came back changed.
 - Set every EQ band's switch when a 1-knob curve is chosen, as the unit does: Loudness switches all four bands on, and Vocal switches LOW off and the other three on.
-- Turn the value a user-defined knob holds by dragging, scrolling or using the arrow keys on its cell of the knob bar. The cells turn whether 1-knob is on or off, as on the unit.
+- Turn the value a user-defined knob holds by dragging, scrolling or using the arrow keys on its cell of the knob bar. The cells stay still while 1-knob is on, as on the unit.
 - Draw the EQ curve with each band's filter shape (Bell, L.Shelf, H.Shelf, HPF, LPF) on the EQ screen and in the channel view's EQ block, with a Bell as wide as the guide's figure draws it.
 - Correct the README, which described the knob bar as read-only.
 - Draw the corners of the toolbar's channel box, the rows of USER DEFINED KNOBS' assignment sheet, MONITOR's Source, a dropdown list's panel, Pitch Fix's keyboard panel, the 1-knob panel and SSMCS's Sweet Spot Data in the pixels the guide's figures draw, and give Sweet Spot Data its band.
