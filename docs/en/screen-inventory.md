@@ -1637,7 +1637,10 @@ stands from the root, and a path too long for it is shown from its end (the same
 name display"). A new folder and a [Save as] settings file are made in the folder that is open.
 
 On the Edit tab, [Delete] asks `Delete the selected file?` before it takes the entry off, and
-[Rename] and [New folder] open the same sheet SCENE's title opens. TOOLS' [Format] leaves the card
+[Rename] and [New folder] open the same sheet SCENE's title opens. [Rename] onto a name the folder
+already carries brings up `File already exists.` with the i mark and [OK] alone, as the unit does,
+and renames nothing: [OK] goes back to the sheet as it was typed (on SAVE/LOAD's and RECORDER's
+Edit tabs alike). TOOLS' [Format] leaves the card
 with nothing on it. On SAVE/LOAD, [Save] writes the unit's settings over the selected settings file,
 [Save as] writes them under the name that is typed with `.urxf` after it, and [Load] puts a file
 back on the unit. Writing over a file that is already there asks `File alerady exists. Replace it?`

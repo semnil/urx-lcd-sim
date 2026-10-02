@@ -1417,7 +1417,9 @@ microSD Card Slot: WAV 24-bit)、設定ファイルは 50,668 バイト (設定�
 開いているフォルダーに作られる。
 
 Edit タブの [Delete] は `Delete the selected file?` を尋ねてから消し、[Rename] と [New folder] は
-SCENE の題と同じ入力シートを開く。TOOLS の [Format] はカードを空にする。SAVE/LOAD の [Save] は
+SCENE の題と同じ入力シートを開く。[Rename] で同じフォルダーにある名前を打って [OK] を押すと、実機と同じく
+i の印と [OK] だけのダイアログ `File already exists.` を出し、改名せずに [OK] で打ったままの入力シートへ戻る
+(SAVE/LOAD と RECORDER の Edit タブとも同じ)。TOOLS の [Format] はカードを空にする。SAVE/LOAD の [Save] は
 選んだ設定ファイルへ今の設定を書き、[Save as] は入力した名前に `.urxf` を付けて書き、[Load] は
 選んだ設定ファイルを本体へ戻す。既にあるファイルへ書くときだけ `File alerady exists. Replace it?`
 を尋ね、[Load] は尋ねずに実行する。設定ファイルが選ばれていないとき [Save] と [Load] は使えない

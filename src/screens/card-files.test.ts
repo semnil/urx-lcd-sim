@@ -352,6 +352,68 @@ describe("what the card's own actions do to it", () => {
     expect(names(shell)).toEqual(["Recordings", "keeper.wav"]);
   });
 
+  it("renames nothing onto a name the folder already carries, saying so and going back to the sheet as it was typed", async () => {
+    const shell = await mount({ id: "microsd.saveload" }, card);
+    const store = shell.ctx.store;
+    const saveAs = async (title: string, level: number): Promise<void> => {
+      await store.set("ch.ch1.level", level);
+      action(shell, "Save as")?.click();
+      await flush();
+      await typeTitle(shell, title);
+    };
+    await saveAs("a", -5);
+    await saveAs("b", -30);
+    await store.set("ui.sdSaveTab", "Edit");
+    await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === "b.urxf"));
+    await flush();
+    action(shell, "Rename")?.click();
+    await flush();
+    await typeTitle(shell, "a.urxf");
+    expect(shell.root.querySelector(".dialog-text")?.textContent).toBe("File already exists.");
+    expect(shell.root.querySelector(".dialog:not(.is-caution) .dialog-mark svg"), "under the information mark").not.toBeNull();
+    expect([...shell.root.querySelectorAll(".dialog-actions .btn")].map((b) => b.textContent), "[OK] alone").toEqual(["OK"]);
+    expect(names(shell), "nothing renamed").toEqual(["Recordings", "a.urxf", "b.urxf", "take.wav"]);
+
+    await okDialog(shell);
+    expect(shell.root.querySelector(".dialog-overlay"), "[OK] takes the dialog down").toBeNull();
+    expect([shell.ctx.nav.current.id, shell.root.querySelector(".title-text")?.textContent], "back on the sheet, the name as it was typed").toEqual([
+      "microsd.name",
+      "a.urxf",
+    ]);
+    shell.root.querySelector<HTMLElement>(".pick-dialog-cancel")?.click();
+    await flush();
+    await store.set("ui.sdSaveTab", "Save/\nLoad");
+    const loads: number[] = [];
+    for (const name of ["a.urxf", "b.urxf"]) {
+      await store.set("ch.ch1.level", 0);
+      await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === name));
+      await flush();
+      action(shell, "Load")?.click();
+      await flush();
+      await flush();
+      loads.push(store.num("ch.ch1.level", 99));
+    }
+    expect(loads, "each file still holds what it was saved with").toEqual([-5, -30]);
+  });
+
+  it("renames no take on RECORDER's Edit tab onto a name the folder already carries", async () => {
+    const take = (name: string): CardEntry => ({ name, kind: "take", seconds: 10, tracks: 2, stamp: "", dir: "/" });
+    const shell = await mount({ id: "microsd.recorder" }, [take("x.wav"), take("y.wav")]);
+    await shell.ctx.store.set("ui.sdTab", "Edit");
+    await shell.ctx.store.set("sd.selectedFile", 1);
+    await flush();
+    action(shell, "Rename")?.click();
+    await flush();
+    await typeTitle(shell, "x.wav");
+    expect(shell.root.querySelector(".dialog-text")?.textContent).toBe("File already exists.");
+    await okDialog(shell);
+    expect(shell.ctx.nav.current.id).toBe("microsd.name");
+    expect(names(shell)).toEqual(["x.wav", "y.wav"]);
+
+    await typeTitle(shell, "z.wav");
+    expect(names(shell), "the control: a name the folder does not carry").toEqual(["x.wav", "z.wav"]);
+  });
+
   it("puts a folder on the card under the name that is typed", async () => {
     const shell = await mount({ id: "microsd.saveload" }, card);
     await shell.ctx.store.set("ui.sdSaveTab", "Edit");

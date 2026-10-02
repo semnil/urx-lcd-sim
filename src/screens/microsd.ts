@@ -220,7 +220,7 @@ function cardEntries(ctx: AppContext): CardEntry[] {
 const cardNameScreen: ScreenDef = { ...titleEntryScreen, id: "microsd.name", needsCard: true };
 
 /** Open the name sheet on `title`; [OK] hands what is typed to `onOk`. `more` carries the rest of the draft. */
-function nameOnCard(ctx: AppContext, title: string, onOk: (text: string) => void, more: Pick<TitleDraft, "heading" | "max" | "empty"> = {}): void {
+function nameOnCard(ctx: AppContext, title: string, onOk: (text: string) => void, more: Pick<TitleDraft, "heading" | "max" | "empty" | "refuse"> = {}): void {
   draftTitle(ctx, { ...more, path: "", title, onOk });
   ctx.nav.push({ id: "microsd.name" });
 }
@@ -327,7 +327,15 @@ function deleteSelected(ctx: AppContext): void {
   );
 }
 
-/** Give the selected entry another name, keeping what it holds. */
+/** Whether the folder `dir` carries an entry named `name`, other than the one at row `except`. */
+function folderCarries(entries: readonly CardEntry[], dir: string, name: string, except = -1): boolean {
+  return entries.some((e, i) => i !== except && e.dir === dir && e.name === name);
+}
+
+/**
+ * Give the selected entry another name, keeping what it holds. A name another
+ * entry of its folder carries is refused, and the sheet stays as typed.
+ */
 function renameSelected(ctx: AppContext): void {
   const row = ctx.store.num("sd.selectedFile", 0);
   const entries = cardEntries(ctx);
@@ -343,7 +351,7 @@ function renameSelected(ctx: AppContext): void {
       ctx,
       entries.map((e, i) => (i === row ? { ...e, name } : e)),
     );
-  });
+  }, { refuse: (name) => (folderCarries(entries, entry.dir, name, row) ? NAME_TAKEN : undefined) });
 }
 
 /** Put a folder on the card under the name that is typed. */
@@ -368,7 +376,7 @@ function saveLoadAction(ctx: AppContext, label: string): void {
   if (label === "Save as") {
     nameOnCard(ctx, "", (typed) => {
       const name = `${typed}${SETTINGS_SUFFIX}`;
-      const taken = cardEntries(ctx).some((e) => e.name === name && e.dir === cardPath(ctx));
+      const taken = folderCarries(cardEntries(ctx), cardPath(ctx), name);
       if (taken) ctx.overlay(dialog({ message: REPLACE_ASK, onOk: () => saveSettings(ctx, name) }));
       else saveSettings(ctx, name);
     });
@@ -402,6 +410,9 @@ function loadSettings(ctx: AppContext, entry: CardEntry): void {
 
 /** What the unit asks before it writes over a file that is already on the card. */
 const REPLACE_ASK = "File alerady exists. Replace it?";
+
+/** What the unit says when an entry is renamed onto a name its folder already carries. */
+const NAME_TAKEN = "File already exists.";
 
 /** What the unit calls a settings file. */
 const SETTINGS_SUFFIX = ".urxf";

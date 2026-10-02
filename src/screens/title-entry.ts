@@ -4,7 +4,7 @@ import type { AppContext } from "../app/context";
 import { captureScene } from "../model/scene-state";
 import { el, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
-import { button } from "../ui/widgets";
+import { button, dialog } from "../ui/widgets";
 import type { ScreenBody, ScreenDef } from "./types";
 import { toJson } from "../device/value-json";
 
@@ -85,6 +85,9 @@ const KEY_NAMES: Partial<Record<Action["kind"], string>> = { backspace: "Backspa
 /** What [OK] hands the name to, where the caller takes it itself. */
 let pendingOk: ((text: string) => void) | null = null;
 
+/** What [OK] asks of what is typed before it goes on. */
+let pendingRefuse: ((text: string) => string | undefined) | null = null;
+
 /** How many headings the sheet has drawn, so each heading the field is named by holds an id of its own. */
 let headingIds = 0;
 
@@ -104,12 +107,19 @@ export interface TitleDraft {
   max?: number;
   /** Whether [OK] goes on with the field empty. */
   empty?: boolean;
+  /**
+   * What [OK] says instead of going on, given what is typed: a dialog carrying
+   * it and [OK] alone, over the sheet as it was typed. Where it says nothing,
+   * [OK] goes on.
+   */
+  refuse?: (text: string) => string | undefined;
 }
 
 /** Put a title in the sheet, with the letters up and Shift off. */
 export function draftTitle(ctx: AppContext, draft: TitleDraft): void {
   const { path, title } = draft;
   pendingOk = draft.onOk ?? null;
+  pendingRefuse = draft.refuse ?? null;
   void ctx.store.set(`${DRAFT}.heading`, draft.heading ?? "");
   void ctx.store.set(`${DRAFT}.max`, draft.max ?? TITLE_MAX);
   void ctx.store.set(`${DRAFT}.empty`, draft.empty === true ? 1 : 0);
@@ -265,11 +275,18 @@ export const titleEntryScreen: ScreenDef = {
           head,
           button("Cancel", () => {
             pendingOk = null;
+            pendingRefuse = null;
             ctx.nav.back();
           }, "pick-dialog-btn pick-dialog-cancel"),
           button("OK", () => {
             // [OK] does nothing until something is typed, unless the draft goes on empty.
             if (!text && !empty) return;
+            const refusal = pendingRefuse?.(text);
+            if (refusal) {
+              ctx.overlay(dialog({ message: refusal, okOnly: true, onOk: () => undefined }));
+              return;
+            }
+            pendingRefuse = null;
             const path = ctx.store.str(`${DRAFT}.path`, "");
             if (path) void ctx.store.set(path, text);
             const recall = ctx.store.num(`${DRAFT}.recall`, -1);
