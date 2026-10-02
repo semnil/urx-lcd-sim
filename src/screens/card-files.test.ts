@@ -433,6 +433,44 @@ describe("what the card's own actions do to it", () => {
     expect(store.str("setup.dateTime.timeZone", ""), "the time zone is").toBe("London");
   });
 
+  it("takes the recorder down to the tracks the sampling frequency a settings file brings can carry", async () => {
+    // A settings file holds the frequency and not the track count: Load meets the recorder's own count with the file's frequency.
+    const shell = await mount({ id: "microsd.saveload" }, card);
+    const store = shell.ctx.store;
+    const open = async (...routes: Route[]): Promise<void> => {
+      shell.ctx.nav.home();
+      for (const route of routes) shell.ctx.nav.push(route);
+      await flush();
+    };
+    const rate = async (label: string): Promise<void> => {
+      await open({ id: "setup" }, { id: "setup.rate" });
+      [...shell.root.querySelectorAll<HTMLElement>(".rate-btn")].find((b) => b.textContent === label)?.click();
+      await flush();
+    };
+    const held = (): number[] => [store.num("setup.samplingFrequency", 0), store.num("sd.trackCount", 0)];
+    await rate("192kHz");
+    await open({ id: "microsd" }, { id: "microsd.saveload" });
+    action(shell, "Save as")?.click();
+    await flush();
+    await typeTitle(shell, "fast");
+
+    await rate("48kHz");
+    await open({ id: "microsd" }, { id: "microsd.recorder" });
+    shell.root.querySelector<HTMLElement>(".dropdown-box")?.click();
+    await flush();
+    [...shell.root.querySelectorAll<HTMLElement>(".dropdown-option")].find((o) => o.textContent === "16 Tracks")?.click();
+    await flush();
+    expect(held(), "the recorder at 48 kHz, raised to sixteen tracks").toEqual([48_000, 16]);
+
+    await open({ id: "microsd" }, { id: "microsd.saveload" });
+    await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === "fast.urxf"));
+    await flush();
+    action(shell, "Load")?.click();
+    await flush();
+    await flush();
+    expect(held(), "the file's 192 kHz carries two").toEqual([192_000, 2]);
+  });
+
   it("keeps what a settings file holds when it is renamed", async () => {
     const shell = await mount({ id: "microsd.saveload" }, card);
     const store = shell.ctx.store;
