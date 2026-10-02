@@ -12,8 +12,8 @@
 //   - A snapshot that cannot be read completely is an error, not a partial
 //     answer: a half-read screen invites an edit against values that were
 //     never established.
-//   - After close, a write or a snapshot is refused and no subscription is
-//     left open on the link.
+//   - After close, a write or a snapshot is refused, a snapshot reads no
+//     further address, and no subscription is left open on the link.
 
 import type { ParamPath, ParamValue } from "./path";
 import type { DeviceTransport, Notify } from "./transport";
@@ -62,7 +62,8 @@ export class BridgeTransport implements DeviceTransport {
    * Follow every bound address, then read each one. What the unit announces
    * while they are read goes to the listeners as it comes. A snapshot that
    * cannot be read stops the following it started. A snapshot taken after
-   * close, or one the transport is closed during, is refused.
+   * close is refused, and one the transport is closed during reads no further
+   * address and is refused.
    */
   async snapshot(): Promise<Map<ParamPath, ParamValue>> {
     if (this.closed) throw new Error("transport closed");
@@ -71,6 +72,7 @@ export class BridgeTransport implements DeviceTransport {
     const out = new Map<ParamPath, ParamValue>();
     try {
       for (const p of this.bindings.boundPaths()) {
+        if (this.closed) throw new Error("transport closed");
         const b = this.bindings.forPath(p);
         if (!b) continue;
         if (b.isString) out.set(p, await this.bridge.getStr(b.addr));

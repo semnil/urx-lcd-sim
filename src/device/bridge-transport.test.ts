@@ -535,17 +535,80 @@ describe("BridgeTransport", () => {
     expect([unit.subscribes(), reads]).toEqual([0, 0]);
   });
 
-  it("leaves no subscription open and refuses its snapshot when closed while it subscribes", async () => {
+  it("leaves no subscription open, reads nothing and refuses its snapshot when closed while it subscribes", async () => {
     const unit = subscribingUnit();
+    let reads = 0;
+    const link: DeviceLink = {
+      ...unit,
+      get: (addr) => {
+        reads++;
+        return unit.get(addr);
+      },
+    };
     const bindings = new BindingTable();
     bindings.bind("ch.ch1.level", { addr: "level-addr", codec: identityCodec });
-    const transport = new BridgeTransport(unit, bindings);
+    const transport = new BridgeTransport(link, bindings);
 
     const snapshot = transport.snapshot();
     transport.close();
 
     await expect(snapshot).rejects.toThrow("transport closed");
-    expect(unit.open.size).toBe(0);
+    expect([unit.open.size, reads]).toEqual([0, 0]);
+  });
+
+  it("reads no further address and refuses its snapshot when closed while an address is read", async () => {
+    const unit = fakeBridge();
+    const asked: string[] = [];
+    let answerLevel = (): void => {};
+    const link: DeviceLink = {
+      ...unit,
+      get: (addr) => {
+        asked.push(addr);
+        if (addr !== "level-addr") return unit.get(addr);
+        return new Promise((resolve) => {
+          answerLevel = () => resolve(0);
+        });
+      },
+      getStr: (addr) => {
+        asked.push(addr);
+        return unit.getStr(addr);
+      },
+    };
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.level", { addr: "level-addr", codec: identityCodec });
+    bindings.bind("ch.ch1.name", { addr: "name-addr", codec: identityCodec, isString: true });
+    bindings.bind("ch.ch1.on", { addr: "on-addr", codec: boolCodec });
+    const transport = new BridgeTransport(link, bindings);
+
+    const snapshot = transport.snapshot();
+    await tick();
+    transport.close();
+    answerLevel();
+
+    await expect(snapshot).rejects.toThrow("transport closed");
+    expect(asked).toEqual(["level-addr"]);
+  });
+
+  it("refuses its snapshot when closed while the last address is read", async () => {
+    const unit = fakeBridge();
+    let answerLevel = (): void => {};
+    const link: DeviceLink = {
+      ...unit,
+      get: () =>
+        new Promise((resolve) => {
+          answerLevel = () => resolve(0);
+        }),
+    };
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.level", { addr: "level-addr", codec: identityCodec });
+    const transport = new BridgeTransport(link, bindings);
+
+    const snapshot = transport.snapshot();
+    await tick();
+    transport.close();
+    answerLevel();
+
+    await expect(snapshot).rejects.toThrow("transport closed");
   });
 
   it("subscribes once for snapshots that overlap, and close leaves none open", async () => {
