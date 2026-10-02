@@ -42,6 +42,7 @@ export interface DeviceLink {
 `BridgeTransport.snapshot()` は束縛済みの全アドレスを購読する。実機の LCD や物理ノブで行われた
 変更が notify として届き、シミュレーター画面へ反映される。片方向のリモコンではなく、鏡になる。
 購読は読み出しより先に張るので、読み出しの途中に実機で変わった値も、`DeviceStore` が読み出した値の後で採る。
+文字列のアドレス (チャンネル名など) は、notify を受けるたびに `getStr` で読み直し、読めた文字列を届ける。
 
 自分が書いた値がそのまま返ってきた notify は `echo: true` として区別する
 (`src/device/bridge-transport.test.ts` の「flags the notify that is our own write coming back」)。

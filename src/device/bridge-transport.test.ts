@@ -3,6 +3,8 @@ import { BindingTable, boolCodec, identityCodec, scaledCodec } from "./binding";
 import { BridgeTransport, UnboundPathError, type DeviceLink } from "./bridge-transport";
 import { DeviceStore } from "./store";
 
+const tick = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+
 /** What the stand-in unit holds before the test starts, and the addresses that do not answer a read. */
 interface FakeUnit {
   values?: Record<string, number>;
@@ -76,6 +78,26 @@ function clampingUnit(max: number): DeviceLink & { held: Map<string, number> } {
   };
 }
 
+/** A transport following ch.ch1.name, whose reads of the name after the snapshot wait until the test answers each one. */
+async function nameReadAgainOnAnswer(): Promise<{
+  bridge: ReturnType<typeof fakeBridge>;
+  transport: BridgeTransport;
+  answers: ((value: string) => void)[];
+}> {
+  const bridge = fakeBridge();
+  const answers: ((value: string) => void)[] = [];
+  let reads = 0;
+  const link: DeviceLink = {
+    ...bridge,
+    getStr: (addr) => (++reads > 1 ? new Promise<string>((resolve) => answers.push(resolve)) : bridge.getStr(addr)),
+  };
+  const bindings = new BindingTable();
+  bindings.bind("ch.ch1.name", { addr: "name-addr", codec: identityCodec, isString: true });
+  const transport = new BridgeTransport(link, bindings);
+  await transport.snapshot();
+  return { bridge, transport, answers };
+}
+
 /** A store on a unit that clamps and announces, with ch.ch1.gain stored in tenths of a dB. */
 async function storeOnClampingUnit(): Promise<{ store: DeviceStore; unit: ReturnType<typeof clampingUnit> }> {
   const unit = clampingUnit(100);
@@ -118,6 +140,69 @@ describe("BridgeTransport", () => {
     bridge.fire("on-addr", 0);
 
     expect(seen).toEqual([{ path: "ch.ch1.on", value: false, echo: false }]);
+  });
+
+  it("reads a string address again when the unit announces a change to it", async () => {
+    const bridge = fakeBridge();
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.name", { addr: "name-addr", codec: identityCodec, isString: true });
+    const transport = new BridgeTransport(bridge, bindings);
+    await transport.snapshot();
+    await bridge.setStr("name-addr", "Guitar");
+
+    const seen: { path: string; value: unknown; echo: boolean }[] = [];
+    transport.onNotify((n) => seen.push(n));
+    bridge.fire("name-addr", 1);
+    await tick();
+
+    expect(seen).toEqual([{ path: "ch.ch1.name", value: "Guitar", echo: false }]);
+  });
+
+  it("passes nothing on for a string address it cannot read again", async () => {
+    const bridge = fakeBridge();
+    let reads = 0;
+    const link: DeviceLink = {
+      ...bridge,
+      getStr: (addr) => (++reads > 1 ? Promise.reject(new Error("read failed")) : bridge.getStr(addr)),
+    };
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.name", { addr: "name-addr", codec: identityCodec, isString: true });
+    const transport = new BridgeTransport(link, bindings);
+    await transport.snapshot();
+
+    const seen: unknown[] = [];
+    transport.onNotify((n) => seen.push(n.value));
+    bridge.fire("name-addr", 1);
+    await tick();
+
+    expect(seen).toEqual([]);
+  });
+
+  it("passes on the newest read of a string address when reads answer out of order", async () => {
+    const { bridge, transport, answers } = await nameReadAgainOnAnswer();
+
+    const seen: unknown[] = [];
+    transport.onNotify((n) => seen.push(n.value));
+    bridge.fire("name-addr", 1);
+    bridge.fire("name-addr", 1);
+    answers[1]!("Guitar");
+    answers[0]!("Vocal");
+    await tick();
+
+    expect(seen).toEqual(["Guitar"]);
+  });
+
+  it("sends nothing for a read of a string address that answers after close", async () => {
+    const { bridge, transport, answers } = await nameReadAgainOnAnswer();
+
+    bridge.fire("name-addr", 1);
+    transport.close();
+    const seen: unknown[] = [];
+    transport.onNotify((n) => seen.push(n.value));
+    answers[0]!("Guitar");
+    await tick();
+
+    expect(seen).toEqual([]);
   });
 
   it("flags the notify that is our own write coming back", async () => {

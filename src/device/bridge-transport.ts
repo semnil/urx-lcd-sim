@@ -43,6 +43,8 @@ export class BridgeTransport implements DeviceTransport {
    * address clears it.
    */
   private readonly inFlight = new Map<string, { raw: number }>();
+  /** The newest read of each string address taken on its notify and not yet answered. */
+  private readonly strReads = new Map<string, Promise<string>>();
 
   constructor(
     private readonly bridge: DeviceLink,
@@ -103,6 +105,7 @@ export class BridgeTransport implements DeviceTransport {
     this.unsubscribe = null;
     this.listeners.clear();
     this.inFlight.clear();
+    this.strReads.clear();
   }
 
   /**
@@ -122,10 +125,34 @@ export class BridgeTransport implements DeviceTransport {
       if (p === undefined) return;
       const b = this.bindings.forPath(p);
       if (!b) return;
+      if (b.isString) {
+        this.readAgain(p, addr);
+        return;
+      }
       const echo = this.inFlight.get(addr)?.raw === raw;
       this.inFlight.delete(addr);
       this.emit({ path: p, value: b.codec.decode(raw), echo });
     });
+  }
+
+  /**
+   * A notify carries no string, so a string address is read again on its
+   * notify and the string read goes out. A read that fails, or that a later
+   * read of the same address has overtaken, sends nothing.
+   */
+  private readAgain(path: ParamPath, addr: string): void {
+    const read = this.bridge.getStr(addr);
+    this.strReads.set(addr, read);
+    read.then(
+      (value) => {
+        if (this.strReads.get(addr) !== read) return;
+        this.strReads.delete(addr);
+        this.emit({ path, value, echo: false });
+      },
+      () => {
+        if (this.strReads.get(addr) === read) this.strReads.delete(addr);
+      },
+    );
   }
 
   private emit(n: Notify): void {

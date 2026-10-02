@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Show a name changed on a unit connected through a `BridgeTransport`: a notify for a string address reads the address again and passes on its string, where the notify's number replaced the name and left it blank.
 - Take a change made on a unit connected through a `BridgeTransport` while its snapshot is read: the transport subscribes before it reads, where a change made between the read of an address and the subscription stayed off the screen until the unit changed it again.
 - Show what a unit connected through a `BridgeTransport` keeps of a write: a value it clamps or rounds and announces before answering the write stays on screen, where the value asked for came back over it, and a write it does not announce shows as encoded for the unit. A write a later write has overtaken no longer echoes back.
 - Stay on the transport the store is on when a `BridgeTransport` it is attached to cannot be read, rather than sending the unit edits made from values never read off it; drop a snapshot that comes in after a later attach, and take what the unit announces while its snapshot is read.

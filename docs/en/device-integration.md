@@ -42,7 +42,8 @@ This repository ships no catalog.
 `BridgeTransport.snapshot()` subscribes to every bound address. Changes made on the unit's LCD or
 physical knobs arrive as notifies and are reflected on the simulator's screen. It is a mirror, not a
 one-way remote control. It subscribes before it reads, so `DeviceStore` also takes a change made on
-the unit while the values are read, after the values themselves.
+the unit while the values are read, after the values themselves. A string address (a channel name,
+say) is read again with `getStr` on each of its notifies, and the string read is what arrives.
 
 A notify that is our own written value coming back is marked `echo: true`
 ("flags the notify that is our own write coming back" in `src/device/bridge-transport.test.ts`).
