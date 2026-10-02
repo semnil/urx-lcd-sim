@@ -87,6 +87,34 @@ describe("what the recorder leaves on the card", () => {
     expect(names(shell).sort()).toEqual(["20260920_140526.wav", "20260920_140527.wav"]);
   });
 
+  it("gives a take stopped at second 59 the first second of the next minute when the card already carries its name", async () => {
+    const held: CardEntry = { name: "20261001_120059.wav", kind: "take", seconds: 5, tracks: 2, stamp: "", dir: "/" };
+    const shell = await mount({ id: "microsd.recorder" }, [held]);
+    const store = shell.ctx.store;
+    // The clock stands at 12:00 on 1 October 2026 at the start, and the take stops 59 seconds on.
+    await setClock(store, { year: 2026, month: 10, day: 1, hour: 12, minute: 0 }, 0);
+    await store.set("sd.rec", "armed");
+    recordTake(store, 1_000);
+    stopTake(store, 59_000);
+    await flush();
+    expect(names(shell)).toEqual(["20261001_120059.wav", "20261001_120100.wav"]);
+    expect(readCard(store)[1]?.stamp, "written at 12:00:59").toBe("10/01/2026\n12:00:59");
+  });
+
+  it("gives a take a name the card does not carry when every second of its minute is taken", async () => {
+    const minute: CardEntry[] = Array.from({ length: 60 }, (_, s) => ({ name: `20261001_1200${String(s).padStart(2, "0")}.wav`, kind: "take", seconds: 5, tracks: 2, stamp: "", dir: "/" }));
+    const shell = await mount({ id: "microsd.recorder" }, minute);
+    const store = shell.ctx.store;
+    await setClock(store, { year: 2026, month: 10, day: 1, hour: 12, minute: 0 }, 0);
+    await store.set("sd.rec", "armed");
+    recordTake(store, 1_000);
+    stopTake(store, 20_000);
+    await flush();
+    expect(names(shell).length, "one take more").toBe(61);
+    expect(new Set(names(shell)).size, "no name twice").toBe(61);
+    expect(names(shell).at(-1)).toBe("20261001_120100.wav");
+  });
+
   it("gives a take the next second when the card carries the name its own second gives in other case", async () => {
     const held: CardEntry = { name: "20260920_140526.WAV", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" };
     const shell = await mount({ id: "microsd.recorder" }, [held]);

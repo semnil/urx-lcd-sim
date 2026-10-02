@@ -154,16 +154,16 @@ export function cardStamp(store: DeviceStore, at = Date.now()): string {
 
 /**
  * What the recorder names a take: the unit's clock, to the second. A name the
- * card already carries, in any case, takes the next second that is free.
+ * card already carries, in any case, takes the next second that is free, the
+ * clock carrying into the minute, the hour and the day.
  */
 export function takeName(store: DeviceStore, at = Date.now()): string {
-  const { year, month, day, hour, minute, second } = clockParts(store, at);
   const taken = readCard(store).map((e) => e.name);
-  for (let i = 0; i < 60; i++) {
-    const name = `${year}${pad(month)}${pad(day)}_${pad(hour)}${pad(minute)}${pad((second + i) % 60)}${TAKE_SUFFIX}`;
+  for (let i = 0; ; i++) {
+    const { year, month, day, hour, minute, second } = clockParts(store, at + i * 1000);
+    const name = `${year}${pad(month)}${pad(day)}_${pad(hour)}${pad(minute)}${pad(second)}${TAKE_SUFFIX}`;
     if (!taken.some((t) => sameName(t, name))) return name;
   }
-  return `${year}${pad(month)}${pad(day)}_${pad(hour)}${pad(minute)}${pad(second)}${TAKE_SUFFIX}`;
 }
 
 /** The card the simulator ships with: one in the slot, with nothing on it yet. */
