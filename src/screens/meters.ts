@@ -71,11 +71,6 @@ export function simulatedLevel(ctx: AppContext, strip: Strip | undefined, stereo
   return meterLevels(ctx.store, tapId(strip.id, tap), channels);
 }
 
-/** A channel's level as it arrives, before anything on it: what the INPUT screen and the channel view's input meter read. */
-export function simulatedInput(ctx: AppContext, strip: Strip, stereo: boolean): number[] {
-  return meterLevels(ctx.store, inputMeterId(strip.id), stereo ? 2 : 1);
-}
-
 /** Draw `node`, a Clip Safe switch, as holding the gain down or not. */
 function showClipSafe(node: HTMLElement, engaged: boolean): void {
   node.classList.toggle("is-engaged", engaged);

@@ -6063,6 +6063,50 @@ describe("the head amp belongs to the connector a channel is on", () => {
     }
   });
 
+  it("reads on INPUT's two bars what the channel view reads: the side in view, and a bus's sum", async () => {
+    // Every strip's left side arrives at -50 dB and its right side at -10 dB; a bus's sum reads -24 dB.
+    setMeterSource((id, channels) =>
+      id.endsWith("@input") ? [-50, -10].slice(0, channels) : Array.from({ length: channels }, () => (id.endsWith("@sum") ? -24 : -96)),
+    );
+    try {
+      const shell = await mount();
+      const unlit = (selector: string): string[] =>
+        [...shell.root.querySelectorAll<HTMLElement>(`${selector} .meter-bar`)].map((b) => b.style.getPropertyValue("--unlit"));
+      const at = (db: number): string => `${(1 - levelBarShare(db)) * 100}%`;
+      /** INPUT's two bars as drawn, and again once the meters have moved. */
+      const inputBars = (): string[][] => {
+        const drawn = unlit(".input-meter");
+        vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
+        try {
+          const stop = startMeterTicker(shell.ctx.store, shell.root, 50);
+          vi.advanceTimersByTime(60);
+          stop();
+        } finally {
+          vi.useRealTimers();
+        }
+        return [drawn, unlit(".input-meter")];
+      };
+      await shell.ctx.store.set("ui.lane.ch_5_6", 1);
+      shell.ctx.nav.push({ id: "channel-view", strip: "ch_5_6" });
+      await flush();
+      expect(unlit(".cv-gain-row"), "CH 6's channel view reads CH 6").toEqual([at(-10)]);
+      shell.ctx.nav.push({ id: "ch.input", strip: "ch_5_6" });
+      await flush();
+      expect(inputBars(), "and so do both of CH 6's INPUT bars").toEqual(Array(2).fill([at(-10), at(-10)]));
+      await shell.ctx.store.set("ui.lane.bus.stream", 1);
+      for (const [strip, db] of [["bus.mix1", -24], ["bus.stereo", -24], ["bus.stream", -10]] as const) {
+        shell.ctx.nav.replace({ id: "channel-view", strip });
+        await flush();
+        expect(unlit(".cv-gain-row"), `${strip}'s channel view`).toEqual([at(db)]);
+        shell.ctx.nav.push({ id: "ch.input", strip });
+        await flush();
+        expect(inputBars(), `${strip}'s INPUT reads the same`).toEqual(Array(2).fill([at(db), at(db)]));
+      }
+    } finally {
+      setMeterSource(null);
+    }
+  });
+
   it("keeps +48V and HI-Z on together, whichever of the two is pressed first", async () => {
     const shell = await mount();
     /** Press `order` on CH 3's INPUT screen and read which switches are lit. */

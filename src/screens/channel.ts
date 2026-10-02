@@ -19,7 +19,7 @@ import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
 import { compRatioSpec, dbSpec, faderSpec, fineGainSpec, freqSpec, intSpec, logFreqSpec, msSpec, panSpec, stoppedMsSpec } from "../ui/param-spec";
 import { attachDrag, attachSpin, followFocus, knobControl, markFocus, meter, panSlider, pickerSheet, pulldown, setAriaValue, sideTab, toggle, unbuilt, valueBox } from "../ui/widgets";
-import { type GrSpec, type LampState, blockReduction, inputMeterId, markBlockLamps, markClipSafe, markLevelBar, markReduction, meterLevels, showBlockLamps, simulatedInput, simulatedLevel } from "./meters";
+import { type GrSpec, type LampState, blockReduction, inputMeterId, markBlockLamps, markClipSafe, markLevelBar, markReduction, meterLevels, showBlockLamps, simulatedLevel } from "./meters";
 import { type Tap, compSpec, duckerSources, duckerSpec, gateSpec, stripTap, tapId } from "./signal-flow";
 import { PAN_BAL, SIGNAL_TYPES, carriesStereo, enterSsmcs, setPanBal, setSignalType, signalType, stripPosition } from "./stereo-link";
 import { BUS_TYPES, FIXED_LEVEL_TEXT, busType, panLinkOn, sendLocks, sendPanPath, setBusType, setPanLink } from "./mix-bus";
@@ -353,6 +353,21 @@ function safeToggle(ctx: AppContext, path: ParamPath): HTMLElement {
 /** The circled 1 that marks a block turned by 1-knob. */
 const oneKnobMark = (): HTMLElement => el("span", { class: "cv-oneknob-mark", text: "1" });
 
+/**
+ * A bar of what `strip` takes in, as the channel view's input area and the INPUT
+ * screen meter it: a channel's input, an FX channel's bus, a MIX or STEREO bus's
+ * sum, STREAMING's feed before its DELAY. A two-channel strip meters the channel
+ * in view alone; an FX channel's bus is one.
+ */
+function inputMeter(ctx: AppContext, strip: Strip): HTMLElement {
+  const source = strip.kind === "mix" || strip.kind === "stereo" ? tapId(strip.id, "sum") : inputMeterId(strip.id);
+  if (stripLanes(strip) === 2 && strip.kind !== "fx") {
+    const lane = stripLane(ctx, strip);
+    return meter({ levels: [meterLevels(ctx.store, source, 2)[lane] ?? -96], source, lane });
+  }
+  return meter({ levels: meterLevels(ctx.store, source, 1), source });
+}
+
 export const channelViewScreen: ScreenDef = {
   id: "channel-view",
   // The unit leaves the icon row up here: the view is one step off HOME, and
@@ -373,10 +388,6 @@ export const channelViewScreen: ScreenDef = {
     // Only an input channel has a head amp. A bus meters what it takes in down
     // that column instead, with nothing to set there.
     const inputChannel = mono || strip.kind === "stIn";
-    // The meter there reads what the strip takes in: a channel's input, an FX
-    // channel's bus, a MIX or STEREO bus's sum, STREAMING's feed before its DELAY.
-    const gainMeterId = strip.kind === "mix" || strip.kind === "stereo" ? tapId(strip.id, "sum") : inputMeterId(strip.id);
-    const gainMeter = (stereo: boolean): number[] => meterLevels(ctx.store, gainMeterId, stereo ? 2 : 1);
 
     // The streaming bus has no position, no level and no on/off — it is fed,
     // and it is heard.
@@ -415,10 +426,7 @@ export const channelViewScreen: ScreenDef = {
               class: "cv-gain-stack",
               children: gainSpec ? [valueBox(ctx, gainSpec), knobControl(ctx, gainSpec, 38)] : [],
             }),
-            // A two-channel strip meters the channel in view alone; an FX channel's bus is one.
-            stripLanes(strip) === 2 && strip.kind !== "fx"
-              ? meter({ levels: [gainMeter(true)[stripLane(ctx, strip)] ?? -96], source: gainMeterId, lane: stripLane(ctx, strip) })
-              : meter({ levels: gainMeter(false), source: gainMeterId }),
+            inputMeter(ctx, strip),
           ],
         }),
         ...(inputChannel
@@ -830,7 +838,7 @@ export const inputScreen: ScreenDef = {
     const levelBar = (cls: string): HTMLElement =>
       el("div", {
         class: `input-meter ${cls}`,
-        children: [meter({ levels: simulatedInput(ctx, strip, false), source: inputMeterId(strip.id) })],
+        children: [inputMeter(ctx, strip)],
       });
 
     return {
