@@ -4098,11 +4098,14 @@
   color: var(--text);
 }
 
+/* The two pixels after the last character keep a caret at the end of a title
+ * wider than the field inside the field. */
 .title-text {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   white-space: pre;
+  padding-right: 2px;
   font-size: 15px;
   font-weight: 700;
 }

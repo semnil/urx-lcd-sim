@@ -1892,7 +1892,8 @@ wide), space (three keys wide), `@`, `.`, and `<` and `>` (one and three quarter
 [#+-] to the symbols and [ABC] to the letters.
 
 [Shift] turns on and off at each tap; while on, its face is `--accent-selected` and the letter keys draw and type
-capitals. A title takes up to 16 characters, and a key typed past that changes nothing. `<` and `>` move the cursor a character at a time, and typing and backspace act at the cursor. The clear
+capitals. A title takes up to 16 characters, and a key typed past that changes nothing. `<` and `>` move the cursor a character at a time, and typing and backspace act at the cursor.
+A title wider than the field shows its end, and a cursor moved back past the start of what shows stands at the field's left edge. The clear
 button empties the field. The sheet opens on the letters with Shift off; [OK] on [Title]'s sheet writes the title, and
 [OK] on [Store]'s goes on to the question before storing. [OK] does nothing while the field is empty, and [Cancel] writes
 nothing.

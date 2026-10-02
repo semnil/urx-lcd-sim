@@ -263,20 +263,27 @@ export const titleEntryScreen: ScreenDef = {
     // a name on the card, or a scene's title.
     const head = heading ? el("h1", { class: "pick-dialog-title", text: heading }) : null;
     if (head) head.id = `title-heading-${++headingIds}`;
+    const caret = el("span", { class: "title-caret", attrs: { "aria-hidden": "true" } });
+    const view = el("span", {
+      class: "title-text",
+      children: [document.createTextNode(text.slice(0, cursor)), caret, document.createTextNode(text.slice(cursor))],
+    });
+    // A title wider than the field shows its end, and a caret moved back past the
+    // start of what shows takes the field's left edge.
+    queueMicrotask(() => {
+      const box = view.getBoundingClientRect();
+      // The glass is drawn through a transform: a length on the page is the field's own length times the scale.
+      const scale = box.width / view.offsetWidth || 1;
+      const at = Math.floor((caret.getBoundingClientRect().left - box.left) / scale);
+      view.scrollLeft = Math.min(view.scrollWidth - view.clientWidth, at);
+    });
     const field = el("div", {
       class: "title-field",
       attrs: head
         ? { role: "textbox", "aria-labelledby": head.id }
         : { role: "textbox", "aria-label": route.id === "microsd.name" ? "Name" : "Title" },
       children: [
-        el("span", {
-          class: "title-text",
-          children: [
-            document.createTextNode(text.slice(0, cursor)),
-            el("span", { class: "title-caret", attrs: { "aria-hidden": "true" } }),
-            document.createTextNode(text.slice(cursor)),
-          ],
-        }),
+        view,
         holdFocus(
           el("button", {
             class: "title-clear",
