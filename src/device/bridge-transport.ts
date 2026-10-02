@@ -97,24 +97,27 @@ export class BridgeTransport implements DeviceTransport {
     }
   }
 
-  async write(path: ParamPath, value: ParamValue): Promise<void> {
+  /** Resolves with what the unit holds after the write: the value as encoded for it, or the string written. */
+  async write(path: ParamPath, value: ParamValue): Promise<ParamValue> {
     if (this.closed) throw new Error("transport closed");
     const b = this.bindings.forPath(path);
     if (!b) throw new UnboundPathError(path);
     if (b.isString) {
       await this.bridge.setStr(b.addr, String(value));
       this.emit({ path, value, echo: true });
-      return;
+      return String(value);
     }
     const raw = b.codec.encode(value);
     if (!Number.isFinite(raw)) throw new Error(`"${path}" does not encode ${String(value)} to a number`);
     const sent = { raw };
     this.inFlight.set(b.addr, sent);
     await this.bridge.set(b.addr, raw);
+    const held = b.codec.decode(raw);
     // The echo carries the value as encoded for the unit, and goes out only
     // while neither a notify for the address nor a later write to it has come
     // since.
-    if (this.inFlight.get(b.addr) === sent) this.emit({ path, value: b.codec.decode(raw), echo: true });
+    if (this.inFlight.get(b.addr) === sent) this.emit({ path, value: held, echo: true });
+    return held;
   }
 
   onNotify(listener: (n: Notify) => void): () => void {

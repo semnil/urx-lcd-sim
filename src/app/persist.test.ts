@@ -1059,7 +1059,7 @@ describe("a unit connected through a BridgeTransport", () => {
         new Promise((resolve) => {
           answer = resolve;
         }),
-      write: () => Promise.resolve(),
+      write: (_path, value) => Promise.resolve(value),
       onNotify: () => () => {},
       close: () => {},
     };

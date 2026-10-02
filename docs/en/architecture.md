@@ -54,9 +54,12 @@ the unit is asynchronous, which is why the values are held twice.
 
 - **Edits from the screen** — `store.set(path, value)` updates the mirror first (optimistic update)
   and sends the write to the transport. If a refused write is the newest write to its path and still
-  on screen, the mirror goes back to the value the unit last took or announced in a notify; where a
-  later write, or a notify from the unit since, has changed the value, that value stays. Either way
-  `onWriteFailure` is notified. The screen never keeps showing a value the unit did not accept.
+  on screen, the mirror goes back to the value the unit holds as the store last heard of it: the
+  value the unit announced in a notify, or, for a write the unit took with nothing announced after
+  the write was sent, the value the transport reports the unit holding (`BridgeTransport` reports
+  it as encoded for the unit). Where a later write, or a notify from the unit since, has changed
+  the value, that value stays. Either way `onWriteFailure` is notified. The screen never keeps
+  showing a value the unit did not accept.
 - **The writes one edit carries with it** — `DeviceStore` holds a single write rule, handed to it by
   the Shell at start-up and made of the following: `src/screens/stereo-link.ts` carries an edit on one channel
   of a stereo-linked pair onto the other, and `src/screens/date-time.ts` brings the DATE / TIME

@@ -13,11 +13,11 @@ function simStore(initial: [ParamPath, ParamValue][] = []): { store: DeviceStore
   return { store, transport };
 }
 
-/** A write sent to a held device, which the test takes or refuses. */
+/** A write sent to a held device, which the test takes, holding `held` (the value written unless given), or refuses. */
 interface HeldWrite {
   path: ParamPath;
   value: ParamValue;
-  take: () => void;
+  take: (held?: ParamValue) => void;
   refuse: () => void;
 }
 
@@ -33,8 +33,8 @@ function heldDevice(initial: [ParamPath, ParamValue][]): {
     kind: "bridge",
     snapshot: () => Promise.resolve(new Map(initial)),
     write: (path, value) =>
-      new Promise<void>((resolve, reject) => {
-        writes.push({ path, value, take: resolve, refuse: () => reject(new Error("device said no")) });
+      new Promise<ParamValue>((resolve, reject) => {
+        writes.push({ path, value, take: (held = value) => resolve(held), refuse: () => reject(new Error("device said no")) });
       }),
     onNotify: (l) => {
       listener = l;
@@ -93,7 +93,7 @@ describe("DeviceStore", () => {
       snapshot: () => Promise.reject(new Error("read timed out")),
       write: (_path, value) => {
         sent.push(value);
-        return Promise.resolve();
+        return Promise.resolve(value);
       },
       onNotify: () => () => {
         unsubscribed = true;
@@ -120,7 +120,7 @@ describe("DeviceStore", () => {
         new Promise((resolve) => {
           answer = resolve;
         }),
-      write: () => Promise.resolve(),
+      write: (_path, value) => Promise.resolve(value),
       onNotify: () => () => {
         unsubscribed = true;
       },
@@ -146,7 +146,7 @@ describe("DeviceStore", () => {
         new Promise((resolve) => {
           answer = resolve;
         }),
-      write: () => Promise.resolve(),
+      write: (_path, value) => Promise.resolve(value),
       onNotify: (listener) => {
         announce = listener;
         return () => {};
@@ -328,6 +328,56 @@ describe("DeviceStore", () => {
 
     expect(store.num("ch.ch1.level")).toBe(-40);
     expect(failures).toEqual([[-1, -3], [-3, -40]]);
+  });
+
+  it("goes back to what the device announced for a write it then took when a later write is refused", async () => {
+    const device = heldDevice([["ch.ch1.gain", 0]]);
+    const { store, failures } = await storeOn(device);
+    const first = store.set("ch.ch1.gain", 15);
+    device.announce("ch.ch1.gain", 10);
+    const second = store.set("ch.ch1.gain", 3);
+
+    device.writes[0]!.take();
+    await first;
+    device.writes[1]!.refuse();
+    await second;
+
+    expect(store.num("ch.ch1.gain")).toBe(10);
+    expect(failures).toEqual([[3, 10]]);
+  });
+
+  it("goes back to what the device holds after a write it took when a later write is refused", async () => {
+    const device = heldDevice([["ch.ch1.gain", 0]]);
+    const { store, failures } = await storeOn(device);
+    const first = store.set("ch.ch1.gain", 1.25);
+    const second = store.set("ch.ch1.gain", 3);
+
+    device.writes[0]!.take(1.3);
+    await first;
+    device.writes[1]!.refuse();
+    await second;
+
+    expect(store.num("ch.ch1.gain")).toBe(1.3);
+    expect(failures).toEqual([[3, 1.3]]);
+  });
+
+  it("goes back to a write the device took after it announced a value when a later write is refused", async () => {
+    const device = heldDevice([["ch.ch1.level", 0]]);
+    const { store, failures } = await storeOn(device);
+    const first = store.set("ch.ch1.level", -1);
+    device.announce("ch.ch1.level", -40);
+    const second = store.set("ch.ch1.level", -2);
+    const third = store.set("ch.ch1.level", -3);
+
+    device.writes[1]!.take();
+    await second;
+    device.writes[2]!.refuse();
+    await third;
+    device.writes[0]!.refuse();
+    await first;
+
+    expect(store.num("ch.ch1.level")).toBe(-2);
+    expect(failures).toEqual([[-3, -2], [-1, -2]]);
   });
 
   it("keeps a newer write of the same value when an earlier one is refused", async () => {
@@ -559,6 +609,12 @@ describe("SimTransport", () => {
     transport.inject("p", 3);
 
     expect(seen.map((n) => n.echo)).toEqual([true, false]);
+  });
+
+  it("resolves a write with the value it holds after it", async () => {
+    const transport = new SimTransport([["p", 1]]);
+
+    await expect(transport.write("p", 2)).resolves.toBe(2);
   });
 
   it("stops notifying after close", async () => {

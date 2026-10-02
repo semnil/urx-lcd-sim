@@ -3,7 +3,7 @@
 // Rendering has to be synchronous, and a real device is not: so the store keeps
 // a local mirror of every value and pushes edits through the transport in the
 // background. The mirror is updated optimistically on `set`, and a rejected
-// write still on screen goes back to the value the unit last took, so a screen
+// write still on screen goes back to the value the unit holds, so a screen
 // never keeps showing a value the unit refused.
 //
 // Every notify that differs from the mirror is adopted, an echo of our own write
@@ -31,8 +31,10 @@ export function combineWriteRules(...rules: WriteRule[]): WriteRule {
 
 /**
  * Raised when a write is refused by the device. `restored` is what the mirror
- * holds after it: the value the device last took or announced where the refused
- * write was still the newest to its path and still on screen, and otherwise the
+ * holds after it: where the refused write was still the newest to its path and
+ * still on screen, the value the device holds as the store last heard of it —
+ * announced in a notify, or reported by the transport for a write the device
+ * took with nothing announced after that write was sent — and otherwise the
  * value a later write or the device put there.
  */
 export interface WriteFailure {
@@ -48,8 +50,15 @@ interface Awaited {
   newest: number;
   /** How many of its writes are awaiting an answer. */
   open: number;
-  /** The value the device last took or announced for the path; undefined where it held none. */
+  /**
+   * The value the device holds for the path as the store last heard of it:
+   * announced in a notify, or reported by the transport for a write the device
+   * took with nothing announced after that write was sent. Undefined where it
+   * held none.
+   */
   held: ParamValue | undefined;
+  /** The number of the newest write sent when the device last announced a value for the path. */
+  heard: number;
 }
 
 export class DeviceStore {
@@ -120,7 +129,10 @@ export class DeviceStore {
   /** Take a notify as what the device holds, and mirror it where it differs. */
   private adopt(n: Notify): void {
     const awaited = this.awaiting.get(n.path);
-    if (awaited) awaited.held = n.value;
+    if (awaited) {
+      awaited.held = n.value;
+      awaited.heard = this.writes;
+    }
     const current = this.mirror.get(n.path);
     if (current === n.value) return;
     this.mirror.set(n.path, n.value);
@@ -216,7 +228,7 @@ export class DeviceStore {
 
     const t = this.transport;
     if (!t) return Promise.resolve();
-    const awaited = this.awaiting.get(path) ?? { newest: 0, open: 0, held: previous };
+    const awaited = this.awaiting.get(path) ?? { newest: 0, open: 0, held: previous, heard: 0 };
     const n = ++this.writes;
     awaited.newest = n;
     awaited.open++;
@@ -225,8 +237,11 @@ export class DeviceStore {
       if (--awaited.open === 0 && this.awaiting.get(path) === awaited) this.awaiting.delete(path);
     };
     return t.write(path, value).then(
-      () => {
-        awaited.held = value;
+      (held) => {
+        // What the transport reports the device holding after the write is
+        // taken as what it holds, unless the device announced a value after the
+        // write was sent.
+        if (awaited.heard < n) awaited.held = held;
         settle();
       },
       (error: unknown) => {

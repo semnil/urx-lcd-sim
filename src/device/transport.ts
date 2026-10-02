@@ -36,12 +36,12 @@ export interface DeviceTransport {
   snapshot(): Promise<Map<ParamPath, ParamValue>>;
 
   /**
-   * Push one edit to the device. Resolves when the device has accepted it.
-   * Rejects rather than resolving on a partial write: the caller reverts the
-   * local mirror instead of leaving the screen showing a value the unit never
-   * took.
+   * Push one edit to the device. Resolves when the device has accepted it,
+   * with the value the device holds for the path after it. Rejects rather than
+   * resolving on a partial write: the caller reverts the local mirror instead
+   * of leaving the screen showing a value the unit never took.
    */
-  write(path: ParamPath, value: ParamValue): Promise<void>;
+  write(path: ParamPath, value: ParamValue): Promise<ParamValue>;
 
   /** Register for device-originated changes. Returns an unsubscribe function. */
   onNotify(listener: (n: Notify) => void): () => void;

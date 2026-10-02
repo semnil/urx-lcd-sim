@@ -78,6 +78,44 @@ function clampingUnit(max: number): DeviceLink & { held: Map<string, number> } {
   };
 }
 
+/**
+ * A unit whose writes wait until the test takes or refuses each one, keeping a
+ * taken value within [0, max], and that announces a raw value when the test says.
+ */
+function answeringUnit(max: number): DeviceLink & {
+  held: Map<string, number>;
+  answers: { take: () => void; refuse: () => void }[];
+  announce: (addr: string, raw: number) => void;
+} {
+  const held = new Map<string, number>();
+  const answers: { take: () => void; refuse: () => void }[] = [];
+  let handler: ((addr: string, raw: number) => void) | null = null;
+  return {
+    held,
+    answers,
+    announce: (addr, raw) => handler?.(addr, raw),
+    get: (addr) => Promise.resolve(held.get(addr) ?? 0),
+    set: (addr, value) =>
+      new Promise<void>((resolve, reject) => {
+        answers.push({
+          take: () => {
+            held.set(addr, Math.max(0, Math.min(value, max)));
+            resolve();
+          },
+          refuse: () => reject(new Error("unit said no")),
+        });
+      }),
+    getStr: () => Promise.resolve(""),
+    setStr: () => Promise.resolve(),
+    subscribe: (_addrs, onUpdate) => {
+      handler = onUpdate;
+      return Promise.resolve(() => {
+        handler = null;
+      });
+    },
+  };
+}
+
 /** A unit that keeps every subscription made on it open until that subscription's unsubscribe is called. */
 function subscribingUnit(): DeviceLink & { subscribes: () => number; open: Set<(addr: string, raw: number) => void> } {
   const open = new Set<(addr: string, raw: number) => void>();
@@ -136,6 +174,16 @@ async function nameReadAgainOnAnswer(): Promise<{
 /** A store on a unit that clamps and announces, with ch.ch1.gain stored in tenths of a dB. */
 async function storeOnClampingUnit(): Promise<{ store: DeviceStore; unit: ReturnType<typeof clampingUnit> }> {
   const unit = clampingUnit(100);
+  const bindings = new BindingTable();
+  bindings.bind("ch.ch1.gain", { addr: "gain-addr", codec: scaledCodec(10) });
+  const store = new DeviceStore();
+  await store.attach(new BridgeTransport(unit, bindings));
+  return { store, unit };
+}
+
+/** A store on an `answeringUnit` that keeps up to 100, with ch.ch1.gain stored in tenths of a dB. */
+async function storeOnAnsweringUnit(): Promise<{ store: DeviceStore; unit: ReturnType<typeof answeringUnit> }> {
+  const unit = answeringUnit(100);
   const bindings = new BindingTable();
   bindings.bind("ch.ch1.gain", { addr: "gain-addr", codec: scaledCodec(10) });
   const store = new DeviceStore();
@@ -352,6 +400,45 @@ describe("BridgeTransport", () => {
 
     expect(bridge.writes).toEqual([["gain-addr", 13]]);
     expect(store.num("ch.ch1.gain")).toBe(1.3);
+  });
+
+  it("goes back to what the unit clamped a write to when a later write is refused", async () => {
+    const { store, unit } = await storeOnAnsweringUnit();
+
+    const first = store.set("ch.ch1.gain", 15);
+    unit.announce("gain-addr", 100);
+    const second = store.set("ch.ch1.gain", 3);
+    unit.answers[0]!.take();
+    await first;
+    unit.answers[1]!.refuse();
+    await second;
+
+    expect([unit.held.get("gain-addr"), store.num("ch.ch1.gain")]).toEqual([100, 10]);
+  });
+
+  it("goes back to what the unit rounded a write to when a later write is refused", async () => {
+    const { store, unit } = await storeOnAnsweringUnit();
+
+    const first = store.set("ch.ch1.gain", 1.25);
+    const second = store.set("ch.ch1.gain", 3);
+    unit.answers[0]!.take();
+    await first;
+    unit.answers[1]!.refuse();
+    await second;
+
+    expect([unit.held.get("gain-addr"), store.num("ch.ch1.gain")]).toEqual([13, 1.3]);
+  });
+
+  it("resolves a write with what the unit holds of it", async () => {
+    const bridge = fakeBridge();
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.gain", { addr: "gain-addr", codec: scaledCodec(10) });
+    bindings.bind("ch.ch1.name", { addr: "name-addr", codec: identityCodec, isString: true });
+    const transport = new BridgeTransport(bridge, bindings);
+
+    const held = [await transport.write("ch.ch1.gain", 1.25), await transport.write("ch.ch1.name", "Guitar")];
+
+    expect(held).toEqual([1.3, "Guitar"]);
   });
 
   it("sends no echo for a write a later write has overtaken", async () => {
