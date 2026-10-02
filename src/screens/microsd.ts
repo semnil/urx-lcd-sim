@@ -568,7 +568,7 @@ export const recorderScreen: ScreenDef = {
       const playingRow = tab === "Play" && held ? playingFile(ctx) : -1;
       // Play lists the folders and the files it can play back, not a recording of four tracks or more. Neither
       // tab lists a take recorded at another frequency than the unit is running.
-      const playList = (entry: CardEntry): boolean => entry.kind === "folder" || (entry.tracks < MULTITRACK && recorderLists(ctx, entry));
+      const playList = (entry: CardEntry): boolean => entry.kind === "folder" || (entry.kind === "take" && entry.tracks < MULTITRACK && atUnitRate(ctx, entry));
       const browser = cardBrowser(ctx, {
         listName: "RECORDER files",
         metaColumn: "Time",

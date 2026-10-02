@@ -653,6 +653,17 @@ describe("the microSD card browser", () => {
     expect(described(saveLoad), "SAVE/LOAD").toEqual(["folder", null]);
   });
 
+  it("leaves a settings file off Play, which lists the folders and the files it plays", async () => {
+    const shell = await mount({ id: "microsd.recorder" }, [
+      entry("Recordings", "folder"),
+      entry("four.wav", "take", 10, 4),
+      entry("mine.urxf", "data"),
+      entry("two.wav", "take", 10),
+    ]);
+    await pickTab(shell, "ui.sdTab", "Play");
+    expect(rows(shell).map((r) => cellsOf(r)[1])).toEqual(["Recordings", "two.wav"]);
+  });
+
   it("leaves a take recorded at another sampling frequency off Play and Edit and unplayed, until the unit runs at that frequency again", async () => {
     const shell = await mount({ id: "microsd.recorder" }, [
       entry("Recordings", "folder"),
