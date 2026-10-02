@@ -188,6 +188,37 @@ describe("the rotary graphic", () => {
     expect(travel.valueAt(0.5)).toBeLessThan(650);
   });
 
+  it("moves a frequency control on every detent, the bottom decade included", () => {
+    const travel = logFreqSpec("ch.ch1.eq.low.freq", "Freq.", 20, 20000, 1000).travel;
+    if (!travel) throw new Error("a frequency control declares its travel");
+
+    // A thousandth of three decades is under half a hertz below 73 Hz.
+    const stuck: string[] = [];
+    for (let v = 20; v <= 72; v++) if (!(travel.step(v, 1) > v)) stuck.push(`${v} up`);
+    for (let v = 21; v <= 72; v++) if (!(travel.step(v, -1) < v)) stuck.push(`${v} down`);
+    expect(stuck).toEqual([]);
+    expect([travel.step(20, -1), travel.step(20000, 1)], "the ends hold").toEqual([20, 20000]);
+    expect([travel.step(1000, 1), travel.step(1000, -1)], "higher up a detent stays a thousandth of the travel").toEqual([1007, 993]);
+
+    // Detent by detent from one end to the other and back, every reading new.
+    const walk = (from: number, dir: 1 | -1): { end: number; repeats: number; detents: number } => {
+      let v = from;
+      let repeats = 0;
+      let detents = 0;
+      while (detents < 5000 && v !== (dir > 0 ? 20000 : 20)) {
+        const next = travel.step(v, dir);
+        if (next === v) repeats += 1;
+        v = next;
+        detents += 1;
+      }
+      return { end: v, repeats, detents };
+    };
+    const up = walk(20, 1);
+    const down = walk(20000, -1);
+    expect([up.end, up.repeats, down.end, down.repeats]).toEqual([20000, 0, 20, 0]);
+    expect(up.detents, "and it takes fewer detents than hertz").toBeLessThan(1500);
+  });
+
   it("leaves a control that is not a fader on its own linear travel", () => {
     // PAN runs -63..63, so centre is halfway round however the fader is scaled.
     const { fill, track } = arcLengths(knobGraphic(fractionOf(panSpec("ch.ch1.pan"), 0)));

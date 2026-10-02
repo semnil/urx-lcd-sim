@@ -263,9 +263,14 @@ export function logFreqSpec(path: ParamPath, label: string, min: number, max: nu
   const span = Math.log(max / min);
   const position = (v: number): number => clamp01(Math.log(Math.max(v, min) / min) / span);
   const valueAt = (p: number): number => Math.round(min * Math.exp(span * clamp01(p)));
+  // A detent whose share of the travel rounds back to the same hertz moves one hertz its way.
+  const step = (v: number, detents: number): number => {
+    const next = valueAt(position(v) + detents / 1000);
+    return next === v ? Math.min(max, Math.max(min, v + Math.sign(detents))) : next;
+  };
   return {
     ...freqSpec(path, label, min, max, fallback),
-    travel: { position, valueAt, step: (v, detents) => valueAt(position(v) + detents / 1000) },
+    travel: { position, valueAt, step },
   };
 }
 
