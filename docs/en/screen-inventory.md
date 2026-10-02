@@ -1653,7 +1653,8 @@ Format Date is set to each time the list is drawn (a file written before the for
 now stands), and its time on the 24-hour clock whatever Time is set to (see [known-issues.md](known-issues.md)).
 
 The free space is the card's capacity less what is on it. The capacity is the 125,000,000,000 bytes a
-formatted 128 GB card leaves; a take costs its seconds × 48,000 × 3 bytes × its tracks (the guide's
+formatted 128 GB card leaves; a take costs its seconds × the sampling frequency it was recorded at (48,000 for
+an older take that carries no frequency) × 3 bytes × its tracks (the guide's
 specifications give the microSD card slot as WAV, 24-bit), and a settings file 50,668 bytes, which is
 the size every settings file takes. It is printed over 1024³ to one decimal, as `116.4GB Free` (p083-1, p087-1).
 The card's name, the volume label it was formatted under, stands on a line above it, the two lines top right and
