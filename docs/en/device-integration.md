@@ -15,7 +15,8 @@ implementation of this one interface.
 
 `BridgeTransport` has no protocol of its own. It is used with an injected `DeviceLink` (two reads, two
 writes, one subscribe). Everything that talks to the unit is on the far side of this interface; the
-simulator side handles only address strings and integer values.
+simulator side handles only address strings and values that are integers or strings. A string
+parameter (a channel name, a scene title) is read and written with `getStr` / `setStr`.
 
 ```ts
 export interface DeviceLink {
@@ -71,7 +72,7 @@ sequenceDiagram
   App->>Store: attach(bridge)
   Store->>Bridge: snapshot()
   Bridge->>DevLink: subscribe(every bound address)
-  Bridge->>DevLink: get(addr) x bound count
+  Bridge->>DevLink: get(addr) or getStr(addr) x bound count
   DevLink->>Unit: read
   Unit-->>DevLink: value
   DevLink-->>Bridge: value

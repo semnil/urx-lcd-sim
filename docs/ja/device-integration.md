@@ -15,7 +15,8 @@
 
 `BridgeTransport` は自前のプロトコルを持たない。`DeviceLink` (読み 2 種・書き 2 種・購読 1 種) を
 注入して使う。実機と通信する部分はすべてこのインターフェースの向こう側にあり、シミュレーター側は
-アドレス文字列と整数値しか扱わない。
+アドレス文字列と、整数か文字列の値しか扱わない。名前・題などの文字列のパラメータは `getStr` / `setStr` で
+読み書きする。
 
 ```ts
 export interface DeviceLink {
@@ -69,7 +70,7 @@ sequenceDiagram
   App->>Store: attach(bridge)
   Store->>Bridge: snapshot()
   Bridge->>DevLink: subscribe(全束縛アドレス)
-  Bridge->>DevLink: get(addr) x 束縛数
+  Bridge->>DevLink: get(addr) か getStr(addr) x 束縛数
   DevLink->>Unit: 読み出し
   Unit-->>DevLink: 値
   DevLink-->>Bridge: 値
