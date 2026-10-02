@@ -475,7 +475,7 @@ export function attachSpin(
       return;
     }
     const size = fast ? (spec.fastStep ?? spec.step) : spec.step;
-    ctx.store.step(spec.path, steps * size, spec.min, spec.max, spec.fallback);
+    put(onStep(spec, value() + steps * size));
   };
 
   // A control whose touch does something else of its own turns by the wheel and the keys alone.
@@ -509,6 +509,11 @@ function standsStill(ctx: AppContext, spec: NumericSpec): boolean {
 
 function putValue(ctx: AppContext, spec: NumericSpec, v: number): void {
   void ctx.store.set(spec.path, clamp(v, spec.min, spec.max));
+}
+
+/** `v` on the nearest of `spec`'s steps, where a drag, the wheel and the keys all leave a value. */
+function onStep(spec: NumericSpec, v: number): number {
+  return Number((Math.round(v / spec.step) * spec.step).toFixed(6));
 }
 
 /**
@@ -553,7 +558,7 @@ export function attachDrag(ctx: AppContext, node: HTMLElement, spec: NumericSpec
         return;
       }
       const raw = anchorValue + reach * (spec.max - spec.min);
-      put(Number((Math.round(raw / spec.step) * spec.step).toFixed(6)));
+      put(onStep(spec, raw));
     };
     const up = (): void => {
       document.documentElement.classList.remove(TURNING);

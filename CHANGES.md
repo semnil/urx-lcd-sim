@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Land a value turned by the arrow keys or the wheel on its own steps, as a drag does: OSCILLATOR's Level read `-0.00` after 70 detents up from -14 dB and `-10.00` after 50 down from 0 dB, a compander's Gain read `-0.0dB` after three detents down and three up, and the stored value and `aria-valuenow` carried the leftover fraction. A value that ships between two steps, such as LOW Q's 0.71, moves onto a step at its first detent, as a drag already moved it.
 - Let a finger drag the readout bar's cells, the EQ grips, the handles on the dynamics plots, and a list's rows and scroll thumb as far as the mouse does, and step HOME's channel bank by a sideways swipe; the page took the touch over a few pixels in. Elsewhere a sideways finger on the main area still scrolls the page.
 - Read a send into a FIXED MIX bus as the unit does: `Fixed` under `Level` on SEND TO's readout bar, where the division stood empty, and `Fixed` for the level on HOME's [Sends] view, where the stored level stayed.
 - Switch a MIX bus's Pan Link off when its BUS Type goes to FIXED, as the unit does; it stays off when the bus goes back to VARI.

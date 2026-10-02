@@ -157,13 +157,6 @@ export class DeviceStore {
     });
   }
 
-  /** Nudge a numeric value and clamp it — what every knob gesture does. */
-  step(path: ParamPath, delta: number, min: number, max: number, fallback = 0): number {
-    const next = clamp(this.num(path, fallback) + delta, min, max);
-    void this.set(path, next);
-    return next;
-  }
-
   onChange(listener: ChangeListener): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);

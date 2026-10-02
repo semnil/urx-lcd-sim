@@ -238,6 +238,65 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     expect(phones().querySelector(".knob-cell-value")?.textContent, "and the division reads the new value").not.toBe("5.0");
   });
 
+  it("lands the keys and the wheel on the value's own steps, as a drag does", async () => {
+    const control = (shell: Shell, label: string): HTMLElement => {
+      const node = turnables(shell.root).find((n) => n.getAttribute("aria-label") === label);
+      if (!node) throw new Error(`no ${label}`);
+      return node;
+    };
+    const press = async (shell: Shell, label: string, key: string, times: number): Promise<void> => {
+      for (let i = 0; i < times; i++) {
+        control(shell, label).dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+        await flush();
+      }
+    };
+    const roll = async (shell: Shell, label: string, deltaY: number, times: number): Promise<void> => {
+      for (let i = 0; i < times; i++) {
+        control(shell, label).dispatchEvent(new WheelEvent("wheel", { deltaY, bubbles: true, cancelable: true }));
+        await flush();
+      }
+    };
+
+    // OSCILLATOR's Level moves 0.2 dB a detent from the -14 dB it ships at.
+    const osc = await mount();
+    await open(osc.shell, { id: "monitor.osc" });
+    await press(osc.shell, "Level", "ArrowUp", 70);
+    expect([osc.store.num("osc.level", NaN), control(osc.shell, "Level").textContent], "70 detents up").toEqual([0, "0.00"]);
+    await press(osc.shell, "Level", "ArrowUp", 1);
+    expect(osc.store.num("osc.level", NaN), "and the top holds").toBe(0);
+    await press(osc.shell, "Level", "ArrowDown", 50);
+    expect([osc.store.num("osc.level", NaN), control(osc.shell, "Level").textContent], "50 down from 0 dB").toEqual([-10, "-10.0"]);
+    await roll(osc.shell, "Level", -100, 50);
+    expect([osc.store.num("osc.level", NaN), control(osc.shell, "Level").textContent], "and 50 back up on the wheel").toEqual([0, "0.00"]);
+    // A drag of 9 px from -14 dB covers 4.5 dB of the range and takes the nearest step.
+    await osc.store.set("osc.level", -14);
+    await flush();
+    control(osc.shell, "Level").dispatchEvent(new MouseEvent("pointerdown", { clientY: 200, bubbles: true }));
+    window.dispatchEvent(new MouseEvent("pointermove", { clientY: 209 }));
+    window.dispatchEvent(new MouseEvent("pointerup", {}));
+    expect(osc.store.num("osc.level", NaN), "a drag").toBe(-18.4);
+
+    // Compander-H's Gain moves 0.1 dB a detent from 0 dB.
+    const comp = await mount();
+    await open(comp.shell, { id: "channel-view", strip: "ch1" });
+    await open(comp.shell, { id: "ch.insfx", strip: "ch1" });
+    comp.shell.root.querySelector<HTMLElement>(".insfx-effect")?.click();
+    await flush();
+    [...comp.shell.root.querySelectorAll<HTMLElement>(".source-sheet .source-btn")].find((b) => b.textContent === "Compander-H")?.click();
+    await flush();
+    expect(comp.store.str("ch.ch1.insFx.effect", ""), "the sheet picked it").toBe("Compander-H");
+    expect(comp.store.num("ch.ch1.insFx.gain", NaN)).toBe(0);
+    await press(comp.shell, "Gain", "ArrowDown", 3);
+    await press(comp.shell, "Gain", "ArrowUp", 3);
+    expect(comp.store.num("ch.ch1.insFx.gain", NaN), "three down and three up").toBe(0);
+    expect([control(comp.shell, "Gain").getAttribute("aria-valuenow"), control(comp.shell, "Gain").getAttribute("aria-valuetext")]).toEqual([
+      "0",
+      "0.0dB",
+    ]);
+    await press(comp.shell, "Gain", "ArrowDown", 3);
+    expect([comp.store.num("ch.ch1.insFx.gain", NaN), control(comp.shell, "Gain").getAttribute("aria-valuenow")], "three down").toEqual([-0.3, "-0.3"]);
+  });
+
   it("holds the user-defined knobs still while 1-knob holds the screen's focus", async () => {
     const { shell, store } = await mount();
     const turn = async (oneKnob: boolean): Promise<number> => {
