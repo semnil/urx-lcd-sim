@@ -51,16 +51,21 @@ function requestedZoom(): number {
 /** Teardown for whatever is mounted: the shell's listeners, the meters, the link. */
 let disposeMounted: (() => void) | null = null;
 
+/** Stores a change of the mounted unit still waiting to be stored. */
+let flushMounted: (() => void) | null = null;
+
 async function boot(modelId: ModelId, mount: HTMLElement): Promise<void> {
   disposeMounted?.();
   disposeMounted = null;
+  flushMounted = null;
   keepModel(modelId);
   const model = unitById(modelId);
   const store = new DeviceStore();
   const transport = new SimTransport(factoryState(model));
   await store.attach(transport);
   await restore(store, modelId);
-  const stopSaving = startSaving(store, modelId);
+  const saving = startSaving(store, modelId);
+  flushMounted = saving.flush;
 
   const shell = new Shell(buildRegistry(), store, model);
   const panel = buildPanel(shell);
@@ -73,7 +78,10 @@ async function boot(modelId: ModelId, mount: HTMLElement): Promise<void> {
     opt.selected = id === modelId;
     modelSelect.appendChild(opt);
   }
-  modelSelect.addEventListener("change", () => void boot(modelSelect.value as ModelId, mount));
+  modelSelect.addEventListener("change", () => {
+    saving.flush();
+    void boot(modelSelect.value as ModelId, mount);
+  });
 
   const zoomSelect = el("select", { class: "chrome-select", attrs: { "aria-label": "Display scale" } }) as HTMLSelectElement;
   for (const percent of ZOOM_PERCENTS) {
@@ -179,8 +187,10 @@ async function boot(modelId: ModelId, mount: HTMLElement): Promise<void> {
   const stopMeters = startMeterTicker(store, shell.root);
   const stopClock = startRecorderClock(store, shell.root);
   const stopDateTime = startDateTimeClock(store, shell.root);
+  // Tearing down drops a change still waiting to be stored, as [Reset the unit]
+  // does; leaving the page and picking another model store it first.
   disposeMounted = (): void => {
-    stopSaving();
+    saving.stop();
     stopMeters();
     stopClock();
     stopDateTime();
@@ -189,7 +199,10 @@ async function boot(modelId: ModelId, mount: HTMLElement): Promise<void> {
   };
 }
 
-window.addEventListener("beforeunload", () => disposeMounted?.());
+window.addEventListener("beforeunload", () => {
+  flushMounted?.();
+  disposeMounted?.();
+});
 
 const mount = document.getElementById("app");
 if (mount) {

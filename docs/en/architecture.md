@@ -83,7 +83,8 @@ Change notifications are batched per microtask and fire once (`markChanged` → 
 The store's mirror is written to the browser's `localStorage` and read back when the simulator opens
 on the same model (`src/app/persist.ts`). A burst of changes is written once, 400 ms after the last
 of them, under the key `urx-lcd-sim.state`; a stored unit of another model or another version is not
-read. The simulator opens on the model it was last used as, kept under the key `urx-lcd-sim.model`
+read. Leaving the page and switching the model write a change still waiting to be written there and then.
+The simulator opens on the model it was last used as, kept under the key `urx-lcd-sim.model`
 (where that key is missing, it opens on the stored unit's model). There is one stored unit across the
 models: after the model selector switches to another model, the first change replaces what the
 previous model stored.

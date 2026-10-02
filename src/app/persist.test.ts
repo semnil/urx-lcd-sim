@@ -35,7 +35,7 @@ describe("what a reload carries over", () => {
   it("leaves out the result of a card test, as a unit switched off does", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const store = await unit();
-    const stop = startSaving(store, MODEL, 10);
+    const { stop } = startSaving(store, MODEL, 10);
     await store.set("ui.sdToolsTab", "Test");
     await store.set("sd.tested", true);
     vi.advanceTimersByTime(20);
@@ -49,7 +49,7 @@ describe("what a reload carries over", () => {
   it("brings the values back on the next start", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const store = await unit();
-    const stop = startSaving(store, MODEL, 10);
+    const { stop } = startSaving(store, MODEL, 10);
     await store.set("ch.ch1.level", -9);
     await store.set("ch.ch1.name", "Kick");
     await store.set("setup.brightness", 3);
@@ -67,7 +67,7 @@ describe("what a reload carries over", () => {
   it("brings back what each settings file on the card holds", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const store = await unit();
-    const stop = startSaving(store, MODEL, 10);
+    const { stop } = startSaving(store, MODEL, 10);
     const files: CardEntry[] = ["/", "/Recordings/"].map((dir) => ({ name: "mine.urxf", kind: "data", seconds: 0, tracks: 0, stamp: "", dir }));
     await writeCard(store, [{ name: "Recordings", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" }, ...files]);
     for (const file of files) await store.set(filePath(file), `held in ${file.dir}`);
@@ -83,7 +83,7 @@ describe("what a reload carries over", () => {
     // The SSMCS Ratio's last stop is infinite, which JSON has no number for.
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const store = await unit();
-    const stop = startSaving(store, MODEL, 10);
+    const { stop } = startSaving(store, MODEL, 10);
     await store.set("ch.ch1.ssmcs.comp.ratio", Number.POSITIVE_INFINITY);
     await store.set("ch.ch2.ssmcs.comp.ratio", 40);
     vi.advanceTimersByTime(20);
@@ -206,7 +206,7 @@ describe("what a reload carries over", () => {
   it("leaves another model's unit alone", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const store = await unit();
-    const stop = startSaving(store, MODEL, 10);
+    const { stop } = startSaving(store, MODEL, 10);
     await store.set("ch.ch1.level", -9);
     vi.advanceTimersByTime(20);
     stop();
@@ -234,7 +234,7 @@ describe("what a reload carries over", () => {
   it("starts from the unit as it ships once it is forgotten", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const store = await unit();
-    const stop = startSaving(store, MODEL, 10);
+    const { stop } = startSaving(store, MODEL, 10);
     await store.set("ch.ch1.level", -9);
     vi.advanceTimersByTime(20);
     stop();
@@ -258,7 +258,7 @@ describe("what a reload carries over", () => {
     });
     try {
       vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-      const stop = startSaving(store, MODEL, 10);
+      const { stop } = startSaving(store, MODEL, 10);
       await store.set("ch.ch1.level", -9);
       expect(() => vi.advanceTimersByTime(20), "a refused write is not a crash").not.toThrow();
       stop();
@@ -274,12 +274,38 @@ describe("what a reload carries over", () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const store = await unit();
     const set = vi.spyOn(Storage.prototype, "setItem");
-    const stop = startSaving(store, MODEL, 10);
+    const { stop } = startSaving(store, MODEL, 10);
     for (let i = 0; i < 20; i++) await store.set("ch.ch1.level", -i);
     vi.advanceTimersByTime(20);
     expect(set).toHaveBeenCalledTimes(1);
     stop();
     set.mockRestore();
+  });
+
+  it("stores a change still waiting the moment it is flushed, and nothing where none waits", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = await unit();
+    const { stop, flush } = startSaving(store, MODEL, 10);
+    flush();
+    expect(readSaved(MODEL), "nothing waited").toBeNull();
+    await store.set("ch.ch1.level", -9);
+    expect(readSaved(MODEL), "the change is still waiting").toBeNull();
+    flush();
+    expect(readSaved(MODEL)?.["ch.ch1.level"]).toBe(-9);
+    stop();
+  });
+
+  it("drops a change still waiting when it stops", async () => {
+    // [Reset the unit] forgets what was stored and then stops: nothing comes back.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = await unit();
+    const { stop, flush } = startSaving(store, MODEL, 10);
+    await store.set("ch.ch1.level", -9);
+    forget();
+    stop();
+    vi.advanceTimersByTime(20);
+    flush();
+    expect(readSaved(MODEL)).toBeNull();
   });
 
   it("takes in what the unit holds, and nothing of what it is doing", async () => {

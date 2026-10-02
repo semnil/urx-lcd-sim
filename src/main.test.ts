@@ -181,7 +181,9 @@ describe("the page's landmarks", () => {
 
 const STATE_KEY = "urx-lcd-sim.state";
 
-const pause = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+/** The browser's own timer, which keeps running while a test holds the page's timers still. */
+const realSetTimeout = globalThis.setTimeout;
+const pause = (ms: number): Promise<void> => new Promise((resolve) => realSetTimeout(resolve, ms));
 
 /** Wait for `ready` to hold, and fail with `what` when it does not. */
 async function until(what: string, ready: () => boolean, ms = 4000): Promise<void> {
@@ -215,20 +217,27 @@ async function chooseModel(id: string): Promise<void> {
   await until(`the ${id} screen`, () => lcdModel() === `${id} LCD` && firstLevel() !== null);
 }
 
-/** Turn CH 1's level up one step from the keyboard, and wait for the browser to hold it. */
-async function nudgeLevel(model: string): Promise<string | null> {
-  const shown = (): string | null => firstLevel()?.getAttribute("aria-valuenow") ?? null;
-  const before = shown();
+const shownLevel = (): string | null => firstLevel()?.getAttribute("aria-valuenow") ?? null;
+
+/** Turn CH 1's level up one step from the keyboard; the level it shows after. */
+async function nudge(): Promise<string | null> {
+  const before = shownLevel();
   const level = firstLevel()!;
   level.focus();
   level.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
-  await until("the level to move", () => shown() !== before);
-  const now = shown();
+  await until("the level to move", () => shownLevel() !== before);
+  return shownLevel();
+}
+
+/** Turn CH 1's level up one step, and wait for the browser to hold it. */
+async function nudgeLevel(model: string): Promise<string | null> {
+  const now = await nudge();
   await until("the unit to be stored", () => readSaved(model)?.["ch.ch1.level"] === Number(now));
   return now;
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   window.dispatchEvent(new Event("beforeunload"));
   document.body.replaceChildren();
   window.localStorage.clear();
@@ -318,5 +327,44 @@ describe("[Reset the unit]", () => {
     expect(resetBox().firstElementChild?.textContent, "the button stays first in the row").toBe("Reset the unit");
     click(button("Reset the unit"), 2);
     expect(button("Reset"), "the question is still up").toBeDefined();
+  });
+});
+
+describe("a change still waiting to be stored", () => {
+  /** Hold the page's timers still, so a change stays waiting until something stores it. */
+  const holdTimers = (): void => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  };
+
+  it("is stored when the page is left", async () => {
+    await openPage();
+    holdTimers();
+    const shown = await nudge();
+    expect(readSaved("URX44V"), "the change is still waiting").toBeNull();
+    await openPage();
+    expect(shownLevel()).toBe(shown);
+  });
+
+  it("is stored when another model is picked", async () => {
+    await openPage();
+    holdTimers();
+    const shown = await nudge();
+    await chooseModel("URX22");
+    await chooseModel("URX44V");
+    expect(shownLevel()).toBe(shown);
+  });
+
+  it("is dropped with the rest when the unit is reset", async () => {
+    window.localStorage.setItem(STATE_KEY, JSON.stringify({ version: 1, model: "URX44V", values: { "ch.ch1.level": -9 } }));
+    await openPage();
+    holdTimers();
+    await nudge();
+    const box = document.querySelector<HTMLElement>(".chrome-reset")!;
+    box.querySelector<HTMLElement>("button")!.click();
+    await pause(600);
+    const reset = [...box.querySelectorAll<HTMLElement>("button")].find((b) => b.textContent === "Reset")!;
+    reset.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+    await until("the unit as it ships", () => shownLevel() === "0");
+    expect(window.localStorage.getItem(STATE_KEY), "nothing is written back").toBeNull();
   });
 });

@@ -156,11 +156,19 @@ export function snapshot(store: DeviceStore): Record<string, ParamValue> {
   return values;
 }
 
+/** The steps that end the writing `startSaving` starts. */
+export interface Saving {
+  /** Write a change still waiting now, rather than when it falls due. */
+  flush: () => void;
+  /** Stop writing, dropping a change still waiting. */
+  stop: () => void;
+}
+
 /**
  * Write the unit to storage whenever it changes, and no more often than
- * `delayMs`. Returns the step that stops writing.
+ * `delayMs`. Returns the steps that end it.
  */
-export function startSaving(store: DeviceStore, model: string, delayMs = 400): () => void {
+export function startSaving(store: DeviceStore, model: string, delayMs = 400): Saving {
   let timer = 0;
   const save = (): void => {
     timer = 0;
@@ -175,9 +183,17 @@ export function startSaving(store: DeviceStore, model: string, delayMs = 400): (
     if (timer) return;
     timer = window.setTimeout(save, delayMs);
   });
-  return () => {
-    if (timer) window.clearTimeout(timer);
-    off();
+  return {
+    flush: () => {
+      if (!timer) return;
+      window.clearTimeout(timer);
+      save();
+    },
+    stop: () => {
+      if (timer) window.clearTimeout(timer);
+      timer = 0;
+      off();
+    },
   };
 }
 
