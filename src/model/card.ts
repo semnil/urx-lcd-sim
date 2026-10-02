@@ -94,11 +94,15 @@ export function readCard(store: DeviceStore): CardEntry[] {
   }
 }
 
-/** The order the card keeps its entries in: by folder, folders first and each group by name. */
+/**
+ * The order the card keeps its entries in: by folder, folders first and each
+ * group by name, in the English order of letters whatever language the browser
+ * runs in.
+ */
 function cardOrder(a: CardEntry, b: CardEntry): number {
-  if (a.dir !== b.dir) return a.dir.localeCompare(b.dir);
+  if (a.dir !== b.dir) return a.dir.localeCompare(b.dir, "en");
   if ((a.kind === "folder") !== (b.kind === "folder")) return a.kind === "folder" ? -1 : 1;
-  return a.name.localeCompare(b.name);
+  return a.name.localeCompare(b.name, "en");
 }
 
 /** Put the card's entries back, by folder, folders first and each group by name. */

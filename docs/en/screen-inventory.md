@@ -1623,7 +1623,7 @@ page, its corner folded down, carrying two lines (p084-1).
 
 The card carries three kinds of entry (`src/model/card.ts`): folders, the takes the recorder writes
 (`.wav`) and the settings files SAVE/LOAD writes (`.urxf`). Folders stand first, and each group by
-name. The simulator ships with a card named `test` in the slot and nothing on it.
+name, in the English order of letters whatever language the browser runs in. The simulator ships with a card named `test` in the slot and nothing on it.
 
 [■] leaves the take on the card. Its name comes from the unit's clock as `YYYYMMDD_HHMMSS.wav`, its
 length from the counter, its track count from [Track Count] and its place from the folder the card

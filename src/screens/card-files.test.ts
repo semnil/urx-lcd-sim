@@ -859,6 +859,33 @@ describe("what the card's own actions do to it", () => {
     expect(store.num("ch.ch1.level", 0), "the settings the file was saved with").toBe(-3);
   });
 
+  it("sorts the card's names in one order, whatever language the browser runs in", async () => {
+    const shell = await mount({ id: "microsd.saveload" });
+    const store = shell.ctx.store;
+    const sorted = async (...names: string[]): Promise<string[]> => {
+      await writeCard(store, names.map((name) => ({ name, kind: "data", seconds: 0, tracks: 0, dir: "/" })));
+      return readCard(store).map((e) => e.name);
+    };
+    const sortedFolders = async (...dirs: string[]): Promise<string[]> => {
+      await writeCard(store, dirs.map((dir) => ({ name: "a.urxf", kind: "data", seconds: 0, tracks: 0, dir })));
+      return readCard(store).map((e) => e.dir);
+    };
+    const own = String.prototype.localeCompare;
+    // A comparison that names no language takes the one given here, as a browser running in it does.
+    for (const language of [undefined, "lt", "da"]) {
+      vi.spyOn(String.prototype, "localeCompare").mockImplementation(function (this: string, that: string, locales?: Intl.LocalesArgument, options?: Intl.CollatorOptions) {
+        return own.call(this, that, locales ?? language, options);
+      });
+      expect([await sorted("Y", "J"), await sorted("Zz", "Aa"), await sorted("yours.urxf", "take.wav"), await sortedFolders("/Y/", "/J/")], language ?? "the language the tests run in").toEqual([
+        ["J", "Y"],
+        ["Aa", "Zz"],
+        ["take.wav", "yours.urxf"],
+        ["/J/", "/Y/"],
+      ]);
+      vi.restoreAllMocks();
+    }
+  });
+
   it("keeps apart what two settings files of one name in two folders hold", async () => {
     const shell = await mount({ id: "microsd.saveload" }, card);
     const store = shell.ctx.store;
