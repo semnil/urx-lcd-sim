@@ -22,7 +22,7 @@ Which screen leads to which is drawn in [screen-map.md](screen-map.md).
 | Sends destination picker | `sends-select` | p51 | Built. A sheet over HOME's main area; the side rail stays HOME's |
 | SCENE (menu) | `scene` | p72 | Built. Opened from the scene name at HOME's top left |
 | SCENE LIST | `scene.list` | p72-75 | Built (Store/Recall and Edit) |
-| Title entry | `scene.title` | — | Built. Opened from [Title] on SCENE LIST's Edit tab and from [Store] on a number with nothing stored. [Save as], [New folder] and [Rename] on SAVE/LOAD, [Rename] on RECORDER and [Format microSD] on TOOLS open the same screen as `microsd.name` ([Format microSD] titles it `Volume Label`, takes up to 11 characters and lets [OK] go on with the field empty). The guide has no figure of it |
+| Title entry | `scene.title` | — | Built. Opened from [Title] on SCENE LIST's Edit tab and from [Store] on a number with nothing stored. [Save as], [New folder] and [Rename] on SAVE/LOAD, [Rename] on RECORDER and [Format microSD] on TOOLS open the same screen as `microsd.name` ([Save as], [New folder] and [Rename] open it on the card's keyboard, with the extension outside the field; [Format microSD] titles it `Volume Label`, takes up to 11 characters and lets [OK] go on with the field empty). The guide has no figure of it |
 
 ### SETUP
 
@@ -1637,7 +1637,8 @@ stands from the root, and a path too long for it is shown from its end (the same
 name display"). A new folder and a [Save as] settings file are made in the folder that is open.
 
 On the Edit tab, [Delete] asks `Delete the selected file?` before it takes the entry off, and
-[Rename] and [New folder] open the same sheet SCENE's title opens. [Rename] onto a name the folder
+[Rename] and [New folder] open the same sheet SCENE's title opens, on the card's keyboard ("The title
+entry sheet"). [Rename] onto a name the folder
 already carries brings up `File already exists.` with the i mark and [OK] alone, as the unit does,
 and renames nothing: [OK] goes back to the sheet as it was typed (on SAVE/LOAD's and RECORDER's
 Edit tabs alike). TOOLS' [Format] leaves the card
@@ -1734,6 +1735,21 @@ wide), space (three keys wide), `@`, `.`, and `<` and `>` (one and three quarter
 capitals. A title takes up to 16 characters, and a key typed past that changes nothing. `<` and `>` move the cursor a character at a time, and typing and backspace act at the cursor. The clear
 button empties the field. The sheet opens on the letters with Shift off, and [OK] writes the title. [OK] does nothing
 while the field is empty, and [Cancel] writes nothing.
+
+A name on the card ([Save as], [New folder] and [Rename] on SAVE/LOAD, and [Rename] on RECORDER) opens the sheet on
+the card's keyboard. Its letters and row 4 are the title's, and its numbers and symbols run as below. A row shorter
+than the title's stands centred between the keys at its ends, as the title's rows do.
+
+| Layout | Row 1 | Row 2 | Row 3 |
+|---|---|---|---|
+| Numbers | `1234567890` | `-;()&` | [#+-], `.,!'`, backspace |
+| Symbols | `[]{}#%^+=` | `_~$` | [123], `.,!'`, backspace |
+
+A browser's keyboard types no more than those keys type. The extension (`.urxf` for a settings file, `.wav` for a
+take) is not in the field: it stands outside it on the right, bold like the field's type, and [OK] puts it after the
+name typed. [Save as] takes 14 characters, [Rename] 255 less the extension's (250 for `.urxf`, 251 for `.wav`) and
+[New folder] 255, and a key typed past that changes nothing. TOOLS' [Format microSD] opens the volume label on the
+title's keyboard.
 
 ## The focus frame
 

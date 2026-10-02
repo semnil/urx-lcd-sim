@@ -349,7 +349,7 @@ describe("what the card's own actions do to it", () => {
     await flush();
     action(shell, "Rename")?.click();
     await flush();
-    await typeTitle(shell, "keeper.wav");
+    await typeTitle(shell, "keeper");
     expect(names(shell)).toEqual(["Recordings", "keeper.wav"]);
     expect(cursorName(shell), "the cursor stays on it").toBe("keeper.wav");
   });
@@ -404,7 +404,7 @@ describe("what the card's own actions do to it", () => {
     await flush();
     action(shell, "Rename")?.click();
     await flush();
-    await typeTitle(shell, "a.urxf");
+    await typeTitle(shell, "a");
     expect(shell.root.querySelector(".dialog-text")?.textContent).toBe("File already exists.");
     expect(shell.root.querySelector(".dialog:not(.is-caution) .dialog-mark svg"), "under the information mark").not.toBeNull();
     expect([...shell.root.querySelectorAll(".dialog-actions .btn")].map((b) => b.textContent), "[OK] alone").toEqual(["OK"]);
@@ -414,7 +414,7 @@ describe("what the card's own actions do to it", () => {
     expect(shell.root.querySelector(".dialog-overlay"), "[OK] takes the dialog down").toBeNull();
     expect([shell.ctx.nav.current.id, shell.root.querySelector(".title-text")?.textContent], "back on the sheet, the name as it was typed").toEqual([
       "microsd.name",
-      "a.urxf",
+      "a",
     ]);
     shell.root.querySelector<HTMLElement>(".pick-dialog-cancel")?.click();
     await flush();
@@ -440,13 +440,13 @@ describe("what the card's own actions do to it", () => {
     await flush();
     action(shell, "Rename")?.click();
     await flush();
-    await typeTitle(shell, "x.wav");
+    await typeTitle(shell, "x");
     expect(shell.root.querySelector(".dialog-text")?.textContent).toBe("File already exists.");
     await okDialog(shell);
     expect(shell.ctx.nav.current.id).toBe("microsd.name");
     expect(names(shell)).toEqual(["x.wav", "y.wav"]);
 
-    await typeTitle(shell, "z.wav");
+    await typeTitle(shell, "z");
     expect(names(shell), "the control: a name the folder does not carry").toEqual(["x.wav", "z.wav"]);
   });
 
@@ -618,7 +618,7 @@ describe("what the card's own actions do to it", () => {
     await flush();
     action(shell, "Rename")?.click();
     await flush();
-    await typeTitle(shell, "yours.urxf");
+    await typeTitle(shell, "yours");
     expect(names(shell), "under its new name, where the card now sorts it").toEqual(["Recordings", "take.wav", "yours.urxf"]);
     expect(cursorName(shell), "the cursor goes with it").toBe("yours.urxf");
 
@@ -848,7 +848,7 @@ describe("what the card's own actions do to it", () => {
     expect([shell.ctx.nav.current.id, fieldName()], "a scene's title").toEqual(["scene.title", "Title"]);
   });
 
-  it("takes eleven characters at most for the volume label, where the other card sheets take sixteen and none empty", async () => {
+  it("takes eleven characters at most for the volume label, where [Save as] takes fourteen and does not go on empty", async () => {
     const shell = await mount({ id: "microsd.tools" }, card);
     const typed = (): string => shell.root.querySelector(".title-text")?.textContent ?? "";
     const type = async (times: number): Promise<void> => {
@@ -870,14 +870,118 @@ describe("what the card's own actions do to it", () => {
     await flush();
     action(shell, "Save as")?.click();
     await flush();
-    await type(17);
-    expect(typed()).toBe("a".repeat(16));
-    // Nor do they go on empty, as the volume label does.
+    await type(15);
+    expect(typed()).toBe("a".repeat(14));
+    // Nor does it go on empty, as the volume label does.
     shell.root.querySelector<HTMLElement>(".title-clear")?.click();
     await flush();
     shell.root.querySelector<HTMLElement>(".pick-dialog-ok")?.click();
     await flush();
     expect(shell.ctx.nav.current.id, "[OK] on an empty field does nothing").toBe("microsd.name");
+  });
+
+  describe("the name sheet a card screen opens", () => {
+    const tapKey = async (shell: Shell, face: string): Promise<void> => {
+      [...shell.root.querySelectorAll<HTMLElement>(".title-key")].find((k) => k.textContent === face || k.getAttribute("aria-label") === face)?.click();
+      await flush();
+    };
+    const field = (shell: Shell): [string, string | null] => [
+      shell.root.querySelector(".title-text")?.textContent ?? "",
+      shell.root.querySelector(".title-suffix")?.textContent ?? null,
+    ];
+    const draft = async (shell: Shell, text: string): Promise<void> => {
+      await shell.ctx.store.set("ui.titleEntry.text", text);
+      await shell.ctx.store.set("ui.titleEntry.cursor", text.length);
+      await flush();
+    };
+
+    it("opens a take the recorder named on its name alone, the extension beside the field, and puts the extension back on [OK]", async () => {
+      const take: CardEntry = { name: "20261001_123456.wav", kind: "take", seconds: 10, tracks: 2, stamp: "", dir: "/" };
+      const shell = await mount({ id: "microsd.recorder" }, [take]);
+      await shell.ctx.store.set("ui.sdTab", "Edit");
+      await shell.ctx.store.set("sd.selectedFile", 0);
+      await flush();
+      action(shell, "Rename")?.click();
+      await flush();
+      expect(field(shell)).toEqual(["20261001_123456", ".wav"]);
+      // One digit retyped.
+      await tapKey(shell, "Backspace");
+      await tapKey(shell, "123");
+      await tapKey(shell, "7");
+      expect(field(shell)).toEqual(["20261001_123457", ".wav"]);
+      shell.root.querySelector<HTMLElement>(".pick-dialog-ok")?.click();
+      await flush();
+      expect(names(shell)).toEqual(["20261001_123457.wav"]);
+    });
+
+    it("writes a settings file under fourteen characters at most, `.urxf` standing beside the field", async () => {
+      const shell = await mount({ id: "microsd.saveload" }, []);
+      action(shell, "Save as")?.click();
+      await flush();
+      expect(field(shell), "opened empty").toEqual(["", ".urxf"]);
+      await draft(shell, "a".repeat(13));
+      await tapKey(shell, "b");
+      await tapKey(shell, "c");
+      expect(field(shell), "the fifteenth key changes nothing").toEqual([`${"a".repeat(13)}b`, ".urxf"]);
+      shell.root.querySelector<HTMLElement>(".pick-dialog-ok")?.click();
+      await flush();
+      expect(names(shell)).toEqual([`${"a".repeat(13)}b.urxf`]);
+    });
+
+    it("takes 255 characters for a name with its extension on [Rename], and 255 for a folder on [New folder]", async () => {
+      const file = (name: string, kind: CardEntry["kind"]): CardEntry => ({ name, kind, seconds: 0, tracks: kind === "take" ? 2 : 0, stamp: "", dir: "/" });
+      const shell = await mount({ id: "microsd.saveload" }, [file("mine.urxf", "data"), file("take.wav", "take")]);
+      await shell.ctx.store.set("ui.sdSaveTab", "Edit");
+      const typedTo = async (open: () => Promise<void>, length: number): Promise<number> => {
+        await open();
+        await draft(shell, "a".repeat(length - 1));
+        await tapKey(shell, "b");
+        await tapKey(shell, "c");
+        const text = field(shell)[0];
+        shell.root.querySelector<HTMLElement>(".pick-dialog-cancel")?.click();
+        await flush();
+        return text.endsWith("b") ? text.length : -1;
+      };
+      const rename = (row: number) => async (): Promise<void> => {
+        await shell.ctx.store.set("sd.selectedFile", row);
+        await flush();
+        action(shell, "Rename")?.click();
+        await flush();
+      };
+      const newFolder = async (): Promise<void> => {
+        action(shell, "New folder")?.click();
+        await flush();
+      };
+      expect([await typedTo(rename(0), 250), await typedTo(rename(1), 251), await typedTo(newFolder, 255)], ".urxf, .wav, a folder").toEqual([250, 251, 255]);
+      await newFolder();
+      expect(field(shell), "a folder carries no extension").toEqual(["", null]);
+    });
+
+    it("lays out the card's own number and symbol keys, and takes from a browser's keyboard only what they type", async () => {
+      const shell = await mount({ id: "microsd.saveload" }, []);
+      action(shell, "Save as")?.click();
+      await flush();
+      const faces = (): string[] => [...shell.root.querySelectorAll(".title-key")].map((k) => k.textContent ?? "");
+      const placed = (face: string): string =>
+        [...shell.root.querySelectorAll<HTMLElement>(".title-key")].find((k) => k.textContent === face)?.style.gridColumn ?? "";
+      await tapKey(shell, "123");
+      expect(faces().slice(0, 10).join("")).toBe("1234567890");
+      expect(faces().slice(10, 15).join("")).toBe("-;()&");
+      expect(faces().slice(15, 21), "#+-, four marks and backspace").toEqual(["#+-", ...".,!'", ""]);
+      expect(faces()[21]).toBe("ABC");
+      expect([placed("-"), placed(",")], "the shorter rows centred, as the title's rows stand").toEqual(["11 / span 4", "15 / span 4"]);
+      await tapKey(shell, "#+-");
+      expect(faces().slice(0, 9).join("")).toBe("[]{}#%^+=");
+      expect(faces().slice(9, 12).join("")).toBe("_~$");
+      expect(faces().slice(12, 18), "123, four marks and backspace").toEqual(["123", ...".,!'", ""]);
+      expect([placed("["), placed("_")]).toEqual(["3 / span 4", "15 / span 4"]);
+
+      for (const key of ["/", ":", "*", "?", "\"", "<", ">", "|", "\\", "-"]) {
+        shell.root.querySelector<HTMLElement>(".title-field")?.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+        await flush();
+      }
+      expect(field(shell)[0], "the marks the card's keys do not carry are left alone").toBe("-");
+    });
   });
 
   it("formats with the volume label left empty, under the name Untitled", async () => {

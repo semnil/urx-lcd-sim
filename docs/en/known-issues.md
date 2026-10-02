@@ -49,6 +49,10 @@ is built is in [screen-inventory.md](screen-inventory.md).
   being pulled out. On the microSD top with no card, a touch on `Not inserted microSD card` brings up
   a question of the simulator's own, `Simulate inserting the microSD card?` ([Cancel] / [OK]), and
   [OK] stands for the same card going back in.
+- **How long a name on the microSD card runs.** On the unit, [Rename] takes about 255 characters and does not save
+  a name longer than 255 characters with its extension, and [New folder] takes more than 255 characters and makes the
+  folder under the name cut short. This simulator stops [Rename] at 255 characters less the extension's (250 for
+  `.urxf`, 251 for `.wav`) and [New folder] at 255, and a key typed past that changes nothing.
 - **COMP's 1-knob only takes the rows too.** While it is on the unit recomputes Threshold, Ratio,
   Gain and Knee from the Level. What that computation is is not known, so this simulator leaves the
   other rows out of reach, as the unit does, and moves no value.

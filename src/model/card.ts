@@ -53,6 +53,9 @@ export function filePath(entry: Pick<CardEntry, "dir" | "name">): string {
   return `${FILES}${entry.dir}${entry.name}`;
 }
 
+/** What follows the name of a take the recorder writes. */
+export const TAKE_SUFFIX = ".wav";
+
 /** The sampling frequency as the recorder's screens print it. */
 export function formatRate(hz: number): string {
   return `${(hz / 1000).toFixed(1)}kHz`;
@@ -152,10 +155,10 @@ export function takeName(store: DeviceStore, at = Date.now()): string {
   const { year, month, day, hour, minute, second } = clockParts(store, at);
   const taken = new Set(readCard(store).map((e) => e.name));
   for (let i = 0; i < 60; i++) {
-    const name = `${year}${pad(month)}${pad(day)}_${pad(hour)}${pad(minute)}${pad((second + i) % 60)}.wav`;
+    const name = `${year}${pad(month)}${pad(day)}_${pad(hour)}${pad(minute)}${pad((second + i) % 60)}${TAKE_SUFFIX}`;
     if (!taken.has(name)) return name;
   }
-  return `${year}${pad(month)}${pad(day)}_${pad(hour)}${pad(minute)}${pad(second)}.wav`;
+  return `${year}${pad(month)}${pad(day)}_${pad(hour)}${pad(minute)}${pad(second)}${TAKE_SUFFIX}`;
 }
 
 /** The card the simulator ships with: one in the slot, with nothing on it yet. */

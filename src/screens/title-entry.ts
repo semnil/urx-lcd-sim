@@ -16,6 +16,9 @@ const TITLE_MAX = 16;
 
 type Layout = "letters" | "numbers" | "symbols";
 
+/** The keyboard the sheet lays out: a title's, or the card's own for a name on the microSD card. */
+type Keyboard = "title" | "card";
+
 type Action =
   | { kind: "type"; text: string }
   | { kind: "layout"; to: Layout }
@@ -72,12 +75,42 @@ const LAYOUTS: Record<Layout, Key[][]> = {
   ],
 };
 
-/** Every character the unit's own keys can type, in either case. */
-const TYPABLE = new Set(
-  Object.values(LAYOUTS)
-    .flat(2)
-    .flatMap((k) => (k.action.kind === "type" ? [k.action.text, k.action.text.toUpperCase()] : [])),
-);
+/**
+ * The card's own layouts: a title's letters, and numbers and symbols of their
+ * own. Each row stands centred between the keys at its ends, as a title's rows do.
+ */
+const CARD_LAYOUTS: Record<Layout, Key[][]> = {
+  letters: LAYOUTS.letters,
+  numbers: [
+    typing("1234567890", 0),
+    typing("-;()&", 10),
+    [{ face: "#+-", action: { kind: "layout", to: "symbols" }, col: 0, span: 4 }, ...typing(".,!'", 10), BACKSPACE],
+    footRow({ face: "ABC", action: { kind: "layout", to: "letters" }, col: 0, span: 6 }),
+  ],
+  symbols: [
+    typing("[]{}#%^+=", 2),
+    typing("_~$", 14),
+    [{ face: "123", action: { kind: "layout", to: "numbers" }, col: 0, span: 4 }, ...typing(".,!'", 10), BACKSPACE],
+    footRow({ face: "ABC", action: { kind: "layout", to: "letters" }, col: 0, span: 6 }),
+  ],
+};
+
+/** Each keyboard's layouts. */
+const KEYBOARDS: Record<Keyboard, Record<Layout, Key[][]>> = { title: LAYOUTS, card: CARD_LAYOUTS };
+
+/** Every character a keyboard's own keys can type, in either case. */
+const TYPABLE: Record<Keyboard, Set<string>> = {
+  title: typable(LAYOUTS),
+  card: typable(CARD_LAYOUTS),
+};
+
+function typable(layouts: Record<Layout, Key[][]>): Set<string> {
+  return new Set(
+    Object.values(layouts)
+      .flat(2)
+      .flatMap((k) => (k.action.kind === "type" ? [k.action.text, k.action.text.toUpperCase()] : [])),
+  );
+}
 
 /** What a key without a readable face is called. */
 const KEY_NAMES: Partial<Record<Action["kind"], string>> = { backspace: "Backspace", left: "Move left", right: "Move right" };
@@ -107,6 +140,10 @@ export interface TitleDraft {
   max?: number;
   /** Whether [OK] goes on with the field empty. */
   empty?: boolean;
+  /** The keyboard the sheet lays out; a title's where none is named. */
+  keys?: Keyboard;
+  /** What stands beside the field, outside it, and follows what is typed wherever [OK] takes it: a name's extension. */
+  suffix?: string;
   /**
    * What [OK] says instead of going on, given what is typed: a dialog carrying
    * it and [OK] alone, over the sheet as it was typed. Where it says nothing,
@@ -123,6 +160,8 @@ export function draftTitle(ctx: AppContext, draft: TitleDraft): void {
   void ctx.store.set(`${DRAFT}.heading`, draft.heading ?? "");
   void ctx.store.set(`${DRAFT}.max`, draft.max ?? TITLE_MAX);
   void ctx.store.set(`${DRAFT}.empty`, draft.empty === true ? 1 : 0);
+  void ctx.store.set(`${DRAFT}.keys`, draft.keys ?? "title");
+  void ctx.store.set(`${DRAFT}.suffix`, draft.suffix ?? "");
   void ctx.store.set(`${DRAFT}.path`, path);
   void ctx.store.set(`${DRAFT}.recall`, draft.recall ?? -1);
   void ctx.store.set(`${DRAFT}.text`, title);
@@ -144,6 +183,8 @@ export function openTitleEntry(ctx: AppContext, path: string, title: string, rec
  * The sheet [Title] opens: [Cancel] and [OK] in its top corners, the title in a
  * black field with a clear button at its right end, and the keyboard across the
  * foot. Shift stays on until it is tapped again. A title takes up to 16 characters.
+ * Opened on a name on the card, it lays out the card's own keyboard, and the
+ * name's extension stands beside the field rather than in it.
  * Nothing is written before [OK], and [OK] does nothing while the field is empty.
  * The unit's keys are touched rather than tabbed, so they hold no Tab stop; the
  * field does, and it takes what a browser's keyboard sends.
@@ -163,6 +204,8 @@ export const titleEntryScreen: ScreenDef = {
     const heading = ctx.store.str(`${DRAFT}.heading`, "");
     const max = ctx.store.num(`${DRAFT}.max`, TITLE_MAX);
     const empty = ctx.store.num(`${DRAFT}.empty`, 0) === 1;
+    const keys: Keyboard = ctx.store.str(`${DRAFT}.keys`, "title") === "card" ? "card" : "title";
+    const suffix = ctx.store.str(`${DRAFT}.suffix`, "");
 
     const edit = (next: string, at: number): void => {
       void ctx.store.set(`${DRAFT}.text`, next);
@@ -263,7 +306,7 @@ export const titleEntryScreen: ScreenDef = {
       if (ev.key === "Backspace") act({ kind: "backspace" });
       else if (ev.key === "ArrowLeft") act({ kind: "left" });
       else if (ev.key === "ArrowRight") act({ kind: "right" });
-      else if (TYPABLE.has(ev.key)) insert(ev.key);
+      else if (TYPABLE[keys].has(ev.key)) insert(ev.key);
       else return;
       ev.preventDefault();
     });
@@ -281,14 +324,15 @@ export const titleEntryScreen: ScreenDef = {
           button("OK", () => {
             // [OK] does nothing until something is typed, unless the draft goes on empty.
             if (!text && !empty) return;
-            const refusal = pendingRefuse?.(text);
+            const named = `${text}${suffix}`;
+            const refusal = pendingRefuse?.(named);
             if (refusal) {
               ctx.overlay(dialog({ message: refusal, okOnly: true, onOk: () => undefined }));
               return;
             }
             pendingRefuse = null;
             const path = ctx.store.str(`${DRAFT}.path`, "");
-            if (path) void ctx.store.set(path, text);
+            if (path) void ctx.store.set(path, named);
             const recall = ctx.store.num(`${DRAFT}.recall`, -1);
             // Naming a number that holds nothing is the first half of storing to
             // it: the mixer goes in with the name.
@@ -299,10 +343,11 @@ export const titleEntryScreen: ScreenDef = {
             const handOver = pendingOk;
             pendingOk = null;
             ctx.nav.back();
-            handOver?.(text);
+            handOver?.(named);
           }, "pick-dialog-btn pick-dialog-ok"),
           field,
-          el("div", { class: "title-keys", children: LAYOUTS[layout].flatMap((row, i) => row.map((k) => keyNode(k, i))) }),
+          ...(suffix ? [el("span", { class: "title-suffix", text: suffix })] : []),
+          el("div", { class: "title-keys", children: KEYBOARDS[keys][layout].flatMap((row, i) => row.map((k) => keyNode(k, i))) }),
         ],
       }),
     };

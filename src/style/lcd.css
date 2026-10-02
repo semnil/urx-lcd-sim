@@ -4129,6 +4129,20 @@
   height: 20px;
 }
 
+/* A name's extension on the card, outside the field against its right edge, in the field's type. */
+.title-suffix {
+  position: absolute;
+  left: 362px;
+  top: 45px;
+  height: 41px;
+  display: flex;
+  align-items: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-inverse);
+  pointer-events: none;
+}
+
 .title-keys {
   position: absolute;
   left: 3px;

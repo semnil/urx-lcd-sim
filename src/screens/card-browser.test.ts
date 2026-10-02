@@ -502,7 +502,7 @@ describe("the microSD card browser", () => {
           await pickTab(shell, "ui.sdTab", "Edit");
           await tapRow(shell, "b.wav");
           await press(shell, "Rename");
-          await typed(shell, "z.wav");
+          await typed(shell, "z");
         },
         "z.wav",
       ],

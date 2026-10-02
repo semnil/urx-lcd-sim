@@ -8,7 +8,7 @@
 import type { AppContext } from "../app/context";
 import type { ParamValue } from "../device/path";
 import type { CardEntry } from "../model/card";
-import { CARD_ROOT, cardStamp, changeCard, filePath, folderPath, formatFree, formatRate, freeBytes, parentPath, readCard, takeRate } from "../model/card";
+import { CARD_ROOT, TAKE_SUFFIX, cardStamp, changeCard, filePath, folderPath, formatFree, formatRate, freeBytes, parentPath, readCard, takeRate } from "../model/card";
 import { applySettings, captureSettings } from "../model/settings-file";
 import { onDynamicsTimeStops } from "../model/dynamics-times";
 import { TRACK_COUNTS, dropTracksOverRate, trackCountCeiling } from "../model/track-count";
@@ -219,10 +219,28 @@ function cardEntries(ctx: AppContext): CardEntry[] {
 /** The name sheet, opened on something on the card: it gives way once the card is out. */
 const cardNameScreen: ScreenDef = { ...titleEntryScreen, id: "microsd.name", needsCard: true };
 
-/** Open the name sheet on `title`; [OK] hands what is typed to `onOk`. `more` carries the rest of the draft. */
-function nameOnCard(ctx: AppContext, title: string, onOk: (text: string) => void, more: Pick<TitleDraft, "heading" | "max" | "empty" | "refuse"> = {}): void {
-  draftTitle(ctx, { ...more, path: "", title, onOk });
+/**
+ * Open the name sheet on `name`, on the card's own keyboard unless `more.keys`
+ * names another. The extension `more.suffix` stands beside the field rather than
+ * in it, and [OK] hands what is typed, the extension after it, to `onOk`. `more`
+ * carries the rest of the draft.
+ */
+function nameOnCard(ctx: AppContext, name: string, onOk: (text: string) => void, more: Pick<TitleDraft, "heading" | "max" | "empty" | "refuse" | "keys" | "suffix"> = {}): void {
+  const suffix = more.suffix ?? "";
+  const title = suffix && name.endsWith(suffix) ? name.slice(0, -suffix.length) : name;
+  draftTitle(ctx, { keys: "card", ...more, path: "", title, onOk });
   ctx.nav.push({ id: "microsd.name" });
+}
+
+/** The longest name the card takes for a file or a folder, a file's extension included. */
+const NAME_MAX = 255;
+
+/** The most characters [Save as] takes for a settings file's name, before its extension. */
+const SAVE_AS_MAX = 14;
+
+/** The extension a file on the card carries: `.wav` for a take, `.urxf` for a settings file. */
+function suffixOf(entry: CardEntry): string {
+  return entry.kind === "take" ? TAKE_SUFFIX : entry.kind === "data" ? SETTINGS_SUFFIX : "";
 }
 
 /** What the card leaves. */
@@ -350,6 +368,7 @@ function renameSelected(ctx: AppContext): void {
   const entries = cardEntries(ctx);
   const entry = entries[row];
   if (!entry) return;
+  const suffix = suffixOf(entry);
   nameOnCard(ctx, entry.name, (name) => {
     const held = ctx.store.str(filePath(entry), "");
     if (held) {
@@ -360,14 +379,14 @@ function renameSelected(ctx: AppContext): void {
       ctx,
       entries.map((e, i) => (i === row ? { ...e, name } : e)),
     );
-  }, { refuse: (name) => (folderCarries(entries, entry.dir, name, row) ? NAME_TAKEN : undefined) });
+  }, { suffix, max: NAME_MAX - suffix.length, refuse: (name) => (folderCarries(entries, entry.dir, name, row) ? NAME_TAKEN : undefined) });
 }
 
 /** Put a folder on the card under the name that is typed. */
 function newFolder(ctx: AppContext): void {
   nameOnCard(ctx, "", (name) => {
     updateCard(ctx, [...cardEntries(ctx), { name, kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: cardPath(ctx) }]);
-  });
+  }, { max: NAME_MAX });
 }
 
 /** Write the unit's settings to the card under `name`, over a file of that name. */
@@ -383,12 +402,11 @@ function saveSettings(ctx: AppContext, name: string): void {
 function saveLoadAction(ctx: AppContext, label: string): void {
   const entry = selectedEntry(ctx);
   if (label === "Save as") {
-    nameOnCard(ctx, "", (typed) => {
-      const name = `${typed}${SETTINGS_SUFFIX}`;
+    nameOnCard(ctx, "", (name) => {
       const taken = folderCarries(cardEntries(ctx), cardPath(ctx), name);
       if (taken) ctx.overlay(dialog({ message: REPLACE_ASK, onOk: () => saveSettings(ctx, name) }));
       else saveSettings(ctx, name);
-    });
+    }, { suffix: SETTINGS_SUFFIX, max: SAVE_AS_MAX });
     return;
   }
   if (entry === undefined || entry.kind !== "data") return;
@@ -732,9 +750,9 @@ const FORMAT_WARNING =
 /** The most characters a volume label takes. */
 const VOLUME_LABEL_MAX = 11;
 
-/** Format asks for the volume label first, empty or not, and [OK] goes on to the warning. */
+/** Format asks for the volume label first, on a title's keyboard, empty or not, and [OK] goes on to the warning. */
 function askVolumeLabel(ctx: AppContext): void {
-  nameOnCard(ctx, cardName(ctx), (label) => warnFormat(ctx, label), { heading: "Volume Label", max: VOLUME_LABEL_MAX, empty: true });
+  nameOnCard(ctx, cardName(ctx), (label) => warnFormat(ctx, label), { heading: "Volume Label", max: VOLUME_LABEL_MAX, empty: true, keys: "title" });
 }
 
 /** The warning's [OK] formats the card under `label`. */

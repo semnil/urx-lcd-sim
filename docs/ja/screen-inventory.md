@@ -21,7 +21,7 @@ URX44V/44/22 ユーザーガイド (英語版 revision D0) が載せている LC
 | Sends 送り先選択 | `sends-select` | p51 | 実装済み。HOME のメインエリアに重なるシート。サイドレールは HOME のまま |
 | SCENE (メニュー) | `scene` | p72 | 実装済み。HOME 左上のシーン名から開く |
 | SCENE LIST | `scene.list` | p72-75 | 実装済み (Store/Recall と Edit) |
-| 題の入力 | `scene.title` | — | 実装済み。SCENE LIST の Edit タブの [Title] と、保存の無い番号の [Store] から開く。SAVE/LOAD の [Save as]・[New folder]・[Rename] と RECORDER の [Rename] と TOOLS の [Format microSD] は同じ画面を `microsd.name` として開く ([Format microSD] は題 `Volume Label` を付け、11 文字までで、空でも [OK] で進む)。ガイドに図は無い |
+| 題の入力 | `scene.title` | — | 実装済み。SCENE LIST の Edit タブの [Title] と、保存の無い番号の [Store] から開く。SAVE/LOAD の [Save as]・[New folder]・[Rename] と RECORDER の [Rename] と TOOLS の [Format microSD] は同じ画面を `microsd.name` として開く ([Save as]・[New folder]・[Rename] はカードのキーボードで開き、拡張子を入力欄の外に出す。[Format microSD] は題 `Volume Label` を付け、11 文字までで、空でも [OK] で進む)。ガイドに図は無い |
 
 ### SETUP
 
@@ -1417,7 +1417,7 @@ microSD Card Slot: WAV 24-bit)、設定ファイルは 50,668 バイト (設定�
 開いているフォルダーに作られる。
 
 Edit タブの [Delete] は `Delete the selected file?` を尋ねてから消し、[Rename] と [New folder] は
-SCENE の題と同じ入力シートを開く。[Rename] で同じフォルダーにある名前を打って [OK] を押すと、実機と同じく
+SCENE の題と同じ入力シートをカードのキーボードで開く (「題の入力シート」)。[Rename] で同じフォルダーにある名前を打って [OK] を押すと、実機と同じく
 i の印と [OK] だけのダイアログ `File already exists.` を出し、改名せずに [OK] で打ったままの入力シートへ戻る
 (SAVE/LOAD と RECORDER の Edit タブとも同じ)。TOOLS の [Format] はカードを空にする。SAVE/LOAD の [Save] は
 選んだ設定ファイルへ今の設定を書き、[Save as] は入力した名前に `.urxf` を付けて書き、[Load] は
@@ -1502,6 +1502,20 @@ x6..95・x149..238・x291..380、字形は錠 16x21・ごみ箱 16x18・名前�
 [Shift] はタップのたびに入れ切りし、入っているあいだ面を `--accent-selected` にして文字のキーを大文字で描き、大文字を打つ。
 題は 16 文字まで打て、それを超えるキーは題を変えない。`<` `>` はカーソルを 1 文字ずつ動かし、打った文字と後退はカーソルの位置に効く。消去ボタンは欄を空にする。シートは
 文字の配列・Shift を切った状態で開き、[OK] で題を書き込む。欄が空のあいだ [OK] は何もしない。[Cancel] は何も書き込まない。
+
+カードの上の名前 (SAVE/LOAD の [Save as]・[New folder]・[Rename] と RECORDER の [Rename]) は、このシートをカードの
+キーボードで開く。文字の配列と 4 行目は題と同じで、数字と記号の配列は次のとおり。題より短い行は、題の行と同じく
+両端のキーの間の中央に置く。
+
+| 配列 | 1 行目 | 2 行目 | 3 行目 |
+|---|---|---|---|
+| 数字 | `1234567890` | `-;()&` | [#+-]、`.,!'`、後退 |
+| 記号 | `[]{}#%^+=` | `_~$` | [123]、`.,!'`、後退 |
+
+ブラウザのキーボードからも、これらのキーが打てる文字だけが入る。拡張子 (設定ファイルは `.urxf`、録音は `.wav`) は
+入力欄に入れず、欄の外の右に入力欄の字と同じ太字で出し、[OK] で打った名前の後に付ける。打てる長さは [Save as] が
+14 文字、[Rename] が 255 文字から拡張子の文字数を引いた長さ (`.urxf` は 250、`.wav` は 251)、[New folder] が
+255 文字で、それを超えるキーは名前を変えない。TOOLS の [Format microSD] のボリュームラベルは題のキーボードで開く。
 
 ## フォーカスの枠
 
