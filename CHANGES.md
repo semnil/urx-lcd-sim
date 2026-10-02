@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Take a touch over 36x36 at the default scale on the readout bar's page steps, the USER DEFINED KNOBS bank steps and a list's scroll bar and thumb, which draw as they did. Only what they draw took a touch, as little as 16x17 screen pixels for a page step and 8 across for a thumb.
 - Show the end of a title wider than the title sheet's field, with the caret, and bring a caret moved back past the start of what shows to the field's left edge. Sixteen wide characters such as `W` ran past the field's right edge, the last of them and the caret out of sight.
 - Keep the title row above the screen and the notes under it inside a window narrower than the frame around the screen, the unit model, the display scale and [Reset the unit] wrapping onto further rows; only the frame runs past the window. They took the frame's width, so on a phone, or in a desktop window at 150% and 200%, the selectors and [Reset the unit] stood outside the window.
 - Keep SCENE LIST and the card's lists where they were scrolled when a row is touched. Each touch drew the list again from its top, so the row just picked went out of view, and a second touch on a folder to open it landed on another row.

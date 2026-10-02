@@ -275,6 +275,36 @@ describe("what answers a touch", () => {
   it("lets a touch through the backlight", () => {
     expect(declarations(CSS, ".lcd-dim")["pointer-events"]).toBe("none");
   });
+
+  it("takes a touch 18 screen pixels each way on the page steps, the bank steps and a list's bar and thumb, 36 at the default scale", () => {
+    // They draw smaller than that on the unit. An empty box laid over each part
+    // reaches 18px across and down without drawing anything, and a touch on it
+    // is the part's own.
+    const LEAST = 18;
+    expect(Number(declarations(TOKENS, ":root")["--scale"]) * LEAST, "the desktop minimum").toBe(36);
+    const reach = (selector: string): Record<string, string> => declarations(CSS, `${selector}::before`);
+    for (const step of [".knob-strip .knob-page-step", ".knob-strip .knob-bank-step"]) {
+      expect([reach(step)["content"], reach(step)["position"], reach(step)["width"], reach(step)["height"]], step).toEqual([
+        '""', "absolute", `${LEAST}px`, `max(100%, ${LEAST}px)`,
+      ]);
+      // Up from the foot of the bar, and from each end in towards the middle.
+      expect(reach(step)["bottom"]).toBe("0");
+    }
+    expect([reach(".knob-page-prev")["left"], reach(".knob-bank-prev")["left"]]).toEqual(["0", "0"]);
+    expect([reach(".knob-page-next")["right"], reach(".knob-bank-next")["right"]]).toEqual(["0", "0"]);
+    expect(px(declarations(CSS, ".knob-strip .knob-page-step")["width"]), "drawn narrower than it takes").toBeLessThan(LEAST);
+
+    // The bar and the thumb: centred on what they draw, the thumb at least as tall as it is wide.
+    for (const part of [".scrollbar", ".scroll-thumb"]) {
+      expect([reach(part)["content"], reach(part)["position"], reach(part)["width"], reach(part)["left"], reach(part)["translate"]], part).toEqual([
+        '""', "absolute", `${LEAST}px`, "50%", "-50% 0",
+      ]);
+    }
+    expect([reach(".scrollbar")["top"], reach(".scrollbar")["bottom"]]).toEqual(["0", "0"]);
+    const short = `min(0px, calc(50% - ${LEAST / 2}px))`;
+    expect([reach(".scroll-thumb")["top"], reach(".scroll-thumb")["bottom"]], "a thumb shorter than that reaches out to it").toEqual([short, short]);
+    expect(px(declarations(CSS, ".scroll-thumb")["width"]), "drawn narrower than it takes").toBeLessThan(LEAST);
+  });
 });
 
 describe("the knob readout bar", () => {

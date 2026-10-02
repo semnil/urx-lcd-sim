@@ -35,7 +35,9 @@
   overflow: hidden;
   /* Drawn at --scale so the panel is legible on a desktop display. Controls on
    * the glass keep the unit's own geometry — a 26px-tall button on a 4.3-inch
-   * panel — and the scale is what carries them past the 36px target minimum.
+   * panel — and the scale is what carries them past the 36px target minimum;
+   * a part drawn under 18px takes a touch over 18px all the same (the page
+   * steps, the bank steps and a list's bar and thumb).
    * The display zoom multiplies in here too, so the glass is scaled by this one
    * transform. */
   transform: scale(calc(var(--scale) * var(--zoom, 1)));
@@ -486,6 +488,29 @@
 
 .knob-page-next {
   right: 1px;
+}
+
+/* A touch reaches each step over 18 screen pixels each way, 36 at the default
+ * scale, while the step draws only its own mark: up from the foot of the bar and
+ * in from its end, over the edge of the division beside it, where the step takes
+ * the touch. */
+.knob-strip .knob-page-step::before,
+.knob-strip .knob-bank-step::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  width: 18px;
+  height: max(100%, 18px);
+}
+
+.knob-page-prev::before,
+.knob-bank-prev::before {
+  left: 0;
+}
+
+.knob-page-next::before,
+.knob-bank-next::before {
+  right: 0;
 }
 
 .lcd.is-udk .knob-cell-label {
@@ -6731,6 +6756,29 @@
   width: 8px;
   border-radius: 4px;
   background: var(--text);
+}
+
+/* A touch reaches the bar and its thumb over 18 screen pixels across, 36 at the
+ * default scale, centred on what they draw, and a thumb shorter than that over 18
+ * down. The thumb stands over the bar, so where the two reach over each other the
+ * thumb takes the touch. */
+.scrollbar::before,
+.scroll-thumb::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 18px;
+  translate: -50% 0;
+}
+
+.scrollbar::before {
+  top: 0;
+  bottom: 0;
+}
+
+.scroll-thumb::before {
+  top: min(0px, calc(50% - 9px));
+  bottom: min(0px, calc(50% - 9px));
 }
 
 /* Where the input-source sheet stands its bar. */

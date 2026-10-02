@@ -310,4 +310,6 @@ of the page drawn again ([Reset the unit], the model selector).
 
 On-screen controls keep the unit's dimensions (26px-high buttons on the 4.3-inch panel, and so on).
 The desktop GUI minimum touch target of 36x36 is met by the default `--scale` of 2 combined with a
-display scale of 100%. Below 100%, the actual size shrinks in proportion.
+display scale of 100%. The parts the unit draws under 18 screen pixels, the readout bar's page steps, the
+USER DEFINED KNOBS bank steps and a list's scroll bar and thumb, draw as they are and take a touch over
+18x18 screen pixels, ahead of what they reach over. Below 100%, the actual size shrinks in proportion.
