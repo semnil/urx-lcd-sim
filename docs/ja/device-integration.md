@@ -90,8 +90,9 @@ sequenceDiagram
 4. メーターを実機の値にする場合は `setMeterSource()` (`src/screens/meters.ts`) に実機の
    メーターストリームを渡す。渡した関数は、ストリップの id とそのストリップ上の読む点を `@` でつないだ id
    (`ch3@preFader`・`bus.mix1@post` など、読む点は `src/screens/signal-flow.ts` の `Tap`) と、`monitor.<n>`・`cue`・`osc`・
-   `playback` (カードの再生が出すもの。microSD Playback の D.Gain の後) を受け取り、レベルを dB で返す。数でない値は無音、
-   0 dB を超える値は +Infinity も含めて 0 dB のクリップとして読む。渡さない間はシミュレーター内部の合成信号が表示される。
+   `playback` (カードの再生が出すもの。microSD Playback の D.Gain の後) を受け取る。`@` の無いストリップの id (`bus.stereo`・`ch1` など) も
+   受け取り、これはそのストリップの出力で、`<strip>@post` と同じ値を返す。レベルは dB で返し、数でない値は無音、0 dB を超える値は
+   +Infinity も含めて 0 dB のクリップとして読む。渡さない間はシミュレーター内部の合成信号が表示される。
 
 画面上部の `chrome-link` 表示 (`src/ui/link-indicator.ts`) は store が変わるたびに `store.kind` を読み直すので、
 起動した後で `BridgeTransport` を `store.attach()` に渡しても、接続状態がそのまま出る。
