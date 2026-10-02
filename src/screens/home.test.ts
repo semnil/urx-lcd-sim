@@ -9,6 +9,7 @@ import { bankStrips } from "../model/types";
 import { bankName, channelLabel } from "./strip-state";
 import { buildRegistry } from "./index";
 import { meterLevels, setMeterSource, startMeterTicker } from "./meters";
+import { storeScene } from "./scene";
 import { declarations, declarationsOn, px, readStyle } from "../style/css-read";
 import { version as packageVersion } from "../../package.json";
 
@@ -1633,6 +1634,39 @@ describe("the SCENE menu the scene box opens", () => {
     expect(box?.querySelector(".dialog-mark svg"), "and carries the information mark").not.toBeNull();
     expect(box?.querySelector(".dialog-text")?.textContent).toContain("Recall scene");
     expect([...(box?.querySelectorAll(".dialog-actions .btn") ?? [])].map((b) => b.textContent)).toEqual(["Cancel", "OK"]);
+  });
+
+  it("recalls the scene picked on the list on [OK], and nothing on [Cancel]", async () => {
+    const shell = await mount();
+    const store = shell.ctx.store;
+    await store.set("ch.ch1.level", -12);
+    await storeScene(shell.ctx, "Standard", 3);
+    await store.set("scene.Standard.3.title", "Mine");
+    // The level moved on, 00 recalled since, and 03 picked on the list.
+    await store.set("ch.ch1.level", 0);
+    await store.set("scene.current", 0);
+    await store.set("scene.selected", 3);
+    shell.ctx.nav.openTop({ id: "scene" });
+    shell.ctx.nav.push({ id: "scene.list" });
+    await flush();
+    const press = async (selector: string, label: string): Promise<void> => {
+      [...shell.root.querySelectorAll<HTMLElement>(selector)].find((b) => b.textContent === label)?.click();
+      await flush();
+      await flush();
+    };
+    /** CH 1's level and the scene recalled. */
+    const state = (): [number, number] => [store.num("ch.ch1.level", 99), store.num("scene.current", -1)];
+
+    await press(".scene-actions .btn", "Recall");
+    expect(shell.root.querySelector(".dialog-text")?.textContent).toBe('Recall scene "Mine"?');
+    await press(".dialog-actions .btn", "Cancel");
+    expect(shell.root.querySelector(".dialog"), "[Cancel] closes the dialog").toBeNull();
+    expect(state(), "[Cancel] recalls nothing").toEqual([0, 0]);
+
+    await press(".scene-actions .btn", "Recall");
+    await press(".dialog-actions .btn", "OK");
+    expect(shell.root.querySelector(".dialog"), "[OK] closes the dialog").toBeNull();
+    expect(state(), "[OK] puts 03's level back and marks 03 recalled").toEqual([-12, 3]);
   });
 
   const sceneList = async (state: Record<string, number | string>): Promise<Shell> => {
