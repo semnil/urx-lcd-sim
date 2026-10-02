@@ -787,7 +787,7 @@ operator the same day), over as little as it can:
 wider than the room left of the box (x98..325, right of Sync), so its left end lies over the foot of
 Sync (x60..97 / y107..121).
 Every control but Cho, Off and Vib takes one place, and a list value whose name does not fit its panel (Pitch Fix's `Harmonic Minor` and the like)
-ends in `…`, as every other name too long for its box does; the whole of it is on the sheet. The
+ends in `…`; the whole of it is on the sheet. The
 block's own input and output meters stand at the right (x430..473), in the place and at the size the
 dynamics screens give them.
 
