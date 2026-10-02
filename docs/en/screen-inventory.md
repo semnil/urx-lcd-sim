@@ -69,7 +69,7 @@ Which screen leads to which is drawn in [screen-map.md](screen-map.md).
 | Channel view | `channel-view` | p90-98 | Built |
 | CH SETTING | `ch.setting` | p92-93 | Built (the Icon picker is left out) |
 | INPUT | `ch.input` | p100-102 | Built |
-| Input source picker | `ch.source` | p100 | Built (p100's figures are a mono pair's sheet; the bus sheet has no figure) |
+| Input source picker | (no screen) | p100 | Built. INPUT's Input Source box lays a sheet over the screen (p100's figures are a mono pair's sheet; the bus sheet has no figure) |
 | GATE | `ch.gate` | p103 | Built |
 | COMP | `ch.comp` | p99, p104-105 | Built |
 | EQ | `ch.eq` | p106-107 | Built (parameters and curve of the 4 bands) |
@@ -123,7 +123,7 @@ the unit, its row says so with the result and the date.
 | Parameter settings | `ch.effect` | Nothing. p113-1 is [No Effect], and the middle the controls stand in is black. Rev-X Hall's rows, the readout bar's order, the value framed on opening and the value boxes without units follow the unit (URX44V, 2026-09-22) |
 | An FX channel's panel and the EFFECT TYPE screen | `ch.effect` | Only the FX strip on HOME (p048-3). The arrangement follows what the unit shows |
 | MONITOR's Source sheet | `monitor.level` | Only the Source button (p068-1). The guide does not show the sheet itself. The title, names, arrangement and back button match the unit (URX44V, 2026-09-22) |
-| The STREAMING input source sheet | `ch.source` | Nothing. The title, names, arrangement and back button follow the unit (URX44V, 2026-09-22) |
+| The STREAMING input source sheet | (no screen) | Nothing. The sheet lies over STREAMING's INPUT screen. The title, names, arrangement and back button follow the unit (URX44V, 2026-09-22) |
 
 ### The screen exists, but no default state draws it
 
