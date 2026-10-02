@@ -1224,12 +1224,16 @@ Operation Mode の題と SETUP の箱の見出しは、p042-1・p041-1 のとお
 (wide/p072-1, p078-1, p066-1)。HOME から 1 段のチャンネルビューも戻る矢印を出さず、HOME のアイコン列
 (SETUP / microSD / MONITOR / HOME) を出したまま (「ツールバーのアイコン列」、p090-1)。ツールバーに何を
 出すかは、`ScreenDef` の宣言とスタックの深さの両方で決まる。`toolbar: "home"` を宣言した画面は深さに
-よらずアイコン列を出す (Sends の送り先シートから開いたバンク一覧は 2 段下でもアイコン列を出したまま、
-「ツールバーのアイコン列」)。`shellExits: false` を宣言した画面 (Operation Mode、USER DEFINED KNOBS の
-割り当てのシート、DATE / TIME の日時と時刻帯のポップアップ、題の入力シート。`microsd.name` として開くときも
-同じ) は矢印も HOME も出さず、画面自身のコントロールで抜ける。ほかの画面は、HOME から 1 段では HOME
-アイコンだけを、2 段以上下 (`nav.depth > 2`) では矢印と区切り線を出す (VERSION、SCENE LIST、CH SETTING、
-INPUT など。p053-1, p073-1, p092-1, p100-1)。`Escape` はどの画面でも戻る。
+よらずアイコン列を出す (チャンネルビュー・Sends の送り先シート・バンク一覧。どれも HOME から 1 段、
+「ツールバーのアイコン列」)。`shellExits: false` を宣言し `dimsBehind` を宣言しない画面 (Operation Mode、
+USER DEFINED KNOBS の割り当てのシート、DATE / TIME の日時と時刻帯のポップアップ、題の入力シート。
+`microsd.name` として開くときも同じ) は矢印も HOME も出さず、周りの何も無い所のタップで閉じる。題の入力シートだけは
+画面自身のコントロールでしか抜けない (`leavesOnTouchAround: false`)。送り先シートとバンク一覧は
+`shellExits: false` と `dimsBehind: true` を宣言し、アイコン列をその外側の暗い部分に透かす
+(「画面に重なるシート」、「チャンネルバンクの構成」)。透けたアイコンは触れても働かず、暗い部分のタップでシートや一覧が閉じる。
+ほかの画面は、HOME から 1 段では HOME アイコンだけを、2 段以上下 (`nav.depth > 2`) では矢印と区切り線を
+出す (VERSION、SCENE LIST、CH SETTING、INPUT など。p053-1, p073-1, p092-1, p100-1)。
+`Escape` はどの画面でも戻る。
 
 ## SETUP 画面
 

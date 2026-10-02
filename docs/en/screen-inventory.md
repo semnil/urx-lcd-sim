@@ -1420,14 +1420,18 @@ HOME beneath it. SETUP, microSD and MONITOR opened from the toolbar icons and SC
 name show just the HOME icon (wide/p072-1, p078-1, p066-1). The channel view one level from HOME shows no
 back arrow either, and keeps HOME's icon row (SETUP / microSD / MONITOR / HOME) up ("Toolbar icon row",
 p090-1). What the bar shows follows the screen's declaration on `ScreenDef` and the stack depth together.
-A screen declared with `toolbar: "home"` keeps the icon row at any depth (the bank list opened from the
-Sends destination sheet sits two levels down and keeps it, "Toolbar icon row"). A screen declared with
-`shellExits: false` (Operation Mode, USER DEFINED KNOBS' assignment sheet, DATE / TIME's popups for the
-date and time and for the time zone, and the title entry sheet, also when it opens as `microsd.name`)
-shows neither the arrow nor HOME and is left through its own controls. Any other screen shows just the
-HOME icon one level from HOME, and the arrow and a divider two or more levels down (`nav.depth > 2`):
-VERSION, SCENE LIST, CH SETTING, INPUT and so on (p053-1, p073-1, p092-1, p100-1). `Escape` goes back
-on every screen.
+A screen declared with `toolbar: "home"` keeps the icon row at any depth (the channel view, the Sends
+destination sheet and the bank list, each one level from HOME, "Toolbar icon row"). A screen declared
+with `shellExits: false` and no `dimsBehind` (Operation Mode, USER DEFINED KNOBS' assignment sheet,
+DATE / TIME's popups for the date and time and for the time zone, and the title entry sheet, also when
+it opens as `microsd.name`) shows neither the arrow nor HOME, and a tap on the bare screen around it
+closes it, but for the title entry sheet, which is left through its own controls alone
+(`leavesOnTouchAround: false`). The Sends destination sheet and the bank list declare
+`shellExits: false` with `dimsBehind: true`, and the icon row shows through the dark around them
+("Sheets over the screen", "Channel bank layout"): the icons answer no touch, and a tap on the dark
+closes the sheet or the list. Any other screen shows just the HOME icon one level from HOME, and the arrow and a divider two or
+more levels down (`nav.depth > 2`): VERSION, SCENE LIST, CH SETTING, INPUT and so on (p053-1, p073-1,
+p092-1, p100-1). `Escape` goes back on every screen.
 
 ## SETUP screen
 
