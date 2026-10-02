@@ -86,6 +86,12 @@ export const CUE_METER = "cue";
 /** The id of the meter reading the oscillator's own output. */
 export const OSC_METER = "osc";
 
+/** The input source the card's playback puts out on. */
+const PLAYBACK = "microSD Playback";
+
+/** The id of the meter reading what the card's playback puts out, in stereo after its D.Gain. */
+export const PLAYBACK_METER = "playback";
+
 /** What a meter reading two strips as the two sides of one stereo meter goes by. */
 const PAIR_METER = "pair:";
 
@@ -177,15 +183,23 @@ export function clipSafe(store: DeviceStore, n: number, at = readingMoment()): {
 
 /**
  * Lane `lane` of what the source `source` puts out into a channel: a MIC/LINE
- * connector's signal less what its Clip Safe takes off, any other source's
- * signal at its level and its D.Gain, microSD Playback only while a file plays,
- * and nothing from None.
+ * connector's signal less what its Clip Safe takes off, and any other source's
+ * signal as `sourceSignal` gives it.
  */
 function sourceLane(store: DeviceStore, stripId: string, source: string, lane: number, at: number): Lane {
   const jack = micLineJack(store, stripId, lane);
   if (jack !== undefined) return part(`jack:${jack}`, jackRaw(store, jack, at) - clipSafe(store, jack, at).reduction);
+  return sourceSignal(store, source, lane, at);
+}
+
+/**
+ * Lane `lane` of a source other than a MIC/LINE connector: its signal at its
+ * level and its D.Gain, microSD Playback only while a file plays, and nothing
+ * from None.
+ */
+function sourceSignal(store: DeviceStore, source: string, lane: number, at: number): Lane {
   if (source === "" || source === "None" || source.startsWith("MIC/LINE")) return [];
-  if (source === "microSD Playback" && !store.bool("sd.playing", false)) return [];
+  if (source === PLAYBACK && !store.bool("sd.playing", false)) return [];
   const db = sourceBaseDb(source) + store.num(digitalGainPath(source), digitalGainShipped(source)) + wander(source, lane, at);
   return part(`source:${source}:${lane}`, db);
 }
@@ -888,6 +902,7 @@ function resolve(id: string): { strip: string; tap: Tap } {
 export function flowLevels(fc: FlowCtx, id: string, at: number): number[] {
   if (id === OSC_METER) return [oscillatorLevel(fc.store, at)];
   if (id === CUE_METER) return cueBus(fc, at).map(levelDb);
+  if (id === PLAYBACK_METER) return [0, 1].map((lane) => levelDb(sourceSignal(fc.store, PLAYBACK, lane, at)));
   const { strip: stripId, tap } = resolve(id);
   const mon = /^monitor\.(\d+)$/.exec(stripId);
   if (mon) return monitor(fc, Number(mon[1]), at, tap).map(levelDb);

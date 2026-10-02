@@ -21,7 +21,7 @@ import { el, markShut, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { LIST_THUMB_MIN_PX, button, dialog, dropdown, listView, loadingDialog, menuButton, menuGrid, meter, pickerGrid, pickerSheet, scrollbar, sideTab, toggle } from "../ui/widgets";
 import { meterLevels, pairMeterId } from "./meters";
-import { listenedTap } from "./signal-flow";
+import { PLAYBACK_METER, listenedTap } from "./signal-flow";
 import { dateText } from "./date-time";
 import { formatClock, holdsFile, pausePlayback, pauseTake, playedSeconds, recState, recordMode, recordTake, releaseOnRateChange, startPlayback, stopPlayback, stopTake, takeOpen, takeRoom, takeSeconds } from "./recording";
 import type { TitleDraft } from "./title-entry";
@@ -539,18 +539,18 @@ function sourceMeterView(ctx: AppContext, source: string): HTMLElement {
   return id ? meter({ levels: meterLevels(ctx.store, id, 2), source: id }) : meter({ levels: [-96, -96] });
 }
 
-/** What RECORDER's OUT meter reads while a file plays, until the store carries a level. */
-const OUT_LEVELS_DB = [-15.6, -13.5];
-
-/** The meter beside RECORDER's list: the file playing, in stereo, and unlit while nothing plays. */
-function outMeter(ctx: AppContext, playing: boolean): HTMLElement {
-  const levels = OUT_LEVELS_DB.map((db, i) => (playing ? ctx.store.num(`sd.outLevel.${i}`, db) : -96));
+/**
+ * The meter beside RECORDER's list: what the file playing puts out, in stereo
+ * after microSD Playback's D.Gain, kept moving; unlit while nothing plays.
+ */
+function outMeter(ctx: AppContext): HTMLElement {
+  const levels = meterLevels(ctx.store, PLAYBACK_METER, 2);
   return el("div", {
     class: "dyn-io sd-out",
     children: [
       el("div", {
         class: "dyn-io-col",
-        children: [el("span", { class: "dyn-io-caption", text: "OUT" }), meter({ levels })],
+        children: [el("span", { class: "dyn-io-caption", text: "OUT" }), meter({ levels, source: PLAYBACK_METER })],
       }),
     ],
   });
@@ -640,7 +640,7 @@ export const recorderScreen: ScreenDef = {
         // While playback holds a file, a folder takes the cursor and stays shut.
         opens: !held,
       });
-      browser.appendChild(outMeter(ctx, playing));
+      browser.appendChild(outMeter(ctx));
       return { main: browser, side: tabs, headerRight: ejectButton(ctx) };
     }
 

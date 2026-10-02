@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Shell } from "../app/shell";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
@@ -6,10 +6,14 @@ import { factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
 import type { Route } from "../app/navigator";
 import { buildRegistry } from "./index";
-import { columnGap, declarations, px, readStyle } from "../style/css-read";
-import { setMeterSource } from "./meters";
+import { declarations, readStyle } from "../style/css-read";
+import { inputMeterId, meterLevels, setMeterSource, startMeterTicker } from "./meters";
 import type { CardEntry } from "../model/card";
 import { filePath, formatFree, freeBytes, readCard, writeCard } from "../model/card";
+import { levelBarShare } from "../model/dynamics";
+import { SILENT_DB } from "../model/signal";
+import { digitalGainPath } from "../model/source-gain";
+import { pausePlayback, startPlayback, stopPlayback } from "./recording";
 
 // RECORDER's Play and Edit tabs and both SAVE/LOAD tabs show what is on the
 // card, as rows of the same list the SCENE screen uses.
@@ -914,30 +918,53 @@ describe("the microSD card browser", () => {
     expect(shell.ctx.store.num("sd.selectedFile", -1)).toBe(1);
   });
 
-  it("meters the file playing on OUT beside RECORDER's list, lit to the rows its defaults give, and unlit while nothing plays", async () => {
-    const CSS = readStyle("lcd.css");
-    const barRows =
-      px(declarations(CSS, ".dyn-io .meter")["height"]) -
-      px(declarations(CSS, ".dyn-io .meter-clip")["height"]) -
-      columnGap(declarations(CSS, ".dyn-io .meter-lane")["gap"]);
-    const shell = await mount({ id: "microsd.recorder" });
-    const unlitRows = (): number[] =>
-      [...shell.root.querySelectorAll<HTMLElement>(".sd-out .meter-bar")].map((b) =>
-        Math.round((Number.parseFloat(b.style.getPropertyValue("--unlit")) / 100) * barRows),
-      );
-    for (const tab of ["Play", "Edit"]) {
-      await shell.ctx.store.set("sd.playing", false);
-      await pickTab(shell, "ui.sdTab", tab);
-      expect(shell.root.querySelector(".sd-out .dyn-io-caption")?.textContent, tab).toBe("OUT");
-      expect(unlitRows(), `${tab}, stopped`).toEqual([barRows, barRows]);
-      await shell.ctx.store.set("sd.playing", true);
+  it("meters on OUT beside RECORDER's list what the file playing puts out after microSD Playback's D.Gain, moving as it plays, and nothing while no file plays", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
+    const shell = await mount({ id: "microsd.recorder" }, [entry("a.wav", "take", 600)]);
+    const store = shell.ctx.store;
+    const stopTicker = startMeterTicker(store, shell.root);
+    try {
+      // A stereo channel on microSD Playback takes in what the file puts out.
+      await store.set("ch.ch_5_6.source", "microSD Playback");
+      const unlit = (): string[] => [...shell.root.querySelectorAll<HTMLElement>(".sd-out .meter-bar")].map((b) => b.style.getPropertyValue("--unlit"));
+      const out = (): number[] => meterLevels(store, shell.root.querySelector<HTMLElement>(".sd-out .meter")?.dataset["meterSource"] ?? "", 2, Date.now());
+      const taken = (): number[] => meterLevels(store, inputMeterId("ch_5_6"), 2, Date.now());
+      const drawn = (levels: number[]): string[] => levels.map((db) => `${(1 - levelBarShare(db)) * 100}%`);
+      for (const tab of ["Play", "Edit"]) {
+        stopPlayback(store);
+        await pickTab(shell, "ui.sdTab", tab);
+        expect(shell.root.querySelector(".sd-out .dyn-io-caption")?.textContent, tab).toBe("OUT");
+        expect(unlit(), `${tab}, stopped`).toEqual(["100%", "100%"]);
+        startPlayback(store, 0);
+        await flush();
+        expect(out(), `${tab}, playing: what the channel takes in`).toEqual(taken());
+        expect(Math.max(...out()), `${tab}, playing: sounding`).toBeGreaterThan(-60);
+        expect(unlit(), `${tab}, playing: drawn to it`).toEqual(drawn(taken()));
+      }
+      const seen = new Set<string>();
+      for (let i = 0; i < 4; i++) {
+        vi.advanceTimersByTime(2_500);
+        expect(out(), `${2.5 * (i + 1)} s on`).toEqual(taken());
+        seen.add(unlit().join(" "));
+      }
+      expect(seen.size, "moving as the file plays").toBeGreaterThan(1);
+
+      const before = out();
+      await store.set(digitalGainPath("microSD Playback"), -20);
+      expect(out().map((db, i) => db - (before[i] ?? 0)), "20 dB down with the D.Gain").toEqual([expect.closeTo(-20, 6), expect.closeTo(-20, 6)]);
+      const heard = out();
+      await store.set("ch.ch_5_6.source", "None");
+      expect(out(), "whatever the channels take").toEqual(heard);
+
+      pausePlayback(store);
       await flush();
-      expect(unlitRows(), `${tab}, playing`).toEqual([45, 39]);
+      expect(out(), "paused").toEqual([SILENT_DB, SILENT_DB]);
+      vi.advanceTimersByTime(5_000);
+      expect(unlit(), "paused, fallen").toEqual(["100%", "100%"]);
+    } finally {
+      stopTicker();
+      vi.useRealTimers();
     }
-    await shell.ctx.store.set("sd.outLevel.0", 0);
-    await shell.ctx.store.set("sd.outLevel.1", -60);
-    await flush();
-    expect(unlitRows(), "the levels the store carries").toEqual([0, barRows]);
   });
 
   it("marks every control out of reach that RECORDER and SAVE/LOAD shut, so a key press does not sink it", async () => {
