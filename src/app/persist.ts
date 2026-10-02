@@ -2,7 +2,8 @@
 //
 // The browser reloads the page far more often than anybody power-cycles a
 // mixer, so what the unit holds is written to the browser's own storage and
-// read back when the simulator opens on the same model. What the unit was doing
+// read back when the simulator opens on the same model; it opens on the model
+// it was last used as. What the unit was doing
 // at that moment — a take running, a file playing, a name half typed — is not
 // part of that: those come back stopped, as they do on a unit that has been
 // switched off. Nor is the result of a card test, which such a unit no longer
@@ -25,6 +26,9 @@ const KEY = "urx-lcd-sim.state";
 
 /** The shape written under that key; anything else is read as nothing. */
 const VERSION = 1;
+
+/** Where the browser keeps the model the simulator was last used as. */
+const MODEL_KEY = "urx-lcd-sim.model";
 
 /** What a reload does not carry over. */
 const IN_FLIGHT = [
@@ -72,6 +76,32 @@ export function readSaved(model: string): Record<string, ParamValue> | null {
     return typeof saved.values === "object" && saved.values !== null ? saved.values : null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * The model the simulator was last used as: the one kept for it, or where none
+ * is kept, the model of the stored unit. Nothing where the browser holds neither.
+ */
+export function lastModel(): string | null {
+  try {
+    const kept = window.localStorage.getItem(MODEL_KEY);
+    if (kept) return kept;
+    const text = window.localStorage.getItem(KEY);
+    if (!text) return null;
+    const saved = fromJson(text) as Partial<Saved>;
+    return saved.version === VERSION && typeof saved.model === "string" ? saved.model : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Keep `model` as the one the simulator opens as next time. */
+export function keepModel(model: string): void {
+  try {
+    window.localStorage.setItem(MODEL_KEY, model);
+  } catch {
+    // A browser that refuses to store it opens the simulator on its first model.
   }
 }
 

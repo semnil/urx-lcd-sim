@@ -5,7 +5,7 @@ import { factoryState } from "../model/defaults";
 import type { CardEntry } from "../model/card";
 import { filePath, writeCard } from "../model/card";
 import { unitById } from "../model/units";
-import { forget, persisted, readSaved, restore, snapshot, startSaving } from "./persist";
+import { forget, keepModel, lastModel, persisted, readSaved, restore, snapshot, startSaving } from "./persist";
 
 // The unit comes back as it was left, and what it was doing does not.
 
@@ -215,6 +215,20 @@ describe("what a reload carries over", () => {
     const next = await unit();
     await restore(next, "URX22");
     expect(next.num("ch.ch1.level", 99)).not.toBe(-9);
+  });
+
+  it("names the model it was last used as, or the stored unit's where none is kept", () => {
+    try {
+      expect(lastModel(), "nothing stored").toBeNull();
+      window.localStorage.setItem("urx-lcd-sim.state", JSON.stringify({ version: 2, model: "URX22", values: {} }));
+      expect(lastModel(), "a unit of another version").toBeNull();
+      window.localStorage.setItem("urx-lcd-sim.state", JSON.stringify({ version: 1, model: "URX22", values: {} }));
+      expect(lastModel(), "a unit stored before the model was kept apart").toBe("URX22");
+      keepModel("URX44");
+      expect(lastModel(), "the model kept apart").toBe("URX44");
+    } finally {
+      window.localStorage.removeItem("urx-lcd-sim.model");
+    }
   });
 
   it("starts from the unit as it ships once it is forgotten", async () => {

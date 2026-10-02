@@ -9,7 +9,7 @@ import "./style/tokens.css";
 import "./style/app.css";
 import "./style/lcd.css";
 
-import { forget, restore, startSaving } from "./app/persist";
+import { forget, keepModel, lastModel, restore, startSaving } from "./app/persist";
 import { Shell } from "./app/shell";
 import { DeviceStore } from "./device/store";
 import { SimTransport } from "./device/sim-transport";
@@ -51,6 +51,7 @@ let disposeMounted: (() => void) | null = null;
 async function boot(modelId: ModelId, mount: HTMLElement): Promise<void> {
   disposeMounted?.();
   disposeMounted = null;
+  keepModel(modelId);
   const model = unitById(modelId);
   const store = new DeviceStore();
   const transport = new SimTransport(factoryState(model));
@@ -176,5 +177,6 @@ window.addEventListener("beforeunload", () => disposeMounted?.());
 const mount = document.getElementById("app");
 if (mount) {
   applyZoom(requestedZoom());
-  void boot("URX44V", mount);
+  const last = lastModel();
+  void boot(MODEL_IDS.find((id) => id === last) ?? "URX44V", mount);
 }

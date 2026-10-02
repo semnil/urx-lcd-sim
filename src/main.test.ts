@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { readSaved } from "./app/persist";
 
 // The page around the screen: the simulator's own chrome, as the page opens it.
 
@@ -172,5 +173,98 @@ describe("the page's landmarks", () => {
     expect([...app.children].map((n) => n.tagName.toLowerCase()), "the header, the main landmark and the footer").toEqual(["header", "main", "footer"]);
     expect(app.querySelectorAll("main, [role='main']").length, "one main landmark").toBe(1);
     expect(glass?.closest("main, [role='main']")?.parentElement, "and the glass inside it").toBe(app);
+  });
+});
+
+// The page as a visitor opens it: main.ts run against an #app, its chrome and
+// the screen it mounts. A reload is the page torn down and main.ts run afresh.
+
+const STATE_KEY = "urx-lcd-sim.state";
+
+const pause = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Wait for `ready` to hold, and fail with `what` when it does not. */
+async function until(what: string, ready: () => boolean, ms = 4000): Promise<void> {
+  const end = Date.now() + ms;
+  while (!ready()) {
+    if (Date.now() > end) throw new Error(`timed out waiting for ${what}`);
+    await pause(10);
+  }
+}
+
+const modelSelect = (): HTMLSelectElement | null => document.querySelector<HTMLSelectElement>('select[aria-label="Unit model"]');
+const lcdModel = (): string | null => document.querySelector(".lcd[role='application']")?.getAttribute("aria-label") ?? null;
+const firstLevel = (): HTMLElement | null => document.querySelector<HTMLElement>(".strip-level[role='slider']");
+
+/** Open the page, or reload it: the page before is let go, then main.ts runs again. */
+async function openPage(): Promise<void> {
+  window.dispatchEvent(new Event("beforeunload"));
+  document.body.replaceChildren();
+  const app = document.createElement("div");
+  app.id = "app";
+  document.body.append(app);
+  vi.resetModules();
+  await import("./main");
+  await until("the screen", () => modelSelect() !== null && firstLevel() !== null);
+}
+
+async function chooseModel(id: string): Promise<void> {
+  const select = modelSelect()!;
+  select.value = id;
+  select.dispatchEvent(new Event("change"));
+  await until(`the ${id} screen`, () => lcdModel() === `${id} LCD` && firstLevel() !== null);
+}
+
+/** Turn CH 1's level up one step from the keyboard, and wait for the browser to hold it. */
+async function nudgeLevel(model: string): Promise<string | null> {
+  const shown = (): string | null => firstLevel()?.getAttribute("aria-valuenow") ?? null;
+  const before = shown();
+  const level = firstLevel()!;
+  level.focus();
+  level.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
+  await until("the level to move", () => shown() !== before);
+  const now = shown();
+  await until("the unit to be stored", () => readSaved(model)?.["ch.ch1.level"] === Number(now));
+  return now;
+}
+
+afterEach(() => {
+  window.dispatchEvent(new Event("beforeunload"));
+  document.body.replaceChildren();
+  window.localStorage.clear();
+});
+
+describe("the model the page opens on", () => {
+  it("opens on the model it was last used as, with what that model kept", async () => {
+    await openPage();
+    expect(modelSelect()?.value, "a first visit opens on a URX44V").toBe("URX44V");
+    await chooseModel("URX22");
+    const factory = firstLevel()?.getAttribute("aria-valuenow");
+    const edited = await nudgeLevel("URX22");
+    expect(edited).not.toBe(factory);
+
+    await openPage();
+    expect([modelSelect()?.value, lcdModel()]).toEqual(["URX22", "URX22 LCD"]);
+    expect(firstLevel()?.getAttribute("aria-valuenow"), "the URX22's level comes back").toBe(edited);
+  });
+
+  it("opens on a model picked and left untouched", async () => {
+    await openPage();
+    await chooseModel("URX44");
+    await openPage();
+    expect(modelSelect()?.value).toBe("URX44");
+  });
+
+  it("opens a unit stored before the model was kept apart on that unit's model", async () => {
+    window.localStorage.setItem(STATE_KEY, JSON.stringify({ version: 1, model: "URX22", values: { "ch.ch1.level": -9 } }));
+    await openPage();
+    expect(modelSelect()?.value).toBe("URX22");
+    expect(firstLevel()?.getAttribute("aria-valuenow")).toBe("-9");
+  });
+
+  it("opens on a URX44V where the kept model is none the simulator has", async () => {
+    window.localStorage.setItem("urx-lcd-sim.model", "URX99");
+    await openPage();
+    expect(modelSelect()?.value).toBe("URX44V");
   });
 });
