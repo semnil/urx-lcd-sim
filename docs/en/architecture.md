@@ -162,10 +162,11 @@ down on is the one it is let go on. A tap or a key on a control inside a pressab
 (`makeTappable`). Value boxes are `role="spinbutton"`
 and HOME's level readouts are `role="slider"`; both move by drag, wheel or arrow keys (`attachSpin`
 takes drag, wheel and arrow keys in one place). A 192px drag covers the whole range (1/5 of that with Shift),
-and the wheel and arrow keys move one detent (`fastStep` with Shift). While a dialog, a picker sheet or a
-loading modal is up, the screen behind it answers neither the keys nor the pointer (`inert`). Wherever the focus
-stands, Tab goes round the controls of a dialog or a picker sheet and Escape cancels it, and once it closes, the
-focus is back on the control that opened it. A loading modal holds nothing to operate, and Escape does not take it
+and the wheel and arrow keys move one detent (`fastStep` with Shift). While a dialog, a picker sheet, a pulldown's
+list or a loading modal is up, the screen behind it answers neither the keys nor the pointer (`inert`). Wherever the focus
+stands, Tab goes round the controls of a dialog, a picker sheet or a list and Escape cancels it, and once it closes, the
+focus is back on the control that opened it. A list opens with the focus on the value its box holds, or on its first choice where it holds none of them, and its choices
+are `role="option"`, the one held `aria-selected`. A loading modal holds nothing to operate, and Escape does not take it
 down. Meter animation stops under `prefers-reduced-motion`.
 
 Where the keys stand is drawn by the simulator, in a layer over the glass (`src/ui/focus-ring.ts`). No control draws a
@@ -191,7 +192,7 @@ the browser's key (the sheet's Shift reaches the unit's keys alone). Backspace a
 of the same face do, and nothing goes in while an IME is composing (`isComposing`).
 
 `Escape` does the same as the back arrow. A screen that shows no back arrow in its toolbar is left
-with the same key. While a dialog or a picker sheet is open, cancelling it takes precedence, and while a text
+with the same key. While a dialog, a picker sheet or a pulldown's list is open, cancelling it takes precedence, and while a text
 input has focus (IME composition included) the input receives the key.
 
 On-screen controls keep the unit's dimensions (26px-high buttons on the 4.3-inch panel, and so on).

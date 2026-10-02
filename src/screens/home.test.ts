@@ -1124,7 +1124,7 @@ describe("the SEND TO destination tabs", () => {
     ]);
 
     const lit = (): (string | null)[] =>
-      [...shell.root.querySelectorAll(".dropdown-option[aria-pressed='true']")].map((o) => o.textContent);
+      [...shell.root.querySelectorAll(".dropdown-option[aria-selected='true']")].map((o) => o.textContent);
     expect(lit(), "the key it ships on is the one marked").toEqual(["1"]);
 
     // A key that is a bus resolves to that bus's own level.

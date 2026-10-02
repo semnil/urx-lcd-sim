@@ -300,7 +300,7 @@ export function pulldown(
 }
 
 /**
- * What a dialog, a sheet or a loading modal is to the shell that lays it over the
+ * What a dialog, a sheet, a pulldown's list or a loading modal is to the shell that lays it over the
  * screen. While one is up the screen behind it takes no keys and no pointer, Tab
  * goes round the controls in it wherever the focus stands, and Escape does its
  * `cancel`.
@@ -845,29 +845,36 @@ interface OptionListSpec {
   place?: (option: string, index: number) => { row: number; column: number };
 }
 
+/** A choice on a list: lit while it is the value held, which a reader hears as the option selected. */
+function listOption(label: string, held: boolean, onTap: () => void, extraClass: string): HTMLElement {
+  return el("button", {
+    class: `btn btn-toggle ${extraClass}${held ? " is-on" : ""}`.trim(),
+    text: label,
+    attrs: { role: "option", "aria-selected": String(held) },
+    onTap,
+  });
+}
+
 /**
  * The list of values a box can take, over the screen. It closes on a pick, on a
- * tap outside it, or on Escape.
+ * tap outside it, or on Escape. It opens with the focus on the value the box
+ * holds, or on its first option where it holds none of them.
  */
 function openOptions(ctx: AppContext, spec: OptionListSpec): void {
   const list = el("div", { class: `dropdown-list ${spec.listClass ?? ""}`.trim(), attrs: { role: "listbox" } });
   const sheet = el("div", { class: "dropdown-sheet", children: [list] });
-  // The screen under it can go away while it is open, so the key it holds is
-  // given up by the overlay rather than by the closer alone.
-  const close = ctx.overlay(sheet, () => window.removeEventListener("keydown", onKey));
-  function onKey(ev: KeyboardEvent): void {
-    if (ev.key !== "Escape") return;
-    ev.preventDefault();
-    close();
-  }
+  MODALS.set(sheet, { cancel: () => close() });
+  const close = ctx.overlay(sheet);
+  let held: HTMLElement | null = null;
   for (const option of spec.options) {
     const out = spec.disabled?.includes(option) === true;
-    const node = toggle(option, option === spec.value, () => {
+    const node = listOption(option, option === spec.value, () => {
       if (out) return;
       close();
       spec.onPick(option);
     }, `dropdown-option ${spec.optionClass ?? ""}${out ? " is-disabled" : ""}`.trim());
     if (out) node.setAttribute("aria-disabled", "true");
+    if (option === spec.value) held = node;
     const at = spec.place?.(option, list.childElementCount);
     if (at) {
       node.style.gridRow = String(at.row);
@@ -884,7 +891,6 @@ function openOptions(ctx: AppContext, spec: OptionListSpec): void {
     if ((ev.target as HTMLElement).closest(".dropdown-list")) return;
     close();
   });
-  window.addEventListener("keydown", onKey);
 
   // A list with no place of its own opens under the box it belongs to, pulled
   // back onto the screen when it would run off an edge.
@@ -898,6 +904,7 @@ function openOptions(ctx: AppContext, spec: OptionListSpec): void {
     list.style.left = `${Math.max(2, Math.min(at.left, room.width - 2 - list.offsetWidth))}px`;
     list.style.top = `${Math.max(2, below > lowest ? (above >= 2 ? above : lowest) : below)}px`;
   }
+  (held ?? (list.firstElementChild as HTMLElement | null))?.focus();
 }
 
 /** A box that names a setting and opens the list of values it can take. */

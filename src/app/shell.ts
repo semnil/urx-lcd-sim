@@ -529,8 +529,8 @@ export class Shell {
 
   /**
    * Escape does what the toolbar's back arrow does, on every screen. Anything
-   * layered over the screen owns the key while it is up: it cancels the dialog
-   * or the sheet on top wherever the focus stands, and a list takes it itself.
+   * layered over the screen owns the key while it is up: it cancels the dialog,
+   * the sheet or the list on top wherever the focus stands.
    * A field being typed into keeps it for the edit in hand — an IME composition
    * included.
    */

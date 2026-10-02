@@ -2,6 +2,7 @@
 
 ## 未リリース
 
+- プルダウンの一覧を、箱が持つ値の選択肢にフォーカスを置いて開き、閉じるまで Tab を一覧の中で回して背後の画面に届かないようにし、閉じたらフォーカスを箱に戻す。フォーカスは一覧の下の箱に残り、Tab は選択肢より先に背後の画面へ進み、Enter をもう一度押すと一覧がもう 1 枚重なっていた。選択肢は、スイッチとしてではなく一覧の選択肢として支援技術に伝わり、持っている値のものが選択中になる。
 - CH SETTING の Rec Point・COMP / EQ・Signal Type の箱、COMP の Auto Makeup と Knee、EQ のバンドの形、1-knob EQ の種類、SSMCS の Comp の Knee に、それぞれが設定するものの名前を付けた (`Knee: Medium (3 options)` などの形)。値と選択肢の数だけで名乗り、何を設定する箱かが伝わっていなかった。
 - SETUP の値のボタンと箱に、行の見出しと表示中の値で名前を付けた。[Date/Time] は時計とともに進む日時、[Time Zone] は都市名、OUTPUT PATCH の各ボタンは `MAIN OUT: STEREO` などの形、Display Format と SOFTWARE INTEGRATION の箱は `Date`・`Time`・`for FX1`・`for FX2` で名乗る。ボタンの名前は操作の説明だけで、SOFTWARE INTEGRATION の 2 つの箱は同じ名前だった。
 - SCENE LIST と microSD の一覧の行の印が示すこと (本体が出荷時から持つシーン、保護したシーン、呼び出し中のシーン、フォルダー、再生中または一時停止中のファイル) を支援技術に伝える。SCENE LIST の Edit タブの [Protect] は、選んだシーンが保護されているあいだ押された状態になる。印は目で見るためだけに描かれていたので、行は番号と題、または名前しか伝わっていなかった。

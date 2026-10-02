@@ -334,7 +334,7 @@ describe("what a screen gives back", () => {
     expect(closed, "and whatever it was holding is given up with it").toBe(1);
   });
 
-  it("gives the key back when the screen under an open list goes away", async () => {
+  it("leaves the window's keys to the shell while a list is up, and nothing behind once the screen under it goes away", async () => {
     const shell = await mount();
     shell.ctx.nav.push({ id: "ch.setting", strip: "ch1" });
     await flush();
@@ -353,11 +353,12 @@ describe("what a screen gives back", () => {
     try {
       shell.root.querySelector<HTMLElement>(".chs-field .pulldown")?.click();
       await flush();
-      expect(held, "the list holds the key while it is up").toBe(1);
+      const lists = (): number => shell.root.querySelectorAll(".dropdown-sheet").length;
+      expect([lists(), held], "the list is up and holds no key of its own").toEqual([1, 0]);
 
       shell.ctx.nav.back();
       await flush();
-      expect(held, "and hands it back with the screen that opened it").toBe(0);
+      expect([lists(), held], "and goes with the screen that opened it").toEqual([0, 0]);
     } finally {
       window.addEventListener = add;
       window.removeEventListener = remove;

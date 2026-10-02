@@ -8,6 +8,7 @@ import { unitById } from "../model/units";
 import type { Route } from "../app/navigator";
 import { refreshDateTime } from "./date-time";
 import { buildRegistry } from "./index";
+import { pulldown } from "../ui/widgets";
 
 // The buttons that carry the mark the guide's legend calls "Shows a separate
 // popup screen for making detailed settings." Each one has to drop a sheet, and
@@ -461,6 +462,91 @@ describe("the pulldowns' names", () => {
     for (const [where, list] of Object.entries(seen)) {
       expect(new Set(list.map((n) => n.split(": ")[0])).size, `${where}: one setting to a name`).toBe(list.length);
     }
+  });
+});
+
+describe("a pulldown's list on the glass", () => {
+  /** The shells laid on the page, each let go when its test is over so no other answers the keys. */
+  const shown: Shell[] = [];
+  afterEach(() => {
+    for (const shell of shown.splice(0)) {
+      shell.destroy();
+      shell.root.remove();
+    }
+  });
+  /** CH 1's CH SETTING on the page, the focus on Rec Point's box. */
+  const open = async (): Promise<{ shell: Shell; box: () => HTMLElement | null }> => {
+    const shell = await mount([{ id: "channel-view", strip: "ch1" }, { id: "ch.setting", strip: "ch1" }]);
+    shown.push(shell);
+    document.body.appendChild(shell.root);
+    const box = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".chs-rec-field .pulldown");
+    box()?.focus();
+    return { shell, box };
+  };
+  /** A key going down where the focus stands, and the same key let go where the focus then stands. */
+  const down = (name: string, init: KeyboardEventInit = {}): void => {
+    (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent("keydown", { key: name, bubbles: true, cancelable: true, ...init }));
+  };
+  const up = async (name: string, init: KeyboardEventInit = {}): Promise<void> => {
+    (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent("keyup", { key: name, bubbles: true, cancelable: true, ...init }));
+    await flush();
+  };
+  const press = async (name: string, init: KeyboardEventInit = {}): Promise<void> => {
+    down(name, init);
+    await up(name, init);
+  };
+  const lists = (shell: Shell): number => shell.root.querySelectorAll(".dropdown-sheet").length;
+
+  it("puts the focus on the option the box holds as Enter opens it, so a second Enter takes that option and lays no second list", async () => {
+    const { shell, box } = await open();
+    expect(document.activeElement, "the box holds the focus").toBe(box());
+    await press("Enter");
+    expect(lists(shell)).toBe(1);
+    const at = document.activeElement as HTMLElement | null;
+    expect([at?.closest(".dropdown-sheet") !== null, at?.textContent, at?.getAttribute("aria-selected")], "on the option held").toEqual([true, "PRE FADER", "true"]);
+
+    down("Enter");
+    expect(lists(shell), "the second Enter goes down on the option, not on the box").toBe(1);
+    await up("Enter");
+    expect(lists(shell), "and the option it took closed the list").toBe(0);
+    expect(shell.ctx.store.str("ch.ch1.recPoint", ""), "the value held").toBe("PRE FADER");
+    expect(document.activeElement, "the focus back on the box").toBe(box());
+  });
+
+  it("marks each choice as an option of the list, the one the box holds selected", async () => {
+    const { shell, box } = await open();
+    box()?.click();
+    await flush();
+    const options = [...shell.root.querySelectorAll(".dropdown-list > *")];
+    expect(options.map((o) => o.textContent)).toEqual(["PRE GATE", "PRE COMP", "PRE EQ", "PRE INS FX", "PRE FADER"]);
+    expect(options.map((o) => o.getAttribute("role"))).toEqual(["option", "option", "option", "option", "option"]);
+    expect(options.map((o) => o.getAttribute("aria-selected"))).toEqual(["false", "false", "false", "false", "true"]);
+    expect(options.map((o) => o.getAttribute("aria-pressed")), "options, not switches").toEqual([null, null, null, null, null]);
+    expect(options.map((o) => o.classList.contains("is-on")), "the held one still lit").toEqual([false, false, false, false, true]);
+  });
+
+  it("opens with the focus on its first option where the box holds none of them", async () => {
+    const { shell } = await open();
+    const box = pulldown(shell.ctx, "Z", ["A", "B"], () => undefined, { label: "Letters" });
+    shell.root.querySelector(".main")?.appendChild(box);
+    box.focus();
+    await press("Enter");
+    expect([lists(shell), document.activeElement?.textContent, document.activeElement?.getAttribute("aria-selected")]).toEqual([1, "A", "false"]);
+  });
+
+  it("keeps Tab going round the list and the screen behind out of reach, until Escape gives the focus back to the box", async () => {
+    const { shell, box } = await open();
+    await press("Enter");
+    const main = shell.root.querySelector(".main");
+    expect(main?.hasAttribute("inert"), "the screen behind").toBe(true);
+    const focused = (): string | null | undefined => document.activeElement?.textContent;
+    down("Tab");
+    expect(focused(), "past the last option, the first").toBe("PRE GATE");
+    down("Tab", { shiftKey: true });
+    expect(focused(), "and Shift+Tab back round").toBe("PRE FADER");
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    await flush();
+    expect([lists(shell), main?.hasAttribute("inert"), document.activeElement === box()]).toEqual([0, false, true]);
   });
 });
 
