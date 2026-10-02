@@ -612,8 +612,9 @@ export function valueBox(ctx: AppContext, spec: NumericSpec, extraClass = "", fr
       "aria-label": spec.label,
       ...rangeAttrs(spec, value),
       // A box the unit reads out but does not let the operator turn keeps its
-      // reading and its name, and takes no key and no drag. A box that stands
-      // still for now reads as out of reach as well.
+      // reading and its name, and takes no key and no drag. A box held still
+      // by a focus pinned to another value, as 1-knob pins its level, or by
+      // the unit holding its value itself reads as out of reach as well.
       ...(locked || standsStill(ctx, spec) ? { "aria-disabled": "true" } : {}),
     },
   });
