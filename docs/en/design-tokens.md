@@ -596,14 +596,14 @@ itself in `--text-secondary`.
 | Blue | `#1965ff` | Every input channel, FX 1-2 | The rail at x50 / y267 in p045-1 |
 | Orange | `#ff8200` | MIX 1-2, STREAMING | The rail at x156 / y267 in p045-1 |
 | Yellow | `#e6e710` | (candidate only) | The rail at x262 / y267 in p045-1 |
-| Purple | `#8c4ade` | (candidate only) | No figure shows it |
-| Cyan | `#29b5d6` | (candidate only) | No figure shows it |
+| Purple | `#8c4ade` | (candidate only) | No figure shows a channel in this color |
+| Cyan | `#29b5d6` | (candidate only) | No figure shows a channel in this color |
 | Magenta | `#ff499c` | (candidate only) | The rail at x368 / y267 in p045-1 |
 | Red | `#ce4529` | STEREO | The rail at x50 / y267 in p048-4 |
-| Green | `#29c26b` | (candidate only) | No figure shows it |
-| LtGreen | `#8ce63a` | (candidate only) | No figure shows it |
-| White | `#e6e6e6` | (candidate only) | No figure shows it |
-| Off | `#232326` | (candidate only) | No figure shows it |
+| Green | `#29c26b` | (candidate only) | No figure shows a channel in this color |
+| LtGreen | `#8ce63a` | (candidate only) | No figure shows a channel in this color |
+| White | `#e6e6e6` | (candidate only) | No figure shows a channel in this color |
+| Off | `#232326` | (candidate only) | No figure shows its button |
 
 The rail of a channel that cannot be used runs dark grey in place of a colour: `--strip-rail-shut`
 `#393a3e`. It was taken from the ratio between the rail and the face in one picture rather than from
