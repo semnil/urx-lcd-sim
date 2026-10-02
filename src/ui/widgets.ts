@@ -484,6 +484,8 @@ export function attachSpin(
   node.addEventListener(
     "wheel",
     (ev) => {
+      // A wheel turned sideways turns nothing and scrolls the page.
+      if (ev.deltaY === 0) return;
       ev.preventDefault();
       if (still()) return;
       nudge(ev.deltaY < 0 ? 1 : -1, ev.shiftKey);

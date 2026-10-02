@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Leave a value where it is under a sideways scroll of the wheel or the trackpad, and let the page scroll instead. A sideways scroll turned the value down a detent, or the larger Shift step, whichever way it went.
 - Move an EQ band's Freq. and OSCILLATOR's Frequency by at least 1 Hz on each arrow key press or wheel detent. From 20 Hz to 72 Hz a detent left the frequency where it was, and turning one down stopped at 72 Hz.
 - Land a value turned by the arrow keys or the wheel on its own steps, as a drag does: OSCILLATOR's Level read `-0.00` after 70 detents up from -14 dB and `-10.00` after 50 down from 0 dB, a compander's Gain read `-0.0dB` after three detents down and three up, and the stored value and `aria-valuenow` carried the leftover fraction. A value that ships between two steps, such as LOW Q's 0.71, moves onto a step at its first detent, as a drag already moved it.
 - Let a finger drag the readout bar's cells, the EQ grips, the handles on the dynamics plots, and a list's rows and scroll thumb as far as the mouse does, and step HOME's channel bank by a sideways swipe; the page took the touch over a few pixels in. Elsewhere a sideways finger on the main area still scrolls the page.

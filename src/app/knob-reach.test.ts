@@ -238,6 +238,45 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     expect(phones().querySelector(".knob-cell-value")?.textContent, "and the division reads the new value").not.toBe("5.0");
   });
 
+  it("turns a value by the wheel's up and down only, and leaves a sideways scroll to the page", async () => {
+    const { shell, store } = await mount();
+    await store.set("ch.ch1.gain", 30);
+    const level = (): HTMLElement | undefined =>
+      turnables(shell.root).find((n) => n.getAttribute("aria-label") === "CH 1 LEVEL");
+    const gain = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".cv-gain-stack .value-box");
+    const roll = async (node: HTMLElement | null | undefined, init: WheelEventInit): Promise<boolean> => {
+      if (!node) throw new Error("no control");
+      const ev = new WheelEvent("wheel", { bubbles: true, cancelable: true, ...init });
+      node.dispatchEvent(ev);
+      await flush();
+      return ev.defaultPrevented;
+    };
+    const sideways: WheelEventInit[] = [
+      { deltaX: -120, deltaY: 0 },
+      { deltaX: 120, deltaY: 0 },
+      { deltaX: -120, deltaY: 0, shiftKey: true },
+      { deltaX: 120, deltaY: 0, shiftKey: true },
+    ];
+
+    await open(shell, { id: "setup" });
+    shell.ctx.nav.home();
+    await flush();
+    for (const init of sideways) {
+      expect(await roll(level(), init), `HOME level ${JSON.stringify(init)} keeps the page's scroll`).toBe(false);
+      expect(store.num("ch.ch1.level", NaN), JSON.stringify(init)).toBe(0);
+    }
+    expect(await roll(level(), { deltaY: -120 }), "the wheel up turns it").toBe(true);
+    expect(store.num("ch.ch1.level", NaN)).toBeGreaterThan(0);
+
+    await open(shell, { id: "channel-view", strip: "ch1" });
+    for (const init of sideways) {
+      expect(await roll(gain(), init), `A.Gain ${JSON.stringify(init)} keeps the page's scroll`).toBe(false);
+      expect(store.num("ch.ch1.gain", NaN), JSON.stringify(init)).toBe(30);
+    }
+    expect(await roll(gain(), { deltaY: -120 }), "the wheel up turns it").toBe(true);
+    expect(store.num("ch.ch1.gain", NaN), "one detent").toBe(31);
+  });
+
   it("lands the keys and the wheel on the value's own steps, as a drag does", async () => {
     const control = (shell: Shell, label: string): HTMLElement => {
       const node = turnables(shell.root).find((n) => n.getAttribute("aria-label") === label);
