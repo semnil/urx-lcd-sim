@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Step HOME's channel bank only for a swipe let go on the main area. A press on the main area let go on the toolbar or the side rail, or cancelled, left its start behind, and the next tap on a button in a strip, such as [ON], stepped the bank as well.
 - Move a list and its scroll thumb as far on the screen as the pointer drags them, at every display scale. At the default 100% they moved twice as far as the pointer, and at 200% four times as far.
 - Leave a value where it is under a sideways scroll of the wheel or the trackpad, and let the page scroll instead. A sideways scroll turned the value down a detent, or the larger Shift step, whichever way it went.
 - Move an EQ band's Freq. and OSCILLATOR's Frequency by at least 1 Hz on each arrow key press or wheel detent. From 20 Hz to 72 Hz a detent left the frequency where it was, and turning one down stopped at 72 Hz.

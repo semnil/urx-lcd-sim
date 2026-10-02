@@ -648,6 +648,75 @@ describe("the channel-bank marks", () => {
   });
 });
 
+describe("a swipe across HOME's main area", () => {
+  const send = (node: Element | null, type: string, x: number): void => {
+    node?.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: 100 }));
+  };
+  /** A shell on the page, so what reaches the window reaches it as it does in the browser. */
+  async function onPage(id: "URX44V" | "URX22"): Promise<Shell> {
+    const shell = await mount(id);
+    document.body.append(shell.root);
+    return shell;
+  }
+  const leave = (shell: Shell): void => {
+    shell.destroy();
+    shell.root.remove();
+  };
+  const bank = (shell: Shell): number => shell.ctx.store.num("ui.bank", 0);
+  const main = (shell: Shell): Element | null => shell.root.querySelector(".main");
+
+  it("steps the bank for a swipe that starts and ends on the main area", async () => {
+    for (const id of ["URX44V", "URX22"] as const) {
+      const shell = await onPage(id);
+      send(main(shell), "pointerdown", 300);
+      send(main(shell), "pointerup", 200);
+      await flush();
+      expect(bank(shell), id).toBe(1);
+      leave(shell);
+    }
+  });
+
+  it("lets a swipe that ends off the main area go, so a later press steps no bank", async () => {
+    for (const id of ["URX44V", "URX22"] as const) {
+      for (const ending of ["on the toolbar", "on the side rail", "cancelled"] as const) {
+        const shell = await onPage(id);
+        send(main(shell), "pointerdown", 300);
+        if (ending === "on the toolbar") send(shell.root.querySelector(".toolbar"), "pointerup", 300);
+        if (ending === "on the side rail") send(shell.root.querySelector(".side"), "pointerup", 300);
+        if (ending === "cancelled") send(main(shell), "pointercancel", 300);
+        // A press that starts on the toolbar and is let go over the main area.
+        send(shell.root.querySelector(".toolbar"), "pointerdown", 100);
+        send(main(shell), "pointerup", 100);
+        await flush();
+        expect(bank(shell), `${id}, ${ending}`).toBe(0);
+
+        // A tap on CH 1's [ON] works [ON] alone.
+        const on = shell.root.querySelector(".main .strip .btn-on");
+        send(on, "pointerdown", 100);
+        send(on, "pointerup", 100);
+        send(on, "click", 100);
+        await flush();
+        expect(bank(shell), `${id}, ${ending}: [ON] steps no bank`).toBe(0);
+        expect(shell.ctx.store.bool("ch.ch1.on", true), `${id}, ${ending}: [ON] turns CH 1 off`).toBe(false);
+        leave(shell);
+      }
+    }
+  });
+
+  it("steps no bank on a tap on a control after a press whose end never reached the page", async () => {
+    const shell = await onPage("URX44V");
+    send(main(shell), "pointerdown", 300);
+    const on = shell.root.querySelector(".main .strip .btn-on");
+    send(on, "pointerdown", 100);
+    send(on, "pointerup", 100);
+    send(on, "click", 100);
+    await flush();
+    expect(bank(shell)).toBe(0);
+    expect(shell.ctx.store.bool("ch.ch1.on", true)).toBe(false);
+    leave(shell);
+  });
+});
+
 describe("the screens the toolbar icons open", () => {
   const TOPS = ["setup", "microsd", "monitor"];
 

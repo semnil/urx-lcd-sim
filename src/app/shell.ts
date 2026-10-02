@@ -56,6 +56,7 @@ export class Shell {
   private readonly offStore: () => void;
   private readonly offPress: () => void;
   private readonly offFocusRing: () => void;
+  private readonly offSwipe: () => void;
 
   constructor(
     private readonly registry: ScreenRegistry,
@@ -125,7 +126,7 @@ export class Shell {
         panLinkWriteRule({ store, model }),
       ),
     );
-    this.attachSwipe();
+    this.offSwipe = this.attachSwipe();
     this.attachBackdrop();
     this.offPress = attachPress(this.lcd);
     this.offFocusRing = attachFocusRing(this.lcd);
@@ -141,6 +142,7 @@ export class Shell {
     this.ctx.store.setWriteRule(null);
     this.offPress();
     this.offFocusRing();
+    this.offSwipe();
     this.closeOverlays();
   }
 
@@ -480,8 +482,8 @@ export class Shell {
     };
   }
 
-  /** Swiping the main area left or right steps the channel bank. */
-  private attachSwipe(): void {
+  /** Swiping the main area left or right steps the channel bank. Returns the step that lets the window go. */
+  private attachSwipe(): () => void {
     // On HOME a sideways finger steps the bank, and one up or down still scrolls the page.
     const swipes = (): boolean => this.ctx.nav.current.id === "home";
     const takeTouch = (): void => {
@@ -489,10 +491,11 @@ export class Shell {
     };
     takeTouch();
     this.ctx.nav.onChange(takeTouch);
+    // A swipe is a press on the main area, off any control, let go on the main
+    // area; a press let go anywhere else, or cancelled, steps nothing.
     let startX: number | null = null;
     this.mainNode.addEventListener("pointerdown", (ev) => {
-      if ((ev.target as HTMLElement).closest(INTERACTIVE)) return;
-      startX = ev.clientX;
+      startX = (ev.target as HTMLElement).closest(INTERACTIVE) ? null : ev.clientX;
     });
     this.mainNode.addEventListener("pointerup", (ev) => {
       if (startX === null) return;
@@ -501,5 +504,14 @@ export class Shell {
       if (!swipes() || Math.abs(dx) < 40) return;
       stepBank(this.ctx, dx < 0 ? 1 : -1);
     });
+    const forget = (): void => {
+      startX = null;
+    };
+    window.addEventListener("pointerup", forget);
+    window.addEventListener("pointercancel", forget);
+    return () => {
+      window.removeEventListener("pointerup", forget);
+      window.removeEventListener("pointercancel", forget);
+    };
   }
 }
