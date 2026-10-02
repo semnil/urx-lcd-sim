@@ -406,8 +406,8 @@ const REPLACE_ASK = "File alerady exists. Replace it?";
 const SETTINGS_SUFFIX = ".urxf";
 
 /** A transport button: the mark alone, named for the reader. */
-function iconButton(label: string, icon: SVGSVGElement, extraClass: string, onTap: () => void): HTMLElement {
-  return el("button", { class: `btn ${extraClass}`, attrs: { "aria-label": label }, onTap, children: [icon] });
+function iconButton(label: string, icon: SVGSVGElement, extraClass: string, onTap: () => void, attrs: Record<string, string> = {}): HTMLElement {
+  return el("button", { class: `btn ${extraClass}`, attrs: { "aria-label": label, ...attrs }, onTap, children: [icon] });
 }
 
 /**
@@ -605,16 +605,17 @@ export const recorderScreen: ScreenDef = {
             class: "rec-transport",
             children: [
               iconButton("Stop", Icons.stop(), "rec-stop", () => stopTake(ctx.store)),
-              // While a take runs, the middle button pauses and resumes it, red while paused.
+              // While a take runs, the middle button pauses and resumes it, red and pressed while paused.
               // Stopped and not armed, it does nothing.
               iconButton(recording ? "Pause" : "Play", recording ? Icons.pause() : Icons.transportPlay(), `rec-play${rec === "paused" ? " is-paused" : ""}`, () => {
                 if (rec === "armed" || rec === "paused") recordTake(ctx.store);
                 else if (rec === "recording") pauseTake(ctx.store);
-              }),
+              }, { "aria-pressed": String(rec === "paused") }),
+              // [●] stands pressed in recording mode.
               iconButton("Record", Icons.record(), `rec-rec${rec === "armed" ? " is-armed" : ""}`, () => {
                 if (rec === "idle") void ctx.store.set("sd.rec", "armed");
                 else if (rec === "armed") stopTake(ctx.store);
-              }),
+              }, { "aria-pressed": String(busy) }),
             ],
           }),
         ],

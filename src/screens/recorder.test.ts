@@ -208,6 +208,36 @@ describe("moving between the RECORDER tabs", () => {
   });
 });
 
+describe("the Record tab's transport", () => {
+  it("tells assistive technology what [●] and the middle button stand at, as the Play tab's [Play/Pause] does", async () => {
+    const shell = await mount();
+    const button = (cls: string): HTMLElement | null => shell.root.querySelector<HTMLElement>(`.rec-transport .${cls}`);
+    /** [●]'s pressed state, then the middle button's name and pressed state. */
+    const told = (): (string | null | undefined)[] => [
+      button("rec-rec")?.getAttribute("aria-pressed"),
+      button("rec-play")?.getAttribute("aria-label"),
+      button("rec-play")?.getAttribute("aria-pressed"),
+    ];
+    const press = async (cls: string): Promise<void> => {
+      button(cls)?.click();
+      await flush();
+    };
+    const seen = [[shell.ctx.store.str("sd.rec", "idle"), ...told()]];
+    for (const cls of ["rec-rec", "rec-play", "rec-play", "rec-play", "rec-stop"]) {
+      await press(cls);
+      seen.push([shell.ctx.store.str("sd.rec", "idle"), ...told()]);
+    }
+    expect(seen).toEqual([
+      ["idle", "false", "Play", "false"],
+      ["armed", "true", "Play", "false"],
+      ["recording", "true", "Pause", "false"],
+      ["paused", "true", "Pause", "true"],
+      ["recording", "true", "Pause", "false"],
+      ["idle", "false", "Play", "false"],
+    ]);
+  });
+});
+
 describe("the bar beside a list that does not fit", () => {
   it("keeps its pink rim off until the list is the thing being turned", async () => {
     const shell = await mount();
