@@ -1017,7 +1017,8 @@ EQ (measured on p112-1). The [EQ] title box at the top left (93x38, x0/y-1) and 
 beside it (93x38, x105/y-1, the title box's own lit face and band). The graph is the same 416x138
 frame the EQ screen uses, and the bands are the three L, M and H. LOW and HIGH are shelves, MID a
 bell. Dragging a handle moves its frequency across the graph and its gain up it (c under the SSMCS EQ screen in
-the user guide).
+the user guide). MID alone has a Q: while LOW or HIGH is picked, the knob readout bar's first cell, the Q's, is empty,
+with nothing to turn.
 
 The ranges: Comp Drive 0.00..10.00 in steps of 0.05, Morphing 0..120, Out Gain ±18.0 dB in 0.1 (1.0 a detent),
 Ratio 1.00:1..INF:1 (sixty stops of 0.05 from 1.00:1 to 4.00:1; from there 4.00..4.90 in 0.1, 5.00..6.80 in 0.2, 7.00..9.50 in 0.5,

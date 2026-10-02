@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { Shell } from "../app/shell";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
-import { SSMCS_DEFAULTS, factoryState } from "../model/defaults";
+import { SSMCS_DEFAULTS, factoryState, ssmcsBankDefaults } from "../model/defaults";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
 import { ssmcsSideChainResponse } from "../model/channel-eq";
@@ -360,11 +360,51 @@ describe("the strip's EQ screen", () => {
     await flush();
     expect(shell.root.querySelector(".ssmcs-band")?.textContent).toBe("Low");
     expect([...shell.root.querySelectorAll(".knob-cell .knob-cell-label")].map((n) => n.textContent).filter((t) => t)).toEqual([
-      "Low Q",
       "Low Freq.",
       "Low Gain",
       "Out Gain",
     ]);
+  });
+
+  it("leaves the Q cell empty with nothing to turn on LOW and HIGH, and turns MID's Q on MID", async () => {
+    const shell = await strip("ch.ssmcs.eq");
+    const store = shell.ctx.store;
+    const qs = (): number[] => ["mid", "low", "high"].map((band) => store.num(`ch.ch1.ssmcs.eq.${band}.q`, NaN));
+    const curve = (): string | null | undefined => shell.root.querySelector(".eq-curve-line")?.getAttribute("points");
+    await store.set("ch.ch1.ssmcs.eq.mid.q", 2);
+    await store.set("ch.ch1.ssmcs.eq.low.gain", 6);
+    await store.set("ch.ch1.ssmcs.eq.high.gain", 6);
+    await flush();
+    const drawn = curve();
+    // A Q an older save holds for a shelf is read by nothing.
+    await store.set("ch.ch1.ssmcs.eq.low.q", 3);
+    await store.set("ch.ch1.ssmcs.eq.high.q", 3);
+    await flush();
+    expect(curve(), "the curve does not read a shelf's Q").toBe(drawn);
+
+    const first = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".knob-strip .knob-cell");
+    const seen: (string | boolean | number | null | undefined)[][] = [];
+    for (const band of ["Low", "High", "Mid"]) {
+      tap(shell.root.querySelector(`.eq-grip[aria-label="${band} band"]`));
+      await flush();
+      first()?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
+      await flush();
+      seen.push([band, first()?.classList.contains("is-empty"), first()?.querySelector(".knob-cell-label")?.textContent, first()?.getAttribute("role"), ...qs()]);
+    }
+    const mid = seen[2];
+    expect(seen.slice(0, 2)).toEqual([
+      ["Low", true, "", null, 2, 3, 3],
+      ["High", true, "", null, 2, 3, 3],
+    ]);
+    expect(mid?.slice(0, 3), "MID's own Q").toEqual(["Mid", false, "Mid Q"]);
+    expect(Number(mid?.[4]), "and it turns").toBeGreaterThan(2);
+
+    // The factory holds MID's Q and no Q for a shelf.
+    for (const id of ["URX22", "URX44", "URX44V"] as const) {
+      const held = [...factoryState(unitById(id)).keys()].filter((p) => /\.ssmcs\.eq\.\w+\.q$/.test(p));
+      expect(held.length > 0 && held.every((p) => p.endsWith(".ssmcs.eq.mid.q")), `${id}: ${held.join(" ")}`).toBe(true);
+    }
+    expect(ssmcsBankDefaults().map(([suffix]) => suffix).filter((s) => /^ssmcs\.eq\.\w+\.q$/.test(s))).toEqual(["ssmcs.eq.mid.q"]);
   });
 
   it("sets a band's frequency along the graph and its gain up it, from its grip", async () => {

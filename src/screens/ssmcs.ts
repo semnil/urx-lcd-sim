@@ -192,13 +192,16 @@ const scQSpec = (b: string): NumericSpec => qSpec(`${b}.ssmcs.sc.q`, "SC-Q", SSM
 const scFreqSpec = (b: string): NumericSpec => hzSpec(`${b}.ssmcs.sc.freq`, "SC-Freq.", SSMCS_DEFAULTS.sc.freq);
 const scGainSpec = (b: string): NumericSpec => gainSpec(`${b}.ssmcs.sc.gain`, "SC-Gain", SSMCS_DEFAULTS.sc.gain);
 
-/** One band's three values, named as the readout bar names them. */
-function bandSpecs(b: string, band: (typeof SSMCS_BANDS)[number]): NumericSpec[] {
+/**
+ * One band's three values, named as the readout bar names them. LOW and HIGH are
+ * shelves with no Q, and leave the Q's place empty.
+ */
+function bandSpecs(b: string, band: (typeof SSMCS_BANDS)[number]): (NumericSpec | null)[] {
   const p = `${b}.ssmcs.eq.${band.key}`;
   const factory = SSMCS_DEFAULTS.eq[band.key];
   const range = BAND_FREQ_RANGE[band.key] ?? [20, 20000];
   return [
-    qSpec(`${p}.q`, `${band.label} Q`, SSMCS_DEFAULTS.eq.mid.q),
+    band.key === "mid" ? qSpec(`${p}.q`, `${band.label} Q`, SSMCS_DEFAULTS.eq.mid.q) : null,
     hzSpec(`${p}.freq`, `${band.label} Freq.`, factory.freq, range),
     gainSpec(`${p}.gain`, `${band.label} Gain`, factory.gain),
   ];

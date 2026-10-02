@@ -83,8 +83,8 @@ export const COMP_DEFAULTS = {
 
 /**
  * Factory SSMCS (Sweet Spot Morphing Channel Strip), on the mono input channels
- * that switch their COMP / EQ type to it. LOW and HIGH are shelves and carry no Q
- * of their own; the Q the screen shows on them is MID's.
+ * that switch their COMP / EQ type to it. LOW and HIGH are shelves and carry no
+ * Q; MID's is the only one.
  */
 export const SSMCS_DEFAULTS = {
   on: true,
@@ -164,12 +164,9 @@ export function ssmcsBankDefaults(): readonly [string, ParamValue][] {
     ["ssmcs.sc.gain", SSMCS_DEFAULTS.sc.gain],
   ];
   for (const [band, values] of Object.entries(SSMCS_DEFAULTS.eq)) {
-    out.push(
-      [`ssmcs.eq.${band}.on`, true],
-      [`ssmcs.eq.${band}.q`, "q" in values ? values.q : SSMCS_DEFAULTS.eq.mid.q],
-      [`ssmcs.eq.${band}.freq`, values.freq],
-      [`ssmcs.eq.${band}.gain`, values.gain],
-    );
+    out.push([`ssmcs.eq.${band}.on`, true]);
+    if ("q" in values) out.push([`ssmcs.eq.${band}.q`, values.q]);
+    out.push([`ssmcs.eq.${band}.freq`, values.freq], [`ssmcs.eq.${band}.gain`, values.gain]);
   }
   return out;
 }
