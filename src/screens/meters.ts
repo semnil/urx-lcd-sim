@@ -92,7 +92,8 @@ export function markClipSafe(store: DeviceStore, node: HTMLElement, connector: S
  * tap id (a bare strip id reads what the strip puts out), a monitor bus as
  * `monitor.<n>`, the cue bus, the oscillator, the card's playback, or two of
  * them side by side. `at` is the moment the synthetic signal is read at, so two
- * readings can be taken of the same instant.
+ * readings can be taken of the same instant. A device's reading that is not a
+ * number reads as nothing, and one of +Infinity as a clip.
  */
 export function meterLevels(store: DeviceStore, id: string, channels: number, at = readingMoment()): number[] {
   const members = pairMembers(id);
@@ -102,7 +103,7 @@ export function meterLevels(store: DeviceStore, id: string, channels: number, at
       return member === undefined ? SILENT : (meterLevels(store, member, 1, at)[0] ?? SILENT);
     });
   }
-  if (source) return source(id, channels);
+  if (source) return source(id, channels).map((db) => (Number.isNaN(db) ? SILENT : db === Number.POSITIVE_INFINITY ? CLIP_DB : db));
   const levels = flowLevels(flowCtx(store), id, at);
   return Array.from({ length: channels }, (_, c) => levels[c] ?? SILENT);
 }
@@ -120,7 +121,9 @@ export function shownLevels(store: DeviceStore, id: string, channels: number, at
   return meterLevels(store, id, channels, at).map((db, lane) => {
     const key = `${id}#${lane}`;
     const was = seen.get(key);
-    const fallen = was ? was.db - (METER_FALL_DB_PER_S * Math.max(0, at - was.at)) / 1000 : SILENT;
+    const fell = was ? was.db - (METER_FALL_DB_PER_S * Math.max(0, at - was.at)) / 1000 : SILENT;
+    // A held level that is not a finite number holds nothing.
+    const fallen = Number.isFinite(fell) ? fell : SILENT;
     const now = Math.max(db, fallen, SILENT);
     seen.set(key, { db: now, at });
     return now;

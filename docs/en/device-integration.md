@@ -82,7 +82,8 @@ sequenceDiagram
    (`src/screens/meters.ts`). The function passed is given a strip's id and the point on the strip it
    reads, joined by `@` (`ch3@preFader`, `bus.mix1@post`, and so on; the points are `Tap` in
    `src/screens/signal-flow.ts`), and `monitor.<n>`, `cue`, `osc` and `playback` (what the card's
-   playback puts out, after microSD Playback's D.Gain). Until one is passed, the simulator's internal
+   playback puts out, after microSD Playback's D.Gain), and returns levels in dB; a value that is not a
+   number reads as silence, and +Infinity as a clip. Until one is passed, the simulator's internal
    synthetic signal is shown.
 
 The `chrome-link` indicator in `src/main.ts` reads `store.kind`, so the connection state shows at the

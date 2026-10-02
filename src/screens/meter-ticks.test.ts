@@ -5,10 +5,11 @@ import type { Route } from "../app/navigator";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
+import { SILENT_DB } from "../model/signal";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
-import { blockReduction, setMeterSource, startMeterTicker } from "./meters";
-import { PLAYBACK_METER, compSpec } from "./signal-flow";
+import { blockLampState, blockReduction, meterLevels, setMeterSource, shownLevels, startMeterTicker } from "./meters";
+import { CLIP_DB, PLAYBACK_METER, compSpec, gateSpec } from "./signal-flow";
 
 // What a screen shows of a moving signal outside the dynamics screens' own meters:
 // the pair of lamps on a HOME strip, the channel view's GATE and DUCKER lamps and
@@ -269,5 +270,73 @@ describe("a falling bar on a screen drawn again", () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+});
+
+// A device's meter stream carries whatever it carries. A reading that is not a
+// number reads as nothing and one of +Infinity as a clip, and the bars go on
+// from the next reading as they would from those.
+
+describe("a meter stream that reads something other than a number", () => {
+  const at = (db: number): string => `${(1 - levelBarShare(db)) * 100}%`;
+
+  it("takes HOME's strip meter, its clip mark and its dots on from the next reading", async () => {
+    const cases: [string, number, number][] = [
+      // A moment of silence, -96 dB, is the reading the others are set against.
+      ["silence", -96, -13],
+      ["not a number", Number.NaN, -13],
+      ["+Infinity", Number.POSITIVE_INFINITY, 0],
+    ];
+    for (const [name, odd, dropped] of cases) {
+      const shell = await mount();
+      vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
+      await open(shell, []);
+      const read = (): unknown => ({
+        meter: unlit(shell, '[data-meter-source="ch1@preFader"] .meter-bar'),
+        over: shell.root.querySelector('[data-meter-source="ch1@preFader"] .meter-clip')?.classList.contains("is-on"),
+        signal: shell.root.querySelector('[data-lamp-source="ch1@input"] .dot-signal')?.classList.contains("is-on"),
+        clip: shell.root.querySelector('[data-lamp-source="ch1@input"] .dot-clip')?.classList.contains("is-on"),
+      });
+      const shown = (db: number): unknown => ({ meter: [at(db)], over: db >= 0, signal: true, clip: db >= 0 });
+      const stop = startMeterTicker(shell.ctx.store, shell.root, 100);
+      try {
+        levels["ch1"] = -10;
+        vi.advanceTimersByTime(100);
+        expect(read(), `${name}: at -10 dB`).toEqual(shown(-10));
+        levels["ch1"] = odd;
+        vi.advanceTimersByTime(100);
+        expect(read(), `${name}: the reading itself`).toEqual(shown(dropped));
+        levels["ch1"] = -10;
+        vi.advanceTimersByTime(100);
+        expect(read(), `${name}: the next reading, falling 3 dB a tick to it`).toEqual(shown(Math.max(-10, dropped - 3)));
+        vi.advanceTimersByTime(300);
+        expect(read(), `${name}: at -10 dB again`).toEqual(shown(-10));
+      } finally {
+        stop();
+        vi.useRealTimers();
+      }
+    }
+  });
+
+  it("reads it the same wherever the meter is read, the gate's detector included", async () => {
+    const shell = await mount();
+    const strip = shell.ctx.model.inputs[0];
+    expect(strip).toBeDefined();
+    if (!strip) return;
+    await shell.ctx.store.set("ch.ch1.gate.on", true);
+    const read = (db: number): unknown => {
+      levels["ch1"] = db;
+      return { meter: meterLevels(shell.ctx.store, "ch1@preFader", 1), lamps: blockLampState(shell.ctx.store, gateSpec(shell.ctx, strip)) };
+    };
+    expect(read(Number.NaN), "not a number, as silence").toEqual(read(SILENT_DB));
+    expect(read(Number.POSITIVE_INFINITY), "+Infinity, as a clip").toEqual(read(CLIP_DB));
+  });
+
+  it("holds nothing over from a reading taken at no moment", async () => {
+    const shell = await mount();
+    levels["ch1"] = -10;
+    expect(shownLevels(shell.ctx.store, "ch1", 1, 1000)).toEqual([-10]);
+    expect(shownLevels(shell.ctx.store, "ch1", 1, Number.NaN), "the reading itself").toEqual([-10]);
+    expect(shownLevels(shell.ctx.store, "ch1", 1, 1100), "the next reading").toEqual([-10]);
   });
 });
