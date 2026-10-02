@@ -164,8 +164,9 @@ below. As a finger acts when it leaves the glass, a key acts when it is let go, 
 down on is the one it is let go on (`makeTappable`). Value boxes are `role="spinbutton"`
 and HOME's level readouts are `role="slider"`; both move by drag, wheel or arrow keys (`attachSpin`
 takes drag, wheel and arrow keys in one place). A 192px drag covers the whole range (1/5 of that with Shift),
-and the wheel and arrow keys move one detent (`fastStep` with Shift). Dialogs have a focus trap and
-cancel on Escape. Meter animation stops under `prefers-reduced-motion`.
+and the wheel and arrow keys move one detent (`fastStep` with Shift); Home and End take the value to
+either end of its range. Dialogs have a focus trap and cancel on Escape. Meter animation stops under
+`prefers-reduced-motion`.
 
 Where the keys stand is drawn by the simulator, in a layer over the glass (`src/ui/focus-ring.ts`). No control draws a
 ring of its own, so neither a neighbour nor a parent box can cover it. The ring stands outside the box of the control

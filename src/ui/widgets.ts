@@ -481,7 +481,8 @@ const DRAG_FINE = 0.2;
 /**
  * Make `node` turn `spec`. A vertical drag runs the whole range in
  * DRAG_FULL_RANGE_PX, or a fifth of it with Shift held; the wheel and the arrow
- * keys move one detent, or `fastStep` with Shift. `onEngage` runs when a pointer
+ * keys move one detent, or `fastStep` with Shift, and Home and End go to either
+ * end. `onEngage` runs when a pointer
  * or a key starts a turn. The value box, the rotaries and the HOME strip level
  * share this, so a parameter behaves the same wherever it is reachable.
  */
@@ -525,12 +526,15 @@ export function attachSpin(
     // A control inside this one, such as a block's switch, keeps the keys it takes.
     if (fromInnerControl(ev, node)) return;
     const map: Record<string, number> = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 };
+    const ends: Record<string, number> = { Home: 0, End: 1 };
     const dir = map[ev.key];
-    if (dir === undefined) return;
+    const end = ends[ev.key];
+    if (dir === undefined && end === undefined) return;
     ev.preventDefault();
     onEngage?.();
     if (still()) return;
-    nudge(dir, ev.shiftKey);
+    if (dir !== undefined) nudge(dir, ev.shiftKey);
+    else if (end !== undefined) put(spec.travel ? spec.travel.valueAt(end) : end === 0 ? spec.min : spec.max);
   });
 }
 

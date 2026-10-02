@@ -517,6 +517,28 @@ describe("a strip on the bank", () => {
     }
   });
 
+  it("takes its level to the top of the fader by End and off by Home", async () => {
+    const shell = await mount();
+    const level = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".strip-level");
+    const press = (key: string): boolean => {
+      const ev = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+      level()?.dispatchEvent(ev);
+      return ev.defaultPrevented;
+    };
+    expect(level()?.getAttribute("aria-label")).toBe("CH 1 LEVEL");
+
+    expect(press("End"), "End is the slider's own key").toBe(true);
+    await flush();
+    expect([shell.ctx.store.num("ch.ch1.level", Number.NaN), level()?.getAttribute("aria-valuenow")]).toEqual([10, "10"]);
+
+    expect(press("Home"), "and so is Home").toBe(true);
+    await flush();
+    expect([shell.ctx.store.num("ch.ch1.level", Number.NaN), level()?.querySelector(".strip-level-value")?.textContent]).toEqual([
+      -96.5,
+      "-∞",
+    ]);
+  });
+
   it("fills the row to four whatever the bank holds", async () => {
     const shell = await mount();
     const slots = (): number => shell.root.querySelectorAll(".home-main > .strip").length;
@@ -3325,6 +3347,25 @@ describe("the grips on a dedicated screen's graph", () => {
     expect(await moved(ducker, '[aria-label^="R handle"]', 0, -20, ["ch.ch1.ducker.range"]), "DUCKER R up").toEqual([1]);
     expect(await moved(ducker, '[aria-label^="A handle"]', 40, 0, ["ch.ch1.ducker.attack"]), "DUCKER A right").toEqual([1]);
     expect(await moved(ducker, '[aria-label^="D handle"]', 40, 0, ["ch.ch1.ducker.decay"]), "DUCKER D right").toEqual([1]);
+  });
+
+  it("takes a grip's value to either end of its range by Home and End", async () => {
+    const comp = await open("ch.comp");
+    const grip = (): Element | null => comp.root.querySelector('[aria-label^="T handle"]');
+    const press = (key: string): boolean => {
+      const ev = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+      grip()?.dispatchEvent(ev);
+      return ev.defaultPrevented;
+    };
+    const threshold = (): number => comp.ctx.store.num("ch.ch1.comp.threshold", Number.NaN);
+    expect(threshold()).toBe(-18);
+
+    expect(press("Home")).toBe(true);
+    await flush();
+    expect([threshold(), grip()?.getAttribute("aria-valuenow")]).toEqual([-54, "-54"]);
+    expect(press("End")).toBe(true);
+    await flush();
+    expect([threshold(), grip()?.getAttribute("aria-valuenow")]).toEqual([0, "0"]);
   });
 
   it("leaves COMP's grips still while 1-knob holds the values, and G while Auto Makeup holds the gain", async () => {
