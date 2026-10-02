@@ -152,6 +152,40 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     expect(store.num("ch.ch1.gain", 0)).toBe(-8);
   });
 
+  it("covers a fifth as much of the range in a drag with Shift held, and goes on from where the value stands as Shift is let go", async () => {
+    const { shell, store } = await mount();
+    await open(shell, { id: "channel-view", strip: "ch1" });
+    const knob = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".cv-gain .knob-graphic.is-control");
+    const gain = (): number => store.num("ch.ch1.gain", 0);
+    const from = async (value: number, shiftKey: boolean): Promise<void> => {
+      await store.set("ch.ch1.gain", value);
+      await flush();
+      knob()?.dispatchEvent(new MouseEvent("pointerdown", { clientY: 400, shiftKey, bubbles: true }));
+    };
+    const move = async (clientY: number, shiftKey: boolean): Promise<number> => {
+      window.dispatchEvent(new MouseEvent("pointermove", { clientY, shiftKey }));
+      await flush();
+      return gain();
+    };
+    const end = async (): Promise<void> => {
+      window.dispatchEvent(new MouseEvent("pointerup", {}));
+      await flush();
+    };
+
+    // 160px of the 192px that cover the head amp's 78 dB is 65 dB, and a fifth of that 13 dB.
+    await from(-8, false);
+    const plain = (await move(240, false)) + 8;
+    await end();
+    await from(-8, true);
+    const fine = (await move(240, true)) + 8;
+    // Let go of Shift at 240: the value stays at 5 dB, and the next 32px cover 13 dB from there.
+    const letGo = await move(240, false);
+    const onward = await move(208, false);
+    await end();
+    expect([plain, fine]).toEqual([65, 13]);
+    expect([letGo, onward]).toEqual([5, 18]);
+  });
+
   it("marks the page while a pointer is turning, so nothing lights up under it", async () => {
     const { shell } = await mount();
     await open(shell, { id: "setup" });
@@ -236,6 +270,21 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     expect(store.num("phones.1.level", 0)).toBeGreaterThan(afterWheel);
     await flush();
     expect(phones().querySelector(".knob-cell-value")?.textContent, "and the division reads the new value").not.toBe("5.0");
+  });
+
+  it("turns a value down by the wheel turned down and up by the wheel turned up, by its fastStep with Shift held", async () => {
+    const { shell, store } = await mount();
+    await open(shell, { id: "channel-view", strip: "ch1" });
+    const box = (): HTMLElement | null => shell.root.querySelector<HTMLElement>('.cv-gain [role="spinbutton"]');
+    expect(box(), "the channel view draws the head amp's value box").not.toBeNull();
+    const wheel = async (deltaY: number, shiftKey = false): Promise<number> => {
+      box()?.dispatchEvent(new WheelEvent("wheel", { deltaY, deltaMode: WheelEvent.DOM_DELTA_LINE, shiftKey, bubbles: true, cancelable: true }));
+      await flush();
+      return store.num("ch.ch1.gain", 0);
+    };
+    await store.set("ch.ch1.gain", 30);
+    await flush();
+    expect([await wheel(3), await wheel(3), await wheel(-3), await wheel(-3, true), await wheel(3, true)]).toEqual([29, 28, 29, 34, 29]);
   });
 
   it("holds the user-defined knobs still while 1-knob holds the screen's focus", async () => {

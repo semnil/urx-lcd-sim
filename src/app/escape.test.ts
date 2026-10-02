@@ -91,6 +91,48 @@ describe("Escape", () => {
     }
   });
 
+  it("keeps Tab and Shift+Tab going round the dialog's buttons while it is open", async () => {
+    const shell = await mount();
+    document.body.appendChild(shell.root);
+    try {
+      shell.ctx.overlay(dialog({ message: "Discard?", onOk: () => undefined }));
+      await flush();
+      [...shell.root.querySelectorAll<HTMLElement>('[role="dialog"] .dialog-actions .btn')].find((b) => b.textContent === "OK")?.focus();
+      const seen = [document.activeElement?.textContent];
+      const taken: boolean[] = [];
+      for (const shiftKey of [false, false, true]) {
+        const ev = new KeyboardEvent("keydown", { key: "Tab", shiftKey, bubbles: true, cancelable: true });
+        document.activeElement?.dispatchEvent(ev);
+        await flush();
+        taken.push(ev.defaultPrevented);
+        seen.push(document.activeElement?.textContent);
+      }
+      expect(seen).toEqual(["OK", "Cancel", "OK", "Cancel"]);
+      expect(taken, "the browser does not take the focus out of it").toEqual([true, true, true]);
+    } finally {
+      shell.root.remove();
+    }
+  });
+
+  it("closes a picker sheet the focus is in, and the screen behind stays put", async () => {
+    const shell = await mount();
+    document.body.appendChild(shell.root);
+    try {
+      shell.ctx.nav.push({ id: "setup" });
+      shell.ctx.nav.push({ id: "setup.patch" });
+      await flush();
+      shell.root.querySelector<HTMLElement>(".patch-btn")?.click();
+      await flush();
+      expect(document.activeElement?.closest(".source-overlay"), "the sheet is up with the focus in it").not.toBeNull();
+
+      document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+      await flush();
+      expect([shell.root.querySelector(".source-overlay"), shell.ctx.nav.current.id]).toEqual([null, "setup.patch"]);
+    } finally {
+      shell.root.remove();
+    }
+  });
+
   it("belongs to a field being typed into", async () => {
     const shell = await mount();
     document.body.appendChild(shell.root);

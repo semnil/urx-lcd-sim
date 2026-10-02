@@ -1553,6 +1553,37 @@ describe("the SCENE menu the scene box opens", () => {
     expect(hidden(), "three rows, all in view").toBe(true);
   });
 
+  it("scrolls the list as far through its rows as its thumb is dragged through the well", async () => {
+    const shell = await mount();
+    shell.ctx.nav.openTop({ id: "scene" });
+    shell.ctx.nav.push({ id: "scene.list" });
+    await flush();
+    const body = shell.root.querySelector<HTMLElement>(".scene-list .list-body");
+    const thumb = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".scene-scrollbar .scroll-thumb");
+    // 63 rows of 38px, three of them in view: a 15px thumb in a 111px well.
+    let scrolled = 0;
+    if (body) {
+      Object.defineProperty(body, "scrollHeight", { configurable: true, value: 63 * 38 });
+      Object.defineProperty(body, "clientHeight", { configurable: true, value: 3 * 38 });
+      Object.defineProperty(body, "scrollTop", {
+        configurable: true,
+        get: () => scrolled,
+        set: (v: number) => {
+          scrolled = v;
+          body.dispatchEvent(new Event("scroll"));
+        },
+      });
+    }
+    body?.dispatchEvent(new Event("scroll"));
+    expect([thumb()?.style.height, thumb()?.style.top]).toEqual(["15px", "0px"]);
+
+    // Half of the thumb's 96px of travel is half of the 60 rows out of view.
+    thumb()?.dispatchEvent(new MouseEvent("pointerdown", { clientY: 100, bubbles: true }));
+    window.dispatchEvent(new MouseEvent("pointermove", { clientY: 148 }));
+    window.dispatchEvent(new MouseEvent("pointerup", { clientY: 148 }));
+    expect([body?.scrollTop, thumb()?.style.top]).toEqual([30 * 38, "48px"]);
+  });
+
   it("names the recalled scene on HOME the way the list names it", async () => {
     const shell = await mount();
     const box = (): string[] => [...(shell.root.querySelector(".scene-box")?.children ?? [])].map((c) => c.textContent ?? "");
@@ -1942,6 +1973,12 @@ describe("the SCENE menu the scene box opens", () => {
     await send("!");
     expect(typed(), "typed where the caret stands, in a layout the sheet does not show").toBe("Ban!ds");
     await send("Backspace");
+    expect(typed()).toBe("Bands");
+    await send("ArrowRight");
+    await send("!");
+    expect(typed(), "the right arrow takes the caret the other way").toBe("Band!s");
+    await send("Backspace");
+    await send("ArrowLeft");
     expect(typed()).toBe("Bands");
 
     expect(await send("é"), "a character the unit cannot type is left alone").toBe(false);
