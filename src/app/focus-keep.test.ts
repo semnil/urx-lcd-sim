@@ -154,3 +154,77 @@ describe("the focus through a redraw", () => {
     expect([shell.ctx.nav.current.id, document.activeElement === document.body]).toEqual(["home", true]);
   });
 });
+
+describe("the grips on a dynamics plot", () => {
+  interface Stops {
+    /** Where the Tab key stops under something hidden from assistive technology. */
+    hidden: string[];
+    /** How many grips the Tab key stops on. */
+    grips: number;
+    /** What a dynamics plot draws that assistive technology is left to meet, grips aside. */
+    drawn: string[];
+  }
+  const stops = async (shell: Shell): Promise<Stops> => {
+    await flush();
+    const tabbable = [...shell.root.querySelectorAll("[tabindex], button, input, select, textarea")].filter(
+      (n) => Number(n.getAttribute("tabindex") ?? 0) >= 0 && !n.closest("[inert]"),
+    );
+    return {
+      hidden: tabbable.filter((n) => n.closest("[aria-hidden='true']")).map((n) => n.getAttribute("aria-label") ?? n.className),
+      grips: tabbable.filter((n) => n.matches(".dyn-handle[role='slider'], .eq-grip")).length,
+      drawn: [...shell.root.querySelectorAll(".dyn-curve *")]
+        .filter((n) => !n.closest("[role='slider'], [aria-hidden='true']"))
+        .map((n) => `${n.tagName}.${n.getAttribute("class") ?? ""}`),
+    };
+  };
+  /** A channel's screen, opened from its channel view. */
+  const open = async (id: string, strip: string): Promise<Shell> => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "channel-view", strip });
+    shell.ctx.nav.push({ id, strip });
+    await flush();
+    return shell;
+  };
+  /** INS FX on `strip`, running `effect`. */
+  const insert = async (strip: string, effect: string): Promise<Shell> => {
+    const shell = await open("ch.insfx", strip);
+    shell.root.querySelector<HTMLElement>(".insfx-effect")?.click();
+    await flush();
+    [...shell.root.querySelectorAll<HTMLElement>(".source-sheet .source-btn")].find((b) => b.textContent === effect)?.click();
+    await flush();
+    return shell;
+  };
+
+  it("leaves every grip that takes the Tab key in reach of assistive technology, and the rest of the plot hidden", async () => {
+    const seen: Record<string, Stops> = {};
+    for (const [id, strip] of [
+      ["ch.gate", "ch1"],
+      ["ch.comp", "ch1"],
+      ["ch.ducker", "ch_5_6"],
+      ["ch.ssmcs.comp", "ch1"],
+      ["ch.eq", "ch1"],
+      ["ch.ssmcs.eq", "ch1"],
+    ] as const) {
+      seen[`${id} ${strip}`] = await stops(await open(id, strip));
+    }
+    seen["Compander-H"] = await stops(await insert("ch1", "Compander-H"));
+    const mbc = await insert("bus.stereo", "M.B.Comp");
+    for (const page of [0, 1, 2, 3]) {
+      await mbc.ctx.store.set("ui.effectPage", page);
+      seen[`M.B.Comp page ${page}`] = await stops(mbc);
+    }
+    // Each screen carries grips that take the Tab key, nothing hidden takes it,
+    // and the plot shows nothing but its grips.
+    const astray = Object.entries(seen).filter(([, { hidden, grips, drawn }]) => hidden.length > 0 || grips === 0 || drawn.length > 0);
+    expect(astray).toEqual([]);
+  });
+
+  it("hides a plot whole while its grips take no touch", async () => {
+    const shell = await open("ch.comp", "ch1");
+    await shell.ctx.store.set("ch.ch1.comp.oneKnob.on", true);
+    const seen = await stops(shell);
+    expect(shell.root.querySelectorAll(".dyn-handle.is-fixed").length, "the grips go to marks").toBe(3);
+    expect(seen).toEqual({ hidden: [], grips: 0, drawn: [] });
+    expect(shell.root.querySelector(".dyn-curve")?.getAttribute("aria-hidden"), "the plot itself").toBe("true");
+  });
+});

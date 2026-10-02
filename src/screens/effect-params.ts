@@ -46,6 +46,7 @@ import {
   dynFrame,
   dynMeters,
   dynSetting,
+  hidePlotDrawing,
   noChannel,
   oneKnobButton,
   oneKnobPanel,
@@ -354,8 +355,8 @@ function bandsPanel(draw: (svg: SVGSVGElement) => void): HTMLElement {
   const svg = document.createElementNS(NS, "svg");
   svg.setAttribute("viewBox", `0 0 ${MBC_PLOT_W} ${PLOT_H}`);
   svg.setAttribute("class", "dyn-curve");
-  svg.setAttribute("aria-hidden", "true");
   draw(svg);
+  hidePlotDrawing(svg);
   return el("div", { class: "dyn-plot mbc-bands", children: [svg as unknown as HTMLElement] });
 }
 

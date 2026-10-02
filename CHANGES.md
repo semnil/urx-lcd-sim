@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Leave the grips on the GATE, COMP, DUCKER, SSMCS Comp, compander and M.B.Comp plots to assistive technology, and hide only the rest of the plot from it. The grips took the Tab key from inside a plot hidden whole.
 - Name CH SETTING's Color box by the colour the channel carries, `Color: Blue` and so on. It reached assistive technology as a button with no name.
 - Ask [Reset the unit]'s question with the focus on [Cancel], one Shift+Tab short of [Reset]. The focus went to [Reset], so Enter pressed twice dropped everything the unit held.
 - Keep a sheet that draws no way out of its own open under a touch or a drag on the USER DEFINED KNOBS bar, and under a drag that starts on the sheet and is let go off it: the title and name sheets, DATE/TIME's popup, the knob assignment and Operation Mode. A touch on a knob, assigned or `---`, closed the sheet and dropped what had been typed.

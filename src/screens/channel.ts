@@ -866,9 +866,24 @@ export function plotPanel(draw: (svg: SVGSVGElement) => void): HTMLElement {
   const svg = document.createElementNS(NS, "svg");
   svg.setAttribute("viewBox", `0 0 ${PLOT_W} ${PLOT_H}`);
   svg.setAttribute("class", "dyn-curve");
-  svg.setAttribute("aria-hidden", "true");
   draw(svg);
+  hidePlotDrawing(svg);
   return el("div", { class: "dyn-plot", children: [svg as unknown as HTMLElement] });
+}
+
+/**
+ * Hide what a plot draws from assistive technology and leave it the grips that
+ * take the focus: a plot carrying such grips hides every other part of itself,
+ * and a plot carrying none is hidden whole.
+ */
+export function hidePlotDrawing(svg: SVGSVGElement): void {
+  const grips = [...svg.children].filter((n) => n.getAttribute("role") === "slider");
+  if (grips.length === 0) {
+    svg.setAttribute("aria-hidden", "true");
+    return;
+  }
+  svg.removeAttribute("aria-hidden");
+  for (const node of svg.children) if (!grips.includes(node)) node.setAttribute("aria-hidden", "true");
 }
 
 /** The rules the unit lays across a plot, given as fractions of each axis. */

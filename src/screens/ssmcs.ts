@@ -38,6 +38,7 @@ import {
   compResponse,
   dynMeters,
   dynSetting,
+  hidePlotDrawing,
   noChannel,
   plotCurve,
   plotHandle,
@@ -554,6 +555,7 @@ function compFace(ctx: AppContext, route: Route, sideChain: boolean): ScreenBody
     plotHandle(ctx, svg, "D", plotX(driveDb), plotY(at(driveDb), STRIP_PLOT_H), "x", { spec: drive, sense: -1 });
     plotHandle(ctx, svg, "R", PLOT_W - 14.5, plotY(at(PLOT_MAX - 5), STRIP_PLOT_H), "y", { spec: ratio, sense: -1 });
   }
+  hidePlotDrawing(svg);
   const plot = el("div", { class: "dyn-plot", children: [svg as unknown as HTMLElement] });
 
   return {
