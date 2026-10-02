@@ -675,6 +675,10 @@ export const chSettingScreen: ScreenDef = {
 
     const colorBox = box("color", "copy", [el("span", { class: "chs-color", style: { background: stripColor(ctx, strip) } })]);
     makeTappable(colorBox, () => colorSheet(ctx, strip));
+    // The box is named by the colour the channel carries, in the words of the palette's buttons.
+    const chosen = ctx.store.str(`${base}.color`, strip.color);
+    const colorName = chosen === CH_COLOR_OFF ? CH_COLOR_OFF : CH_COLOR_PALETTE.find((c) => c.hex === chosen)?.name;
+    colorBox.setAttribute("aria-label", colorName ? `Color: ${colorName}` : "Color");
 
     const children = [
       field("Color", "color", colorBox),

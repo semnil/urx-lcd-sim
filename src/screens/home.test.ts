@@ -10,6 +10,7 @@ import { bankName, channelLabel } from "./strip-state";
 import { buildRegistry } from "./index";
 import { meterLevels, setMeterSource, startMeterTicker } from "./meters";
 import { declarations, px, readStyle } from "../style/css-read";
+import { INTERACTIVE } from "../ui/dom";
 import { dialog } from "../ui/widgets";
 import { version as packageVersion } from "../../package.json";
 
@@ -2124,6 +2125,25 @@ describe("CH SETTING: what a channel is tapped at and what colour it carries", (
     // carrying the word the store keeps.
     const rail = shell.root.querySelector<HTMLElement>(".strip")?.style.getPropertyValue("--rail");
     expect(rail, "and its rail carries nothing").toBe("");
+  });
+
+  it("names every control it carries, the colour box by the colour the channel carries", async () => {
+    const colorBox = (shell: Shell): HTMLElement | null => shell.root.querySelector<HTMLElement>(".chs-color-box");
+    for (const [id, color] of [["ch1", "Blue"], ["bus.mix1", "Orange"]] as const) {
+      const shell = await setting(id);
+      const unnamed = [...shell.root.querySelectorAll<HTMLElement>(INTERACTIVE)]
+        .filter((n) => accessibleName(n).trim() === "")
+        .map((n) => `${n.tagName}.${n.className}`);
+      expect(unnamed, `${id}: every control has a name`).toEqual([]);
+      expect(colorBox(shell)?.getAttribute("aria-label"), id).toBe(`Color: ${color}`);
+    }
+    const shell = await setting("ch1");
+    await shell.ctx.store.set("ch.ch1.color", CH_COLOR_PALETTE.find((c) => c.name === "Red")?.hex ?? "");
+    await flush();
+    expect(colorBox(shell)?.getAttribute("aria-label")).toBe("Color: Red");
+    await shell.ctx.store.set("ch.ch1.color", "Off");
+    await flush();
+    expect(colorBox(shell)?.getAttribute("aria-label"), "a channel carrying none").toBe("Color: Off");
   });
 
   it("closes the palette on the way out without changing the colour", async () => {
