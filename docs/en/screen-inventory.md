@@ -2041,8 +2041,14 @@ text sizes.
 
 Confirmed on the unit's HOME (URX44V, 2026-09-04). The toolbar's INPUT / OUTPUT buttons open the bank
 list, and the bank to show is picked from the list. There is no path by which one tap of the button
-advances one bank. The user guide's p47 says only that the bank changes when you touch the bank select
-button on the toolbar.
+advances one bank. The user guide's p47 names two ways to change the bank, touching the channel bank
+selection button on the toolbar and swiping left or right in the main area, and its NOTE says a swipe
+cannot move between the input and output banks.
+
+In the simulator, a press on HOME's main area off the parts that answer a touch (a strip's name, its
+indicator rows, [ON] / [CUE] and the level), let go 40px or more on the page to the left or right, moves
+one bank within the side on display, left to the next bank and right to the one before; from the last
+bank it goes round to the first, and from the first to the last.
 
 | Side | Bank | Strips |
 | --- | --- | --- |
