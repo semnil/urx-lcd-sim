@@ -4063,7 +4063,7 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
     shell.ctx.nav.push({ id: "microsd.tools" });
     await shell.ctx.store.set("ui.sdToolsTab", "Test");
     await flush();
-    expect(shell.root.querySelector(".toolbar-right .sd-eject, .sd-eject"), "the eject button").not.toBeNull();
+    expect(shell.root.querySelector(".toolbar .sd-eject"), "the eject button").not.toBeNull();
     expect(shell.root.querySelector(".tools-free")).not.toBeNull();
     expect(shell.root.querySelector(".tools-report"), "nothing before a test").toBeNull();
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });

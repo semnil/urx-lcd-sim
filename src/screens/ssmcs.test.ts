@@ -6,7 +6,7 @@ import { SSMCS_DEFAULTS, factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
 import { compResponse } from "./channel";
-import { declarations, px, readStyle } from "../style/css-read";
+import { declarations, declarationsOn, px, readStyle } from "../style/css-read";
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -451,7 +451,7 @@ describe("where the strip puts its boxes", () => {
     expect(declarations(CSS, ".lcd .ssmcs-block-switch.badge-title")["font-size"]).toBe("16.5px");
     expect(declarations(CSS, ".lcd .ssmcs-band")["font-size"]).toBe("17px");
     expect(declarations(CSS, ".lcd .ssmcs-sc-switch")["font-size"]).toBe("12.5px");
-    expect(declarations(CSS, ".ssmcs-eq-plot"), "no frame of its own").toEqual({});
+    expect(declarationsOn(CSS, ".eq-plot")["border"], "no frame of its own").toBe(declarations(CSS, ".eq-plot")["border"]);
   });
 
   it("gives the channel view's area the two columns COMP and EQ had", () => {

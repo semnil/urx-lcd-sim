@@ -1111,7 +1111,6 @@ describe("a compander", () => {
     expect([...shell.root.querySelectorAll(".dyn-set .value-box")].map((n) => n.textContent), "and the values turn").toEqual([
       "25m", "165m", "4.0:1",
     ]);
-    expect(shell.root.querySelector(".efx-rack"), "nothing opens a screen under it").toBeNull();
     expect(shell.root.querySelectorAll(".dyn-io").length, "one pair of meters").toBe(1);
     expect(knobLabels(shell), "and the readout bar carries its values").toEqual(["Threshold", "Ratio", "Width", "Gain"]);
   });

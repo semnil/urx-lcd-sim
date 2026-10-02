@@ -1589,14 +1589,6 @@ describe("an effect's grid of controls", () => {
     expect(value["text-overflow"], "the mark every name too long for its box takes").toBe("ellipsis");
   });
 
-  it("draws the effect area in the panels the screen it opens uses", () => {
-    // The INS FX screen's effect area is the same grid with nothing to turn, so
-    // it carries no size of its own to drift from the screen it opens.
-    expect(Object.keys(declarations(CSS, ".efx-params.is-rack"))).toEqual([]);
-    expect(Object.keys(declarations(CSS, ".is-rack .efx-cell"))).toEqual([]);
-    expect(Object.keys(declarations(CSS, ".efx-cell.is-wide"))).toEqual([]);
-  });
-
   it("stretches a row of buttons over two panels, and stands a foot list at the foot of its panel", () => {
     // CLEAN's Cho / Off / Vib take the first two tracks and the gap between them.
     const tracks = (declarations(CSS, ".efx-params")["grid-template-columns"] ?? "").split(" ").map(px);

@@ -364,7 +364,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     const blocks = async (strip: string): Promise<string[]> => {
       const { shell } = await mount();
       await open(shell, { id: "channel-view", strip });
-      return [...shell.root.querySelectorAll(".cv-block .badge, .cv-block .cv-block-name")].map((n) => n.textContent ?? "");
+      return [...shell.root.querySelectorAll(".cv-block .badge, .cv-block .cv-fx-name, .cv-block .cv-fx-effect")].map((n) => n.textContent ?? "");
     };
     // GATE and COMP belong to a mono channel, DUCKER to a stereo input, DELAY to
     // the streaming bus. An EQ goes to the inputs, the mixes and the stereo bus;
@@ -372,7 +372,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     // carries neither, and names the effect it is instead.
     expect(await blocks("ch1")).toEqual(["GATE", "COMP", "EQ", "INS FX"]);
     expect(await blocks("ch_5_6"), "no insert on a stereo input").toEqual(["EQ", "DUCKER"]);
-    expect(await blocks("fx1"), "an FX channel names itself and its effect").toEqual(["FX1"]);
+    expect(await blocks("fx1"), "an FX channel names itself and its effect").toEqual(["FX1", "Rev-X Hall"]);
     expect(await blocks("bus.mix1")).toEqual(["EQ", "INS FX"]);
     expect(await blocks("bus.stereo")).toEqual(["EQ", "INS FX"]);
     expect(await blocks("bus.stream"), "the streaming bus carries only its delay").toEqual(["DELAY"]);
