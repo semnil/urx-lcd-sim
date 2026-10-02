@@ -1738,8 +1738,8 @@ the size every settings file takes. It is printed over 1024³ to one decimal, as
 The card's name, the volume label it was formatted under, stands on a line above it, the two lines top right and
 set left from x313 (x313..387 / y58..81). Every card screen puts them in the same place (URX44V, the operator,
 2026-09-22): SAVE/LOAD's p084-1 and TOOLS' p087-1 show both lines, and RECORDER's p081-1 and p083-1 show the name
-line empty. The name's line runs to the main area's right edge (x418), and a name that does not fit ends in `…`,
-as every other name too long for its box does. With no card none of these screens
+line empty. The name's line runs to the main area's right edge (x418), and a name that does not fit ends in `…`.
+With no card none of these screens
 is open: the microSD top takes their place. A touch on the eject button first asks `Eject the microSD card?` under the
 circled i mark, with [Cancel] and [OK], as the unit does (URX44V, the operator, 2026-10-04). Its [OK] brings up the unit's
 dialog `Now you may safely remove the microSD card.` with [OK] alone: the text on one line, the circled i

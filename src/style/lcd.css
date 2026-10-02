@@ -6983,8 +6983,8 @@
   color: var(--text);
 }
 
-/* A name too long for its line ends in `…`, as every other name too long for
- * its box does. Its line stands as tall as the free space's, at the same place. */
+/* A name too long for its line ends in `…`. Its line stands as tall as the
+ * free space's, at the same place. */
 .sd-free-name {
   display: inline-block;
   max-width: 100%;
