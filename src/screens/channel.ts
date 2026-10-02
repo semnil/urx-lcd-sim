@@ -20,7 +20,7 @@ import type { NumericSpec } from "../ui/param-spec";
 import { compRatioSpec, dbSpec, faderSpec, fineGainSpec, freqSpec, intSpec, logFreqSpec, msSpec, panSpec, stoppedMsSpec } from "../ui/param-spec";
 import { attachDrag, attachSpin, followFocus, knobControl, markFocus, meter, panSlider, pickerSheet, pulldown, setAriaValue, sideTab, toggle, unbuilt, valueBox } from "../ui/widgets";
 import { type GrSpec, type LampState, blockReduction, drawnLevels, inputMeterId, markBlockLamps, markClipSafe, markLevelBar, markReduction, showBlockLamps } from "./meters";
-import { type Tap, compSpec, duckerSources, duckerSpec, gateSpec, stripTap, tapId } from "./signal-flow";
+import { DELAY_MAX_MS, type Tap, compSpec, duckerSources, duckerSpec, gateSpec, stripTap, tapId } from "./signal-flow";
 import { PAN_BAL, SIGNAL_TYPES, carriesStereo, enterSsmcs, setPanBal, setSignalType, signalType, stripPosition } from "./stereo-link";
 import { BUS_TYPES, FIXED_LEVEL_TEXT, busType, panLinkOn, sendLocks, sendPanPath, setBusType, setPanLink } from "./mix-bus";
 import { homeSide, sceneBox } from "./home";
@@ -341,7 +341,7 @@ const duckerThreshold = (b: string): NumericSpec => dbSpec(`${b}.ducker.threshol
 /** One of GATE's, COMP's and DUCKER's times, on its own stops, read to `digits` places under 100 ms. */
 const dynTime = (b: string, time: DynamicsTime, label: string, fallback: number, digits?: number): NumericSpec =>
   stoppedMsSpec(`${b}.${time}`, label, DYNAMICS_TIME_STOPS[time], fallback, digits);
-const delayTime = (b: string): NumericSpec => ({ ...msSpec(`${b}.delay.ms`, "ms", 1, 1000, 1), step: 0.01, unit: "", boxUnit: "", sweep: DELAY_SWEEP_DEG });
+const delayTime = (b: string): NumericSpec => ({ ...msSpec(`${b}.delay.ms`, "ms", 1, DELAY_MAX_MS, 1), step: 0.01, unit: "", boxUnit: "", sweep: DELAY_SWEEP_DEG });
 /** How deep [1-knob] works COMP or EQ, in percent. */
 const oneKnobDepth = (path: string): NumericSpec => intSpec(path, "1-knob", 0, 100, 0, "%");
 

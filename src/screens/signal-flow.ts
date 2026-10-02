@@ -151,21 +151,32 @@ const CLIP_SAFE_REDUCTION_DB = 23;
 /** How long Clip Safe holds the signal down after the last clip it heard. */
 const CLIP_SAFE_HOLD_MS = 5000;
 
+/** The longest a STREAMING DELAY holds its signal back. */
+export const DELAY_MAX_MS = 1000;
+
 /** What the connector numbered `n` puts out before Clip Safe: its signal, raised by its A.Gain. */
 function jackRaw(store: DeviceStore, n: number, at: number): number {
   return MIC_LINE_SIGNAL_DB + store.num(jackParam(n, "gain"), -8) + wander(monoStripId(n), 0, at);
 }
 
-/** The moment each connector's Clip Safe last heard a clip, per store. */
-const clipSafeStates = new WeakMap<DeviceStore, Map<number, number>>();
+/**
+ * What each connector's Clip Safe has heard, per store: the moment of its last
+ * clip, the latest moment read, and each reading that changed how far it held the
+ * signal down, with the reading before it, as far back as a reading after the
+ * longest DELAY looks.
+ */
+const clipSafeStates = new WeakMap<DeviceStore, Map<number, { last: number; latest: number; held: { at: number; before: number; reduction: number }[] }>>();
 
 /**
  * Clip Safe on the connector numbered `n` at `at`: whether it is engaged, and by
  * how many dB it is holding the signal down. A reading that finds the signal at
  * the clip level — held down or not — is a clip: that reading still shows it,
  * and after it the signal is held CLIP_SAFE_REDUCTION_DB down until
- * CLIP_SAFE_HOLD_MS after the last clip, engaged for as long. The A.Gain setting
- * stays where it is. Switched off, it forgets what it heard.
+ * CLIP_SAFE_HOLD_MS after the last clip, engaged for as long. A reading of a
+ * moment before the latest one read, up to DELAY_MAX_MS back, hears no clip of
+ * its own and finds the signal held down as far as the reading nearest that
+ * moment did. The A.Gain setting stays where it is. Switched off, it forgets what
+ * it heard.
  */
 export function clipSafe(store: DeviceStore, n: number, at = readingMoment()): { engaged: boolean; reduction: number } {
   let states = clipSafeStates.get(store);
@@ -174,10 +185,22 @@ export function clipSafe(store: DeviceStore, n: number, at = readingMoment()): {
     states.delete(n);
     return { engaged: false, reduction: 0 };
   }
-  const last = states.get(n) ?? -Infinity;
+  let state = states.get(n);
+  if (!state) states.set(n, (state = { last: -Infinity, latest: -Infinity, held: [] }));
+  const { last, held } = state;
+  if (at < state.latest) {
+    const next = held.findIndex((h) => h.at > at);
+    const inForce = next < 0 ? held.at(-1) : held[next - 1];
+    const after = next < 0 ? undefined : held[next];
+    const nearest = after && at - after.before > after.at - at ? after : inForce;
+    return { engaged: at >= last && at - last <= CLIP_SAFE_HOLD_MS, reduction: nearest?.reduction ?? 0 };
+  }
   const reduction = at > last && at - last <= CLIP_SAFE_HOLD_MS ? CLIP_SAFE_REDUCTION_DB : 0;
   const clip = jackRaw(store, n, at) - reduction >= CLIP_DB ? Math.max(last, at) : last;
-  states.set(n, clip);
+  if (held.at(-1)?.reduction !== reduction) held.push({ at, before: state.latest, reduction });
+  while ((held[1]?.at ?? Infinity) <= at - DELAY_MAX_MS) held.shift();
+  state.last = clip;
+  state.latest = at;
   return { engaged: at >= clip && at - clip <= CLIP_SAFE_HOLD_MS, reduction };
 }
 
