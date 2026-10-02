@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Say, on a line under the controls outside the screen, when the browser does not take the unit (it is full, or stores nothing), until a write is taken again. A change the browser did not take was lost on the next reload without a word.
+- Write each scene memory's mixer once in the browser however many settings files hold it, and a settings file as its values rather than as text. A unit holding 63 scene memories ran out of the browser's room at its second settings file.
 - Keep a change made just before reloading, closing the page or switching the model: what was changed in the last 400 ms was dropped.
 - Ask [Reset the unit]'s question on a panel under the button, which leaves the other controls and the glass where they are, and leave the unit alone when the second click of a double click, or a press within 500 ms of the question appearing, reaches its [Reset]. A double click on the button could drop everything the unit held.
 - Open the simulator on the model it was last used as, where it always opened as a URX44V and left a URX22 or URX44 unit unread. The browser keeps one unit across the models: after switching to another model, the first change replaces what the previous model kept.

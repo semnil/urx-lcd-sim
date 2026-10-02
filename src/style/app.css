@@ -133,6 +133,16 @@ body {
   background: var(--meter-green);
 }
 
+/* A line of its own across the header, under the controls, while the browser
+ * does not take the unit. */
+.chrome-unkept {
+  flex-basis: 100%;
+  margin: 0;
+  color: #ff9ba0;
+  font-size: 12px;
+  text-align: right;
+}
+
 .chrome-foot {
   color: #8b94a3;
   font-size: 12px;

@@ -32,6 +32,9 @@ const DEFAULT_ZOOM = 100;
 /** How long [Reset the unit]'s [Reset] does nothing after the question appears, longer than a double click. */
 const RESET_HOLD_MS = 500;
 
+/** What the chrome says while the browser does not take the unit. */
+const UNKEPT_TEXT = "The browser is not keeping the unit: changes made now will not come back after a reload.";
+
 function applyZoom(percent: number): void {
   document.documentElement.style.setProperty("--zoom", String(percent / 100));
   document.documentElement.dataset["zoom"] = String(percent);
@@ -64,7 +67,13 @@ async function boot(modelId: ModelId, mount: HTMLElement): Promise<void> {
   const transport = new SimTransport(factoryState(model));
   await store.attach(transport);
   await restore(store, modelId);
-  const saving = startSaving(store, modelId);
+  // Stands under the chrome's controls while the browser refuses the unit, full
+  // or blocked, and goes once a write is taken again.
+  const unkept = el("p", { class: "chrome-unkept", text: UNKEPT_TEXT, attrs: { role: "status" } });
+  unkept.hidden = true;
+  const saving = startSaving(store, modelId, undefined, (kept) => {
+    unkept.hidden = kept;
+  });
   flushMounted = saving.flush;
 
   const shell = new Shell(buildRegistry(), store, model);
@@ -158,6 +167,7 @@ async function boot(modelId: ModelId, mount: HTMLElement): Promise<void> {
       children: [
         el("h1", { class: "chrome-title", text: "URX LCD Simulator" }),
         el("div", { class: "chrome-controls", children: [modelSelect, zoomSelect, resetBox, link] }),
+        unkept,
       ],
     }),
     panel,

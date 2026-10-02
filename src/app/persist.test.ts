@@ -4,7 +4,10 @@ import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
 import type { CardEntry } from "../model/card";
 import { filePath, writeCard } from "../model/card";
+import { captureScene } from "../model/scene-state";
+import { captureSettings } from "../model/settings-file";
 import { unitById } from "../model/units";
+import { toJson } from "../device/value-json";
 import { forget, keepModel, lastModel, persisted, readSaved, restore, snapshot, startSaving } from "./persist";
 
 // The unit comes back as it was left, and what it was doing does not.
@@ -314,5 +317,83 @@ describe("what a reload carries over", () => {
     const values = snapshot(store);
     expect(Object.keys(values).some((p) => p.startsWith("ch.")), "the mixer").toBe(true);
     expect(values["sd.playing"], "not what it is doing").toBeUndefined();
+  });
+
+  it("tells whether the browser took each write", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = await unit();
+    const took: boolean[] = [];
+    const { stop, flush } = startSaving(store, MODEL, 10, (kept) => took.push(kept));
+    const set = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("storage is full", "QuotaExceededError");
+    });
+    await store.set("ch.ch1.level", -9);
+    flush();
+    set.mockRestore();
+    await store.set("ch.ch1.level", -8);
+    flush();
+    stop();
+    expect(took).toEqual([false, true]);
+  });
+});
+
+describe("the room a unit takes in the browser", () => {
+  /** A URX44V holding a scene in every Standard number and `files` settings files, all taken as it stands. */
+  async function fullUnit(files: number): Promise<DeviceStore> {
+    const store = await unit();
+    for (let no = 1; no <= 63; no++) {
+      await store.set("ch.ch1.level", -no / 2);
+      await store.set(`scene.Standard.${no}.state`, toJson(captureScene(store)));
+      await store.set(`scene.Standard.${no}.title`, `S${no}`);
+    }
+    for (let f = 1; f <= files; f++) await store.set(`sd.file.F${f}.urxf`, toJson(captureSettings(store)));
+    return store;
+  }
+
+  it("keeps every scene memory and settings files that each hold them all", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = await fullUnit(4);
+    const took: boolean[] = [];
+    const { stop, flush } = startSaving(store, MODEL, 10, (kept) => took.push(kept));
+    await store.set("ch.ch1.level", -33);
+    flush();
+    stop();
+    const saved = readSaved(MODEL);
+    expect(saved?.["ch.ch1.level"], "the change after the files is stored").toBe(-33);
+    for (const path of ["sd.file.F1.urxf", "sd.file.F4.urxf", "scene.Standard.1.state", "scene.Standard.63.state"]) {
+      expect(saved?.[path], path).toBe(store.str(path, ""));
+    }
+    expect(took, "the browser took the write").toEqual([true]);
+  });
+
+  it("writes each scene memory's mixer once, however many settings files hold it", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const lengths: number[] = [];
+    let scenes = 0;
+    for (const files of [0, 1]) {
+      const store = await fullUnit(files);
+      scenes = store.paths().filter((p) => /^scene\..+\.state$/.test(p)).reduce((sum, p) => sum + store.str(p, "").length, 0);
+      forget();
+      const { stop, flush } = startSaving(store, MODEL, 10);
+      await store.set("ch.ch1.level", -33);
+      flush();
+      stop();
+      lengths.push(window.localStorage.getItem("urx-lcd-sim.state")?.length ?? 0);
+    }
+    expect(lengths[0], "the unit is stored").toBeGreaterThan(scenes);
+    expect(lengths[1]! - lengths[0]!, "a settings file adds a small part of the scene memories it holds").toBeLessThan(scenes / 10);
+  });
+
+  it("brings back a unit stored with its settings files written as text", async () => {
+    // A unit stored before settings files and scene memories were written once each.
+    const store = await fullUnit(1);
+    const file: CardEntry = { name: "F1.urxf", kind: "data", seconds: 0, tracks: 0, stamp: "", dir: "/" };
+    const text = store.str("sd.file.F1.urxf", "");
+    const scene = store.str("scene.Standard.5.state", "");
+    const values = { "sd.card": JSON.stringify([file]), [filePath(file)]: text, "scene.Standard.5.state": scene };
+    window.localStorage.setItem("urx-lcd-sim.state", toJson({ version: 1, model: MODEL, values }));
+    const next = await unit();
+    await restore(next, MODEL);
+    expect([next.str(filePath(file), ""), next.str("scene.Standard.5.state", "")]).toEqual([text, scene]);
   });
 });

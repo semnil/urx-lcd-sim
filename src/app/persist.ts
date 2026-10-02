@@ -55,10 +55,95 @@ export function persisted(path: ParamPath): boolean {
   return !IN_FLIGHT.some((p) => path === p || path.startsWith(p));
 }
 
+/** Where the unit and a settings file keep a scene memory's mixer, as JSON text. */
+const SCENE_STATE = /^scene\..+\.state$/;
+
+/** Where the card keeps a file; a settings file is the unit's values as JSON text. */
+const CARD_FILE = /^sd\.file\./;
+
+/** In storage, a scene memory's mixer named by its place in `Saved.shared`. */
+interface Shared {
+  shared: number;
+}
+
+/** A settings file in storage: its values, each scene memory's mixer named by its place. */
+type StoredFile = Record<string, ParamValue | Shared>;
+
 interface Saved {
   version: number;
   model: string;
-  values: Record<string, ParamValue>;
+  values: Record<string, ParamValue | Shared | StoredFile>;
+  /**
+   * Each scene memory's mixer, written once for the unit and every settings
+   * file holding it. A unit stored without it holds them where they stand.
+   */
+  shared?: string[];
+}
+
+function isShared(value: unknown): value is Shared {
+  return typeof value === "object" && value !== null && Object.keys(value).length === 1 && typeof (value as Shared).shared === "number";
+}
+
+/** The values a settings file's text holds, or nothing where the text is not a settings file. */
+function settingsFile(value: ParamValue): Record<string, ParamValue> | null {
+  if (typeof value !== "string" || !value.startsWith("{")) return null;
+  try {
+    const parsed = fromJson(value);
+    return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed) ? (parsed as Record<string, ParamValue>) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The unit as it is written to storage: a settings file as its values rather
+ * than as text, and each scene memory's mixer written once in `shared` and
+ * named by its place wherever the unit or a settings file holds it.
+ */
+function pack(values: Record<string, ParamValue>): Pick<Saved, "values" | "shared"> {
+  const shared: string[] = [];
+  const places = new Map<string, number>();
+  const share = (path: string, value: ParamValue): ParamValue | Shared => {
+    if (!SCENE_STATE.test(path) || typeof value !== "string" || !value) return value;
+    let place = places.get(value);
+    if (place === undefined) {
+      place = shared.length;
+      shared.push(value);
+      places.set(value, place);
+    }
+    return { shared: place };
+  };
+  const out: Saved["values"] = {};
+  for (const [path, value] of Object.entries(values)) {
+    const file = CARD_FILE.test(path) ? settingsFile(value) : null;
+    out[path] = file ? Object.fromEntries(Object.entries(file).map(([p, v]) => [p, share(p, v)])) : share(path, value);
+  }
+  return { values: out, shared };
+}
+
+/** The unit as the mirror holds it, from what `pack` wrote or from a unit stored before it. */
+function unpack(values: Saved["values"], shared: unknown): Record<string, ParamValue> {
+  const pool = Array.isArray(shared) ? shared : [];
+  const take = (value: unknown): ParamValue | undefined => {
+    if (!isShared(value)) return value as ParamValue;
+    const text: unknown = pool[value.shared];
+    return typeof text === "string" ? text : undefined;
+  };
+  const out: Record<string, ParamValue> = {};
+  for (const [path, value] of Object.entries(values)) {
+    if (CARD_FILE.test(path) && typeof value === "object" && value !== null && !isShared(value)) {
+      const file: Record<string, ParamValue> = {};
+      for (const [p, v] of Object.entries(value)) {
+        const taken = take(v);
+        if (taken !== undefined) file[p] = taken;
+      }
+      out[path] = toJson(file);
+      continue;
+    }
+    const taken = take(value);
+    if (taken !== undefined) out[path] = taken;
+  }
+  return out;
 }
 
 /** What is stored for `model`, or nothing where the browser holds none of it. */
@@ -73,7 +158,7 @@ export function readSaved(model: string): Record<string, ParamValue> | null {
   try {
     const saved = fromJson(text) as Partial<Saved>;
     if (saved.version !== VERSION || saved.model !== model) return null;
-    return typeof saved.values === "object" && saved.values !== null ? saved.values : null;
+    return typeof saved.values === "object" && saved.values !== null ? unpack(saved.values, saved.shared) : null;
   } catch {
     return null;
   }
@@ -166,18 +251,28 @@ export interface Saving {
 
 /**
  * Write the unit to storage whenever it changes, and no more often than
- * `delayMs`. Returns the steps that end it.
+ * `delayMs`, telling `onWrite` after each write whether the browser took it.
+ * Returns the steps that end it.
  */
-export function startSaving(store: DeviceStore, model: string, delayMs = 400): Saving {
+export function startSaving(
+  store: DeviceStore,
+  model: string,
+  delayMs = 400,
+  onWrite: (kept: boolean) => void = () => {},
+): Saving {
   let timer = 0;
   const save = (): void => {
     timer = 0;
-    const saved: Saved = { version: VERSION, model, values: snapshot(store) };
+    const saved: Saved = { version: VERSION, model, ...pack(snapshot(store)) };
+    let kept = true;
     try {
       window.localStorage.setItem(KEY, toJson(saved));
     } catch {
-      // A browser that refuses to store it leaves the unit running on nothing else.
+      // A browser that is full or refuses to store anything keeps what it held
+      // before, and the unit runs on.
+      kept = false;
     }
+    onWrite(kept);
   };
   const off = store.onChange(() => {
     if (timer) return;

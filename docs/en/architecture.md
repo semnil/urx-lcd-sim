@@ -119,6 +119,13 @@ they are kept with it. The browser's storage, the scene memories and the setting
 no number for infinity, so an infinite value (the top of the SSMCS Ratio, INF) is written as a marker carrying its
 sign and read back as the number (`src/device/value-json.ts`).
 
+In the browser's storage, a settings file is written as its values rather than as text, and each scene memory's
+mixer (`scene.*.state`) is written once under `shared` and named by its place wherever the unit or a settings file
+holds it. A stored unit without `shared` is read with its settings files and scene memories as they were written,
+and takes this shape the next time it is written. When the browser refuses a write (it is full, or stores nothing),
+it keeps the unit it last took; for as long as that lasts, a line under the controls outside the screen says the
+browser is not keeping the unit, and it goes once a write is taken again.
+
 ```mermaid
 flowchart LR
   ST["DeviceStore"] -->|"on change, 400 ms after the last"| LS["localStorage<br/>urx-lcd-sim.state"]

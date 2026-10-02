@@ -368,3 +368,24 @@ describe("a change still waiting to be stored", () => {
     expect(window.localStorage.getItem(STATE_KEY), "nothing is written back").toBeNull();
   });
 });
+
+describe("a browser that does not take the unit", () => {
+  const notice = (): HTMLElement | null => document.querySelector<HTMLElement>("header.chrome .chrome-unkept");
+
+  it("is told so in the chrome until a write is taken again", async () => {
+    await openPage();
+    expect(notice()?.hidden, "there is nothing to tell").toBe(true);
+    const set = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("storage is full", "QuotaExceededError");
+    });
+    try {
+      await nudge();
+      await until("the notice", () => notice()?.hidden === false);
+      expect(notice()?.getAttribute("role")).toBe("status");
+    } finally {
+      set.mockRestore();
+    }
+    await nudge();
+    await until("the notice to go", () => notice()?.hidden === true);
+  });
+});
