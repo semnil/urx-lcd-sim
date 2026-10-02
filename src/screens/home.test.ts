@@ -4538,21 +4538,45 @@ describe("what the dedicated channel screens draw", () => {
     expect(shell.ctx.nav.current.strip).toBe("ch4");
   });
 
-  it("does not open CH SETTING from the CH SETTING screen", async () => {
+  it("opens CH SETTING from the channel view's name alone, and keeps the name on the screens under it and on CH SETTING out of reach", async () => {
     const shell = await mount();
+    const chip = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".ch-chip");
     shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
-    shell.ctx.nav.push({ id: "ch.setting", strip: "ch1" });
     await flush();
-    const depth = shell.ctx.nav.depth;
-    shell.root.querySelector<HTMLElement>(".ch-chip")?.click();
+    expect(chip()?.hasAttribute("aria-disabled"), "the channel view's name is in reach").toBe(false);
+    chip()?.click();
     await flush();
-    expect(shell.ctx.nav.depth, "the name has nothing left to open").toBe(depth);
+    expect(shell.ctx.nav.current.id, "and opens CH SETTING").toBe("ch.setting");
 
-    shell.ctx.nav.replace({ id: "ch.input", strip: "ch1" });
-    await flush();
-    shell.root.querySelector<HTMLElement>(".ch-chip")?.click();
-    await flush();
-    expect(shell.ctx.nav.current.id, "from anywhere else it still opens it").toBe("ch.setting");
+    await shell.ctx.store.set("ch.ch3.compEqOrder", "SSMCS");
+    const screens: [string, string][] = [
+      ["ch.setting", "ch1"],
+      ["ch.input", "ch1"],
+      ["ch.gate", "ch1"],
+      ["ch.comp", "ch1"],
+      ["ch.eq", "ch1"],
+      ["ch.insfx", "ch1"],
+      ["ch.sendto", "ch1"],
+      ["ch.ssmcs", "ch3"],
+      ["ch.ssmcs.comp", "ch3"],
+      ["ch.ssmcs.sc", "ch3"],
+      ["ch.ssmcs.eq", "ch3"],
+      ["ch.ducker", "ch_5_6"],
+      ["ch.delay", "bus.stream"],
+      ["ch.effect", "fx1"],
+    ];
+    const seen: [string, string | null, string, number][] = [];
+    for (const [id, strip] of screens) {
+      shell.ctx.nav.home();
+      shell.ctx.nav.push({ id: "channel-view", strip });
+      shell.ctx.nav.push({ id, strip });
+      await flush();
+      const outOfReach = chip()?.getAttribute("aria-disabled") ?? null;
+      chip()?.click();
+      await flush();
+      seen.push([id, outOfReach, shell.ctx.nav.current.id, shell.ctx.nav.depth]);
+    }
+    expect(seen, "out of reach, and a touch opens nothing").toEqual(screens.map(([id]) => [id, "true", id, 3]));
   });
 
   it("names CH SETTING and INPUT in the wider box, and SEND TO in the narrow one", async () => {

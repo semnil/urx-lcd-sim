@@ -470,8 +470,8 @@ CH SETTING の Icon の箱には、チップと同じ単色の四角をアイコ
 FX 1 L、FX 1 R、FX 2 L、FX 2 R、MIX 1 L、MIX 1 R、MIX 2 L、MIX 2 R、STEREO L、STEREO R、STREAMING L、STREAMING R の順に
 送る。名前の 1 行目は表示中のチャンネルで、ステレオの入力は `CH 6` のように番号 1 つ、それ以外は L / R を付ける。狭い箱では
 STEREO を `ST`、STREAMING を `STR` と書く。2 行目はストリップに付けた名前で、どちらのチャンネルでも同じ。2 チャンネルの
-ストリップは、ゲインの列のメーターを表示中のチャンネルの 1 本だけにする。名前の箱は CH SETTING を開くが、CH SETTING を表示しているあいだは
-何も開かない。
+ストリップは、ゲインの列のメーターを表示中のチャンネルの 1 本だけにする。名前の箱が CH SETTING を開くのは、名前を広い箱で出し
+複製マークを付けるチャンネル・バスの詳細画面だけ。そこから下りた画面と CH SETTING では、触れても沈まず何も開かない。
 
 GATE・COMP・SSMCS はモノラルの入力、DUCKER はステレオの入力、DELAY は STREAMING のブロック。そのブロックを持たないストリップの
 チャンネルへ送ると、これらの画面はツールバーにそのチャンネルの名前を出し、題を出さず、中央に `This channel has no GATE screen`

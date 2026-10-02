@@ -167,6 +167,10 @@ export function channelSelector(ctx: AppContext, strip: Strip, route: Route, nar
     const next = stepChannel(ctx, delta, strip);
     ctx.nav.replace({ ...route, strip: next.id });
   };
+  // The name opens the screen that sets it on the screen a channel opens on,
+  // the one that carries the copy mark. On the screens under it and on CH
+  // SETTING it is out of reach: it neither sinks nor opens anything.
+  const opens = !narrow && route.id !== "ch.setting";
   return el("div", {
     class: "ch-selector",
     children: [
@@ -174,11 +178,8 @@ export function channelSelector(ctx: AppContext, strip: Strip, route: Route, nar
       el("button", {
         class: `ch-chip${narrow ? " is-narrow" : ""}`,
         style: { "--rail": stripColor(ctx, strip) },
-        // The name opens the screen that sets it, except where that is the
-        // screen already up.
-        onTap: () => {
-          if (route.id !== "ch.setting") ctx.nav.push({ id: "ch.setting", strip: strip.id });
-        },
+        ...(opens ? {} : { attrs: { "aria-disabled": "true" } }),
+        onTap: opens ? () => ctx.nav.push({ id: "ch.setting", strip: strip.id }) : () => undefined,
         children: [
           el("span", { class: "ch-chip-icon", style: { background: stripColor(ctx, strip) } }),
           el("span", {
@@ -190,7 +191,7 @@ export function channelSelector(ctx: AppContext, strip: Strip, route: Route, nar
           }),
           // The copy mark stands beside the name on the screen a channel opens
           // on, and not on the screens under it nor on CH SETTING.
-          narrow || route.id === "ch.setting" ? null : el("span", { class: "ch-chip-copy", children: [Icons.copy()] }),
+          opens ? el("span", { class: "ch-chip-copy", children: [Icons.copy()] }) : null,
         ],
       }),
       el("button", { class: "ch-arrow", children: [Icons.chevronRight()], onTap: () => move(1), attrs: { "aria-label": "Next channel" } }),

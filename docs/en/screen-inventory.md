@@ -532,8 +532,9 @@ drawing, and wrap to the other end at either end of the list. A mono input is on
 CH 1 … CH 12, FX 1 L, FX 1 R, FX 2 L, FX 2 R, MIX 1 L, MIX 1 R, MIX 2 L, MIX 2 R, STEREO L, STEREO R, STREAMING L, STREAMING R.
 The name's first line is the channel in view: a single number such as `CH 6` on a stereo input, L / R on the others. The narrow
 box writes STEREO as `ST` and STREAMING as `STR`. The second line is the name set on the strip, the same on either channel. A
-two-channel strip meters the channel in view alone in its gain column. The name box opens CH SETTING, but
-opens nothing while CH SETTING is showing.
+two-channel strip meters the channel in view alone in its gain column. The name box opens CH SETTING only on the
+channel and bus detail screens, where it is the wide box with the copy mark. On the screens further below them and on
+CH SETTING it neither sinks nor opens anything when touched.
 
 GATE, COMP and SSMCS belong to the mono inputs, DUCKER to the stereo inputs and DELAY to STREAMING. Stepped to a
 channel whose strip does not carry the block, these screens keep the channel's name in the toolbar, draw no title, and
