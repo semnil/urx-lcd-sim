@@ -49,11 +49,11 @@ export class BridgeTransport implements DeviceTransport {
   private closed = false;
   private readonly listeners = new Set<(n: Notify) => void>();
   /**
-   * The newest write to each address that no notify has followed yet. A notify
-   * carrying its raw value is flagged as its echo, and any notify for the
-   * address clears it.
+   * The newest write to each address that no notify has followed yet, with the
+   * raw value of a numeric one. A notify carrying that raw value is flagged as
+   * its echo, and any notify for the address clears it.
    */
-  private readonly inFlight = new Map<string, { raw: number }>();
+  private readonly inFlight = new Map<string, { raw?: number }>();
   /** The newest read of each string address taken on its notify and not yet answered. */
   private readonly strReads = new Map<string, Promise<string>>();
 
@@ -103,8 +103,12 @@ export class BridgeTransport implements DeviceTransport {
     const b = this.bindings.forPath(path);
     if (!b) throw new UnboundPathError(path);
     if (b.isString) {
+      const sentStr = {};
+      this.inFlight.set(b.addr, sentStr);
       await this.bridge.setStr(b.addr, String(value));
-      this.emit({ path, value, echo: true });
+      // The echo goes out only while neither a notify for the address nor a
+      // later write to it has come since.
+      if (this.inFlight.get(b.addr) === sentStr) this.emit({ path, value, echo: true });
       return String(value);
     }
     const raw = b.codec.encode(value);
@@ -161,6 +165,7 @@ export class BridgeTransport implements DeviceTransport {
       const b = this.bindings.forPath(p);
       if (!b) return;
       if (b.isString) {
+        this.inFlight.delete(addr);
         this.readAgain(p, addr);
         return;
       }

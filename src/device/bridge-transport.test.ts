@@ -464,6 +464,54 @@ describe("BridgeTransport", () => {
     expect(seen).toEqual([[3, true]]);
   });
 
+  it("sends no echo for a string write a later write has overtaken", async () => {
+    const answers: (() => void)[] = [];
+    const link: DeviceLink = {
+      ...fakeBridge(),
+      setStr: () => new Promise<void>((resolve) => answers.push(resolve)),
+    };
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.name", { addr: "name-addr", codec: identityCodec, isString: true });
+    const transport = new BridgeTransport(link, bindings);
+    await transport.snapshot();
+    const seen: [unknown, boolean][] = [];
+    transport.onNotify((n) => seen.push([n.value, n.echo]));
+
+    const first = transport.write("ch.ch1.name", "Guitar");
+    const second = transport.write("ch.ch1.name", "Bass");
+    answers[0]!();
+    await first;
+    answers[1]!();
+    await second;
+
+    expect(seen).toEqual([["Bass", true]]);
+  });
+
+  it("sends no echo for a string write when the unit announces a change to the address before answering it", async () => {
+    const bridge = fakeBridge();
+    const answers: (() => void)[] = [];
+    const link: DeviceLink = {
+      ...bridge,
+      setStr: () => new Promise<void>((resolve) => answers.push(resolve)),
+    };
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.name", { addr: "name-addr", codec: identityCodec, isString: true });
+    const transport = new BridgeTransport(link, bindings);
+    await transport.snapshot();
+    const seen: [unknown, boolean][] = [];
+    transport.onNotify((n) => seen.push([n.value, n.echo]));
+
+    const write = transport.write("ch.ch1.name", "Guitar");
+    // The name is changed to Drums on the unit's own panel.
+    await bridge.setStr("name-addr", "Drums");
+    bridge.fire("name-addr", 1);
+    await tick();
+    answers[0]!();
+    await write;
+
+    expect(seen).toEqual([["Drums", false]]);
+  });
+
   it("flags only the first notify of the value it wrote as its own", async () => {
     const bridge = fakeBridge();
     const bindings = new BindingTable();
