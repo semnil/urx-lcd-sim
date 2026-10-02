@@ -35,12 +35,15 @@ export function captureScene(store: DeviceStore): Record<string, ParamValue> {
  * Put a stored mixer back. Writes run one after another so a value the device
  * refuses leaves the rest of the recall where it was rather than racing it, and
  * a path the scene does not carry is left alone whatever the stored copy holds.
+ * What the recall changed is announced once, when it is all back.
  */
 export async function applyScene(store: DeviceStore, state: Record<string, ParamValue>): Promise<void> {
-  for (const [path, value] of Object.entries(state)) {
-    if (!inScene(path)) continue;
-    await store.restore(path, value);
-  }
+  await store.batch(async () => {
+    for (const [path, value] of Object.entries(state)) {
+      if (!inScene(path)) continue;
+      await store.restore(path, value);
+    }
+  });
 }
 
 /** What a bank keeps under a scene number: its title, its mixer and its protection. */

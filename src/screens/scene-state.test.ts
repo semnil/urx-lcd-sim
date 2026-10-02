@@ -1,12 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Shell } from "../app/shell";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
+import { readCard } from "../model/card";
 import { factoryState } from "../model/defaults";
 import type { UnitModel } from "../model/types";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
-import { applyScene, inScene } from "../model/scene-state";
+import { applyScene, captureScene, inScene } from "../model/scene-state";
 import { applySettings, captureSettings } from "../model/settings-file";
 import { recallScene, storeScene } from "./scene";
 import { setSignalType } from "./stereo-link";
@@ -465,5 +466,77 @@ describe("what SCENE LIST's rows tell assistive technology", () => {
       shell.destroy();
       shell.root.remove();
     }
+  });
+});
+
+describe("drawing the glass over a recall and a load", () => {
+  const byText = (root: ParentNode, sel: string, text: string): HTMLElement | null =>
+    [...root.querySelectorAll<HTMLElement>(sel)].find((b) => b.textContent === text) ?? null;
+  /** Let the timers run until `done` holds, and once more for the drawing it asked for. */
+  const settle = async (done: () => boolean): Promise<void> => {
+    for (let i = 0; i < 50 && !done(); i++) await flush();
+    if (!done()) throw new Error("never settled");
+    await flush();
+  };
+  async function recallRow(shell: Shell, bank: "Simple" | "Standard", no: string, current: number): Promise<number> {
+    shell.ctx.nav.home();
+    shell.ctx.nav.push({ id: "scene" });
+    shell.ctx.nav.push({ id: "scene.list" });
+    await flush();
+    byText(shell.root, ".scene-banks .btn", bank)?.click();
+    await flush();
+    [...shell.root.querySelectorAll<HTMLElement>(".scene-list .list-row")].find((r) => r.querySelector(".scene-no")?.textContent?.endsWith(no))?.click();
+    await flush();
+    byText(shell.root, ".scene-actions .btn", "Recall")?.click();
+    await flush();
+    const ok = byText(shell.root, ".dialog-actions .btn", "OK");
+    if (!ok) throw new Error(`no [Recall] to confirm on ${bank} ${no}`);
+    const render = vi.spyOn(shell, "render");
+    ok.click();
+    await settle(() => shell.ctx.store.num("scene.current", -1) === current);
+    const renders = render.mock.calls.length;
+    render.mockRestore();
+    return renders;
+  }
+
+  it("draws the glass a few times for a recall of P01 and a load of a settings file, not once for every value put back", async () => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    const reference = await mount();
+    await recallScene(reference.ctx, 101);
+
+    const p01 = await recallRow(shell, "Simple", "P01", 101);
+    expect(captureScene(s), "P01's mixer, every value of it").toEqual(captureScene(reference.ctx.store));
+    expect(s.str("ch.ch1.name", ""), "P01's CH 1").toBe("Dyn.Mic");
+
+    // A settings file written with P01 in force, loaded over 00.
+    shell.ctx.nav.home();
+    shell.ctx.nav.push({ id: "microsd" });
+    shell.ctx.nav.push({ id: "microsd.saveload" });
+    await flush();
+    const saved = captureSettings(s);
+    byText(shell.root, ".sd-actions .btn", "Save as")?.click();
+    await flush();
+    await s.set("ui.titleEntry.text", "P1");
+    await flush();
+    shell.root.querySelector<HTMLElement>(".pick-dialog-ok")?.click();
+    await flush();
+    expect(readCard(s).some((e) => e.name === "P1.urxf"), "the file is on the card").toBe(true);
+    const back = await recallRow(shell, "Standard", "00", 0);
+    shell.ctx.nav.home();
+    shell.ctx.nav.push({ id: "microsd" });
+    shell.ctx.nav.push({ id: "microsd.saveload" });
+    await s.set("sd.selectedFile", readCard(s).findIndex((e) => e.name === "P1.urxf"));
+    await flush();
+    const load = byText(shell.root, ".sd-actions .btn", "Load");
+    if (!load) throw new Error("no [Load]");
+    const render = vi.spyOn(shell, "render");
+    load.click();
+    await settle(() => s.num("scene.current", -1) === 101);
+    const loaded = render.mock.calls.length;
+    render.mockRestore();
+    expect(captureSettings(s), "the file's values, every one").toEqual(saved);
+
+    expect(Math.max(p01, back, loaded), `drawn ${JSON.stringify({ p01, back, loaded })}`).toBeLessThanOrEqual(3);
   });
 });

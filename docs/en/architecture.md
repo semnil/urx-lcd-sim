@@ -95,7 +95,9 @@ the unit is asynchronous, which is why the values are held twice.
   transport's responsibility (`BridgeTransport` for a unit); `DeviceStore` does not tell echoes
   apart and takes every notify that differs from the mirror, under the rule above.
 
-Change notifications are batched per microtask and fire once (`markChanged` → `flush`).
+Change notifications are batched per microtask and fire once (`markChanged` → `flush`). While a scene
+recall or a settings file load puts its values back one after another, the notification is held until
+the last of them is back and then fires once (`batch`).
 
 ## What survives a reload
 

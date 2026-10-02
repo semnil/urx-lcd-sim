@@ -112,6 +112,8 @@ export class DeviceStore {
   private pending = new Set<ParamPath>();
   private changes = 0;
   private flushScheduled = false;
+  /** How many batches are running; while any is, changes wait for the last to settle. */
+  private holding = 0;
 
   /**
    * Point the store at a transport and load its snapshot. Replaces any previous
@@ -422,6 +424,22 @@ export class DeviceStore {
     return () => this.moveListeners.delete(listener);
   }
 
+  /**
+   * Run `work` with the change notification held back, and deliver everything
+   * it changed as one notification once it settles, whether it succeeds or
+   * throws. The writes it makes reach the mirror and the transport as they
+   * would without it.
+   */
+  async batch(work: () => Promise<void>): Promise<void> {
+    this.holding++;
+    try {
+      await work();
+    } finally {
+      this.holding--;
+      if (this.holding === 0) this.flush();
+    }
+  }
+
   /** Deliver any coalesced changes immediately (tests, and forced repaints). */
   flush(): void {
     if (this.pending.size === 0) return;
@@ -438,7 +456,7 @@ export class DeviceStore {
     this.flushScheduled = true;
     queueMicrotask(() => {
       this.flushScheduled = false;
-      this.flush();
+      if (this.holding === 0) this.flush();
     });
   }
 }

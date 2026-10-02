@@ -743,6 +743,38 @@ describe("DeviceStore", () => {
     expect([...(listener.mock.calls[0]?.[0] as Set<string>)]).toEqual(["a", "b", "c"]);
   });
 
+  it("holds the notification back over a batch of awaited writes, and delivers it once when the batch settles or throws", async () => {
+    const { store, transport } = simStore([["a", 1]]);
+    await store.attach(transport);
+    store.flush();
+    const seen: string[][] = [];
+    store.onChange((paths) => seen.push([...paths]));
+
+    // A change made just before the batch waits for it too.
+    void store.set("a", 2);
+    await store.batch(async () => {
+      for (const [p, v] of [["b", 3], ["c", 4]] as const) {
+        await store.restore(p, v);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+      await store.batch(async () => {
+        await store.restore("d", 5);
+      });
+      expect([seen, store.get("d", 0)], "nothing told while it runs, every value in place").toEqual([[], 5]);
+    });
+    expect(seen, "once, when it settles").toEqual([["a", "b", "c", "d"]]);
+
+    await expect(
+      store.batch(async () => {
+        await store.restore("e", 6);
+        throw new Error("refused");
+      }),
+    ).rejects.toThrow("refused");
+    void store.set("f", 7);
+    await Promise.resolve();
+    expect(seen.slice(1), "a batch that throws delivers too, and lets go").toEqual([["e"], ["f"]]);
+  });
+
   it("enumerates a subtree without matching a same-prefixed sibling", async () => {
     const { store, transport } = simStore([
       ["ch.ch1.level", 0],

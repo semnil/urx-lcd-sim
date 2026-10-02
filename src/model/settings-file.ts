@@ -34,13 +34,15 @@ export function captureSettings(store: DeviceStore): Record<string, ParamValue> 
 }
 
 /**
- * Put a settings file back on the unit, one value after another. A source whose
- * digital gain the file does not name comes back at 0 dB, and a scene number the
- * file does not name comes back empty.
+ * Put a settings file back on the unit, one value after another, announcing what
+ * changed once it is all back. A source whose digital gain the file does not name
+ * comes back at 0 dB, and a scene number the file does not name comes back empty.
  */
 export async function applySettings(store: DeviceStore, state: Record<string, ParamValue>): Promise<void> {
-  for (const [path, value] of Object.entries(withEverySceneCleared(store, withEverySourceGain(store, state)))) {
-    if (!inSettingsFile(path)) continue;
-    await store.restore(path, value);
-  }
+  await store.batch(async () => {
+    for (const [path, value] of Object.entries(withEverySceneCleared(store, withEverySourceGain(store, state)))) {
+      if (!inSettingsFile(path)) continue;
+      await store.restore(path, value);
+    }
+  });
 }
