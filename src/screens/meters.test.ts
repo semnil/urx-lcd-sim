@@ -26,6 +26,7 @@ describe("the meter ticker", () => {
   afterEach(() => {
     setMeterSource(null);
     vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 
   it("lights the clip dots when the level reaches the top, and puts them out below it", () => {
@@ -51,6 +52,26 @@ describe("the meter ticker", () => {
     level = 0;
     vi.advanceTimersByTime(60);
     expect([unlit(root), dots(root)], "the top of the bar lights the dot").toEqual([["0%"], [true]]);
+    stop();
+  });
+
+  it("stands the meters still once reduced motion is switched on while it runs, and moves them again once it is off", () => {
+    const reduce = { matches: false, media: "(prefers-reduced-motion: reduce)" };
+    vi.stubGlobal("matchMedia", (query: string) => (query === reduce.media ? reduce : { matches: false, media: query }));
+    level = -18;
+    const { root, stop } = run(meter({ levels: [-18], source: "probe" }));
+    const mark = (): void => root.querySelector<HTMLElement>(".meter-bar")?.style.setProperty("--unlit", "12.345%");
+    const moving = (11 / 21) * 100;
+    mark();
+    vi.advanceTimersByTime(60);
+    expect(Number.parseFloat(unlit(root)[0] ?? ""), "redrawn while the meters move").toBeCloseTo(moving, 9);
+    reduce.matches = true;
+    mark();
+    vi.advanceTimersByTime(60);
+    expect(unlit(root), "left as it stood once reduced motion is on").toEqual(["12.345%"]);
+    reduce.matches = false;
+    vi.advanceTimersByTime(60);
+    expect(Number.parseFloat(unlit(root)[0] ?? ""), "redrawn again once it is off").toBeCloseTo(moving, 9);
     stop();
   });
 });

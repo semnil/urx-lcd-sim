@@ -258,7 +258,6 @@ export function readGrSpec(node: HTMLElement): GrSpec | null {
  * gain down.
  */
 export function startMeterTicker(store: DeviceStore, root: HTMLElement, intervalMs = 100): () => void {
-  const reduceMotion = !metersMove();
   const showClipSafes = (): void => {
     for (const node of root.querySelectorAll<HTMLElement>("[data-clip-safe]")) {
       showClipSafe(node, clipSafe(store, Number(node.dataset["clipSafe"])).engaged);
@@ -266,7 +265,7 @@ export function startMeterTicker(store: DeviceStore, root: HTMLElement, interval
   };
   const id = window.setInterval(() => {
     // Clip Safe's colour is a state rather than motion, so it keeps up with reduced motion as well.
-    if (reduceMotion) return showClipSafes();
+    if (!metersMove()) return showClipSafes();
     const at = Date.now();
     for (const node of root.querySelectorAll<HTMLElement>("[data-gr-kind]")) {
       const spec = readGrSpec(node);
