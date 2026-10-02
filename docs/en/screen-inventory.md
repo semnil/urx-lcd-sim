@@ -1595,6 +1595,8 @@ paused as well as playing, in the same shape and place, URX44V, the operator, 20
 (y22..35), and 10px wide 3px in from the dot's left (x367..376). It goes once the file is let go, by [■] or at the
 end of the file ("What is on the card").
 
+Moving to the Play or Edit tab holds up a `Loading...` modal for 2 seconds before the tab changes, and the Record tab comes up at once.
+
 TOOLS carries the card-eject button on its toolbar as well (p087-1). [Format microSD] on the Format tab opens the
 same keyboard screen the title entry uses, under the title `Volume Label`, with the card's volume label in the
 field; it takes up to 11 characters, and [OK] goes on with the field empty too (the volume label is then
