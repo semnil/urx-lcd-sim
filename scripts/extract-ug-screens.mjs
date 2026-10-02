@@ -12,8 +12,8 @@
 // Requires poppler (`brew install poppler`) for pdfimages.
 
 import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -53,6 +53,12 @@ function isCrop(width, height) {
   return width <= LCD_WIDTH && height <= 272 && width >= CROP_MIN && height >= CROP_MIN;
 }
 
+/** The width and height in a PNG file's IHDR chunk. */
+function pngSize(file) {
+  const png = readFileSync(file);
+  return [png.readUInt32BE(16), png.readUInt32BE(20)];
+}
+
 const pdf = arg("--pdf", "");
 if (!pdf || !existsSync(pdf)) {
   console.error("usage: node scripts/extract-ug-screens.mjs --pdf <user guide PDF>");
@@ -79,24 +85,34 @@ mkdirSync(staging, { recursive: true });
 mkdirSync(WIDE_OUT, { recursive: true });
 execFileSync("pdfimages", ["-png", "-f", String(firstPage), "-l", String(lastPage), pdf, join(staging, "pg")]);
 
-// pdfimages numbers its output files across the whole page range, counting both
-// image and smask entries in listing order — so walking the listing in the same
-// order recovers which file belongs to which page.
-let index = 0;
+// Each listing row's num is the number of the file pdfimages writes for it.
 const screens = [];
 const crops = [];
 for (const row of rows) {
-  const [page, , type, width, height] = row;
-  const src = join(staging, `pg-${String(index).padStart(3, "0")}.png`);
-  if (type !== "image" && type !== "smask") continue;
-  if (type === "image" && existsSync(src)) {
-    const w = Number(width);
-    const h = Number(height);
-    const dir = destination(w, h);
-    if (dir) screens.push({ page, src, dir });
-    else if (isCrop(w, h)) crops.push({ page, src, dir: OUT });
+  const [page, num, type, width, height] = row;
+  if (type !== "image") continue;
+  const src = join(staging, `pg-${num.padStart(3, "0")}.png`);
+  const w = Number(width);
+  const h = Number(height);
+  const dir = destination(w, h);
+  if (dir) screens.push({ page, src, dir, row, w, h });
+  else if (isCrop(w, h)) crops.push({ page, src, dir: OUT, row, w, h });
+}
+
+// Nothing is copied unless every file to be copied is the size its listing row
+// gives.
+const mismatched = [...screens, ...crops].filter(({ src, w, h }) => {
+  if (!existsSync(src)) return true;
+  const [fileW, fileH] = pngSize(src);
+  return fileW !== w || fileH !== h;
+});
+if (mismatched.length > 0) {
+  for (const { src, row } of mismatched) {
+    const size = existsSync(src) ? pngSize(src).join("x") : "missing";
+    console.error(`${basename(src)} is ${size}, not the size of its listing row: ${row.join(" ")}`);
   }
-  index += 1;
+  rmSync(staging, { recursive: true, force: true });
+  process.exit(1);
 }
 
 // A page's whole screens take their numbers before any crop on it does, so a
