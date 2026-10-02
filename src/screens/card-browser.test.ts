@@ -724,10 +724,21 @@ describe("USB Storage Mode", () => {
     expect(btn()?.classList.contains("is-on"), "the button lights").toBe(true);
   });
 
-  it("asks a different question on the way out, and [Cancel] leaves the mode on", async () => {
+  it("asks a different question on the way out, [Cancel] leaves the mode on and [OK] takes it off", async () => {
     const shell = await mount({ id: "microsd" });
     await shell.ctx.store.set("sd.usbStorage", true);
     await flush();
+    /** The mode, the button's light, the entries out of reach, and the card-eject button in the toolbar. */
+    const state = (): [boolean, boolean | undefined, number, boolean] => [
+      shell.ctx.store.bool("sd.usbStorage", false),
+      shell.root.querySelector(".usb-storage")?.classList.contains("is-on"),
+      shell.root.querySelectorAll(".menu-grid-sd .menu-btn.is-disabled").length,
+      shell.root.querySelector(".toolbar .sd-eject") !== null,
+    ];
+    const answer = async (label: string): Promise<void> => {
+      [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === label)?.click();
+      await flush();
+    };
 
     shell.root.querySelector<HTMLElement>(".usb-storage")?.click();
     await flush();
@@ -736,17 +747,35 @@ describe("USB Storage Mode", () => {
       "Please make sure that the microSD storage\ndrive of the URX unit has been removed from\nthe computer.",
     );
 
-    [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === "Cancel")?.click();
+    await answer("Cancel");
+    expect(state(), "[Cancel]: the mode on, Recorder, Save/Load and Tools out of reach, no card to take out").toEqual([true, true, 3, false]);
+
+    shell.root.querySelector<HTMLElement>(".usb-storage")?.click();
     await flush();
-    expect(shell.ctx.store.bool("sd.usbStorage", false)).toBe(true);
+    await answer("OK");
+    expect(shell.root.querySelector(".dialog-text"), "the question answered").toBeNull();
+    expect(state(), "[OK]: the mode off, the three entries and the card-eject button back").toEqual([false, false, 0, true]);
   });
 
   it("stays on the microSD screen either way", async () => {
     const shell = await mount({ id: "microsd" });
     const depth = shell.ctx.nav.depth;
-    shell.root.querySelector<HTMLElement>(".usb-storage")?.click();
-    await flush();
-    expect(shell.ctx.nav.depth, "the dialog is not a screen").toBe(depth);
-    expect(shell.root.querySelector(".menu-grid-sd"), "the menu is still under it").not.toBeNull();
+    for (const [way, answer] of [
+      ["in", "Cancel"],
+      ["in", "OK"],
+      ["out", "Cancel"],
+      ["out", "OK"],
+    ]) {
+      shell.root.querySelector<HTMLElement>(".usb-storage")?.click();
+      await flush();
+      expect(shell.root.querySelector(".dialog-text"), `${way}: asked`).not.toBeNull();
+      expect(shell.ctx.nav.depth, `${way}: the dialog is not a screen`).toBe(depth);
+      [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === answer)?.click();
+      await flush();
+      expect(shell.root.querySelector(".dialog-text"), `${way}, ${answer}: answered`).toBeNull();
+      expect([shell.ctx.nav.current.id, shell.ctx.nav.depth], `${way}, ${answer}`).toEqual(["microsd", depth]);
+      expect(shell.root.querySelector(".menu-grid-sd"), `${way}, ${answer}: the menu is still there`).not.toBeNull();
+    }
+    expect(shell.ctx.store.bool("sd.usbStorage", true), "in and out again").toBe(false);
   });
 });
