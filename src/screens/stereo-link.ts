@@ -32,9 +32,10 @@ export function signalType(ctx: PairCtx, strip: Strip): string {
   return ctx.store.str(`ch.${strip.id}.signalType`, "MONO x 2");
 }
 
-/** Whether this channel is running as one half of a stereo pair. */
+/** Whether this channel is running as one half of a stereo pair: both channels of the pair read STEREO. */
 export function isStereoLinked(ctx: PairCtx, strip: Strip): boolean {
-  return signalType(ctx, strip) === "STEREO" && linkPartner(ctx, strip) !== undefined;
+  const partner = linkPartner(ctx, strip);
+  return partner !== undefined && signalType(ctx, strip) === "STEREO" && signalType(ctx, partner) === "STEREO";
 }
 
 /** The two channels of the stereo pair this channel is running in, lower-numbered first, or undefined off a pair. */

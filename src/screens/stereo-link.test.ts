@@ -146,13 +146,16 @@ describe("the stereo link of a mono channel pair", () => {
     expect(marks(shell)).toHaveLength(0);
   });
 
-  it("marks nothing when the partner is not on screen beside it", async () => {
+  it("marks nothing for a half-applied link, nor in the gap before a pair", async () => {
     const { shell, store } = await mount();
-    // CH 3 pairs with CH 4, which stands to its right, so the gap on its left
-    // belongs to no pair.
     await link(store, "ch3");
     await goHome(shell);
-    expect(markedStrips(shell)).toEqual([]);
+    expect(markedStrips(shell), "CH 3 alone reading STEREO").toEqual([]);
+
+    // CH 3 pairs with CH 4, which stands to its right, so the gap on its left
+    // belongs to no pair.
+    await link(store, "ch4");
+    expect(markedStrips(shell)).toEqual(["CH 4"]);
   });
 
   it("keeps one meter on each channel of a linked pair", async () => {
@@ -602,5 +605,7 @@ describe("the values a stereo pair holds one of", () => {
     await store.set("ch.ch3.signalType", "STEREO");
     await store.set("ch.ch4.level", -3);
     expect(store.num("ch.ch3.level", 0), "a half-applied link carries nothing").toBe(0);
+    await store.set("ch.ch3.level", -7);
+    expect(store.num("ch.ch4.level", 0), "nor from the half reading STEREO").toBe(-3);
   });
 });
