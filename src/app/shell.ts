@@ -530,14 +530,16 @@ export class Shell {
   /**
    * Escape does what the toolbar's back arrow does, on every screen. Anything
    * layered over the screen owns the key while it is up: it cancels the dialog,
-   * the sheet or the list on top wherever the focus stands.
-   * A field being typed into keeps it for the edit in hand — an IME composition
-   * included.
+   * the sheet or the list on top wherever on the glass the focus stands, or with
+   * nothing focused. A field being typed into keeps it for the edit in hand — an
+   * IME composition included. A control of the page around the glass keeps it whole.
    */
   private buildEscapeHandler(): (ev: KeyboardEvent) => void {
     // On the window: a screen that draws no exits leaves focus on the document.
     return (ev) => {
       if (ev.key !== "Escape" || ev.isComposing) return;
+      const target = ev.target instanceof HTMLElement ? ev.target : null;
+      if (target && target !== document.body && target !== document.documentElement && !this.lcd.contains(target)) return;
       if (this.lcd.querySelector("[data-overlay]")) {
         const cancel = this.topLayer()?.modal?.cancel;
         if (!cancel) return;
@@ -545,7 +547,6 @@ export class Shell {
         cancel();
         return;
       }
-      const target = ev.target instanceof HTMLElement ? ev.target : null;
       if (target?.closest("input, textarea, [contenteditable], [role='textbox']")) return;
       ev.preventDefault();
       this.ctx.nav.back();

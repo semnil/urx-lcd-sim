@@ -164,8 +164,8 @@ and HOME's level readouts are `role="slider"`; both move by drag, wheel or arrow
 takes drag, wheel and arrow keys in one place). A 192px drag covers the whole range (1/5 of that with Shift),
 and the wheel and arrow keys move one detent (`fastStep` with Shift). While a dialog, a picker sheet, a pulldown's
 list or a loading modal is up, the screen behind it answers neither the keys nor the pointer (`inert`). Wherever the focus
-stands, Tab goes round the controls of a dialog, a picker sheet or a list and Escape cancels it, and once it closes, the
-focus is back on the control that opened it. A list opens with the focus on the value its box holds, or on its first choice where it holds none of them, and its choices
+stands, Tab goes round the controls of a dialog, a picker sheet or a list, and Escape cancels it unless the focus is on a
+control off the glass; once it closes, the focus is back on the control that opened it. A list opens with the focus on the value its box holds, or on its first choice where it holds none of them, and its choices
 are `role="option"`, the one held `aria-selected`. A loading modal holds nothing to operate, and Escape does not take it
 down. Meter animation stops under `prefers-reduced-motion`.
 
@@ -194,7 +194,9 @@ of the same face do, and nothing goes in while an IME is composing (`isComposing
 
 `Escape` does the same as the back arrow. A screen that shows no back arrow in its toolbar is left
 with the same key. While a dialog, a picker sheet or a pulldown's list is open, cancelling it takes precedence, and while a text
-input has focus (IME composition included) the input receives the key.
+input has focus (IME composition included) the input receives the key. While a control off the glass has focus (the
+model and display scale selectors at the top of the page, [Reset the unit]) that control receives it, and the screen
+stays. `Escape` takes [Reset the unit]'s question back as [Cancel] does, and the focus returns to [Reset the unit].
 
 On-screen controls keep the unit's dimensions (26px-high buttons on the 4.3-inch panel, and so on).
 The desktop GUI minimum touch target of 36x36 is met by the default `--scale` of 2 combined with a

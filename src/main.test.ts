@@ -71,6 +71,44 @@ describe("[Reset the unit]", () => {
     expect(app.querySelector(".chrome-reset-ask"), "the question is gone").toBeNull();
   });
 
+  it("takes the question back on Escape as [Cancel] does, the focus on [Reset the unit] and the glass where it was", async () => {
+    const seen: (string | boolean | null | undefined)[][] = [];
+    for (const on of ["Cancel", "Reset"]) {
+      const app = await open(SAVED);
+      app.querySelector<HTMLElement>('.lcd .icon-btn[aria-label="SETUP"]')?.click();
+      await flush();
+      resetButton(app, "Reset the unit")?.focus();
+      await press("Enter");
+      resetButton(app, on)?.focus();
+      await press("Escape");
+      seen.push([
+        on,
+        app.querySelector(".chrome-reset-ask") === null,
+        document.activeElement === resetButton(app, "Reset the unit"),
+        app.querySelector<HTMLElement>(".lcd .toolbar")?.dataset["screen"],
+        window.localStorage.getItem(KEY) === SAVED,
+      ]);
+      leave?.(new Event("beforeunload"));
+      if (leave) window.removeEventListener("beforeunload", leave);
+      leave = null;
+      app.remove();
+    }
+    expect(seen).toEqual([
+      ["Cancel", true, true, "setup", true],
+      ["Reset", true, true, "setup", true],
+    ]);
+  });
+
+  it("leaves Escape alone on [Reset the unit] while it asks nothing", async () => {
+    const app = await open(SAVED);
+    const ask = resetButton(app, "Reset the unit");
+    ask?.focus();
+    const down = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    ask?.dispatchEvent(down);
+    await flush();
+    expect([down.defaultPrevented, resetButton(app, "Reset the unit") === ask]).toEqual([false, true]);
+  });
+
   it("drops everything the unit holds once [Reset] itself is pressed", async () => {
     const app = await open(SAVED);
     resetButton(app, "Reset the unit")?.focus();

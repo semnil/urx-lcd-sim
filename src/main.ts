@@ -84,9 +84,10 @@ async function boot(modelId: ModelId, mount: HTMLElement): Promise<void> {
   // The unit as it ships, for a start from nothing: what the unit's own
   // Initialize All Memories does, on the simulator's chrome rather than a
   // screen. It asks in place first, with the focus on [Cancel], since it drops
-  // everything the unit holds.
+  // everything the unit holds. Escape on the question takes it back as [Cancel]
+  // does and leaves the focus on [Reset the unit].
   const resetBox = el("span", { class: "chrome-reset" });
-  const drawReset = (asking: boolean): void => {
+  const drawReset = (asking: boolean, refocus = false): void => {
     const ask = el("button", {
       class: "chrome-button",
       text: "Reset the unit",
@@ -106,7 +107,13 @@ async function boot(modelId: ModelId, mount: HTMLElement): Promise<void> {
         : [ask]),
     );
     if (asking) cancel.focus();
+    else if (refocus) ask.focus();
   };
+  resetBox.addEventListener("keydown", (ev) => {
+    if (ev.key !== "Escape" || ev.isComposing || !resetBox.querySelector(".chrome-reset-ask")) return;
+    ev.preventDefault();
+    drawReset(false, true);
+  });
   drawReset(false);
 
   const link = el("span", {

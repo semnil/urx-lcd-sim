@@ -149,6 +149,40 @@ describe("Escape", () => {
     }
   });
 
+  it("belongs to a control of the page around the glass, a dialog up on the glass or not", async () => {
+    const shell = await mount();
+    document.body.appendChild(shell.root);
+    const select = document.body.appendChild(document.createElement("select"));
+    try {
+      shell.ctx.nav.push({ id: "setup" });
+      shell.ctx.nav.push({ id: "setup.brightness" });
+      await flush();
+      /** Escape pressed on `node`, and whether its press was taken. */
+      const escapeOn = async (node: Element): Promise<boolean> => {
+        const down = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+        node.dispatchEvent(down);
+        await flush();
+        return down.defaultPrevented;
+      };
+      const dialogUp = (): boolean => shell.root.querySelector('[role="dialog"]') !== null;
+
+      select.focus();
+      expect([await escapeOn(select), shell.ctx.nav.current.id], "the screen stays").toEqual([false, "setup.brightness"]);
+      shell.ctx.overlay(dialog({ message: "Discard?", onOk: () => undefined, onCancel: () => undefined }));
+      await flush();
+      select.focus();
+      expect([await escapeOn(select), dialogUp()], "and so does a dialog on it").toEqual([false, true]);
+
+      // With nothing focused the key is the glass's again.
+      select.blur();
+      expect([await escapeOn(document.body), dialogUp()], "the dialog is cancelled").toEqual([true, false]);
+      expect([await escapeOn(document.documentElement), shell.ctx.nav.current.id], "and the screen steps back").toEqual([true, "setup"]);
+    } finally {
+      select.remove();
+      shell.root.remove();
+    }
+  });
+
   it("belongs to an IME composition", async () => {
     const shell = await mount();
     shell.ctx.nav.push({ id: "setup" });
