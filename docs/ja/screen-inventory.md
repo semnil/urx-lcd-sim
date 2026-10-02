@@ -1651,7 +1651,10 @@ USER DEFINED KNOBS の割り当てのシートの行 (wide/p040-1)、MONITOR の
 USER DEFINED KNOBS 切り替えを出さない (キャプチャは microSD が p078-1、MONITOR が p066-1)。
 その下にぶら下がる画面 (VERSION、RECORDER、MONITOR の Level など) には出る。
 `ScreenDef` の `knobToggle: false` で画面ごとに宣言し、シェルがそれを見て描く。
-チャンネルバンクの一覧も同じ宣言で出さない。
+3 画面のほかにこの宣言で出さないのは、Operation Mode、USER DEFINED KNOBS の割り当てのシート、DATE / TIME の
+日時と時刻帯のポップアップ、題の入力シート (`microsd.name` として開くときも同じ)。
+Sends の送り先シートとチャンネルバンクの一覧は宣言を持たず、HOME の切り替えを暗幕の下に透かして描く。
+触れても切り替えは作動せず、暗い部分へのタップと同じくシートや一覧が閉じる。
 
 ## ドロップダウン
 

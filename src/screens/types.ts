@@ -45,8 +45,9 @@ export interface ScreenDef {
   /**
    * Whether the USER DEFINED KNOBS toggle stands at the foot of the side rail.
    * The three screens the toolbar icons open — SETUP, microSD and MONITOR —
-   * leave it out; the screens under them carry it. A step back onto a screen
-   * that leaves it out switches USER DEFINED KNOBS mode off.
+   * leave it out, as do Operation Mode, the knob assignment, the DATE / TIME
+   * popups and the title entry; the other screens carry it. A step back onto a
+   * screen that leaves it out switches USER DEFINED KNOBS mode off.
    */
   knobToggle?: boolean;
   /**

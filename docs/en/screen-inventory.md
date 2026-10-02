@@ -1910,8 +1910,12 @@ The colours are `--corner-sunk-*`, `--corner-block-*`, `--corner-well-*`, `--cor
 SETUP, microSD and MONITOR, the three screens the icons at the toolbar's top right open, do not show
 the USER DEFINED KNOBS toggle at the bottom right (captures: p078-1 for microSD, p066-1 for MONITOR).
 The screens hanging below them (VERSION, RECORDER, MONITOR's Level and so on) show it. Each screen
-declares it with `knobToggle: false` on `ScreenDef`, and the shell draws accordingly. The channel bank
-list hides it with the same declaration.
+declares it with `knobToggle: false` on `ScreenDef`, and the shell draws accordingly. Besides the three
+screens, the declaration also leaves it out of Operation Mode, USER DEFINED KNOBS' assignment sheet,
+DATE / TIME's popups for the date and time and for the time zone, and the title entry sheet (also when
+it opens as `microsd.name`). The Sends destination sheet and the channel bank list carry no declaration
+and draw HOME's toggle showing through the dark around them, where a touch on it closes the sheet or the
+list as a touch on the dark does.
 
 ## Dropdowns
 
