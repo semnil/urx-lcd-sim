@@ -30,6 +30,7 @@ async function mount(route: Route, card?: CardEntry[]): Promise<Shell> {
 }
 
 const names = (shell: Shell): string[] => readCard(shell.ctx.store).map((e) => e.name);
+const cursorName = (shell: Shell): string | undefined => readCard(shell.ctx.store)[shell.ctx.store.num("sd.selectedFile", -1)]?.name;
 const action = (shell: Shell, label: string): HTMLElement | null =>
   shell.root.querySelector<HTMLElement>(`.sd-actions [aria-label="${label}"]`) ??
   [...shell.root.querySelectorAll<HTMLElement>(".sd-actions .btn")].find((b) => b.textContent === label) ??
@@ -350,6 +351,41 @@ describe("what the card's own actions do to it", () => {
     await flush();
     await typeTitle(shell, "keeper.wav");
     expect(names(shell)).toEqual(["Recordings", "keeper.wav"]);
+    expect(cursorName(shell), "the cursor stays on it").toBe("keeper.wav");
+  });
+
+  it("keeps the cursor on the file it stood on when a new file or folder sorts ahead of it", async () => {
+    const shell = await mount({ id: "microsd.saveload" }, []);
+    const store = shell.ctx.store;
+    const saveAs = async (title: string, level: number): Promise<void> => {
+      await store.set("ch.ch1.level", level);
+      action(shell, "Save as")?.click();
+      await flush();
+      await typeTitle(shell, title);
+    };
+    await saveAs("b", -30);
+    await saveAs("c", -10);
+    await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === "c.urxf"));
+    await flush();
+
+    await saveAs("a", -20);
+    expect([names(shell), cursorName(shell)], "after [Save as] a").toEqual([["a.urxf", "b.urxf", "c.urxf"], "c.urxf"]);
+    await store.set("ui.sdSaveTab", "Edit");
+    await flush();
+    action(shell, "New folder")?.click();
+    await flush();
+    await typeTitle(shell, "Z");
+    expect([names(shell), cursorName(shell)], "after [New folder] Z").toEqual([["Z", "a.urxf", "b.urxf", "c.urxf"], "c.urxf"]);
+    const lit = [...shell.root.querySelectorAll(".sd-list .list-row.is-selected .list-cell")].map((c) => c.textContent);
+    expect(lit[1], "the row drawn under the cursor").toBe("c.urxf");
+
+    await store.set("ui.sdSaveTab", "Save/\nLoad");
+    await store.set("ch.ch1.level", 0);
+    await flush();
+    action(shell, "Load")?.click();
+    await flush();
+    await flush();
+    expect(store.num("ch.ch1.level", 99), "[Load] brings back c.urxf").toBe(-10);
   });
 
   it("renames nothing onto a name the folder already carries, saying so and going back to the sheet as it was typed", async () => {
@@ -539,10 +575,10 @@ describe("what the card's own actions do to it", () => {
     await flush();
     await typeTitle(shell, "yours.urxf");
     expect(names(shell), "under its new name, where the card now sorts it").toEqual(["Recordings", "take.wav", "yours.urxf"]);
+    expect(cursorName(shell), "the cursor goes with it").toBe("yours.urxf");
 
     await store.set("ch.ch1.level", 5);
     await store.set("ui.sdSaveTab", "Save/\nLoad");
-    await store.set("sd.selectedFile", 2);
     await flush();
     action(shell, "Load")?.click();
     await okDialog(shell);

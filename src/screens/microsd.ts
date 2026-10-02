@@ -8,7 +8,7 @@
 import type { AppContext } from "../app/context";
 import type { ParamValue } from "../device/path";
 import type { CardEntry } from "../model/card";
-import { CARD_ROOT, cardStamp, filePath, folderPath, formatFree, formatRate, freeBytes, parentPath, readCard, takeRate, writeCard } from "../model/card";
+import { CARD_ROOT, cardStamp, changeCard, filePath, folderPath, formatFree, formatRate, freeBytes, parentPath, readCard, takeRate } from "../model/card";
 import { applySettings, captureSettings } from "../model/settings-file";
 import { onDynamicsTimeStops } from "../model/dynamics-times";
 import { TRACK_COUNTS, dropTracksOverRate, trackCountCeiling } from "../model/track-count";
@@ -244,9 +244,9 @@ function cardLabel(ctx: AppContext): string {
 function formatCard(ctx: AppContext): void {
   stopPlayback(ctx.store);
   for (const entry of cardEntries(ctx)) void ctx.store.set(filePath(entry), "");
-  void ctx.store.set("sd.selectedFile", 0);
   void ctx.store.set("sd.path", CARD_ROOT);
   updateCard(ctx, []);
+  void ctx.store.set("sd.selectedFile", 0);
 }
 
 /** The row of the card the list's cursor stands on, or -1 where it stands on nothing in the folder that is open. */
@@ -308,9 +308,9 @@ function iconAction(label: string, icon: SVGSVGElement, usable: boolean, onTap: 
   return markShut(node, !usable);
 }
 
-/** Put a changed card back and draw it as it now stands. */
+/** Put a changed card back, the cursor going with its entry, and draw it as it now stands. */
 function updateCard(ctx: AppContext, entries: readonly CardEntry[]): void {
-  void writeCard(ctx.store, entries);
+  void changeCard(ctx.store, entries);
   ctx.repaint();
 }
 

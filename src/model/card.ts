@@ -84,13 +84,29 @@ export function readCard(store: DeviceStore): CardEntry[] {
   }
 }
 
+/** The order the card keeps its entries in: by folder, folders first and each group by name. */
+function cardOrder(a: CardEntry, b: CardEntry): number {
+  if (a.dir !== b.dir) return a.dir.localeCompare(b.dir);
+  if ((a.kind === "folder") !== (b.kind === "folder")) return a.kind === "folder" ? -1 : 1;
+  return a.name.localeCompare(b.name);
+}
+
 /** Put the card's entries back, by folder, folders first and each group by name. */
 export async function writeCard(store: DeviceStore, entries: readonly CardEntry[]): Promise<void> {
-  const sorted = [...entries].sort((a, b) => {
-    if (a.dir !== b.dir) return a.dir.localeCompare(b.dir);
-    if ((a.kind === "folder") !== (b.kind === "folder")) return a.kind === "folder" ? -1 : 1;
-    return a.name.localeCompare(b.name);
-  });
+  const sorted = [...entries].sort(cardOrder);
+  await store.set(CARD, JSON.stringify(sorted));
+}
+
+/**
+ * Put a changed card back, the list's cursor going with the entry it stood on
+ * to wherever the card now sorts it, or onto nothing where the card no longer
+ * carries that entry. `entries` holds each entry at the row it stood at,
+ * changed in place, and anything new after them.
+ */
+export async function changeCard(store: DeviceStore, entries: readonly CardEntry[]): Promise<void> {
+  const cursor = entries[store.num("sd.selectedFile", 0)];
+  const sorted = [...entries].sort(cardOrder);
+  void store.set("sd.selectedFile", cursor ? sorted.indexOf(cursor) : -1);
   await store.set(CARD, JSON.stringify(sorted));
 }
 

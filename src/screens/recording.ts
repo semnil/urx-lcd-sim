@@ -4,7 +4,7 @@
 
 import type { DeviceStore } from "../device/store";
 import type { CardEntry } from "../model/card";
-import { CARD_ROOT, cardStamp, readCard, takeName, writeCard } from "../model/card";
+import { CARD_ROOT, cardStamp, changeCard, readCard, takeName } from "../model/card";
 
 /** Where the recorder stands: stopped, armed by [●], recording, or paused. */
 export type RecState = "idle" | "armed" | "recording" | "paused";
@@ -80,7 +80,7 @@ export function stopTake(store: DeviceStore, now = Date.now()): void {
       stamp: cardStamp(store, now),
       dir: store.str("sd.path", CARD_ROOT),
     };
-    void writeCard(store, [...readCard(store), entry]);
+    void changeCard(store, [...readCard(store), entry]);
   }
   void store.set("sd.rec", "idle");
   void store.set("sd.recSeconds", 0);
