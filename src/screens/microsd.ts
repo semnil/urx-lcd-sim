@@ -127,6 +127,8 @@ interface BrowserOptions {
   fileNote?: (entry: CardEntry, row: number) => string | undefined;
   /** Which entries the list shows; a row keeps its entry's place on the card. */
   listed?: (entry: CardEntry, row: number) => boolean;
+  /** Whether a folder under the cursor opens on the next touch; where it does not, a touch only brings the cursor to it. */
+  opens?: boolean;
 }
 
 /**
@@ -134,7 +136,7 @@ interface BrowserOptions {
  * open, its entries as list rows, and the actions of the tab under them.
  */
 function cardBrowser(ctx: AppContext, opts: BrowserOptions): HTMLElement {
-  const { listName, metaColumn, meta, actions, extraClass = "", fileIcon = () => Icons.file(), fileNote = () => undefined, listed = () => true } = opts;
+  const { listName, metaColumn, meta, actions, extraClass = "", fileIcon = () => Icons.file(), fileNote = () => undefined, listed = () => true, opens = true } = opts;
   const entries = cardEntries(ctx);
   const selected = ctx.store.num("sd.selectedFile", 0);
   const path = cardPath(ctx);
@@ -144,9 +146,9 @@ function cardBrowser(ctx: AppContext, opts: BrowserOptions): HTMLElement {
       selected: i === selected,
       description: entry.kind === "folder" ? "folder" : fileNote(entry, i),
       // The first touch brings the cursor to the row; a folder already under it
-      // opens on the next touch.
+      // opens on the next touch, where the browser opens folders.
       onTap:
-        entry.kind === "folder" && i === selected ? () => openFolder(ctx, entry) : () => void ctx.store.set("sd.selectedFile", i),
+        entry.kind === "folder" && i === selected && opens ? () => openFolder(ctx, entry) : () => void ctx.store.set("sd.selectedFile", i),
       cells: [
         el("span", { class: "sd-icon", children: [entry.kind === "folder" ? Icons.folder() : fileIcon(entry, i)] }),
         entry.name,
@@ -534,17 +536,21 @@ export const recorderScreen: ScreenDef = {
     const recording = takeOpen(ctx.store);
     const busy = recordMode(ctx.store);
     const playing = ctx.store.bool("sd.playing", false);
+    const held = holdsFile(ctx.store);
     const tab = ctx.store.str("ui.sdTab", "Record");
-    const tabs = (["Record", "Play", "Edit"] as const).map((t) =>
-      sideTab(t, tab === t, () => (busy ? undefined : openSdTab(ctx, tab, t)), SD_TAB_ICON[t]?.(), t === "Record" ? "" : "is-name-raised"),
-    );
+    // While playback holds a file, playing or paused, Play alone stays in reach
+    // and Record and Edit take the face of a tab that cannot be used.
+    const tabs = (["Record", "Play", "Edit"] as const).map((t) => {
+      const shut = held && t !== "Play";
+      const node = sideTab(t, tab === t, () => (busy || shut ? undefined : openSdTab(ctx, tab, t)), SD_TAB_ICON[t]?.(), t === "Record" ? "" : "is-name-raised");
+      return markShut(node, shut);
+    });
 
     // Play and Edit list what is on the card; only Record lays out the inputs.
     if (tab !== "Record") {
       // Delete and Rename take only a file the list shows.
       const cursor = selectedEntry(ctx);
       const onFile = fileSelected(ctx) && cursor !== undefined && recorderLists(ctx, cursor);
-      const held = holdsFile(ctx.store);
       const actions =
         tab === "Play"
           ? [
@@ -596,6 +602,8 @@ export const recorderScreen: ScreenDef = {
         fileIcon: recFileIcon(playingRow),
         fileNote: (_, row) => (row === playingRow ? (playing ? "playing" : "paused") : undefined),
         listed: tab === "Play" ? playList : (entry: CardEntry) => recorderLists(ctx, entry),
+        // While playback holds a file, a folder takes the cursor and stays shut.
+        opens: !held,
       });
       browser.appendChild(outMeter(ctx, playing));
       return { main: browser, side: tabs, headerRight: ejectButton(ctx) };

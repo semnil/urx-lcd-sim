@@ -830,6 +830,54 @@ describe("the microSD card browser", () => {
     expect(declarations(readStyle("lcd.css"), ".list-carded + .scrollbar .scroll-thumb")["margin-top"]).toBe("1px");
   });
 
+  it("keeps Play's folders shut and Record and Edit out of reach while playback holds a file, playing or paused, until [■] lets it go", async () => {
+    const shell = await mount({ id: "microsd.recorder" }, [
+      entry("Recordings", "folder"),
+      entry("take.wav", "take", 10),
+      entry("inside.wav", "take", 96, 2, "/Recordings/"),
+    ]);
+    const store = shell.ctx.store;
+    await pickTab(shell, "ui.sdTab", "Play");
+    const press = async (cls: string): Promise<void> => {
+      shell.root.querySelector<HTMLElement>(`.sd-actions > .${cls}`)?.click();
+      await flush();
+    };
+    const touch = async (name: string): Promise<void> => {
+      rows(shell).find((r) => cellsOf(r)[1] === name)?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flush();
+    };
+    const tab = (label: string): HTMLElement | undefined =>
+      [...shell.root.querySelectorAll<HTMLElement>(".side-tab")].find((t) => t.querySelector(".side-tab-label")?.textContent === label);
+    const shut = (): boolean[] => ["Record", "Play", "Edit"].map((t) => tab(t)?.getAttribute("aria-disabled") === "true" && tab(t)?.classList.contains("is-disabled") === true);
+    const where = (): [string, string, number] => [store.str("ui.sdTab", ""), store.str("sd.path", "/"), store.num("sd.selectedFile", -1)];
+
+    await touch("take.wav");
+    await press("rec-pause");
+    for (const state of ["playing", "paused"]) {
+      expect([store.num("sd.playingFile", -1), store.bool("sd.playing", false)], state).toEqual([1, state === "playing"]);
+      expect(shut(), `${state}: Record and Edit shut`).toEqual([true, false, true]);
+      await touch("Recordings");
+      await touch("Recordings");
+      expect(where(), `${state}: the folder takes the cursor and stays shut`).toEqual(["Play", "/", 0]);
+      for (const label of ["Edit", "Record"]) {
+        tab(label)?.click();
+        await flush();
+        expect([store.str("ui.sdTab", ""), shell.root.querySelector(".dialog-overlay")], `${state}: ${label} does nothing`).toEqual(["Play", null]);
+      }
+      await touch("take.wav");
+      if (state === "playing") await press("rec-pause");
+    }
+
+    await press("rec-stop");
+    expect(shut(), "let go: every tab in reach").toEqual([false, false, false]);
+    await touch("Recordings");
+    await touch("Recordings");
+    expect(where(), "let go: the folder opens").toEqual(["Play", "/Recordings/", 2]);
+    tab("Record")?.click();
+    await flush();
+    expect(store.str("ui.sdTab", ""), "let go: Record opens").toBe("Record");
+  });
+
   it("brings the cursor to the file playback holds, playing or paused, and fills the bar by that file's length", async () => {
     const shell = await mount({ id: "microsd.recorder" });
     await pickTab(shell, "ui.sdTab", "Play");
