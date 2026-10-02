@@ -166,7 +166,10 @@ function placePair(ctx: PairCtx, strip: Strip): void {
   });
 }
 
-/** Put the pair on one set of values, the lower-numbered channel's. */
+/**
+ * Put the pair on one set of values, the lower-numbered channel's, copied as
+ * they stand: the copy carries none of the writes an edit carries.
+ */
 function collapsePair(ctx: PairCtx, strip: Strip): void {
   const members = pairMembers(ctx, strip);
   if (!members) return;
@@ -176,7 +179,7 @@ function collapsePair(ctx: PairCtx, strip: Strip): void {
   for (const p of ctx.store.pathsUnder(`ch.${primary.id}`)) {
     const rest = p.slice(prefix.length);
     if (!pairSharesKey(rest, bal)) continue;
-    void ctx.store.set(`ch.${secondary.id}.${rest}`, ctx.store.get<ParamValue>(p, 0));
+    void ctx.store.restore(`ch.${secondary.id}.${rest}`, ctx.store.get<ParamValue>(p, 0));
   }
 }
 

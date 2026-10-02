@@ -82,7 +82,8 @@ the unit is asynchronous, which is why the values are held twice.
   `store.restore(path, value)`, which a scene recall and a settings file Load use to put stored values
   back, because those values already hold what the rule decided. A copy stored while Pan Link left each
   send's own placing where it was, or kept Pan Link on over a FIXED bus, does not, so after putting one
-  back they bring Pan Link to where the unit's screen leaves it.
+  back they bring Pan Link to where the unit's screen leaves it. Linking a stereo pair copies the
+  lower-numbered channel's values onto the other with `store.restore` as well, so the copy arrives as it stands.
 - **Changes on the device side** — arrive as notifies from the transport. Scene recall, turning a
   knob on the unit, and Auto Gain completing all take this path. A notify with `echo: false` is
   taken, unless a write to its path has yet to go out to the unit. The transport reports each

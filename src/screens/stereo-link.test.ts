@@ -547,6 +547,46 @@ describe("the values a stereo pair holds one of", () => {
     expect(store.num("ch.ch2.send.bus.mix1.balance", 0), "on the balance the pair holds one").toBe(20);
   });
 
+  describe("on 1-knob EQ's Intensity", () => {
+    /** Raise LOW, take [1-knob] on the EQ screen and set its level. */
+    const oneKnob = async (shell: Shell, id: string, low: number, level: number): Promise<void> => {
+      await shell.ctx.store.set(`ch.${id}.eq.low.gain`, low);
+      await open(shell, "channel-view", id);
+      await open(shell, "ch.eq", id);
+      shell.root.querySelector<HTMLElement>(".eq-screen .oneknob")?.click();
+      await flush();
+      await shell.ctx.store.set(`ch.${id}.eq.oneKnob.level`, level);
+    };
+    /** The LOW gain 1-knob scales, and LOW's gain. */
+    const low = (store: DeviceStore, id: string): [number, number] => [
+      store.num(`ch.${id}.eq.oneKnob.base.low`, NaN),
+      store.num(`ch.${id}.eq.low.gain`, NaN),
+    ];
+
+    it("links the pair on CH 1's curve as it stands, and its level goes on scaling CH 1's gains", async () => {
+      const { shell, store } = await mount();
+      await oneKnob(shell, "ch1", 6, 80);
+      expect(low(store, "ch1"), "level 80 scales +6 dB").toEqual([6, 9.6]);
+
+      await open(shell, "ch.setting", "ch1");
+      await pickSignalType(shell, "STEREO");
+      expect([low(store, "ch1"), low(store, "ch2")], "both channels hold CH 1's").toEqual([[6, 9.6], [6, 9.6]]);
+      await store.set("ch.ch1.eq.oneKnob.level", 81);
+      expect([low(store, "ch1"), low(store, "ch2")], "level 81").toEqual([[6, 9.7], [6, 9.7]]);
+    });
+
+    it("links the pair on CH 1's curve whatever CH 2's held", async () => {
+      const { shell, store } = await mount();
+      await oneKnob(shell, "ch2", 3, 50);
+      await oneKnob(shell, "ch1", 6, 80);
+      expect([low(store, "ch1"), low(store, "ch2")], "two curves before the link").toEqual([[6, 9.6], [3, 3]]);
+
+      await open(shell, "ch.setting", "ch1");
+      await pickSignalType(shell, "STEREO");
+      expect([low(store, "ch1"), low(store, "ch2")], "CH 1's on both").toEqual([[6, 9.6], [6, 9.6]]);
+    });
+  });
+
   it("leaves a pair that is not linked, and the strips beyond it, alone", async () => {
     const { shell, store } = await mount();
     await store.set("ch.ch1.level", -8);
