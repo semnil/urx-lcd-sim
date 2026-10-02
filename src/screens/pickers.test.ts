@@ -39,6 +39,12 @@ const pick = async (shell: Shell, label: string): Promise<void> => {
     ?.click();
   await flush();
 };
+/** The name assistive technology reads for `node`: the nodes it is labelled by, its label, or its words. */
+const nameOf = (shell: Shell, node: Element): string => {
+  const by = node.getAttribute("aria-labelledby");
+  if (by) return by.split(" ").map((id) => shell.root.querySelector(`#${id}`)?.textContent ?? `<missing ${id}>`).join(" ");
+  return node.getAttribute("aria-label") ?? node.textContent ?? "";
+};
 
 describe("the OUTPUT PATCH source buttons", () => {
   const open = (id: "URX44V" | "URX22" = "URX44V"): Promise<Shell> =>
@@ -50,6 +56,18 @@ describe("the OUTPUT PATCH source buttons", () => {
     await tap(shell, ".patch-btn");
     expect(title(shell)).toBe("MAIN OUT");
     expect(shell.ctx.store.str("setup.outputPatch.mainOut", ""), "the touch alone takes nothing").toBe("STEREO");
+  });
+
+  it("names each button by its output and the source it reads", async () => {
+    const shell = await open();
+    const names = (): string[] => [...shell.root.querySelectorAll(".patch-btn")].map((b) => nameOf(shell, b));
+    expect(names()).toEqual(["MAIN OUT: STEREO", "LINE OUT: MIX 1"]);
+    await tap(shell, ".patch-btn");
+    await pick(shell, "MONITOR 2");
+    expect(names(), "the name follows the source taken").toEqual(["MAIN OUT: MONITOR 2", "LINE OUT: MIX 1"]);
+    await shell.ctx.store.set("setup.outputPatch.tab", "USB");
+    await flush();
+    expect(names()).toEqual(["USB MAIN A: STEREO", "USB MAIN B: STEREO", "USB MAIN C: STEREO", "USB SUB: STEREO"]);
   });
 
   it("offers every analog source the unit offers, on both analog outputs", async () => {
@@ -295,6 +313,23 @@ describe("the DATE / TIME popup buttons", () => {
     expect(shell.ctx.store.num("ui.dateTimeDraft.day", 0), "a day that fits is left alone").toBe(28);
   });
 
+  it("names each box by its row and the value it reads, the clock's name running on with its reading", async () => {
+    const shell = await open();
+    const names = (): string[] => [...shell.root.querySelectorAll(".dt-value, .pulldown")].map((n) => nameOf(shell, n));
+    expect(names()).toEqual([
+      "Date / Time 01 / 01 / 2020 09 : 00",
+      "Time Zone Tokyo",
+      "Date: MM/DD/YYYY (3 options)",
+      "Time: 24h (2 options)",
+    ]);
+    vi.setSystemTime(NOW + 61_000);
+    refreshDateTime(shell.ctx.store, shell.root);
+    expect(names()[0], "a minute on, with no drawing in between").toBe("Date / Time 01 / 01 / 2020 09 : 01");
+    await shell.ctx.store.set("setup.dateTime.timeZone", "London");
+    await flush();
+    expect(names().slice(0, 2)).toEqual(["Date / Time 01 / 01 / 2020 00 : 01", "Time Zone London"]);
+  });
+
   it("moves the reading on as the clock runs, without drawing the screen again", async () => {
     const shell = await open();
     const time = shell.root.querySelector('[data-clock="time"]');
@@ -373,6 +408,17 @@ describe("the DATE / TIME popup buttons", () => {
     await flush();
     await press(shell, ".pick-dialog-cancel");
     expect(shell.ctx.store.str("setup.dateTime.timeZone", ""), "Cancel takes nothing").toBe("Auckland");
+  });
+});
+
+describe("the SOFTWARE INTEGRATION boxes", () => {
+  it("names each box by the FX it sends to, so the two are told apart", async () => {
+    const shell = await mount([{ id: "setup" }, { id: "setup.integration" }]);
+    const names = (): string[] => [...shell.root.querySelectorAll(".pulldown")].map((n) => nameOf(shell, n));
+    expect(names()).toEqual(["for FX1: MIX 1 (2 options)", "for FX2: MIX 1 (2 options)"]);
+    await shell.ctx.store.set("setup.integration.fx2Send", "MIX 2");
+    await flush();
+    expect(names()).toEqual(["for FX1: MIX 1 (2 options)", "for FX2: MIX 2 (2 options)"]);
   });
 });
 
