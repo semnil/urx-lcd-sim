@@ -546,7 +546,7 @@ export class Shell {
         return;
       }
       const target = ev.target instanceof HTMLElement ? ev.target : null;
-      if (target?.closest("input, textarea, [contenteditable]")) return;
+      if (target?.closest("input, textarea, [contenteditable], [role='textbox']")) return;
       ev.preventDefault();
       this.ctx.nav.back();
     };

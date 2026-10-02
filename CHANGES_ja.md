@@ -2,6 +2,7 @@
 
 ## 未リリース
 
+- 題名・名前の入力シートの欄で押した Escape は、CH SETTING の名前の欄と同じく欄が受け取り、シートは打った内容ごと残るようにした。欄で Escape を押すとシートを抜けて、打った内容が捨てられていた。シートの欄の外で押した Escape は、これまでどおり [Cancel] と同じくシートを抜ける。
 - プルダウンの一覧を、箱が持つ値の選択肢にフォーカスを置いて開き、閉じるまで Tab を一覧の中で回して背後の画面に届かないようにし、閉じたらフォーカスを箱に戻す。フォーカスは一覧の下の箱に残り、Tab は選択肢より先に背後の画面へ進み、Enter をもう一度押すと一覧がもう 1 枚重なっていた。選択肢は、スイッチとしてではなく一覧の選択肢として支援技術に伝わり、持っている値のものが選択中になる。
 - CH SETTING の Rec Point・COMP / EQ・Signal Type の箱、COMP の Auto Makeup と Knee、EQ のバンドの形、1-knob EQ の種類、SSMCS の Comp の Knee に、それぞれが設定するものの名前を付けた (`Knee: Medium (3 options)` などの形)。値と選択肢の数だけで名乗り、何を設定する箱かが伝わっていなかった。
 - SETUP の値のボタンと箱に、行の見出しと表示中の値で名前を付けた。[Date/Time] は時計とともに進む日時、[Time Zone] は都市名、OUTPUT PATCH の各ボタンは `MAIN OUT: STEREO` などの形、Display Format と SOFTWARE INTEGRATION の箱は `Date`・`Time`・`for FX1`・`for FX2` で名乗る。ボタンの名前は操作の説明だけで、SOFTWARE INTEGRATION の 2 つの箱は同じ名前だった。

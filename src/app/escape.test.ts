@@ -123,6 +123,32 @@ describe("Escape", () => {
     }
   });
 
+  it("belongs to the title field being typed into, and leaves the sheet from anywhere else on it", async () => {
+    const shell = await mount();
+    document.body.appendChild(shell.root);
+    try {
+      shell.ctx.nav.push({ id: "scene" });
+      shell.ctx.nav.push({ id: "scene.title" });
+      await flush();
+      shell.root.querySelector<HTMLElement>(".title-field")?.focus();
+      for (const key of ["L", "i", "v", "e", "Escape"]) {
+        document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+        await flush();
+      }
+      expect(
+        [shell.ctx.nav.current.id, shell.root.querySelector(".title-text")?.textContent, document.activeElement?.className],
+        "the sheet stays up with what was typed, the focus in its field",
+      ).toEqual(["scene.title", "Live", "title-field"]);
+
+      [...shell.root.querySelectorAll<HTMLElement>(".title-entry button")].find((b) => b.textContent === "Cancel")?.focus();
+      document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+      await flush();
+      expect(shell.ctx.nav.current.id, "Escape on [Cancel] leaves it as [Cancel] does").toBe("scene");
+    } finally {
+      shell.root.remove();
+    }
+  });
+
   it("belongs to an IME composition", async () => {
     const shell = await mount();
     shell.ctx.nav.push({ id: "setup" });

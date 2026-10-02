@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Leave Escape pressed in the field of the title and name sheets to the field, as CH SETTING's name field does: the sheet stays up with what was typed. Escape there left the sheet and dropped what had been typed. Elsewhere on the sheet it still leaves it, as [Cancel] does.
 - Open a pulldown's list with the focus on the value its box holds, keep Tab going round the list with the screen behind out of reach until it closes, and give the focus back to the box once it does. The focus stayed on the box under the list, Tab reached the screen behind before it reached a choice, and a second Enter laid a second list over the first. The choices are told to assistive technology as the list's options, the one held selected, where they read as switches.
 - Name CH SETTING's Rec Point, COMP / EQ and Signal Type boxes, COMP's Auto Makeup and Knee, the EQ band's shape, 1-knob EQ's type and SSMCS Comp's Knee by the setting each sets, as `Knee: Medium (3 options)` and so on. They read their value and how many options they held, and nothing of what they set.
 - Name SETUP's value buttons and boxes by their row and the value they read: [Date/Time] by the date and time as the clock runs, [Time Zone] by its city, each OUTPUT PATCH button as `MAIN OUT: STEREO` and so on, and Display Format's and SOFTWARE INTEGRATION's boxes by `Date`, `Time`, `for FX1` and `for FX2`. The buttons read only what they do, and the two SOFTWARE INTEGRATION boxes read the same.
