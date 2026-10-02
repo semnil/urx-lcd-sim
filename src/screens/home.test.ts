@@ -3213,6 +3213,14 @@ describe("the screen backlight", () => {
     expect(Number(dim["z-index"])).toBeGreaterThan(Number(declarations(CSS, ".dialog-overlay")["z-index"]));
     expect(dim["pointer-events"], "and never takes a tap").toBe("none");
   });
+
+  it("dims the ring that marks the keys with the rest of the glass", async () => {
+    const shell = await mount();
+    const ring = shell.root.querySelector(".focus-ring");
+    const veil = shell.root.querySelector(".lcd-dim");
+    expect([ring?.parentElement === shell.root, veil?.parentElement === shell.root], "both lie on the glass itself").toEqual([true, true]);
+    expect(Number(declarations(CSS, ".lcd-dim")["z-index"])).toBeGreaterThan(Number(declarations(CSS, ".focus-ring")["z-index"]));
+  });
 });
 
 describe("picking what a user defined knob is on", () => {

@@ -259,7 +259,8 @@ corners a pixel at a time carries no `border-radius`, so the ring reads how wide
 `::after` lays down; only the side tabs, whose corners are drawn by a box at each end, name theirs in `--ring-corners`
 as four lengths. The unit's palette gives a
 meaning to nearly every hue, so the ring carries none: one pale dashed line (`--focus-ring`), a dash the unit
-draws nowhere else.
+draws nowhere else. The ring follows the backlight's brightness: lowering Screen on SETUP's BRIGHTNESS dims it
+with the rest of the glass.
 
 Every change draws the screen again, and while the screen stays the same the focus goes back to the
 control it stood on: the control of the same kind at the same place, or else the one control of that kind
