@@ -430,6 +430,90 @@ describe("the compressor the strip runs", () => {
     for (const [i, p] of flat.entries()) expect(p[1], `${i - 80} dB`).toBe(y(i - 80));
   });
 
+  it("reads Attack and Release on the unit's stops, and ships each on one of them", async () => {
+    const shell = await strip("ch.ssmcs.comp");
+    const cell = (label: string): HTMLElement | undefined =>
+      [...shell.root.querySelectorAll<HTMLElement>(".knob-cell")].find((c) => c.querySelector(".knob-cell-label")?.textContent === label);
+    /** Press the key `times` over on the cell, then read it once the screen is drawn again. */
+    const press = async (label: string, key: string, times = 1, shiftKey = false): Promise<string> => {
+      const node = cell(label);
+      for (let i = 0; i < times; i++) node?.dispatchEvent(new KeyboardEvent("keydown", { key, shiftKey, bubbles: true }));
+      await flush();
+      return cell(label)?.getAttribute("aria-valuetext") ?? "";
+    };
+    /** The reading at every stop, from the bottom up. */
+    const walk = async (label: string, stops: number): Promise<string[]> => {
+      const read = [await press(label, "Home")];
+      for (let i = 1; i < stops; i++) read.push(await press(label, "ArrowUp"));
+      return read;
+    };
+
+    expect([await press("Attack", "ArrowUp", 0), await press("Attack", "ArrowDown"), await press("Attack", "ArrowUp")], "Attack as it ships, down and back").toEqual([
+      "4.122ms", "4.000ms", "4.122ms",
+    ]);
+    expect([await press("Release", "ArrowUp", 0), await press("Release", "ArrowUp"), await press("Release", "ArrowDown")], "Release as it ships, up and back").toEqual([
+      "92.0ms", "93.5ms", "92.0ms",
+    ]);
+    // A value off the stops, as an older save holds, reads as the stop it turns from.
+    await shell.ctx.store.set("ch.ch1.ssmcs.comp.attack", 4.124);
+    await shell.ctx.store.set("ch.ch1.ssmcs.comp.release", 91.6);
+    await flush();
+    expect([await press("Attack", "ArrowUp", 0), await press("Release", "ArrowUp", 0)]).toEqual(["4.122ms", "92.0ms"]);
+
+    const attack = await walk("Attack", 227);
+    expect(await press("Attack", "ArrowUp"), "Attack's top").toBe("80.00ms");
+    const attackAt: Record<number, string> = {
+      0: "0.092", 12: "0.131", 24: "0.188", 36: "0.270", 48: "0.387", 60: "0.554", 72: "0.793", 84: "1.137", 96: "1.628",
+      108: "2.333", 113: "2.710", 120: "3.342", 126: "4.000", 127: "4.122", 132: "4.788", 144: "6.859", 156: "9.826",
+      168: "14.08", 180: "20.17", 192: "28.89", 204: "41.39", 216: "59.29", 226: "80.00",
+    };
+    for (const [i, text] of Object.entries(attackAt)) expect(attack[Number(i)], `Attack stop ${i}`).toBe(`${text}ms`);
+
+    const release = await walk("Release", 277);
+    expect(await press("Release", "ArrowUp"), "Release's top").toBe("999.0ms");
+    const releaseAt: Record<number, string> = {
+      0: "9.3", 12: "11.4", 24: "14.0", 36: "17.2", 48: "21.1", 60: "25.8", 72: "31.7", 84: "38.8", 96: "47.5", 108: "58.2",
+      120: "71.3", 132: "87.4", 134: "90.4", 135: "92.0", 136: "93.5", 144: "107.1", 156: "131.2", 168: "160.7", 180: "196.9",
+      192: "241.2", 204: "295.5", 216: "362.1", 228: "443.5", 240: "543.4", 252: "665.6", 264: "815.4", 276: "999.0",
+    };
+    for (const [i, text] of Object.entries(releaseAt)) expect(release[Number(i)], `Release stop ${i}`).toBe(`${text}ms`);
+
+    // Each stop is a value of its own, rising, and the two p110-1 draws are stops.
+    for (const read of [attack, release]) expect(new Set(read).size).toBe(read.length);
+    expect(attack.map((r) => Number.parseFloat(r)).every((v, i, all) => i === 0 || v > (all[i - 1] ?? 0)), "Attack rises").toBe(true);
+    expect(release.map((r) => Number.parseFloat(r)).every((v, i, all) => i === 0 || v > (all[i - 1] ?? 0)), "Release rises").toBe(true);
+    expect([attack.includes("2.197ms"), release.includes("110.8ms")], "p110-1's Attack 2.197 and Release 110.8").toEqual([true, true]);
+  });
+
+  it("ships every value the strip turns on a stop of its own, so a press up and one down come back to it", async () => {
+    const shell = await strip();
+    const cells = (): HTMLElement[] => [...shell.root.querySelectorAll<HTMLElement>(".knob-cell[role]")];
+    const press = async (node: HTMLElement | undefined, key: string): Promise<void> => {
+      node?.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+      await flush();
+    };
+    const seen: string[] = [];
+    for (const [id, band] of [["ch.ssmcs", ""], ["ch.ssmcs.comp", ""], ["ch.ssmcs.sc", ""], ["ch.ssmcs.eq", "Low"], ["ch.ssmcs.eq", "Mid"], ["ch.ssmcs.eq", "High"]] as const) {
+      shell.ctx.nav.replace({ id, strip: "ch1" });
+      await flush();
+      if (band) {
+        tap(shell.root.querySelector(`.eq-grip[aria-label="${band} band"]`));
+        await flush();
+      }
+      for (const [i, c] of cells().entries()) {
+        const label = c.querySelector(".knob-cell-label")?.textContent ?? "";
+        const shipped = c.getAttribute("aria-valuenow");
+        await press(cells()[i], "ArrowUp");
+        await press(cells()[i], "ArrowDown");
+        expect(cells()[i]?.getAttribute("aria-valuenow"), `${id} ${label}`).toBe(shipped);
+        seen.push(label);
+      }
+    }
+    expect(new Set(seen)).toEqual(
+      new Set(["Comp Drive", "Morphing", "Out Gain", "Ratio", "Attack", "Release", "SC-Q", "SC-Freq.", "SC-Gain", "Low Freq.", "Low Gain", "Mid Q", "Mid Freq.", "Mid Gain", "High Freq.", "High Gain"]),
+    );
+  });
+
   it("switches the filter from the button over the three rows", async () => {
     const shell = await strip("ch.ssmcs.sc");
     const button = shell.root.querySelector(".ssmcs-sc-switch");

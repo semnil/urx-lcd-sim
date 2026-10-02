@@ -1024,7 +1024,8 @@ The ranges: Comp Drive 0.00..10.00 in steps of 0.05, Morphing 0..120, Out Gain Â
 Ratio 1.00:1..INF:1 (sixty stops of 0.05 from 1.00:1 to 4.00:1; from there 4.00..4.90 in 0.1, 5.00..6.80 in 0.2, 7.00..9.50 in 0.5,
 10.0..20.0 in 1 and 22.0..38.0 in 2, then 40.0, 45.0, 50.0, 55.0, 60.0, 65.0, 70.0, 80.0, 90.0, 100, 150, 200, 300,
 500 and INF; every stop URX44V, the operator, 2026-09-22 and 23; read to three figures: two places under 10, one under
-100, whole from 100, and the top carries its `:1` too, `INF:1`), Attack 0.092..80.000 ms, Release 9.3..999.0 ms, Knee Soft / Medium / Hard, Q
+100, whole from 100, and the top carries its `:1` too, `INF:1`), Attack 0.092..80.00 ms over 227 stops (read to three places under 10 ms and two from there), Release
+9.3..999.0 ms over 277 stops (read to one place), Knee Soft / Medium / Hard, Q
 0.50..16.00, frequency 20 Hz..20 kHz in twelfths of an octave, the stops being numbers of the R40 series of preferred
 numbers (forty to a decade: 1.00, 1.06, 1.12, 1.18, 1.25 and on) read to three figures (LOW to 1.00 kHz, HIGH from
 500 Hz), and gain Â±18.0 dB.

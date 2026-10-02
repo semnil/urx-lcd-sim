@@ -93,8 +93,8 @@ export const SSMCS_DEFAULTS = {
   morphing: 0,
   outGain: 0,
   knee: "Medium",
-  attack: 4.124,
-  release: 91.6,
+  attack: 4.122,
+  release: 92,
   ratio: 2.5,
   sc: { on: true, q: 1, freq: 90, gain: -4.7 },
   eq: {
