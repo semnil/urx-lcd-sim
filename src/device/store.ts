@@ -199,15 +199,17 @@ export class DeviceStore {
     return this.write(path, value, false);
   }
 
-  private write(path: ParamPath, value: ParamValue, carry: boolean): Promise<void> {
+  private write(path: ParamPath, value: ParamValue, carry: boolean, carried = false): Promise<void> {
     const previous = this.mirror.get(path);
-    if (previous === value) return Promise.resolve();
+    // A value the mirror already holds is sent again only while an earlier
+    // write to the path awaits the device, and never as a write a rule carries.
+    if (previous === value && (carried || !this.awaiting.has(path))) return Promise.resolve();
     this.mirror.set(path, value);
     this.markChanged(path);
-    // Each write the rule adds is an ordinary edit, with its own optimistic
-    // update and its own revert. A rule that points back at the path it was
-    // given stops on the guard above, which has already taken the new value.
-    if (carry && this.writeRule) for (const [p, v] of this.writeRule(path, value)) void this.set(p, v);
+    // Each write the rule adds is an edit with its own optimistic update and
+    // its own revert. A rule that points back at the path it was given stops
+    // on the guard above, which has already taken the new value.
+    if (carry && this.writeRule) for (const [p, v] of this.writeRule(path, value)) void this.write(p, v, true, true);
 
     const t = this.transport;
     if (!t) return Promise.resolve();

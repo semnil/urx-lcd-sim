@@ -3,6 +3,9 @@ import { DeviceStore, type WriteFailure } from "./store";
 import { SimTransport } from "./sim-transport";
 import type { DeviceTransport, Notify } from "./transport";
 import type { ParamPath, ParamValue } from "./path";
+import { applyScene } from "../model/scene-state";
+
+const tick = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
 function simStore(initial: [ParamPath, ParamValue][] = []): { store: DeviceStore; transport: SimTransport } {
   const transport = new SimTransport(initial);
@@ -10,20 +13,28 @@ function simStore(initial: [ParamPath, ParamValue][] = []): { store: DeviceStore
   return { store, transport };
 }
 
+/** A write sent to a held device, which the test takes or refuses. */
+interface HeldWrite {
+  path: ParamPath;
+  value: ParamValue;
+  take: () => void;
+  refuse: () => void;
+}
+
 /** A device whose writes wait until the test takes or refuses each one, and that can announce a value, its own change or an echo. */
 function heldDevice(initial: [ParamPath, ParamValue][]): {
   transport: DeviceTransport;
-  writes: { take: () => void; refuse: () => void }[];
+  writes: HeldWrite[];
   announce: (path: ParamPath, value: ParamValue, echo?: boolean) => void;
 } {
-  const writes: { take: () => void; refuse: () => void }[] = [];
+  const writes: HeldWrite[] = [];
   let listener: ((n: Notify) => void) | null = null;
   const transport: DeviceTransport = {
     kind: "bridge",
     snapshot: () => Promise.resolve(new Map(initial)),
-    write: () =>
+    write: (path, value) =>
       new Promise<void>((resolve, reject) => {
-        writes.push({ take: resolve, refuse: () => reject(new Error("device said no")) });
+        writes.push({ path, value, take: resolve, refuse: () => reject(new Error("device said no")) });
       }),
     onNotify: (l) => {
       listener = l;
@@ -365,6 +376,85 @@ describe("DeviceStore", () => {
     expect(failures).toEqual([[-6, undefined]]);
   });
 
+  it("sends a restore of the value a write still awaits, and settles it on the device's answer", async () => {
+    const device = heldDevice([["ch.ch1.level", 5]]);
+    const { store, failures } = await storeOn(device);
+    const first = store.set("ch.ch1.level", 7);
+    let restored = false;
+    const restore = store.restore("ch.ch1.level", 7).then(() => {
+      restored = true;
+    });
+
+    await tick();
+    expect(device.writes.map((w) => w.value)).toEqual([7, 7]);
+    expect(restored, "before the device answers").toBe(false);
+    device.writes[0]!.refuse();
+    await first;
+    device.writes[1]!.take();
+    await restore;
+
+    expect(store.num("ch.ch1.level")).toBe(7);
+    expect(failures).toEqual([[7, 7]]);
+  });
+
+  it("puts a scene's value back over a write of the same value that is refused", async () => {
+    const device = heldDevice([
+      ["ch.ch1.level", 5],
+      ["ch.ch2.level", 0],
+    ]);
+    const { store } = await storeOn(device);
+    const first = store.set("ch.ch1.level", 7);
+    const recall = applyScene(store, { "ch.ch1.level": 7, "ch.ch2.level": -3 });
+
+    device.writes[0]!.refuse();
+    await first;
+    device.writes[1]!.take();
+    await tick();
+    device.writes[2]?.take();
+    await recall;
+
+    expect({
+      screen: [store.num("ch.ch1.level"), store.num("ch.ch2.level")],
+      sent: device.writes.map((w) => [w.path, w.value]),
+    }).toEqual({
+      screen: [7, -3],
+      sent: [
+        ["ch.ch1.level", 7],
+        ["ch.ch1.level", 7],
+        ["ch.ch2.level", -3],
+      ],
+    });
+  });
+
+  it("puts a scene's value back over a write of another value that is refused", async () => {
+    const device = heldDevice([
+      ["ch.ch1.level", 5],
+      ["ch.ch2.level", 0],
+    ]);
+    const { store } = await storeOn(device);
+    const first = store.set("ch.ch1.level", 9);
+    const recall = applyScene(store, { "ch.ch1.level": 7, "ch.ch2.level": -3 });
+
+    device.writes[0]!.refuse();
+    await first;
+    device.writes[1]!.take();
+    await tick();
+    device.writes[2]?.take();
+    await recall;
+
+    expect({
+      screen: [store.num("ch.ch1.level"), store.num("ch.ch2.level")],
+      sent: device.writes.map((w) => [w.path, w.value]),
+    }).toEqual({
+      screen: [7, -3],
+      sent: [
+        ["ch.ch1.level", 9],
+        ["ch.ch1.level", 7],
+        ["ch.ch2.level", -3],
+      ],
+    });
+  });
+
   it("carries the values a write rule names along with the write", async () => {
     const { store, transport } = simStore([
       ["ch.ch1.level", 0],
@@ -410,6 +500,26 @@ describe("DeviceStore", () => {
     expect([store.num("a"), store.num("b")]).toEqual([5, 5]);
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect([...changed].sort()).toEqual(["a", "b"]);
+  });
+
+  it("settles rather than looping when a rule points back at a path whose write the device has not answered", async () => {
+    const device = heldDevice([
+      ["a", 0],
+      ["b", 0],
+    ]);
+    const { store } = await storeOn(device);
+    store.setWriteRule((path, value) => [[path === "a" ? "b" : "a", value]]);
+
+    void store.set("a", 5);
+    void store.set("a", 6);
+
+    expect([store.num("a"), store.num("b")]).toEqual([6, 6]);
+    expect(device.writes.map((w) => [w.path, w.value])).toEqual([
+      ["b", 5],
+      ["a", 5],
+      ["b", 6],
+      ["a", 6],
+    ]);
   });
 
   it("coalesces a burst of changes into one notification", async () => {

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Send a value to a unit connected through a `BridgeTransport` while an earlier write of the same value still awaits the unit's answer, and wait for the unit to take it: a scene recall or a settings file load over such a write took the value as written at once, and when the unit refused the earlier write, the recall ended with the value the unit held before.
 - Take each screen capture `scripts/extract-ug-screens.mjs` writes from the file `pdfimages` numbers for it in its listing, and stop with an error, copying nothing, when a file to be copied is not the size its listing row gives: a guide with a stencil or a mask image before a capture had another image written under the capture's name.
 - Write nothing to a unit connected through a `BridgeTransport` once the transport is closed, and leave no subscription open on it: a write or a snapshot after close is refused, where the rest of a settings file load still running went on to the unit, and a subscription the unit answers after close, or a second one taken by snapshots that overlap, no longer stays open.
 - Refuse a write to a unit connected through a `BridgeTransport` when its binding does not turn the value into a finite number, sending nothing and putting the screen back: an enumeration's tag bound with `identityCodec` went to the unit as `NaN` and was taken as written.
