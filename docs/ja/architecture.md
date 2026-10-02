@@ -12,11 +12,11 @@ flowchart TB
   subgraph ui["画面層 (src/screens, src/ui)"]
     S["ScreenDef 群<br/>HOME / SETUP / MONITOR / SCENE / チャンネル各画面"]
     W["ウィジェット<br/>ボタン・値ボックス・メーター・リスト・ダイアログ"]
+    FC["FocusController<br/>画面上のフォーカス"]
   end
   subgraph app["アプリ層 (src/app)"]
     SH["Shell<br/>ツールバー・メインエリア・サイドメニュー・ノブストリップ"]
     NV["Navigator<br/>画面スタック"]
-    FC["FocusController<br/>画面上のフォーカス"]
   end
   subgraph model["モデル層 (src/model)"]
     UM["UnitModel<br/>機種ごとのストリップ構成"]
@@ -44,8 +44,13 @@ flowchart TB
   CD --> S
 ```
 
-各層は下向きにのみ依存する。画面層は `DeviceStore` と `UnitModel` しか知らず、値がプロセス内に
-あるか実機の中にあるかを区別しない。
+上向きの依存は、アプリ層から画面層へと、モデル層から画面層の `src/ui` への 2 つで、ほかは下向きに依存する。
+Shell は画面を組んで出すために画面層を import し、ツールバー・サイドメニュー・ノブストリップを `src/ui` の
+部品で組む。起動時に `DeviceStore` へ渡す書き込み規則 (「値の流れ」) のうち画面層にあるもの、バンクの切り替え、
+描く画面が読み取りを取る時刻 (`drawAtOneMoment`)、microSD のアイコンの録音の印と再生の印も `src/screens` から取り、`src/app/persist.ts` は保存を戻すときの Pan Link の
+整え方を `src/screens/mix-bus.ts` から取る。モデル層は値の範囲と表示の書式 (`src/ui/param-spec.ts`,
+`src/ui/dom.ts`) を画面層と共有する。デバイス層はほかの層を import しない。画面層は `DeviceStore` と
+`UnitModel` しか知らず、値がプロセス内にあるか実機の中にあるかを区別しない。
 
 ## 値の流れ
 

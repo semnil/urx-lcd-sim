@@ -12,11 +12,11 @@ flowchart TB
   subgraph ui["Screen layer (src/screens, src/ui)"]
     S["ScreenDefs<br/>HOME / SETUP / MONITOR / SCENE / each channel screen"]
     W["Widgets<br/>buttons, value boxes, meters, lists, dialogs"]
+    FC["FocusController<br/>focus on the screen"]
   end
   subgraph app["App layer (src/app)"]
     SH["Shell<br/>toolbar, main area, side menu, knob strip"]
     NV["Navigator<br/>screen stack"]
-    FC["FocusController<br/>focus on the screen"]
   end
   subgraph model["Model layer (src/model)"]
     UM["UnitModel<br/>strip inventory per model"]
@@ -44,8 +44,16 @@ flowchart TB
   CD --> S
 ```
 
-Each layer depends only downward. The screen layer knows only `DeviceStore` and `UnitModel`, and does
-not distinguish whether a value lives in this process or inside the unit.
+Two dependencies point up, the app layer's on the screen layer and the model layer's on the screen
+layer's `src/ui`; the rest point down. The Shell imports the screen layer to build and show a screen,
+and builds the toolbar, side menu and knob strip from the parts in `src/ui`. It also takes from
+`src/screens` the write rules that live there among those it hands `DeviceStore` at start-up
+("Value flow"), the bank stepping, the moment a screen being drawn takes its readings at
+(`drawAtOneMoment`), and the record dot and the play mark on the microSD icon; `src/app/persist.ts`
+takes from `src/screens/mix-bus.ts` how Pan Link is brought into place when a stored state is put back. The model
+layer shares the value ranges and display formats (`src/ui/param-spec.ts`, `src/ui/dom.ts`) with the
+screen layer. The device layer imports no other layer. The screen layer knows only `DeviceStore` and
+`UnitModel`, and does not distinguish whether a value lives in this process or inside the unit.
 
 ## Value flow
 
