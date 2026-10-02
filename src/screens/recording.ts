@@ -31,15 +31,28 @@ export function takeOpen(store: DeviceStore): boolean {
 }
 
 /**
+ * The seconds a counter has run, to the millisecond: `before` from the runs
+ * before a pause, and the run under way counted from `since`, the moment it
+ * started. A counter running with no start moment counts nothing more than the
+ * runs before it.
+ */
+function runTime(before: number, since: number, running: boolean, now: number): number {
+  const run = running && since > 0 ? Math.max(0, now - since) : 0;
+  return (Math.round(before * 1000) + run) / 1000;
+}
+
+/** The seconds the take has recorded, parts of a second kept. */
+function takeTime(store: DeviceStore, now: number): number {
+  return runTime(store.num("sd.recSeconds", 0), store.num("sd.recSince", 0), recState(store) === "recording", now);
+}
+
+/**
  * How many whole seconds the take has recorded: the runs before a pause, and the
  * run under way counted from the moment it started. A take marked as recording
  * with no start moment counts nothing more than the runs before it.
  */
 export function takeSeconds(store: DeviceStore, now = Date.now()): number {
-  const before = store.num("sd.recSeconds", 0);
-  const since = store.num("sd.recSince", 0);
-  if (recState(store) !== "recording" || since <= 0) return before;
-  return before + Math.max(0, Math.floor((now - since) / 1000));
+  return Math.floor(takeTime(store, now));
 }
 
 /** Seconds as the recorder's counter prints them, hh:mm:ss. */
@@ -55,9 +68,9 @@ export function recordTake(store: DeviceStore, now = Date.now()): void {
   void store.set("sd.rec", "recording");
 }
 
-/** [⏸] on a take recording: the counter holds what it has reached. */
+/** [⏸] on a take recording: the counter holds what it has reached, to the part of a second. */
 export function pauseTake(store: DeviceStore, now = Date.now()): void {
-  void store.set("sd.recSeconds", takeSeconds(store, now));
+  void store.set("sd.recSeconds", takeTime(store, now));
   void store.set("sd.recSince", 0);
   void store.set("sd.rec", "paused");
 }
@@ -88,12 +101,14 @@ export function stopTake(store: DeviceStore, now = Date.now()): void {
   stopPlayback(store);
 }
 
+/** The seconds of the file playback holds that have played, parts of a second kept. */
+function playTime(store: DeviceStore, now: number): number {
+  return runTime(store.num("sd.playSeconds", 0), store.num("sd.playSince", 0), store.bool("sd.playing", false), now);
+}
+
 /** How many whole seconds of the file playback holds have played. */
 export function playedSeconds(store: DeviceStore, now = Date.now()): number {
-  const before = store.num("sd.playSeconds", 0);
-  const since = store.num("sd.playSince", 0);
-  if (!store.bool("sd.playing", false) || since <= 0) return before;
-  return before + Math.max(0, Math.floor((now - since) / 1000));
+  return Math.floor(playTime(store, now));
 }
 
 /** Whether playback holds a file, playing or paused. */
@@ -111,9 +126,9 @@ export function startPlayback(store: DeviceStore, row: number, now = Date.now())
   void store.set("sd.playing", true);
 }
 
-/** [⏸] on a file playing: the counter holds where it has reached. */
+/** [⏸] on a file playing: the counter holds where it has reached, to the part of a second. */
 export function pausePlayback(store: DeviceStore, now = Date.now()): void {
-  void store.set("sd.playSeconds", playedSeconds(store, now));
+  void store.set("sd.playSeconds", playTime(store, now));
   void store.set("sd.playSince", 0);
   void store.set("sd.playing", false);
 }
