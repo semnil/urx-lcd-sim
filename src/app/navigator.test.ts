@@ -18,6 +18,7 @@ describe("Navigator", () => {
     nav.back();
     expect(nav.current.id).toBe("home");
     expect(nav.canGoBack).toBe(false);
+    expect(nav.depth, "HOME stays on the stack").toBe(1);
   });
 
   it("empties the stack down to HOME", () => {

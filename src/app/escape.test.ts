@@ -50,6 +50,11 @@ describe("Escape", () => {
     const shell = await mount();
     await escape();
     expect(shell.ctx.nav.current.id).toBe("home");
+    expect(shell.ctx.nav.depth, "HOME stays on the stack").toBe(1);
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    shell.ctx.nav.push({ id: "ch.eq", strip: "ch1" });
+    await flush();
+    expect(shell.root.querySelector('.toolbar [aria-label="Back"]'), "EQ, two screens on from HOME, has its back arrow").not.toBeNull();
   });
 
   it("closes the bank list, which draws no button to close it with", async () => {
