@@ -1704,8 +1704,9 @@ that differs from a folder's in case alone asks nothing and writes nothing. On a
 file, a [Save as] under a new name writes nothing and shows nothing, and writing over a settings file there still goes
 through (what the unit does with a full card is in `known-issues.md`). [Save] and [Load] stand out of reach until a settings file is under the
 cursor. A settings file carries every value but the screen's own state (`ui.`, and the tabs OUTPUT
-PATCH, PERIPHERAL and SCENE LIST's Standard / Simple stand on) and the card itself (`sd.`), so a load
-leaves those tabs where they stand, as on the unit (URX44V, the operator, 2026-10-04). SCENE LIST's
+PATCH, PERIPHERAL and SCENE LIST's Standard / Simple stand on), the card itself (`sd.`), the clock ("SETUP
+screen") and what a linked pair's COMP hears (`pair.`, "The three dynamics screens (GATE / COMP / DUCKER)"),
+so a load leaves those tabs where they stand, as on the unit (URX44V, the operator, 2026-10-04). SCENE LIST's
 cursor is in the file, and a load puts it back on the row it stood on when the file was saved, as on
 the unit (URX44V, the operator, 2026-10-04, on Standard's list). Where the tab standing open does not
 list that row, SCENE LIST opens the tab that does; a row both tabs list leaves the open tab where it
