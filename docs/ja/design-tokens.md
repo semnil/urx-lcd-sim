@@ -138,7 +138,7 @@ PY
 | `--knob-card-mark` | `#adaead` | USER DEFINED KNOBS のカードの複製の印 (p057-1 の x80..89 / y104..113) |
 | `--rec-copy-mark` | `#eff3ef` | RECORDER のスロットの Source ボタンの複製の印。印は画素ごとにこの色を面に混ぜて描き、この値はいちばん明るい画素 (p079-2 の x378..387 / y185..194、最も明るいのは x80 / y96) |
 | `--strip-id-other` | `#000000` | HOME のステレオの入力の名前の 1 行目で、チャンネルの画面が開かないほうの番号 (操作者の指定) |
-| `--ink-on-lit` | `#3a3d3a` | 点灯した [USB Storage Mode] の名前 (p078-1)。選んだ選択肢の名前 — 言語 (p055-1)、SAMPLING FREQUENCY の周波数 (p058-1)、Peripheral (p061-1 / p062-1)、入力ソース・出力ソースのシート (p100-2 / p060-2)、割り当てのダイアログ (p040-1)、OSCILLATOR のモード (p070-1)、PAN / BALANCE (p093-1)、USER DEFINED KNOBS のバンク。点灯した [ON] や HDCP の [Enable] などの入切のスイッチは黒 (`--text-inverse`。HDCP の [Enable] は点灯した図が無く、実機で確認) |
+| `--ink-on-lit` | `#3a3d3a` | 点灯した [USB Storage Mode] の名前 (p078-1)。選んだ選択肢の名前 — 言語 (p055-1)、SAMPLING FREQUENCY の周波数 (p058-1)、Peripheral (p061-1 / p062-1)、入力ソース・出力ソースのシート (p100-2 / p060-2)、割り当てのダイアログ (wide/p040-1)、OSCILLATOR のモード (p070-1)、PAN / BALANCE (p093-1)、USER DEFINED KNOBS のバンク。点灯した [ON] や HDCP の [Enable] などの入切のスイッチは黒 (`--text-inverse`。HDCP の [Enable] は点灯した図が無く、実機で確認) |
 | `--test-pass` | `#01ff00` | カードのテストの評価と録音の行 (p088-2) |
 | `--text-disabled` | `#848284` | 使えないボタンとサイドレールのタブの名前 (p073-1 の Store、x5..94 / y230..268 と Edit タブ、x422..479 / y115..163) |
 | `--menu-text-disabled` | `#7b797b` | 使えないメニュー項目の名前 (p078-1 の Recorder / Save/Load / Tools、x82..386 / y99..109) |

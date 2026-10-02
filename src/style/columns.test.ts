@@ -3560,7 +3560,7 @@ describe("the two corner maps", () => {
 describe("the name on a lit face", () => {
   const color = (selector: string): [string, string | undefined] => [selector, declarations(CSS, selector)["color"]];
 
-  // The chosen option is (58,61,58) in p040-1, p058-1, p059-2, p060-2, p061-1,
+  // The chosen option is (58,61,58) in wide/p040-1, p058-1, wide/p059-1, p060-2, p061-1,
   // p062-1, p070-1, p093-1 and p100-2; a lit switch such as [ON] keeps black.
   it("sets a chosen option's name in the lit-name grey", () => {
     for (const selector of [
@@ -3594,7 +3594,7 @@ describe("the name on a lit face", () => {
 });
 
 describe("a picker sheet's silhouette", () => {
-  // In p100-2, p059-2 and p060-2 the sheet darkens the first pixel outside its
+  // In p100-2, wide/p059-1 and p060-2 the sheet darkens the first pixel outside its
   // right and bottom sides by 0.82 and the second by 0.35, and leaves the pixels
   // to its left and above it as they are.
   it("drops a two pixel shadow to its right and below", () => {

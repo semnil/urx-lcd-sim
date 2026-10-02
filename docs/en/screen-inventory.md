@@ -521,7 +521,7 @@ box the name overlaps it.
 The copy mark (10x10, `--chip-mark`) stands at the top right of the name, 5px in from the box's
 corner. It appears on channel and bus detail screens but not on the screens further below them (COMP,
 EQ and so on) nor on CH SETTING (p092-1, p093-2). STREAMING's detail screen carries the copy mark too; the
-pencil in a square that p098-6 draws in its place is not what the unit shows (confirmed by the operator).
+pencil in a square that p098-2 draws in its place is not what the unit shows (confirmed by the operator).
 CH SETTING's Icon box carries the chip's single-colour square in place of the icon (x221..234 / y69..82).
 
 The channel color sits behind the name. In the narrow box the name overlaps it. A name that does not
