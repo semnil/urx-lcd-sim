@@ -100,7 +100,10 @@ sequenceDiagram
 実機へ書かない。`restore()` は何もせず、`startSaving()` はミラーを、シミュレーターを持つ IndexedDB の記録ではなく
 `localStorage` の `urx-lcd-sim.bridge.state` に書く。シミュレーターの本体 (シーン・カード・設定ファイルを含む) は保存したまま残る。
 
-## 未束縛のまま動くこと
+## 束縛が一部だけのとき
 
-束縛が部分的でも壊れない。束縛されたパスだけが実機と同期し、それ以外は
-`DeviceStore` のミラー上でシミュレーター内部の値として動く。段階的に束縛を増やせる。
+`store.attach()` はミラーを `BridgeTransport.snapshot()` が読んだ値で置き換えるので、接続した後のミラーには
+束縛したパスだけが載る。束縛していないパスは値を持たず、読むと呼び出し側の既定値が返る。その編集は
+`BridgeTransport` が `UnboundPathError` で拒否し、`DeviceStore` はミラーを元に戻して `onWriteFailure` で知らせる
+(`src/device/bridge-transport.test.ts` の「mirrors the bound paths alone, puts an edit to an unbound path back and
+writes a bound one」)。

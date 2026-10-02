@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { BindingTable, boolCodec, identityCodec, scaledCodec } from "./binding";
 import { BridgeTransport, UnboundPathError, type DeviceLink } from "./bridge-transport";
-import { DeviceStore } from "./store";
+import { SimTransport } from "./sim-transport";
+import { DeviceStore, type WriteFailure } from "./store";
 import { applyScene } from "../model/scene-state";
 import { applySettings } from "../model/settings-file";
 
@@ -1259,5 +1260,37 @@ describe("scaledCodec", () => {
   it("carries a fixed-point value to the wire and back", () => {
     const codec = scaledCodec(100);
     expect([codec.encode(-6.5), codec.encode(-6.504), codec.decode(-650), codec.decode(codec.encode(12.25))]).toEqual([-650, -650, -6.5, 12.25]);
+  });
+});
+
+describe("a store moved onto a unit with only some paths bound", () => {
+  it("mirrors the bound paths alone, puts an edit to an unbound path back and writes a bound one", async () => {
+    const store = new DeviceStore();
+    await store.attach(
+      new SimTransport([
+        ["ch.ch1.level", 0],
+        ["ch.ch2.level", 0],
+        ["ch.ch2.name", "ch 2"],
+      ]),
+    );
+    const bridge = fakeBridge();
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.level", { addr: "level-addr", codec: scaledCodec(100) });
+    await store.attach(new BridgeTransport(bridge, bindings));
+    const failures: WriteFailure[] = [];
+    store.onWriteFailure((f) => failures.push(f));
+
+    expect(store.paths(), "the simulated values are gone from the mirror").toEqual(["ch.ch1.level"]);
+
+    await store.set("ch.ch2.level", -7);
+    expect(store.has("ch.ch2.level"), "an edit to an unbound path does not stay").toBe(false);
+    expect(
+      failures.map((f) => [f.path, f.error instanceof UnboundPathError]),
+      "and the refusal is reported",
+    ).toEqual([["ch.ch2.level", true]]);
+
+    await store.set("ch.ch1.level", -5);
+    expect(store.num("ch.ch1.level"), "an edit to a bound path stays").toBe(-5);
+    expect(bridge.writes, "and reaches the unit").toEqual([["level-addr", -500]]);
   });
 });

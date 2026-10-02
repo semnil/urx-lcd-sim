@@ -107,7 +107,11 @@ reload" in [architecture.md](architecture.md)) is written to the unit. `restore(
 IndexedDB record that holds the simulator. The simulated unit stored there, its scenes, card and settings
 files included, stays as it was stored.
 
-## Running partly unbound
+## With only some paths bound
 
-A partial binding breaks nothing. Only bound paths are synchronized with the unit; the rest run as
-simulator-internal values on the `DeviceStore` mirror. Bindings can be added step by step.
+`store.attach()` replaces the mirror with the values `BridgeTransport.snapshot()` reads, so once attached
+the mirror holds the bound paths alone. An unbound path holds no value, and a read of it returns the
+caller's fallback. An edit to it is refused by `BridgeTransport` with `UnboundPathError`, and
+`DeviceStore` puts the mirror back and reports the refusal through `onWriteFailure` ("mirrors the bound
+paths alone, puts an edit to an unbound path back and writes a bound one" in
+`src/device/bridge-transport.test.ts`).
