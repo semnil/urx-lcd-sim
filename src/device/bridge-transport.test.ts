@@ -270,6 +270,61 @@ describe("BridgeTransport", () => {
 
     expect(seen, "the notify before close, and none after").toEqual([true]);
   });
+
+  it("takes a change the unit announces while the snapshot is read", async () => {
+    const bridge = fakeBridge();
+    const link: DeviceLink = {
+      ...bridge,
+      get: (addr) => {
+        // CH1 is turned on the unit after it was read, while CH2 is read.
+        if (addr === "level2-addr") bridge.fire("level1-addr", 55);
+        return bridge.get(addr);
+      },
+    };
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.level", { addr: "level1-addr", codec: identityCodec });
+    bindings.bind("ch.ch2.level", { addr: "level2-addr", codec: identityCodec });
+    const store = new DeviceStore();
+
+    await store.attach(new BridgeTransport(link, bindings));
+
+    expect(store.num("ch.ch1.level")).toBe(55);
+  });
+
+  it("stops following the unit when a snapshot that started following it cannot be read", async () => {
+    const bridge = fakeBridge();
+    const link: DeviceLink = { ...bridge, get: () => Promise.reject(new Error("read failed")) };
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.on", { addr: "on-addr", codec: boolCodec });
+    const transport = new BridgeTransport(link, bindings);
+    const seen: unknown[] = [];
+    transport.onNotify((n) => seen.push(n.value));
+
+    await expect(transport.snapshot()).rejects.toThrow("read failed");
+    bridge.fire("on-addr", 0);
+
+    expect(seen).toEqual([]);
+  });
+
+  it("keeps following the unit when a later snapshot cannot be read", async () => {
+    const bridge = fakeBridge();
+    let reads = 0;
+    const link: DeviceLink = {
+      ...bridge,
+      get: (addr) => (++reads > 1 ? Promise.reject(new Error("read failed")) : bridge.get(addr)),
+    };
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.on", { addr: "on-addr", codec: boolCodec });
+    const transport = new BridgeTransport(link, bindings);
+    await transport.snapshot();
+    const seen: unknown[] = [];
+    transport.onNotify((n) => seen.push(n.value));
+
+    await expect(transport.snapshot()).rejects.toThrow("read failed");
+    bridge.fire("on-addr", 0);
+
+    expect(seen).toEqual([false]);
+  });
 });
 
 describe("BindingTable", () => {

@@ -49,15 +49,29 @@ export class BridgeTransport implements DeviceTransport {
     private readonly bindings: BindingTable,
   ) {}
 
+  /**
+   * Follow every bound address, then read each one. What the unit announces
+   * while they are read goes to the listeners as it comes. A snapshot that
+   * cannot be read stops the following it started.
+   */
   async snapshot(): Promise<Map<ParamPath, ParamValue>> {
-    const out = new Map<ParamPath, ParamValue>();
-    for (const p of this.bindings.boundPaths()) {
-      const b = this.bindings.forPath(p);
-      if (!b) continue;
-      if (b.isString) out.set(p, await this.bridge.getStr(b.addr));
-      else out.set(p, b.codec.decode(await this.bridge.get(b.addr)));
-    }
+    const following = this.unsubscribe !== null;
     await this.startFollowing();
+    const out = new Map<ParamPath, ParamValue>();
+    try {
+      for (const p of this.bindings.boundPaths()) {
+        const b = this.bindings.forPath(p);
+        if (!b) continue;
+        if (b.isString) out.set(p, await this.bridge.getStr(b.addr));
+        else out.set(p, b.codec.decode(await this.bridge.get(b.addr)));
+      }
+    } catch (error) {
+      if (!following) {
+        this.unsubscribe?.();
+        this.unsubscribe = null;
+      }
+      throw error;
+    }
     return out;
   }
 

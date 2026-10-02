@@ -41,6 +41,7 @@ export interface DeviceLink {
 
 `BridgeTransport.snapshot()` は束縛済みの全アドレスを購読する。実機の LCD や物理ノブで行われた
 変更が notify として届き、シミュレーター画面へ反映される。片方向のリモコンではなく、鏡になる。
+購読は読み出しより先に張るので、読み出しの途中に実機で変わった値も、`DeviceStore` が読み出した値の後で採る。
 
 自分が書いた値がそのまま返ってきた notify は `echo: true` として区別する
 (`src/device/bridge-transport.test.ts` の「flags the notify that is our own write coming back」)。
@@ -58,11 +59,11 @@ sequenceDiagram
   App->>Bridge: new BridgeTransport(link, bindings)
   App->>Store: attach(bridge)
   Store->>Bridge: snapshot()
+  Bridge->>DevLink: subscribe(全束縛アドレス)
   Bridge->>DevLink: get(addr) x 束縛数
   DevLink->>Unit: 読み出し
   Unit-->>DevLink: 値
   DevLink-->>Bridge: 値
-  Bridge->>DevLink: subscribe(全束縛アドレス)
   Bridge-->>Store: Map<path, value>
   Note over App,Unit: 以降 双方向
   App->>Store: set(path, value)

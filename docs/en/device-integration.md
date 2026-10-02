@@ -41,7 +41,8 @@ This repository ships no catalog.
 
 `BridgeTransport.snapshot()` subscribes to every bound address. Changes made on the unit's LCD or
 physical knobs arrive as notifies and are reflected on the simulator's screen. It is a mirror, not a
-one-way remote control.
+one-way remote control. It subscribes before it reads, so `DeviceStore` also takes a change made on
+the unit while the values are read, after the values themselves.
 
 A notify that is our own written value coming back is marked `echo: true`
 ("flags the notify that is our own write coming back" in `src/device/bridge-transport.test.ts`).
@@ -59,11 +60,11 @@ sequenceDiagram
   App->>Bridge: new BridgeTransport(link, bindings)
   App->>Store: attach(bridge)
   Store->>Bridge: snapshot()
+  Bridge->>DevLink: subscribe(every bound address)
   Bridge->>DevLink: get(addr) x bound count
   DevLink->>Unit: read
   Unit-->>DevLink: value
   DevLink-->>Bridge: value
-  Bridge->>DevLink: subscribe(every bound address)
   Bridge-->>Store: Map<path, value>
   Note over App,Unit: two-way from here on
   App->>Store: set(path, value)
