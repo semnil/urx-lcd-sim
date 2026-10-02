@@ -116,6 +116,44 @@ describe("the focus through a redraw", () => {
     expect([shell.root.querySelector(".title-text")?.textContent, document.activeElement === field()]).toEqual(["abc", true]);
   });
 
+  it("goes back to the title field from a key on the glass, so a browser's keys go on filling it", async () => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "scene" });
+    shell.ctx.nav.push({ id: "scene.title" });
+    await flush();
+    const field = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".title-field");
+    const key = (face: string): HTMLElement | undefined => [...shell.root.querySelectorAll<HTMLElement>(".title-key")].find((k) => k.textContent === face);
+    const clear = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".title-clear");
+    const presses = [key("q"), clear()].map((node) => {
+      const down = new MouseEvent("mousedown", { bubbles: true, cancelable: true });
+      node?.dispatchEvent(down);
+      return down.defaultPrevented;
+    });
+    expect(presses, "a press on a key or on [Clear] takes no focus off the field").toEqual([true, true]);
+
+    // Nothing focused, as the sheet opens, and then a key holding the focus, as a browser that gives a pressed button the focus leaves it.
+    const seen: (string | boolean | null | undefined)[] = [];
+    key("q")?.click();
+    await flush();
+    seen.push(document.activeElement === field());
+    key("w")?.focus();
+    key("w")?.click();
+    await flush();
+    seen.push(document.activeElement === field());
+    for (const k of ["a", "Backspace", "e"]) await press(k);
+    seen.push(shell.root.querySelector(".title-text")?.textContent);
+    (document.activeElement as HTMLElement | null)?.blur();
+    clear()?.click();
+    await flush();
+    seen.push(document.activeElement === field(), shell.root.querySelector(".title-text")?.textContent);
+    expect(seen).toEqual([true, true, "qwe", true, ""]);
+
+    // [Clear] reached with Tab keeps the focus the keys put on it.
+    clear()?.focus();
+    await press("Enter");
+    expect(document.activeElement === clear()).toBe(true);
+  });
+
   it("works only the switch or value box pressed inside a channel view's block, as a finger does", async () => {
     const shell = await mount();
     shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });

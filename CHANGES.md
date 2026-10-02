@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Keep the focus in the field of the title and name sheets when a key on the glass or the clear button is pressed, and put it there from outside the field, so a browser's keys go on typing. A tap on a key took the focus to that key: the browser's letters and Backspace went nowhere after it, and Space or Enter pressed the key again.
 - Leave Escape pressed in the field of the title and name sheets to the field, as CH SETTING's name field does: the sheet stays up with what was typed. Escape there left the sheet and dropped what had been typed. Elsewhere on the sheet it still leaves it, as [Cancel] does.
 - Open a pulldown's list with the focus on the value its box holds, keep Tab going round the list with the screen behind out of reach until it closes, and give the focus back to the box once it does. The focus stayed on the box under the list, Tab reached the screen behind before it reached a choice, and a second Enter laid a second list over the first. The choices are told to assistive technology as the list's options, the one held selected, where they read as switches.
 - Name CH SETTING's Rec Point, COMP / EQ and Signal Type boxes, COMP's Auto Makeup and Knee, the EQ band's shape, 1-knob EQ's type and SSMCS Comp's Knee by the setting each sets, as `Knee: Medium (3 options)` and so on. They read their value and how many options they held, and nothing of what they set.

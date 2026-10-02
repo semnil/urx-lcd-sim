@@ -180,19 +180,33 @@ export const titleEntryScreen: ScreenDef = {
       }
     };
 
+    // A press on a key leaves the focus where it stands, and a tap with the focus
+    // outside the field puts it in the field, which takes the browser's keys.
+    const toField = (): void => {
+      if (!field.contains(document.activeElement)) field.focus({ preventScroll: true });
+    };
+    const holdFocus = (node: HTMLElement): HTMLElement => {
+      node.addEventListener("mousedown", (ev) => ev.preventDefault());
+      return node;
+    };
+
     const keyNode = (k: Key, row: number): HTMLElement => {
       // A letter's face follows Shift; the named keys keep theirs.
       const face = shift && k.action.kind === "type" && k.face.length === 1 ? k.face.toUpperCase() : k.face;
+      const tap = (): void => {
+        act(k.action);
+        toField();
+      };
       const node =
         k.action.kind === "backspace"
-          ? el("button", { class: "btn title-key", children: [Icons.backspace()], onTap: () => act(k.action) })
-          : button(face, () => act(k.action), `title-key${k.action.kind === "shift" && shift ? " is-on" : ""}`);
+          ? el("button", { class: "btn title-key", children: [Icons.backspace()], onTap: tap })
+          : button(face, tap, `title-key${k.action.kind === "shift" && shift ? " is-on" : ""}`);
       const name = KEY_NAMES[k.action.kind];
       if (name) node.setAttribute("aria-label", name);
       node.style.gridColumn = `${k.col + 1} / span ${k.span}`;
       node.style.gridRow = String(row + 1);
       node.tabIndex = -1;
-      return node;
+      return holdFocus(node);
     };
 
     const field = el("div", {
@@ -207,7 +221,17 @@ export const titleEntryScreen: ScreenDef = {
             document.createTextNode(text.slice(cursor)),
           ],
         }),
-        el("button", { class: "title-clear", attrs: { "aria-label": "Clear" }, children: [Icons.clear()], onTap: () => edit("", 0) }),
+        holdFocus(
+          el("button", {
+            class: "title-clear",
+            attrs: { "aria-label": "Clear" },
+            children: [Icons.clear()],
+            onTap: () => {
+              edit("", 0);
+              toField();
+            },
+          }),
+        ),
       ],
     });
     field.tabIndex = 0;

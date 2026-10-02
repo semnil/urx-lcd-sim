@@ -187,7 +187,8 @@ carrying its keys. A list's scroll bar answers the pointer alone; the keys scrol
 its rows, and the LICENSE text, which holds no rows, is a Tab stop of its own that rims its bar when it
 takes the focus. The still of HOME on Operation Mode is `inert` and holds no Tab stop. The keys of the title sheet
 are pressed by a finger, so they hold no Tab stop either; the field itself holds one (`role="textbox"`) and takes
-what a browser's keyboard sends. Only the characters the unit's own keys can type go in, and their case comes from
+what a browser's keyboard sends. A press on one of the keys or on the clear button leaves the focus in the field, and a
+focus standing outside the field goes into it, so the browser's keys go on typing. Only the characters the unit's own keys can type go in, and their case comes from
 the browser's key (the sheet's Shift reaches the unit's keys alone). Backspace and the arrow keys do what the keys
 of the same face do, and nothing goes in while an IME is composing (`isComposing`).
 
