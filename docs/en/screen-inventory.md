@@ -1567,7 +1567,8 @@ nothing when pressed, and the Record / Play / Edit tabs and the slots' Source bu
 pressed. Recording mode goes on off the RECORDER screen, and a 14px dot of `--transport-rec` stands at the lower right of
 the microSD icon on the HOME and channel view toolbars (x364..377 / y22..35) and left of the name on the microSD menu's
 [Recorder] (x62..75, 4px from the name). On the microSD menu everything but [Recorder] ([Save/Load], [Tools], [USB Storage Mode] and the eject
-button) takes the face of a button that cannot be used and does nothing when pressed.
+button) takes the face of a button that cannot be used and does nothing when pressed. SETUP's [Sampling Frequency] takes
+that face too, as the unit does, and does not open the SAMPLING FREQUENCY screen.
 
 TOOLS carries the card-eject button on its toolbar as well (p087-1). [Format microSD] on the Format tab opens the
 same keyboard screen the title entry uses, under the title `Volume Label`, with the card's volume label in the

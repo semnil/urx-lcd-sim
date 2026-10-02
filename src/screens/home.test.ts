@@ -2863,6 +2863,34 @@ describe("the sampling frequency row", () => {
     expect(lit(shell)).toBe("96kHz");
   });
 
+  it("puts SETUP's [Sampling Frequency] out of reach while the recorder is armed, recording or paused", async () => {
+    const shell = await mount();
+    const store = shell.ctx.store;
+    shell.ctx.nav.openTop({ id: "setup" });
+    await flush();
+    const opens = async (): Promise<[boolean, string | null, string]> => {
+      const entry = [...shell.root.querySelectorAll<HTMLElement>(".setup-menu .menu-btn")].find((b) => b.textContent === "Sampling\nFrequency");
+      const face: [boolean, string | null] = [entry?.classList.contains("is-disabled") ?? false, entry?.getAttribute("aria-disabled") ?? null];
+      entry?.click();
+      await flush();
+      const at = shell.ctx.nav.current.id;
+      if (at !== "setup") {
+        shell.ctx.nav.back();
+        await flush();
+      }
+      return [...face, at];
+    };
+    expect(await opens(), "the control: stopped").toEqual([false, null, "setup.rate"]);
+    for (const rec of ["armed", "recording", "paused"]) {
+      await store.set("sd.rec", rec);
+      await flush();
+      expect(await opens(), rec).toEqual([true, "true", "setup"]);
+    }
+    await store.set("sd.rec", "idle");
+    await flush();
+    expect(await opens(), "back in reach once recording mode ends").toEqual([false, null, "setup.rate"]);
+  });
+
   it("keeps the frequency it holds while it follows the USB clock, and takes no other", async () => {
     const shell = await open();
     shell.root.querySelector<HTMLElement>(".follow-usb")?.click();

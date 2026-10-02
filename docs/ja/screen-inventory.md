@@ -1356,7 +1356,8 @@ y235..244 に出し、中央のボタンは緑の三角の代わりに一時停�
 Source ボタンは見た目を変えずに押しても何もしない。録音モードは RECORDER の画面を離れても続き、HOME とチャンネルビューの
 ツールバーの microSD アイコンの右下 (x364..377 / y22..35) と、microSD トップの [Recorder] の名前の左 (x62..75、名前との間 4px) に
 直径 14px の `--transport-rec` の丸を出す。microSD トップでは [Recorder] 以外 ([Save/Load]・[Tools]・[USB Storage Mode]・
-取り出しボタン) が使えないボタンの面になって押しても何もしない。
+取り出しボタン) が使えないボタンの面になって押しても何もしない。SETUP の [Sampling Frequency] も、実機と同じく使えないボタンの面になり、
+押しても SAMPLING FREQUENCY の画面を開かない。
 
 TOOLS のツールバーにもカード取り出しボタンを置く (p087-1)。Format タブの [Format microSD] は、題の入力と同じ
 キーボードの画面を題 `Volume Label` で開き、入力欄にカードのボリュームラベルを入れておく。この画面は 11 文字までを
