@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
+import { readCard, writeCard } from "../model/card";
+import type { CardEntry } from "../model/card";
 import { factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
 import { buildRegistry } from "../screens";
@@ -341,10 +343,67 @@ describe("a dialog or a sheet over the screen", () => {
     letGo();
     expect(await press("Tab")).toBe(true);
     seen.push(name());
-    expect(seen).toEqual(["OK", "Cancel", "OK", "Cancel", "OK", "Cancel"]);
+    expect(seen).toEqual(["Cancel", "OK", "Cancel", "OK", "OK", "Cancel"]);
 
     await press("Escape");
     expect(behind(shell), "and back in reach once it is down").toEqual([false, false, false, false]);
+  });
+
+  it("opens a question with two answers on [Cancel], so the Enter that follows the one that opened it does nothing, and one with [OK] alone on [OK]", async () => {
+    const card: CardEntry[] = [
+      { name: "Recordings", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" },
+      { name: "take.wav", kind: "take", seconds: 10, tracks: 2, stamp: "", dir: "/" },
+    ];
+    const byText = (selector: string, text: string) => (shell: Shell): HTMLElement | undefined =>
+      [...shell.root.querySelectorAll<HTMLElement>(selector)].find((b) => b.textContent === text);
+    const bySelector = (selector: string) => (shell: Shell): HTMLElement | null => shell.root.querySelector<HTMLElement>(selector);
+    const stored = { "scene.Standard.5.title": "Band", "scene.selected": 5 };
+    const asks: { routes: Route[]; state?: Record<string, string | number | boolean>; opener: (shell: Shell) => HTMLElement | null | undefined; sheet?: string }[] = [
+      { routes: [{ id: "setup" }, { id: "setup.patch" }], state: { "setup.outputPatch.mainOut": "MONITOR 2" }, opener: bySelector(".patch-default") },
+      { routes: [{ id: "microsd" }, { id: "microsd.saveload" }], state: { "ui.sdSaveTab": "Edit", "sd.selectedFile": 1 }, opener: bySelector('.sd-actions [aria-label="Delete"]') },
+      { routes: [{ id: "scene" }, { id: "scene.list" }], state: { ...stored, "ui.sceneMenu": "Edit" }, opener: bySelector('.scene-actions.is-edit [aria-label="Delete"]') },
+      { routes: [{ id: "scene" }, { id: "scene.list" }], state: stored, opener: byText(".scene-actions .btn", "Store") },
+      { routes: [{ id: "scene" }, { id: "scene.list" }], state: stored, opener: byText(".scene-actions .btn", "Recall") },
+      { routes: [{ id: "microsd" }, { id: "microsd.tools" }], opener: bySelector(".tools-screen .btn"), sheet: ".pick-dialog-ok" },
+      { routes: [{ id: "microsd" }], state: { "sd.mounted": false }, opener: bySelector(".sd-no-card") },
+      { routes: [{ id: "microsd" }], opener: bySelector(".usb-storage") },
+      { routes: [{ id: "microsd" }], state: { "sd.usbStorage": true }, opener: bySelector(".usb-storage") },
+    ];
+    const seen: string[] = [];
+    for (const ask of asks) {
+      const shell = await onPage(...ask.routes);
+      await writeCard(shell.ctx.store, card);
+      for (const [path, value] of Object.entries(ask.state ?? {})) await shell.ctx.store.set(path, value);
+      await flush();
+      await enter(ask.opener(shell));
+      if (ask.sheet) await enter(shell.root.querySelector<HTMLElement>(ask.sheet));
+      const question = shell.root.querySelector('[role="dialog"]')?.getAttribute("aria-label")?.split("\n")[0];
+      const focus = inside(shell, ".dialog-actions") ? document.activeElement?.textContent : "off the buttons";
+      const revision = shell.ctx.store.revision;
+      const files = readCard(shell.ctx.store).length;
+      await press("Enter");
+      // Format takes the card's files a while after its [OK], under a modal that stands up at once.
+      const done = shell.ctx.store.revision !== revision || readCard(shell.ctx.store).length !== files || shell.root.querySelector(".dialog-overlay") !== null;
+      seen.push(`${question}: ${focus}, ${done ? "something done" : "nothing done"}`);
+    }
+    expect(seen).toEqual([
+      "Reset to Default?: Cancel, nothing done",
+      "Delete the selected file?: Cancel, nothing done",
+      'Delete "Scene Memory #05"?: Cancel, nothing done',
+      'Store to "Scene Memory #05"?: Cancel, nothing done',
+      'Recall scene "Band"?: Cancel, nothing done',
+      "Formatting will erase ALL data on this card.: Cancel, nothing done",
+      "Simulate inserting the microSD card?: Cancel, nothing done",
+      "This microSD card is recognized as a storage: Cancel, nothing done",
+      "Please make sure that the microSD storage: Cancel, nothing done",
+    ]);
+
+    const shell = await onPage({ id: "microsd" });
+    await enter(shell.root.querySelector<HTMLElement>(".sd-eject"));
+    expect([shell.root.querySelector('[role="dialog"]')?.getAttribute("aria-label"), document.activeElement?.textContent]).toEqual([
+      "Now you may safely remove the microSD card.",
+      "OK",
+    ]);
   });
 
   it("keeps Tab going round the sheet, and the screen behind out of reach", async () => {

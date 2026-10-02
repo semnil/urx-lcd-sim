@@ -1446,7 +1446,7 @@ runs along the control's own edges: pixel-drawn corners draw the face's top corn
 rounded by the browser has the cut rounded at its four corners as the face is. While a key holds it down, the focus ring
 stays where the control stands. When the screen is drawn again while the key is down, the control the focus comes back to sinks in
 its place. When the focus moves elsewhere while the control the key went down on is still on the screen (a dialog the
-key opened taking the focus to its [OK], say), that control comes back up and the one the focus moved to does not sink.
+key opened taking the focus to its [Cancel], say), that control comes back up and the one the focus moved to does not sink.
 The shell reads which control has a band from its computed `box-shadow` at the moment it is pressed
 (`src/ui/press.ts`), so a control given a band sinks with nothing more to do. A control out of reach does not sink.
 Under `prefers-reduced-motion` the slide is not animated.

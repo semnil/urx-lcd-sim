@@ -1019,7 +1019,8 @@ export function dialog(options: DialogOptions): HTMLElement {
   );
   // The guide's dialog blocks the screen behind it, and Escape is the same as Cancel.
   MODALS.set(overlay, modal);
-  queueMicrotask(() => ok.focus());
+  // The focus opens on [Cancel], or on [OK] where it is the only answer.
+  queueMicrotask(() => (options.okOnly === true ? ok : cancel).focus());
   return overlay;
 }
 
