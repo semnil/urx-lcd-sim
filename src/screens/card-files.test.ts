@@ -10,6 +10,7 @@ import { freeBytes, readCard, writeCard } from "../model/card";
 import type { CardEntry } from "../model/card";
 import { buildRegistry } from "./index";
 import { pausePlayback, playedSeconds, recordTake, startPlayback, startRecorderClock, stopPlayback, stopTake } from "./recording";
+import { openTitleEntry } from "./title-entry";
 
 // The card holds what is written to it: a take the recorder leaves, a settings
 // file SAVE/LOAD writes, and the room they take up.
@@ -506,6 +507,44 @@ describe("what the card's own actions do to it", () => {
     await flush();
     expect(shell.root.querySelector(".pick-dialog-ok"), "the sheet is open").not.toBeNull();
     expect(shell.root.querySelector(".pick-dialog-title")).toBeNull();
+  });
+
+  it("names the sheet's field by what it takes: the volume label, a name on the card, or a scene's title", async () => {
+    const shell = await mount({ id: "microsd.tools" }, card);
+    /** The name assistive technology reads for the sheet's field: the nodes it is labelled by, or its label. */
+    const fieldName = (): string => {
+      const field = shell.root.querySelector(".title-field");
+      const by = field?.getAttribute("aria-labelledby");
+      if (by) return by.split(" ").map((id) => shell.root.querySelector(`#${id}`)?.textContent ?? `<missing ${id}>`).join(" ");
+      return field?.getAttribute("aria-label") ?? "";
+    };
+    shell.root.querySelector<HTMLElement>(".tools-screen .btn")?.click();
+    await flush();
+    expect(fieldName(), "under the sheet's heading").toBe("Volume Label");
+    [...shell.root.querySelectorAll<HTMLElement>(".title-key")].find((k) => k.textContent === "a")?.click();
+    await flush();
+    expect(fieldName(), "and still once a key has drawn the sheet again").toBe("Volume Label");
+    shell.root.querySelector<HTMLElement>(".pick-dialog-cancel")?.click();
+    await flush();
+
+    shell.ctx.nav.push({ id: "microsd.saveload" });
+    await flush();
+    const opened: string[] = [];
+    for (const [tab, label] of [["Save/\nLoad", "Save as"],["Edit", "Rename"], ["Edit", "New folder"]] as const) {
+      await shell.ctx.store.set("ui.sdSaveTab", tab);
+      await shell.ctx.store.set("sd.selectedFile", 1);
+      await flush();
+      action(shell, label)?.click();
+      await flush();
+      opened.push(`${label}: ${shell.ctx.nav.current.id} ${fieldName()}`);
+      shell.root.querySelector<HTMLElement>(".pick-dialog-cancel")?.click();
+      await flush();
+    }
+    expect(opened, "a name on the card").toEqual(["Save as: microsd.name Name", "Rename: microsd.name Name", "New folder: microsd.name Name"]);
+
+    openTitleEntry(shell.ctx, "scene.a.1.title", "");
+    await flush();
+    expect([shell.ctx.nav.current.id, fieldName()], "a scene's title").toEqual(["scene.title", "Title"]);
   });
 
   it("takes eleven characters at most for the volume label, where the other card sheets take sixteen and none empty", async () => {

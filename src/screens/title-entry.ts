@@ -85,6 +85,9 @@ const KEY_NAMES: Partial<Record<Action["kind"], string>> = { backspace: "Backspa
 /** What [OK] hands the name to, where the caller takes it itself. */
 let pendingOk: ((text: string) => void) | null = null;
 
+/** How many headings the sheet has drawn, so each heading the field is named by holds an id of its own. */
+let headingIds = 0;
+
 /** What the sheet is opened on. */
 export interface TitleDraft {
   /** Where [OK] writes what is typed; an empty path writes nowhere. */
@@ -140,7 +143,7 @@ export const titleEntryScreen: ScreenDef = {
   toolbar: "sub",
   shellExits: false,
   knobToggle: false,
-  build(ctx): ScreenBody {
+  build(ctx, route): ScreenBody {
     const text = ctx.store.str(`${DRAFT}.text`, "");
     const cursor = Math.min(Math.max(ctx.store.num(`${DRAFT}.cursor`, text.length), 0), text.length);
     const drafted = ctx.store.str(`${DRAFT}.layout`, "letters");
@@ -209,9 +212,15 @@ export const titleEntryScreen: ScreenDef = {
       return holdFocus(node);
     };
 
+    // The field is named by the sheet's heading, and without one by what it takes:
+    // a name on the card, or a scene's title.
+    const head = heading ? el("h1", { class: "pick-dialog-title", text: heading }) : null;
+    if (head) head.id = `title-heading-${++headingIds}`;
     const field = el("div", {
       class: "title-field",
-      attrs: { role: "textbox", "aria-label": "Title" },
+      attrs: head
+        ? { role: "textbox", "aria-labelledby": head.id }
+        : { role: "textbox", "aria-label": route.id === "microsd.name" ? "Name" : "Title" },
       children: [
         el("span", {
           class: "title-text",
@@ -251,7 +260,7 @@ export const titleEntryScreen: ScreenDef = {
       main: el("div", {
         class: "pick-dialog title-entry",
         children: [
-          ...(heading ? [el("h1", { class: "pick-dialog-title", text: heading })] : []),
+          head,
           button("Cancel", () => {
             pendingOk = null;
             ctx.nav.back();
