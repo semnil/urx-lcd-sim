@@ -1419,9 +1419,15 @@ The back arrow is for going back to the screen beneath, and does not appear on a
 HOME beneath it. SETUP, microSD and MONITOR opened from the toolbar icons and SCENE opened from the scene
 name show just the HOME icon (wide/p072-1, p078-1, p066-1). The channel view one level from HOME shows no
 back arrow either, and keeps HOME's icon row (SETUP / microSD / MONITOR / HOME) up ("Toolbar icon row",
-p090-1). Screens two or more levels down (VERSION, SCENE LIST, CH SETTING, INPUT and so on) show the
-arrow and a divider (p053-1, p073-1, p092-1, p100-1). The decision is by stack depth, not a per-screen
-declaration, and `Escape` goes back on every screen.
+p090-1). What the bar shows follows the screen's declaration on `ScreenDef` and the stack depth together.
+A screen declared with `toolbar: "home"` keeps the icon row at any depth (the bank list opened from the
+Sends destination sheet sits two levels down and keeps it, "Toolbar icon row"). A screen declared with
+`shellExits: false` (Operation Mode, USER DEFINED KNOBS' assignment sheet, DATE / TIME's popups for the
+date and time and for the time zone, and the title entry sheet, also when it opens as `microsd.name`)
+shows neither the arrow nor HOME and is left through its own controls. Any other screen shows just the
+HOME icon one level from HOME, and the arrow and a divider two or more levels down (`nav.depth > 2`):
+VERSION, SCENE LIST, CH SETTING, INPUT and so on (p053-1, p073-1, p092-1, p100-1). `Escape` goes back
+on every screen.
 
 ## SETUP screen
 
