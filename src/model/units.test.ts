@@ -20,7 +20,7 @@ describe("unit models", () => {
     expect(stereo).toEqual(["CH 3/4", "CH 5/6", "CH 7/8", "CH 9/10"]);
   });
 
-  it("withholds the Date/Time menu from the URX22", () => {
+  it("carries the date and time on the URX44 and not on the URX22", () => {
     expect(URX22.hasDateTime).toBe(false);
     expect(URX44.hasDateTime).toBe(true);
   });

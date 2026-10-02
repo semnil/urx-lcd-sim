@@ -752,6 +752,63 @@ describe("the toolbar's icon row", () => {
   });
 });
 
+describe("the menus that change with the model", () => {
+  // A model without the microSD slot, the LINE OUT, the clock or the HDMI input
+  // draws no icon, row, menu entry, tab or source for it.
+  const want = {
+    URX22: { icons: ["SETUP", "MONITOR", "HOME"], dateTime: false, analog: ["MAIN OUT"], tabs: ["Main"], sources: [] },
+    URX44: {
+      icons: ["SETUP", "microSD", "MONITOR", "HOME"],
+      dateTime: true,
+      analog: ["MAIN OUT", "LINE OUT"],
+      tabs: ["Main"],
+      sources: ["microSD Playback"],
+    },
+    URX44V: {
+      icons: ["SETUP", "microSD", "MONITOR", "HOME"],
+      dateTime: true,
+      analog: ["MAIN OUT", "LINE OUT"],
+      tabs: ["Main", "HDMI"],
+      sources: ["microSD Playback", "HDMI"],
+    },
+  };
+
+  for (const id of ["URX22", "URX44", "URX44V"] as const) {
+    it(`draws on the ${id} what the ${id} has, and nothing it does not`, async () => {
+      const row = want[id];
+      const shell = await mount(id);
+      const names = (selector: string): string[] =>
+        [...shell.root.querySelectorAll(selector)].map((n) => accessibleName(n).replace("\n", " "));
+      expect(names(".toolbar-icons .icon-btn"), "HOME's icons").toEqual(row.icons);
+
+      shell.ctx.nav.openTop({ id: "setup" });
+      await flush();
+      expect(names(".menu-btn"), "SETUP's menu").toContain("Version");
+      expect(names(".menu-btn").includes("Date/Time"), "SETUP's Date/Time").toBe(row.dateTime);
+      shell.ctx.nav.push({ id: "setup.patch" });
+      await flush();
+      expect(names(".patch-caption"), "OUTPUT PATCH's Analog tab").toEqual(row.analog);
+      shell.ctx.nav.back();
+      shell.ctx.nav.push({ id: "setup.peripheral" });
+      await flush();
+      expect(names(".side-tab .side-tab-label"), "PERIPHERAL's tabs").toEqual(row.tabs);
+
+      shell.ctx.nav.home();
+      shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+      shell.ctx.nav.push({ id: "ch.input", strip: "ch1" });
+      await flush();
+      shell.root.querySelector<HTMLElement>(".input-source-btn")?.click();
+      await flush();
+      const sources = names(".source-sheet .source-btn");
+      expect(sources, "CH 1's Input Source sheet open").toContain("AUX IN");
+      expect(
+        sources.filter((s) => s === "microSD Playback" || s === "HDMI"),
+        "CH 1's Input Source sheet",
+      ).toEqual(row.sources);
+    });
+  }
+});
+
 describe("the send-destination sheet", () => {
   it("drops over the main area and keeps the rail it was opened from", async () => {
     const shell = await mount();
