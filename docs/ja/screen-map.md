@@ -20,7 +20,7 @@ flowchart LR
   HOME --> CV[["Channel view<br>(channel-view)"]]:::ref
   HOME --> SENDS["(sends-select)"]
   HOME --> BANK["(bank-select)"]
-  HOME --> SCENE["SCENE<br>(scene)"]
+  HOME --> SCENE["SCENE (メニュー)<br>(scene)"]
   SCENE --> SLIST["SCENE LIST<br>(scene.list)"]
   SLIST --> STITLE["(scene.title)"]
   classDef ref fill:#fff6d5,stroke:#b8860b,stroke-width:2px;
