@@ -53,6 +53,11 @@ export function filePath(entry: Pick<CardEntry, "dir" | "name">): string {
   return `${FILES}${entry.dir}${entry.name}`;
 }
 
+/** Whether the card takes two names for one: it tells names apart by their letters, not by their case. */
+export function sameName(a: string, b: string): boolean {
+  return a.toLowerCase() === b.toLowerCase();
+}
+
 /** What follows the name of a take the recorder writes. */
 export const TAKE_SUFFIX = ".wav";
 
@@ -149,14 +154,14 @@ export function cardStamp(store: DeviceStore, at = Date.now()): string {
 
 /**
  * What the recorder names a take: the unit's clock, to the second. A name the
- * card already carries takes the next second that is free.
+ * card already carries, in any case, takes the next second that is free.
  */
 export function takeName(store: DeviceStore, at = Date.now()): string {
   const { year, month, day, hour, minute, second } = clockParts(store, at);
-  const taken = new Set(readCard(store).map((e) => e.name));
+  const taken = readCard(store).map((e) => e.name);
   for (let i = 0; i < 60; i++) {
     const name = `${year}${pad(month)}${pad(day)}_${pad(hour)}${pad(minute)}${pad((second + i) % 60)}${TAKE_SUFFIX}`;
-    if (!taken.has(name)) return name;
+    if (!taken.some((t) => sameName(t, name))) return name;
   }
   return `${year}${pad(month)}${pad(day)}_${pad(hour)}${pad(minute)}${pad(second)}${TAKE_SUFFIX}`;
 }

@@ -87,6 +87,18 @@ describe("what the recorder leaves on the card", () => {
     expect(names(shell).sort()).toEqual(["20260920_140526.wav", "20260920_140527.wav"]);
   });
 
+  it("gives a take the next second when the card carries the name its own second gives in other case", async () => {
+    const held: CardEntry = { name: "20260920_140526.WAV", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" };
+    const shell = await mount({ id: "microsd.recorder" }, [held]);
+    const store = shell.ctx.store;
+    await setClock(store, { year: 2026, month: 9, day: 20, hour: 14, minute: 5 }, 0);
+    await store.set("sd.rec", "armed");
+    recordTake(store, 1_000);
+    stopTake(store, 26_000);
+    await flush();
+    expect(names(shell)).toEqual(["20260920_140526.WAV", "20260920_140527.wav"]);
+  });
+
   it("writes the take into the folder the card browser is open on", async () => {
     const shell = await mount({ id: "microsd.recorder" }, [
       { name: "Recordings", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" },
@@ -356,6 +368,51 @@ describe("what the card's own actions do to it", () => {
     const after = readCard(store);
     expect(after.map((e) => e.kind), "the folder kept, the file written").toEqual(["folder", "data"]);
     expect([after[1]?.stamp !== "", store.str("sd.file./x.urxf", "") !== "", store.num("sd.selectedFile", -1)], "the file the cursor stood on").toEqual([true, true, 1]);
+  });
+
+  it("writes [Save as] over a settings file whose name differs in case alone, without asking, under the name the file carries", async () => {
+    const shell = await mount({ id: "microsd.saveload" }, card);
+    const store = shell.ctx.store;
+    const ask = (): string | null => shell.root.querySelector(".dialog-text")?.textContent ?? null;
+    const saveAs = async (title: string): Promise<void> => {
+      action(shell, "Save as")?.click();
+      await flush();
+      await typeTitle(shell, title);
+    };
+    await store.set("ch.ch1.level", -12);
+    await saveAs("mix");
+    await saveAs("mix");
+    expect(ask(), "the control: the name spelt the same asks").toBe("File already exists. Replace it?");
+    [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === "Cancel")?.click();
+    await flush();
+
+    await store.set("ch.ch1.level", 5);
+    await saveAs("MIX");
+    expect(ask(), "spelt in other case, nothing asks").toBeNull();
+    expect(readCard(store).filter((e) => e.kind === "data").map((e) => `${e.dir}${e.name}`), "one file, under the name it carried").toEqual(["/mix.urxf"]);
+    expect(store.has("sd.file./MIX.urxf"), "nothing held under the name typed").toBe(false);
+    await store.set("ch.ch1.level", 0);
+    await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === "mix.urxf"));
+    await flush();
+    action(shell, "Load")?.click();
+    await flush();
+    await flush();
+    expect(store.num("ch.ch1.level", 99), "the file holds what the second save wrote").toBe(5);
+  });
+
+  it("writes nothing and asks nothing on [Save as] under a folder's name in other case", async () => {
+    const shell = await mount({ id: "microsd.saveload" }, [{ name: "Cfg.urxf", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" }]);
+    const store = shell.ctx.store;
+    const before = readCard(store);
+    action(shell, "Save as")?.click();
+    await flush();
+    await typeTitle(shell, "cfg");
+    expect([shell.root.querySelector(".dialog-text")?.textContent ?? null, readCard(store), store.has("sd.file./cfg.urxf")], "the folder kept, nothing written").toEqual([null, before, false]);
+
+    action(shell, "Save as")?.click();
+    await flush();
+    await typeTitle(shell, "other");
+    expect(names(shell), "the control: a name the folder does not carry").toEqual(["Cfg.urxf", "other.urxf"]);
   });
 
   it("takes a file off the card once the dialog is answered", async () => {

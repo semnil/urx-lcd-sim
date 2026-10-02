@@ -1615,7 +1615,7 @@ name. The simulator ships with a card named `test` in the slot and nothing on it
 
 [■] leaves the take on the card. Its name comes from the unit's clock as `YYYYMMDD_HHMMSS.wav`, its
 length from the counter, its track count from [Track Count] and its place from the folder the card
-browser is open on; a name the card already carries takes the next second that is free, and a take
+browser is open on; a name the card already carries, in any case, takes the next second that is free, and a take
 shorter than a second leaves nothing. RECORDER's `Time` column is the take's length, and
 SAVE/LOAD's `Date/Time` column is when the file was written.
 
@@ -1649,7 +1649,9 @@ with nothing on it. On SAVE/LOAD, [Save] writes the unit's settings over the sel
 [Save as] writes them under the name that is typed with `.urxf` after it, and [Load] puts a file
 back on the unit. Writing over a file that is already there, or a [Save as] under the name of a folder in the folder
 that is open, asks `File already exists. Replace it?` first; loading asks nothing. Under a folder's name, [OK] leaves
-the folder as it is and writes nothing, as the unit does. [Save] and [Load] stand out of reach until a settings file is under the
+the folder as it is and writes nothing, as the unit does. A [Save as] name that differs from a settings file's in the folder
+that is open in case alone asks nothing and writes over that file, which keeps its name as it was spelt, as the unit does; one
+that differs from a folder's in case alone asks nothing and writes nothing. [Save] and [Load] stand out of reach until a settings file is under the
 cursor. A settings file carries every value but the screen's own state (`ui.`) and the card itself
 (`sd.`). A source the file holds no D.Gain for comes back to 0 dB when it is loaded, and a scene number
 the file holds nothing under comes back empty.

@@ -8,7 +8,7 @@
 import type { AppContext } from "../app/context";
 import type { ParamValue } from "../device/path";
 import type { CardEntry } from "../model/card";
-import { CARD_ROOT, TAKE_SUFFIX, cardStamp, changeCard, filePath, folderPath, formatFree, formatRate, freeBytes, parentPath, readCard, takeRate } from "../model/card";
+import { CARD_ROOT, TAKE_SUFFIX, cardStamp, changeCard, filePath, folderPath, formatFree, formatRate, freeBytes, parentPath, readCard, sameName, takeRate } from "../model/card";
 import { applySettings, captureSettings } from "../model/settings-file";
 import { onDynamicsTimeStops } from "../model/dynamics-times";
 import { TRACK_COUNTS, dropTracksOverRate, trackCountCeiling } from "../model/track-count";
@@ -420,9 +420,14 @@ function saveLoadAction(ctx: AppContext, label: string): void {
     nameOnCard(ctx, "", (name) => {
       // A name the folder already carries asks first. [OK] writes over a
       // settings file of that name, and leaves a folder of that name as it is,
-      // writing nothing.
+      // writing nothing. A name that differs from one the folder carries in case
+      // alone asks nothing: it writes over a settings file under the name the
+      // file carries, and writes nothing over a folder.
       if (!folderCarries(cardEntries(ctx), cardPath(ctx), name)) {
-        saveSettings(ctx, name);
+        const at = cardEntries(ctx).findIndex((e) => e.dir === cardPath(ctx) && sameName(e.name, name));
+        const same = cardEntries(ctx)[at];
+        if (!same) saveSettings(ctx, name);
+        else if (same.kind === "data") saveSettings(ctx, same.name, at);
         return;
       }
       const over = (): void => {
