@@ -71,6 +71,20 @@ describe("the OUTPUT PATCH source buttons", () => {
     expect(sheet(shell)).toBeNull();
   });
 
+  it("lights on the sheet the source its own output is on, and that one alone", async () => {
+    const shell = await open();
+    const lit = (): string[] =>
+      [...shell.root.querySelectorAll(".source-sheet .source-btn.is-on")].map((b) => (b.textContent ?? "").replace("\n", " "));
+    await tap(shell, ".patch-btn");
+    expect(lit(), "MAIN OUT as the unit ships").toEqual(["STEREO"]);
+    await pick(shell, "MONITOR 1");
+    await tap(shell, ".patch-btn");
+    expect(lit(), "MAIN OUT taken to MONITOR 1").toEqual(["MONITOR 1"]);
+    await pick(shell, "MONITOR 1");
+    await tap(shell, ".patch-btn", 1);
+    expect([title(shell), lit()], "LINE OUT as the unit ships").toEqual(["LINE OUT", ["MIX 1"]]);
+  });
+
   it("puts the channels a USB output can take on its list, as many as the unit has", async () => {
     const shell = await open();
     await shell.ctx.store.set("setup.outputPatch.tab", "USB");

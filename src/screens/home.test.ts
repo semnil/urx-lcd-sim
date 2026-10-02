@@ -6,6 +6,7 @@ import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
 import { CH_COLOR_PALETTE, unitById } from "../model/units";
 import { bankStrips } from "../model/types";
+import { OSC_TARGETS } from "../model/oscillator";
 import { bankName, channelLabel } from "./strip-state";
 import { buildRegistry } from "./index";
 import { meterLevels, setMeterSource, startMeterTicker } from "./meters";
@@ -708,6 +709,19 @@ describe("the screens the toolbar icons open", () => {
     for (const id of TOPS) {
       expect((await captions(id)).every((c) => c.length > 0), `${id} names every entry`).toBe(true);
     }
+  });
+
+  it("opens from MONITOR's menu the screen each entry names", async () => {
+    const shell = await mount();
+    const opened: string[] = [];
+    for (const label of ["Monitor", "Phones", "Oscillator"]) {
+      shell.ctx.nav.openTop({ id: "monitor" });
+      await flush();
+      [...shell.root.querySelectorAll<HTMLElement>(".menu-btn")].find((b) => b.textContent === label)?.click();
+      await flush();
+      opened.push(shell.ctx.nav.current.id);
+    }
+    expect(opened).toEqual(["monitor.level", "monitor.phones", "monitor.osc"]);
   });
 });
 
@@ -2279,6 +2293,66 @@ describe("POWER MANAGEMENT", () => {
   });
 });
 
+describe("PERIPHERAL's HDMI tab", () => {
+  it("switches HDCP at each press of [Enable], and takes the Input Audio Channels pressed", async () => {
+    const shell = await mount();
+    const store = shell.ctx.store;
+    shell.ctx.nav.openTop({ id: "setup" });
+    shell.ctx.nav.push({ id: "setup.peripheral" });
+    await flush();
+    [...shell.root.querySelectorAll<HTMLElement>(".side-tab")].find((t) => t.querySelector(".side-tab-label")?.textContent === "HDMI")?.click();
+    await flush();
+    const press = async (label: string): Promise<void> => {
+      [...shell.root.querySelectorAll<HTMLElement>(".peripheral-screen .btn")].find((b) => b.textContent === label)?.click();
+      await flush();
+    };
+    /** HDCP, the Input Audio Channels, and the buttons lit. */
+    const seen = (): (boolean | string | string[])[] => [
+      store.bool("setup.peripheral.hdmiEnable", false),
+      store.str("setup.peripheral.hdmiChannels", ""),
+      [...shell.root.querySelectorAll(".peripheral-screen .btn.is-on")].map((b) => b.textContent ?? ""),
+    ];
+    expect(shell.root.querySelector(".peripheral-screen .section-band")?.textContent, "the HDMI tab open").toBe("HDMI");
+    expect(seen(), "as the unit ships").toEqual([true, "2 Channels", ["Enable", "2 Channels"]]);
+    await press("Enable");
+    expect(seen(), "HDCP off").toEqual([false, "2 Channels", ["2 Channels"]]);
+    await press("Multi Channels");
+    expect(seen()).toEqual([false, "Multi Channels", ["Multi Channels"]]);
+    await press("Enable");
+    await press("2 Channels");
+    expect(seen(), "and back").toEqual([true, "2 Channels", ["Enable", "2 Channels"]]);
+  });
+});
+
+describe("SOFTWARE INTEGRATION", () => {
+  it("takes for FX1 and for FX2 each the MIX picked on its own list", async () => {
+    const shell = await mount();
+    const store = shell.ctx.store;
+    shell.ctx.nav.openTop({ id: "setup" });
+    shell.ctx.nav.push({ id: "setup.integration" });
+    await flush();
+    const boxes = (): HTMLElement[] => [...shell.root.querySelectorAll<HTMLElement>(".integration-screen .pulldown")];
+    const choose = async (box: number, option: string): Promise<void> => {
+      boxes()[box]?.click();
+      await flush();
+      [...shell.root.querySelectorAll<HTMLElement>(".dropdown-option")].find((o) => o.textContent === option)?.click();
+      await flush();
+    };
+    /** What FX1 and FX2 are set to, then what their boxes read. */
+    const seen = (): (string | null | undefined)[] => [
+      store.str("setup.integration.fx1Send", ""),
+      store.str("setup.integration.fx2Send", ""),
+      ...boxes().map((b) => b.querySelector(".pulldown-value")?.textContent),
+    ];
+    expect(seen(), "as the unit ships").toEqual(["MIX 1", "MIX 1", "MIX 1", "MIX 1"]);
+    await choose(1, "MIX 2");
+    expect(seen(), "FX2's list").toEqual(["MIX 1", "MIX 2", "MIX 1", "MIX 2"]);
+    await choose(0, "MIX 2");
+    await choose(1, "MIX 1");
+    expect(seen()).toEqual(["MIX 2", "MIX 1", "MIX 2", "MIX 1"]);
+  });
+});
+
 describe("the side rail's tabs", () => {
   const open = async (id: string): Promise<Shell> => {
     const shell = await mount();
@@ -2454,6 +2528,30 @@ describe("the oscillator's Assign tab", () => {
         [...shell.root.querySelectorAll(".osc-target")].map((b) => [...b.classList].find((c) => /^osc-(mix|fx|stereo)$/.test(c))),
       ).toEqual(["osc-mix", "osc-mix", "osc-mix", "osc-mix", "osc-fx", "osc-fx", "osc-stereo", "osc-stereo"]);
     }
+  });
+
+  it("takes every assignment off with [Clear All]", async () => {
+    const shell = await mount();
+    shell.ctx.nav.openTop({ id: "monitor" });
+    shell.ctx.nav.push({ id: "monitor.osc" });
+    await shell.ctx.store.set("ui.oscTab", "Assign");
+    await flush();
+    const target = (label: string): HTMLElement | undefined =>
+      [...shell.root.querySelectorAll<HTMLElement>(".osc-target")].find((b) => (b.textContent ?? "").replace("\n", " ") === label);
+    const lit = (): string[] =>
+      [...shell.root.querySelectorAll(".osc-target.is-on")].map((b) => (b.textContent ?? "").replace("\n", " "));
+    const assigned = (): string[] => OSC_TARGETS.filter((t) => shell.ctx.store.bool(`osc.assign.${t.id}`, t.shipped)).map((t) => t.id);
+    expect(lit(), "as the unit ships").toEqual(["STEREO L", "STEREO R"]);
+    target("MIX 2 R")?.click();
+    await flush();
+    target("FX 1")?.click();
+    await flush();
+    expect(assigned()).toEqual(["mix2R", "fx1", "stereoL", "stereoR"]);
+
+    shell.root.querySelector<HTMLElement>(".osc-clear")?.click();
+    await flush();
+    expect(assigned()).toEqual([]);
+    expect(lit()).toEqual([]);
   });
 });
 
@@ -3521,6 +3619,33 @@ describe("the MONITOR Setting toggles", () => {
     for (const b of [...cue, ...mono]) expect(b.classList.contains("mon-btn"), (b.textContent ?? "").replace("\n", " ")).toBe(true);
     expect(cue.map((b) => b.classList.contains("is-on")), "the off one takes the pale face").toEqual([true, false]);
     expect(mono.map((b) => b.classList.contains("is-on")), "and MONO follows its own bus").toEqual([false, true]);
+  });
+
+  it("switches CUE Interrupt and MONO at each press, on the bus pressed alone", async () => {
+    const shell = await mount();
+    shell.ctx.nav.openTop({ id: "monitor" });
+    shell.ctx.nav.push({ id: "monitor.level" });
+    await shell.ctx.store.set("ui.monitorTab", "Setting");
+    await flush();
+    const press = async (selector: string, bus: number): Promise<void> => {
+      shell.root.querySelectorAll<HTMLElement>(selector)[bus - 1]?.click();
+      await flush();
+    };
+    /** Each bus's CUE Interrupt and MONO, as set and as lit. */
+    const seen = (): boolean[][] =>
+      [1, 2].map((n) => [
+        shell.ctx.store.bool(`monitor.${n}.cueInterrupt`, false),
+        shell.ctx.store.bool(`monitor.${n}.mono`, true),
+        shell.root.querySelectorAll(".mon-cue")[n - 1]?.classList.contains("is-on") ?? false,
+        shell.root.querySelectorAll(".mon-mono")[n - 1]?.classList.contains("is-on") ?? true,
+      ]);
+    expect(seen(), "as the unit ships").toEqual([[true, false, true, false], [true, false, true, false]]);
+    await press(".mon-cue", 2);
+    await press(".mon-mono", 2);
+    expect(seen(), "bus 2's").toEqual([[true, false, true, false], [false, true, false, true]]);
+    await press(".mon-cue", 2);
+    await press(".mon-mono", 2);
+    expect(seen(), "and back").toEqual([[true, false, true, false], [true, false, true, false]]);
   });
 });
 
