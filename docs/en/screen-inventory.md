@@ -205,7 +205,8 @@ above 0 (`+14` / `0` / `-8`; the readout bar shows `+14dB`). Faders keep two dec
 Dynamics threshold and range are integer dB (`-33dB` / `-20dB`, p099-1 / p103-1), and makeup gain
 has one decimal place (`18.0dB`). A time is spelled differently for the same value: `34.58m` in the
 panel's value box and `34.58ms` on the readout bar (p099-1 / p103-1). A time that can go past one
-second switches to seconds from 1000 ms (`4.8s`, p114-1). No space goes before the unit. Frequency
+second switches to seconds from 1000 ms (`4.8s`, p114-1), and from there a detent of the arrow keys
+and the wheel is the 0.1 s its reading prints. No space goes before the unit. Frequency
 has one decimal place and switches to kHz from 1 kHz, and a value box that has a caption shows no
 unit (`80.0` and `80.0Hz`, p100-1).
 
