@@ -196,6 +196,27 @@ describe("the compressor the strip runs", () => {
     }
   });
 
+  it("lifts the drawn curve by the Out Gain at a Comp Drive of nothing as at the next step up", async () => {
+    const shell = await strip("ch.ssmcs.comp");
+    await shell.ctx.store.set("ch.ch1.comp.on", true);
+    await shell.ctx.store.set("ch.ch1.ssmcs.outGain", 6);
+    // The curve is drawn a decibel at a time from -80 dB, on a plot 198x130 that
+    // reads -80..+20 dB both ways.
+    const outAt = (db: number): number => {
+      const points = (shell.root.querySelector(".dyn-plot .dyn-curve-line")?.getAttribute("points") ?? "").split(" ");
+      const [, y = Number.NaN] = (points[db + 80] ?? "").split(",").map(Number);
+      return 20 - (y / 130) * 100;
+    };
+    for (const drive of [0, 0.05]) {
+      await shell.ctx.store.set("ch.ch1.ssmcs.compDrive", drive);
+      await flush();
+      expect(outAt(-60), `Comp Drive ${drive}`).toBeCloseTo(-54, 1);
+    }
+    await shell.ctx.store.set("ch.ch1.ssmcs.compDrive", 0);
+    await flush();
+    expect(outAt(10), "a drive of nothing compresses nothing over 0 dB either").toBeCloseTo(16, 1);
+  });
+
   it("draws the same curve on the side chain screen, without the two handles", async () => {
     const comp = await strip("ch.ssmcs.comp");
     const sc = await strip("ch.ssmcs.sc");

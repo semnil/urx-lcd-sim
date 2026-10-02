@@ -226,9 +226,9 @@ function transfer(ctx: AppContext, b: string): (db: number) => number {
   const ratio = ctx.store.num(`${b}.ssmcs.comp.ratio`, SSMCS_DEFAULTS.ratio);
   const knee = KNEE_REACH[ctx.store.str(`${b}.ssmcs.comp.knee`, SSMCS_DEFAULTS.knee)] ?? KNEE_REACH.Medium ?? [0, 0];
   const gain = ctx.store.num(`${b}.ssmcs.outGain`, SSMCS_DEFAULTS.outGain);
-  // A drive of nothing leaves the signal alone.
+  // A drive of nothing compresses nothing; Out Gain still lifts it.
   const curve = compResponse(thr, Number.isFinite(ratio) ? ratio : 1000, knee, gain);
-  return (db) => (drive === 0 ? db : curve(db));
+  return (db) => (drive === 0 ? db + gain : curve(db));
 }
 
 const bandState = (ctx: AppContext, b: string, band: (typeof SSMCS_BANDS)[number]): SsmcsBand => ssmcsBand(ctx.store, b, band.key);
