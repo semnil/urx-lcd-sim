@@ -562,6 +562,25 @@ describe("the screen an effect is set on", () => {
     expect(named()).toBe("Mid");
   });
 
+  it("switches the [Bypass] of the band whose page is open at each press, and no other band's", async () => {
+    const shell = await openParams("bus.stereo", "M.B.Comp");
+    const bypassed = (): boolean[] => ["low", "mid", "high"].map((b) => shell.ctx.store.bool(`ch.bus.stereo.insFx.${b}Bypass`, true));
+    const lit = (): string | null | undefined => shell.root.querySelector(".mbc-bypass")?.getAttribute("aria-pressed");
+    await click(shell, ".efx-page-next");
+    expect([shell.root.querySelector(".mbc-band-name")?.textContent, lit(), bypassed()], "Low as the unit ships").toEqual(["Low", "false", [false, false, false]]);
+    await click(shell, ".mbc-bypass");
+    expect([lit(), bypassed()], "Low bypassed").toEqual(["true", [true, false, false]]);
+
+    await click(shell, ".efx-page-next");
+    expect([shell.root.querySelector(".mbc-band-name")?.textContent, lit()], "Mid's page reads Mid's own").toEqual(["Mid", "false"]);
+    await click(shell, ".mbc-bypass");
+    expect([lit(), bypassed()], "Mid bypassed").toEqual(["true", [true, true, false]]);
+
+    await click(shell, ".efx-page-prev");
+    await click(shell, ".mbc-bypass");
+    expect([lit(), bypassed()], "Low back in").toEqual(["false", [false, true, false]]);
+  });
+
   it("lays an effect out two rows of four at a time, a short page in the lower row", async () => {
     // Ten controls over two pages, eight and two.
     const shell = await mount([{ id: "channel-view", strip: "fx1" }, { id: "ch.effect", strip: "fx1" }]);
@@ -678,6 +697,21 @@ describe("the screen an effect is set on", () => {
     await click(shell, ".knob-page-next");
     expect(knobLabels(shell), "Mix stands in the upper row's third place").toEqual(["", "", "Mix", ""]);
     expect(shell.root.querySelector(".efx-page-next"), "three pages").toBeNull();
+  });
+
+  it("switches Pitch Fix's [Correction] at each press, the corner of every page reading the one switch", async () => {
+    const shell = await openParams("ch1", "Pitch Fix");
+    const seen = (): (boolean | string | null | undefined)[] => [
+      shell.ctx.store.bool("ch.ch1.insFx.correction", false),
+      shell.root.querySelector(".pitch-corner")?.getAttribute("aria-pressed"),
+    ];
+    expect(seen(), "on as the unit ships").toEqual([true, "true"]);
+    await click(shell, ".pitch-corner");
+    expect(seen(), "off").toEqual([false, "false"]);
+    await click(shell, ".efx-page-next");
+    expect(seen(), "and off on the next page").toEqual([false, "false"]);
+    await click(shell, ".pitch-corner");
+    expect(seen(), "on again from there").toEqual([true, "true"]);
   });
 
   it("lights the notes of the scale on Pitch Fix's keyboard, and turns one over on a touch", async () => {

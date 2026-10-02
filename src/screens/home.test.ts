@@ -2212,6 +2212,20 @@ describe("CH SETTING: what a channel is tapped at and what colour it carries", (
     expect(shell.root.querySelector(".color-sheet"), "the way out closes it").toBeNull();
     expect(shell.ctx.store.str("ch.ch1.color", ""), "on the colour it was opened with").toBe(before);
   });
+
+  it("names the channel what the Name field is left with, and nothing while it is typed in", async () => {
+    const shell = await setting("ch1");
+    const input = shell.root.querySelector<HTMLInputElement>(".chs-name");
+    const before = shell.ctx.store.str("ch.ch1.name", "");
+    expect(input?.value, "the field opens on the channel's name").toBe(before);
+    if (input) input.value = "Vox";
+    input?.dispatchEvent(new Event("input", { bubbles: true }));
+    await flush();
+    expect(shell.ctx.store.str("ch.ch1.name", ""), "a keystroke writes nothing").toBe(before);
+    input?.dispatchEvent(new Event("change", { bubbles: true }));
+    await flush();
+    expect(shell.ctx.store.str("ch.ch1.name", ""), "leaving the field writes it").toBe("Vox");
+  });
 });
 
 describe("POWER MANAGEMENT", () => {
@@ -2777,6 +2791,22 @@ describe("the channel the dedicated screens show", () => {
     ]);
   });
 
+  it("steps back from the first channel round to the last, and on from there to the first again", async () => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    await flush();
+    const press = async (label: string): Promise<string[]> => {
+      shell.root.querySelector<HTMLElement>(`.ch-arrow[aria-label="${label}"]`)?.click();
+      await flush();
+      return [shell.root.querySelector(".ch-chip-id")?.textContent ?? "", shell.ctx.store.str("ui.selectedStrip", "")];
+    };
+    expect(shell.root.querySelector(".ch-chip-id")?.textContent).toBe("CH 1");
+    expect(await press("Previous channel")).toEqual(["STREAMING R", "bus.stream"]);
+    expect(await press("Previous channel"), "a two-channel strip through both of its channels").toEqual(["STREAMING L", "bus.stream"]);
+    expect(await press("Next channel")).toEqual(["STREAMING R", "bus.stream"]);
+    expect(await press("Next channel")).toEqual(["CH 1", "ch1"]);
+  });
+
   it("shortens STEREO and STREAMING in the narrow box", () => {
     const unit = unitById("URX44V");
     const find = (id: string) => {
@@ -2857,6 +2887,24 @@ describe("EQ's shape list and Operation Mode's previews", () => {
     expect(CSS, "the mark is not hidden").not.toMatch(/\.pulldown\.is-fixed \.pulldown-mark\s*\{\s*visibility: hidden/);
     const option = declarations(CSS, ".btn.dropdown-option.eq-shape-option");
     expect([px(option["width"]), px(option["height"])], "the size of the shape box").toEqual([94, 38]);
+  });
+
+  it("gives the band held the shape picked from its list, and leaves the other outer band's alone", async () => {
+    const shell = await mount();
+    const store = shell.ctx.store;
+    await store.set("ui.eqBand", "low");
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    shell.ctx.nav.push({ id: "ch.eq", strip: "ch1" });
+    await flush();
+    const shapes = (): string[] => [store.str("ch.ch1.eq.low.shape", ""), store.str("ch.ch1.eq.high.shape", "")];
+    const before = shapes();
+    expect(before[0], "LOW as the unit ships").toBe("L.Shelf");
+    shell.root.querySelector<HTMLElement>(".eq-screen > .pulldown")?.click();
+    await flush();
+    [...shell.root.querySelectorAll<HTMLElement>(".dropdown-option.eq-shape-option")].find((o) => o.getAttribute("aria-label") === "HPF")?.click();
+    await flush();
+    expect(shell.root.querySelector(".dropdown-option"), "the list closes on the pick").toBeNull();
+    expect(shapes()).toEqual(["HPF", before[1]]);
   });
 
   it("switches the held EQ band on and off from the band box, the curve leaving a band that is off and its grip hollow", async () => {
@@ -4522,6 +4570,31 @@ describe("the control the knob turns", () => {
     shell.root.querySelector<HTMLElement>(".dyn-row-knee .pulldown")?.click();
     await flush();
     expect(shell.root.querySelector(".dropdown-list"), "while Knee opens once 1-knob is off").not.toBeNull();
+  });
+
+  it("takes the Knee and the Auto Makeup picked from their lists on the COMP screen", async () => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    shell.ctx.nav.push({ id: "ch.comp", strip: "ch1" });
+    await flush();
+    const choose = async (row: string, option: string): Promise<void> => {
+      shell.root.querySelector<HTMLElement>(`.dyn-row-${row} .pulldown`)?.click();
+      await flush();
+      [...shell.root.querySelectorAll<HTMLElement>(".dropdown-option")].find((o) => o.textContent === option)?.click();
+      await flush();
+    };
+    const seen = (): (string | boolean | null | undefined)[] => [
+      shell.ctx.store.str("ch.ch1.comp.knee", ""),
+      shell.ctx.store.bool("ch.ch1.comp.autoMakeup", true),
+      shell.root.querySelector(".dyn-row-knee .pulldown-value")?.textContent,
+      shell.root.querySelector(".dyn-row-makeup .pulldown-value")?.textContent,
+    ];
+    expect(seen(), "as the unit ships").toEqual(["Medium", false, "Medium", "Off"]);
+    await choose("knee", "Hard");
+    await choose("makeup", "On");
+    expect(seen()).toEqual(["Hard", true, "Hard", "On"]);
+    await choose("makeup", "Off");
+    expect(seen()).toEqual(["Hard", false, "Hard", "Off"]);
   });
 
   it("pins the focus to 1-knob's level on the EQ screen and shrinks the grips to marks that pick nothing", async () => {
