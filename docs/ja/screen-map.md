@@ -11,15 +11,15 @@
 
 ```mermaid
 flowchart LR
-  RAIL["ツールバーとサイドレール<br>どの画面からも押せる"]
-  RAIL --> SETUP[["SETUP GENERAL<br>(setup)"]]:::ref
-  RAIL --> SD[["microSD トップメニュー<br>(microsd)"]]:::ref
-  RAIL --> MON[["MONITOR トップメニュー<br>(monitor)"]]:::ref
-  RAIL --> BANK["(bank-select)"]
+  ICONS["ツールバーのアイコン<br>HOME・チャンネルビューにある"]
+  ICONS --> SETUP[["SETUP GENERAL<br>(setup)"]]:::ref
+  ICONS --> SD[["microSD トップメニュー<br>(microsd)"]]:::ref
+  ICONS --> MON[["MONITOR トップメニュー<br>(monitor)"]]:::ref
 
   HOME["HOME (Overview)<br>(home)"]
   HOME --> CV[["Channel view<br>(channel-view)"]]:::ref
   HOME --> SENDS["(sends-select)"]
+  HOME --> BANK["(bank-select)"]
   HOME --> SCENE["SCENE<br>(scene)"]
   SCENE --> SLIST["SCENE LIST<br>(scene.list)"]
   SLIST --> STITLE["(scene.title)"]
@@ -98,8 +98,10 @@ flowchart LR
 - **ノードの 1 行目はユーザーガイドの呼び名。** 2 行目の `()` はこのシミュレーターの中での画面 ID。
   ガイドがその画面を名で呼んでいないもの (バンクの一覧・送り先のシート・名前の入力・割り当てのポップアップ) は、
   ID だけを `()` で書く。
-- **サイドレールは HOME の直上へ開く。** SETUP・microSD・MONITOR はどの画面からでも開き、そこから
-  戻る矢印を 1 回押すと HOME へ帰る (`openTop()`)。ほかの矢印はその画面の上に積む (`push()`)。
+- **ツールバーのアイコンは HOME の直上へ開く。** SETUP・microSD・MONITOR は HOME・チャンネルビューの
+  アイコンから開き、どこで押しても下には HOME だけが残る (`openTop()`)。それぞれのトップは戻る矢印を描かず、
+  HOME ボタンか `Escape` で HOME へ帰る。送り先のシートとバンクの一覧はアイコンを暗幕の下に透かすが、そこでは押しても応えない。
+  ほかの矢印はその画面の上に積む (`push()`)。
 - **SSMCS の 4 画面は入れ替わる。** 画面の両端の丸い矢印は積まずに入れ替えるので (`replace()`)、
   どの面から戻ってもチャンネルビューへ 1 回で帰る。チャンネルビューから開くのはメインの面。
 - **エフェクトの画面は 2 つの入口を持つ。** インサートはチャンネルビューの INS FX から `ch.insfx` を、

@@ -1398,8 +1398,10 @@ rail moves.
 
 HOME's icon row (SETUP / microSD / MONITOR / HOME) stays on the screens one level from HOME. Those are
 the channel view (p090-1) and the Sends destination sheet (p051-1), declared with `toolbar: "home"` on
-`ScreenDef`. The channel bank button belongs to a separate declaration (`bankButton`), and HOME and the
-bank list show it.
+`ScreenDef`. The channel bank button belongs to a separate declaration (`bankButton`), and HOME, the
+Sends destination sheet and the bank list show it. Around the Sends destination sheet and the bank list,
+which carry both declarations as well, what shows through the dark answers no touch but for the button
+lit there ("Sheets over the screen", "Channel bank layout").
 
 The row reaches the right edge of the screen, lays out 40px cells 4px apart, and has a 1px divider
 before HOME (the box is x297..479; the glyph centers are 318.5 / 362.5 / 406.5 / 455.5). The title is
