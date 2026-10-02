@@ -537,9 +537,11 @@ function mbcBandPage(
 /**
  * The reduction each band is holding its own back by, the open band's bar lit:
  * how far the strip's level is over the band's threshold, kept moving with it.
+ * A band holds nothing back while the INS FX is off or the band is bypassed.
  */
 function mbcGr(ctx: AppContext, strip: Strip, base: string, fallbackOf: (key: string) => number, lit?: string): HTMLElement {
-  const bar = (key: string): HTMLElement => {
+  const bar = (band: string): HTMLElement => {
+    const key = `${band}Threshold`;
     const gr: GrSpec = {
       kind: "over",
       base,
@@ -547,6 +549,8 @@ function mbcGr(ctx: AppContext, strip: Strip, base: string, fallbackOf: (key: st
       makeup: 0,
       detector: "mbc",
       threshold: { path: `${base}.${key}`, fallback: fallbackOf(key) },
+      on: { path: `${base}.on`, fallback: false },
+      bypass: `${base}.${band}Bypass`,
     };
     const node = el("div", {
       class: "dyn-gr",
@@ -570,7 +574,7 @@ function mbcGr(ctx: AppContext, strip: Strip, base: string, fallbackOf: (key: st
             // The frame round the open band is the wrapper's, so the bar itself
             // keeps the corner shades its own rows draw.
             class: `mbc-gr-bar${band.key === lit ? " is-lit" : ""}`,
-            children: [bar(`${band.key}Threshold`)],
+            children: [bar(band.key)],
           }),
         ),
       }),

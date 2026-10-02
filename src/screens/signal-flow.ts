@@ -253,6 +253,8 @@ export interface GrSpec {
   threshold?: { path: string; fallback: number };
   /** For `over`: where the switch that turns the block on is kept, and its value when unset. Without it the block is on. */
   on?: { path: string; fallback: boolean };
+  /** For `over`: where a switch that takes the block out is kept. While it is set the block is off. */
+  bypass?: string;
 }
 
 /** The detector a block's reduction is worked out through. A ducker's depends on whether its key is stereo. */
@@ -280,7 +282,7 @@ function blockOn(store: DeviceStore, spec: GrSpec): boolean {
   if (spec.kind === "comp") return store.bool(`${spec.base}.comp.on`, false);
   if (spec.kind === "ducker") return store.bool(`${spec.base}.ducker.on`, false);
   if (spec.kind === "ssmcs") return store.bool(`${spec.base}.comp.on`, false) && store.bool(`${spec.base}.ssmcs.on`, SSMCS_DEFAULTS.on);
-  if (spec.kind === "over") return spec.on ? store.bool(spec.on.path, spec.on.fallback) : true;
+  if (spec.kind === "over") return (spec.on ? store.bool(spec.on.path, spec.on.fallback) : true) && !(spec.bypass && store.bool(spec.bypass, false));
   return true;
 }
 

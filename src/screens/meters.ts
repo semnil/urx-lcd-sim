@@ -214,6 +214,7 @@ export function markReduction(node: HTMLElement, spec: GrSpec): void {
   if (spec.detector) node.dataset["grDetector"] = spec.detector;
   if (spec.threshold) node.dataset["grThreshold"] = `${spec.threshold.fallback} ${spec.threshold.path}`;
   if (spec.on) node.dataset["grOn"] = `${spec.on.fallback ? 1 : 0} ${spec.on.path}`;
+  if (spec.bypass) node.dataset["grBypass"] = spec.bypass;
 }
 
 const isDetector = (v: string | undefined): v is DetectorKind => v !== undefined && v in DETECTOR_OFFSET;
@@ -233,6 +234,7 @@ export function readGrSpec(node: HTMLElement): GrSpec | null {
     ...(isDetector(node.dataset["grDetector"]) ? { detector: node.dataset["grDetector"] } : {}),
     ...(threshold ? { threshold: { fallback: Number(threshold[0]), path: threshold[1] ?? "" } } : {}),
     ...(on ? { on: { fallback: on[0] === "1", path: on[1] ?? "" } } : {}),
+    ...(node.dataset["grBypass"] ? { bypass: node.dataset["grBypass"] } : {}),
   };
 }
 
