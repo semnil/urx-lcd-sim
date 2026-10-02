@@ -295,6 +295,26 @@ describe("the DATE / TIME popup buttons", () => {
     expect(shell.ctx.store.num("ui.dateTimeDraft.day", 0), "a day that fits is left alone").toBe(28);
   });
 
+  it("brings 29 February down to the 28th as the Year turns to a year that is not a leap year", async () => {
+    const shell = await open();
+    await tap(shell, ".dt-value");
+    const box = (i: number): HTMLElement | null => shell.root.querySelectorAll<HTMLElement>(".dt-box")[i] ?? null;
+    const draft = (): number[] => ["year", "month", "day"].map((k) => shell.ctx.store.num(`ui.dateTimeDraft.${k}`, 0));
+    await shell.ctx.store.set("ui.dateTimeDraft.year", 2028);
+    await shell.ctx.store.set("ui.dateTimeDraft.month", 2);
+    await shell.ctx.store.set("ui.dateTimeDraft.day", 29);
+    await flush();
+    expect(draft(), "the control: 29 February 2028 stands").toEqual([2028, 2, 29]);
+    box(0)?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
+    await flush();
+    expect(draft(), "2027 has no 29 February").toEqual([2027, 2, 28]);
+    expect([box(2)?.textContent, box(2)?.getAttribute("aria-valuenow"), box(2)?.getAttribute("aria-valuemax")], "the Day box").toEqual([
+      "28",
+      "28",
+      "28",
+    ]);
+  });
+
   it("moves the reading on as the clock runs, without drawing the screen again", async () => {
     const shell = await open();
     const time = shell.root.querySelector('[data-clock="time"]');
