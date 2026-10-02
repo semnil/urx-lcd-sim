@@ -248,14 +248,15 @@ export function drawFace(node: HTMLElement, value: string, face: OptionFace | un
   return node;
 }
 
-/** A box that shows its value and opens the list of values it can take. */
+/** A box that shows its value and opens the list of values it can take, named by the setting it sets and its value. */
 export function pulldown(
   ctx: AppContext,
   value: string,
   options: readonly string[],
   onPick: (v: string) => void,
   look: Pick<OptionListSpec, "render" | "optionClass" | "listClass" | "place"> & {
-    label?: string;
+    /** The setting the box sets, which leads the name a reader hears and names the sheet a long list opens on. */
+    label: string;
     open?: () => void;
     columns?: number;
     /** What the list marks as held, where the box prints the value by another name. */
@@ -265,7 +266,7 @@ export function pulldown(
      * tiles carry names alone, so a long list that draws marks gives itself a place.
      */
     face?: OptionFace;
-  } = {},
+  },
 ): HTMLElement {
   const node = el("div", {
     class: "pulldown",
@@ -283,7 +284,7 @@ export function pulldown(
     node,
     open ??
       (onSheet
-        ? () => optionSheet(ctx, label ?? value, options, held, onPick, columns)
+        ? () => optionSheet(ctx, label, options, held, onPick, columns)
         : () =>
             openOptions(ctx, {
               value: held,

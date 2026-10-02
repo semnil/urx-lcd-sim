@@ -693,16 +693,16 @@ export const chSettingScreen: ScreenDef = {
         field(
           "Rec Point",
           "rec",
-          pulldown(ctx, ctx.store.str(`${base}.recPoint`, REC_POINT_DEFAULT), recPoints(ctx, strip), (v) =>
-            void ctx.store.set(`${base}.recPoint`, v),
-          ),
+          pulldown(ctx, ctx.store.str(`${base}.recPoint`, REC_POINT_DEFAULT), recPoints(ctx, strip), (v) => void ctx.store.set(`${base}.recPoint`, v), {
+            label: "Rec Point",
+          }),
         ),
       );
     }
     if (strip.kind === "monoIn") {
       children.push(
-        field("COMP / EQ", "comp", pulldown(ctx, ctx.store.str(`${base}.compEqOrder`, "COMP->EQ"), COMP_EQ_ORDERS, (v) => setCompEq(ctx, strip, v))),
-        field("Signal Type", "signal", pulldown(ctx, signalType(ctx, strip), SIGNAL_TYPES, (v) => setSignalType(ctx, strip, v))),
+        field("COMP / EQ", "comp", pulldown(ctx, ctx.store.str(`${base}.compEqOrder`, "COMP->EQ"), COMP_EQ_ORDERS, (v) => setCompEq(ctx, strip, v), { label: "COMP / EQ" })),
+        field("Signal Type", "signal", pulldown(ctx, signalType(ctx, strip), SIGNAL_TYPES, (v) => setSignalType(ctx, strip, v), { label: "Signal Type" })),
       );
       // A stereo pair is placed either by one PAN per channel or by the pair's
       // balance, so it offers the choice under the Signal Type.
@@ -1207,9 +1207,9 @@ export const compScreen: ScreenDef = {
               ? [oneKnobPanel(ctx, level, `${b}.comp.oneKnob.on`)]
               : [
                   el("span", { class: "dyn-caption", text: "Auto\nMakeup" }),
-                  pulldown(ctx, makeup ? "On" : "Off", ["Off", "On"], (v) =>
-                    void ctx.store.set(`${b}.comp.autoMakeup`, v === "On"),
-                  ),
+                  pulldown(ctx, makeup ? "On" : "Off", ["Off", "On"], (v) => void ctx.store.set(`${b}.comp.autoMakeup`, v === "On"), {
+                    label: "Auto Makeup",
+                  }),
                   oneKnobButton(ctx, `${b}.comp.oneKnob.on`),
                 ],
           }),
@@ -1219,9 +1219,9 @@ export const compScreen: ScreenDef = {
               el("span", { class: "dyn-caption", text: "Knee" }),
               oneKnob
                 ? lockedPulldown(ctx.store.str(`${b}.comp.knee`, "Medium"))
-                : pulldown(ctx, ctx.store.str(`${b}.comp.knee`, "Medium"), COMP_KNEES, (v) =>
-                    void ctx.store.set(`${b}.comp.knee`, v),
-                  ),
+                : pulldown(ctx, ctx.store.str(`${b}.comp.knee`, "Medium"), COMP_KNEES, (v) => void ctx.store.set(`${b}.comp.knee`, v), {
+                    label: "Knee",
+                  }),
             ],
           }),
           el("div", { class: "dyn-sets", children: [attack, release].map((s) => dynSetting(ctx, s)) }),
@@ -1567,15 +1567,16 @@ export const eqScreen: ScreenDef = {
                   ctx,
                   level,
                   `${base}.eq.oneKnob.on`,
-                  pulldown(ctx, ctx.store.str(`${base}.eq.oneKnob.type`, "Intensity"), EQ_ONE_KNOB_TYPES, (v) =>
-                    setEqOneKnobType(ctx, base, v),
-                  ),
+                  pulldown(ctx, ctx.store.str(`${base}.eq.oneKnob.type`, "Intensity"), EQ_ONE_KNOB_TYPES, (v) => setEqOneKnobType(ctx, base, v), {
+                    label: "1-knob type",
+                  }),
                   (next) => setEqOneKnob(ctx, base, next),
                 ),
               ]
             : [
                 shapeBox(
                   pulldown(ctx, shape, shapes, (v) => void ctx.store.set(`${base}.eq.${band.key}.shape`, v), {
+                    label: `${band.label} Shape`,
                     render: (option) => Icons.eqShape(option),
                     optionClass: "eq-shape-option",
                   }),

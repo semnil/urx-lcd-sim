@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Name CH SETTING's Rec Point, COMP / EQ and Signal Type boxes, COMP's Auto Makeup and Knee, the EQ band's shape, 1-knob EQ's type and SSMCS Comp's Knee by the setting each sets, as `Knee: Medium (3 options)` and so on. They read their value and how many options they held, and nothing of what they set.
 - Name SETUP's value buttons and boxes by their row and the value they read: [Date/Time] by the date and time as the clock runs, [Time Zone] by its city, each OUTPUT PATCH button as `MAIN OUT: STEREO` and so on, and Display Format's and SOFTWARE INTEGRATION's boxes by `Date`, `Time`, `for FX1` and `for FX2`. The buttons read only what they do, and the two SOFTWARE INTEGRATION boxes read the same.
 - Tell assistive technology what the marks on SCENE LIST's rows and on the microSD lists say: a scene the unit ships with, a protected scene and the recalled one, a folder, and the file playing or paused. [Protect] on SCENE LIST's Edit tab now stands pressed while the picked scene is protected. The marks were drawn for the eye alone, so a row read as its number and title, or its name, and nothing more.
 - Tell assistive technology where the RECORDER's Record tab stands, as the Play tab's [Play/Pause] does: [●] stands pressed while armed, recording or paused, and the middle button while paused. [●] read the same armed or not, and the middle button the same recording or paused.

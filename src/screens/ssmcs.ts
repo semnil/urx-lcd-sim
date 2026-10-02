@@ -584,7 +584,7 @@ function compFace(ctx: AppContext, route: Route, sideChain: boolean): ScreenBody
                 class: "dyn-row dyn-row-knee ssmcs-knee",
                 children: [
                   el("span", { class: "dyn-caption", text: "Knee" }),
-                  pulldown(ctx, ctx.store.str(`${b}.ssmcs.comp.knee`, SSMCS_DEFAULTS.knee), KNEES, (v) => void ctx.store.set(`${b}.ssmcs.comp.knee`, v)),
+                  pulldown(ctx, ctx.store.str(`${b}.ssmcs.comp.knee`, SSMCS_DEFAULTS.knee), KNEES, (v) => void ctx.store.set(`${b}.ssmcs.comp.knee`, v), { label: "Knee" }),
                 ],
               }),
               el("div", { class: "dyn-sets ssmcs-sets", children: [attack, release].map((s) => dynSetting(ctx, s)) }),

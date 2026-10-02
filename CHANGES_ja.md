@@ -2,6 +2,7 @@
 
 ## 未リリース
 
+- CH SETTING の Rec Point・COMP / EQ・Signal Type の箱、COMP の Auto Makeup と Knee、EQ のバンドの形、1-knob EQ の種類、SSMCS の Comp の Knee に、それぞれが設定するものの名前を付けた (`Knee: Medium (3 options)` などの形)。値と選択肢の数だけで名乗り、何を設定する箱かが伝わっていなかった。
 - SETUP の値のボタンと箱に、行の見出しと表示中の値で名前を付けた。[Date/Time] は時計とともに進む日時、[Time Zone] は都市名、OUTPUT PATCH の各ボタンは `MAIN OUT: STEREO` などの形、Display Format と SOFTWARE INTEGRATION の箱は `Date`・`Time`・`for FX1`・`for FX2` で名乗る。ボタンの名前は操作の説明だけで、SOFTWARE INTEGRATION の 2 つの箱は同じ名前だった。
 - SCENE LIST と microSD の一覧の行の印が示すこと (本体が出荷時から持つシーン、保護したシーン、呼び出し中のシーン、フォルダー、再生中または一時停止中のファイル) を支援技術に伝える。SCENE LIST の Edit タブの [Protect] は、選んだシーンが保護されているあいだ押された状態になる。印は目で見るためだけに描かれていたので、行は番号と題、または名前しか伝わっていなかった。
 - RECORDER の Record タブの状態を、Play タブの [Play/Pause] と同じく支援技術に伝える。[●] は待機・録音・中断のあいだ、中央のボタンは中断のあいだ押された状態になる。[●] は待機中かどうか、中央のボタンは録音中か中断中かが伝わっていなかった。

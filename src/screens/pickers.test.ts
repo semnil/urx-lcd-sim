@@ -422,6 +422,48 @@ describe("the SOFTWARE INTEGRATION boxes", () => {
   });
 });
 
+describe("the pulldowns' names", () => {
+  /** The pulldowns on a screen that take the focus, by the names assistive technology reads. */
+  const names = (shell: Shell): string[] => [...shell.root.querySelectorAll(".pulldown[role='button']")].map((n) => nameOf(shell, n));
+  const screen = async (route: Route, state: Record<string, string | boolean> = {}): Promise<string[]> => {
+    const shell = await mount([]);
+    for (const [path, value] of Object.entries(state)) await shell.ctx.store.set(path, value);
+    shell.ctx.nav.push(route);
+    await flush();
+    return names(shell);
+  };
+
+  it("names each one by the setting it sets, as the caption beside it does, and no two alike on a screen", async () => {
+    const seen: Record<string, string[]> = {
+      "SETUP DATE / TIME": await screen({ id: "setup.datetime" }),
+      "SETUP SOFTWARE INTEGRATION": await screen({ id: "setup.integration" }),
+      "CH 1 CH SETTING": await screen({ id: "ch.setting", strip: "ch1" }),
+      "CH 1 COMP": await screen({ id: "ch.comp", strip: "ch1" }),
+      "CH 1 EQ, LOW": await screen({ id: "ch.eq", strip: "ch1" }, { "ui.eqBand": "low" }),
+      "CH 1 EQ, HIGH": await screen({ id: "ch.eq", strip: "ch1" }, { "ui.eqBand": "high" }),
+      "CH 1 EQ, 1-knob": await screen({ id: "ch.eq", strip: "ch1" }, { "ch.ch1.eq.oneKnob.on": true }),
+      "CH 1 SSMCS Comp": await screen({ id: "ch.ssmcs.comp", strip: "ch1" }),
+      "CH 5/6 DUCKER": await screen({ id: "ch.ducker", strip: "ch_5_6" }),
+      "MIX 1 CH SETTING": await screen({ id: "ch.setting", strip: "bus.mix1" }),
+    };
+    expect(seen).toEqual({
+      "SETUP DATE / TIME": ["Date: MM/DD/YYYY (3 options)", "Time: 24h (2 options)"],
+      "SETUP SOFTWARE INTEGRATION": ["for FX1: MIX 1 (2 options)", "for FX2: MIX 1 (2 options)"],
+      "CH 1 CH SETTING": ["Rec Point: PRE FADER (5 options)", "COMP / EQ: COMP->EQ (2 options)", "Signal Type: MONO x 2 (2 options)"],
+      "CH 1 COMP": ["Auto Makeup: Off (2 options)", "Knee: Medium (3 options)"],
+      "CH 1 EQ, LOW": ["LOW Shape: L.Shelf (3 options)"],
+      "CH 1 EQ, HIGH": ["HIGH Shape: H.Shelf (3 options)"],
+      "CH 1 EQ, 1-knob": ["1-knob type: Intensity (3 options)"],
+      "CH 1 SSMCS Comp": ["Knee: Medium (3 options)"],
+      "CH 5/6 DUCKER": ["Ducker Source: CH 1 (11 options)"],
+      "MIX 1 CH SETTING": ["BUS Type: VARI (2 options)"],
+    });
+    for (const [where, list] of Object.entries(seen)) {
+      expect(new Set(list.map((n) => n.split(": ")[0])).size, `${where}: one setting to a name`).toBe(list.length);
+    }
+  });
+});
+
 describe("the INPUT Input Source button", () => {
   const open = (strip: string, id: "URX44V" | "URX44" | "URX22" = "URX44V"): Promise<Shell> =>
     mount([{ id: "channel-view", strip }, { id: "ch.input", strip }], id);
