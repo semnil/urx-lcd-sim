@@ -1220,8 +1220,9 @@ Operation Mode の題と SETUP の箱の見出しは、p042-1・p041-1 のとお
 ## ツールバーの戻る矢印
 
 戻る矢印は 1 つ下の画面へ戻るためのもので、下に HOME しか無い画面には出ない。ツールバーの
-アイコンが開く SETUP・microSD・MONITOR と、シーン名が開く SCENE、そこから 1 段の
-チャンネルビューは HOME アイコンだけを出す (wide/p072-1, p078-1, p066-1, p090-1)。2 段以上下の画面
+アイコンが開く SETUP・microSD・MONITOR と、シーン名が開く SCENE は HOME アイコンだけを出す
+(wide/p072-1, p078-1, p066-1)。HOME から 1 段のチャンネルビューも戻る矢印を出さず、HOME のアイコン列
+(SETUP / microSD / MONITOR / HOME) を出したまま (「ツールバーのアイコン列」、p090-1)。2 段以上下の画面
 (VERSION、SCENE LIST、CH SETTING、INPUT など) が矢印と区切り線を出す (p053-1, p073-1, p092-1,
 p100-1)。判定は画面ごとの宣言ではなくスタックの深さで、`Escape` はどの画面でも戻る。
 
