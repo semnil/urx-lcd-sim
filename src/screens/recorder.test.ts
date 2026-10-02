@@ -182,13 +182,13 @@ describe("moving between the RECORDER tabs", () => {
   });
 });
 
-describe("the bar beside a list that does not fit", () => {
-  it("keeps its pink rim off until the list is the thing being turned", async () => {
+describe("the record-source sheet", () => {
+  it("draws no scroll bar, its ten choices fitting its twelve cells", async () => {
     const shell = await mount();
     shell.root.querySelector<HTMLElement>(".rec-slot-src")?.click();
     await flush();
-    // The record-source sheet holds ten items in twelve cells, so it draws none.
-    expect(shell.root.querySelector(".scrollbar")?.hasAttribute("hidden")).not.toBe(false);
+    expect(shell.root.querySelector('[role="dialog"][aria-label="REC Track 1/2 source"]'), "the sheet is open").not.toBeNull();
+    expect(shell.root.querySelector(".scrollbar")).toBeNull();
   });
 });
 

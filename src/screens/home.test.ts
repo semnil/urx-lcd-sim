@@ -1476,6 +1476,26 @@ describe("the SCENE menu the scene box opens", () => {
     expect(Number.parseFloat(thumb()?.style.top ?? "") + 15).toBeCloseTo(111);
   });
 
+  it("hides the list's bar while every row is in view, and draws it once a row is out of view", async () => {
+    const shell = await mount();
+    shell.ctx.nav.openTop({ id: "scene" });
+    shell.ctx.nav.push({ id: "scene.list" });
+    await flush();
+    const body = shell.root.querySelector<HTMLElement>(".scene-list .list-body");
+    const hidden = (): boolean | undefined => shell.root.querySelector(".scene-scrollbar")?.hasAttribute("hidden");
+    // Rows of 38px, three of them in view.
+    const put = (rows: number): void => {
+      for (const [name, value] of [["scrollHeight", rows * 38], ["clientHeight", 3 * 38], ["scrollTop", 0]] as const) {
+        if (body) Object.defineProperty(body, name, { configurable: true, value });
+      }
+      body?.dispatchEvent(new Event("scroll"));
+    };
+    put(4);
+    expect(hidden(), "four rows, three in view").toBe(false);
+    put(3);
+    expect(hidden(), "three rows, all in view").toBe(true);
+  });
+
   it("names the recalled scene on HOME the way the list names it", async () => {
     const shell = await mount();
     const box = (): string[] => [...(shell.root.querySelector(".scene-box")?.children ?? [])].map((c) => c.textContent ?? "");
