@@ -2436,7 +2436,7 @@ describe("the side rail's tabs", () => {
     expect(wrapped.map((t) => t.textContent)).toEqual(["Save/\nLoad"]);
     // The mark only changes what is inside the box; the box itself does not grow.
     expect(px(declarations(CSS, ".side-tab")["height"])).toBe(52);
-    expect(declarations(CSS, ".side-tab-wrapped")["height"]).toBeUndefined();
+    expect(declarationsOn(CSS, ".side-tab-wrapped")["height"]).toBeUndefined();
   });
 });
 

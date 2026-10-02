@@ -1032,7 +1032,7 @@ describe("the SEND TO rail", () => {
     // The unit's tab names stand 10px to the cap. `.lcd button { font: inherit }`
     // reaches the tab, so a size on the tab would not take; the name carries it.
     expect(px(declarations(CSS, ".side-tab-label")["font-size"])).toBe(14.5);
-    expect(declarations(CSS, ".side-tab")["font-size"], "not on the tab").toBeUndefined();
+    expect(declarationsOn(CSS, ".side-tab")["font-size"], "not on the tab").toBeUndefined();
   });
 
   it("colours the picked tab as the unit colours a picked side tab", () => {
@@ -1436,7 +1436,7 @@ describe("the dynamics screens", () => {
     expect(declarations(CSS, ".badge.badge-title")["white-space"], "and a screen name never wraps").toBe("nowrap");
     // A long screen name is set at the size of the shorter ones; no rule sets it
     // a size down.
-    expect(Object.keys(declarations(CSS, ".badge.badge-title.is-long"))).toEqual([]);
+    expect(Object.keys(declarationsOn(CSS, ".badge.badge-title.is-long"))).toEqual([]);
   });
 
   it("keeps the channel colour behind the name drawn over it", () => {
@@ -2810,7 +2810,7 @@ describe("corners the unit draws a pixel at a time", () => {
     // (2026-09-24): its foot ends on y226, the Scale list's last row beside it, 177 rows
     // down the screen's body from y50.
     expect([listed(cut, ".pitch-keys"), listed(cast, ".pitch-keys")]).toEqual([true, false]);
-    expect(declarations(CSS, ".pitch-keys")["border-radius"]).toBeUndefined();
+    expect(declarationsOn(CSS, ".pitch-keys")["border-radius"]).toBeUndefined();
     const keys = declarations(CSS, ".pitch-keys");
     expect(px(keys["top"]) + px(keys["height"])).toBe(177);
     // None of them steps onto a band in the buttons' own cast: the rows and the tray have no
@@ -2824,8 +2824,8 @@ describe("corners the unit draws a pixel at a time", () => {
     expect(corner(source, "right", "bottom")).toEqual(corner(source, "left", "bottom"));
     expect(["a", "b"].map((k) => declarations(TOKENS, ":root")[`--corner-source-step-${k}`])).toEqual(["#4a595a", "#526163"]);
     expect(declarations(CSS, ".pick-dialog-row::after")["background"]).toBe("none");
-    expect(declarations(CSS, ".pick-dialog-row.is-empty")["border-radius"], "no curve of the browser's under the cut").toBeUndefined();
-    expect(declarations(CSS, ".mon-source")["translate"], "MONITOR's Source stands at x6 as p068-1 has it").toBeUndefined();
+    expect(declarationsOn(CSS, ".pick-dialog-row.is-empty")["border-radius"], "no curve of the browser's under the cut").toBeUndefined();
+    expect(declarationsOn(CSS, ".mon-source")["translate"], "MONITOR's Source stands at x6 as p068-1 has it").toBeUndefined();
     const sourceMark = declarations(CSS, ".mon-source-copy");
     expect(sourceMark["color"], "its copy mark white, as p068-1 draws it").toBe("var(--text)");
     // The chip's band climbs each side over three rows, in shares of the band and of black
@@ -2989,7 +2989,7 @@ describe("the channel, monitor and microSD parts measured against the guide's fi
     expect(declarations(CSS, ".ch-chip-id")["font-weight"]).toBe("400");
     const send = declarations(CSS, ".cv-sendto");
     expect([send["white-space"], send["padding"]]).toEqual(["nowrap", "0 8px 3px 7px"]);
-    expect(declarations(CSS, ".dyn-set-caption")["font-weight"], "the dynamics captions are not bold").toBeUndefined();
+    expect(declarationsOn(CSS, ".dyn-set-caption")["font-weight"], "the dynamics captions are not bold").toBeUndefined();
   });
 
   it("marks the band TOUCH AND TURN holds with a triangle either side, 6x8", () => {
@@ -3121,7 +3121,7 @@ describe("the channel, monitor and microSD parts measured against the guide's fi
     expect(plot["background"], "the ground on two pixels of the edge row").toContain("linear-gradient(var(--pc-g), var(--pc-g)) left 0px top 0px / 2px 1px no-repeat");
     expect(plot["background"], "the brighter shade inside the turn").toContain("linear-gradient(var(--pc-b), var(--pc-b)) right 1px top 1px / 1px 1px no-repeat");
     expect(declarations(CSS, ".lcd .dyn-plot::after")["background"], "the dynamics graphs the same").toBe(plot["background"]);
-    expect(declarations(CSS, ".dyn-plot")["overflow"], "their corners are not clipped away").toBeUndefined();
+    expect(declarationsOn(CSS, ".dyn-plot")["overflow"], "their corners are not clipped away").toBeUndefined();
     expect(plot["background"], "the same turn at the bottom, whatever the curve fills").toContain("linear-gradient(var(--pc-b), var(--pc-b)) right 1px bottom 1px / 1px 1px no-repeat");
     expect(plot["background"]).not.toContain("--graph-grid-lit");
     const root = declarations(TOKENS, ":root");
@@ -3206,7 +3206,7 @@ describe("the channel, monitor and microSD parts measured against the guide's fi
   it("draws the readout bar's page step as an 8x12 glyph", () => {
     const glyph = declarations(CSS, ".knob-strip .icon-page-step");
     expect([px(glyph["width"]), px(glyph["height"])]).toEqual([8, 12]);
-    expect(declarations(CSS, ".knob-strip .knob-page-step")["transform"], "no stretched character").toBeUndefined();
+    expect(declarationsOn(CSS, ".knob-page-step")["transform"], "no stretched character").toBeUndefined();
   });
 
   it("raises the names on the tabs after the first, where the screens set them higher", () => {
