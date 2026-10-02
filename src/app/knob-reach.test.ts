@@ -320,6 +320,39 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     expect(store.num("ch.ch1.gain", NaN), "one detent").toBe(31);
   });
 
+  it("leaves the keys held with Alt, Cmd or Ctrl to the browser", async () => {
+    const { shell, store } = await mount();
+    /** One keydown on the control named `label`; whether the page took it. */
+    const press = async (label: string, key: string, init: KeyboardEventInit = {}): Promise<boolean> => {
+      const node = turnables(shell.root).find((n) => n.getAttribute("aria-label") === label);
+      if (!node) throw new Error(`no ${label}`);
+      const ev = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...init });
+      node.dispatchEvent(ev);
+      await flush();
+      return ev.defaultPrevented;
+    };
+    const held: KeyboardEventInit[] = [{ altKey: true }, { metaKey: true }, { ctrlKey: true }];
+
+    for (const init of held) {
+      for (const key of ["ArrowLeft", "End"]) {
+        expect(await press("CH 1 LEVEL", key, init), `HOME level ${key} ${JSON.stringify(init)}`).toBe(false);
+        expect(store.num("ch.ch1.level", NaN), `${key} ${JSON.stringify(init)}`).toBe(0);
+      }
+    }
+    expect(await press("CH 1 LEVEL", "ArrowLeft"), "the arrow alone turns it").toBe(true);
+    expect(store.num("ch.ch1.level", NaN)).toBe(-0.4);
+    expect(await press("CH 1 LEVEL", "ArrowLeft", { shiftKey: true }), "and with Shift, four detents").toBe(true);
+    expect(store.num("ch.ch1.level", NaN)).toBe(-4);
+
+    await open(shell, { id: "setup.brightness" });
+    for (const init of held) {
+      expect(await press("Screen", "ArrowLeft", init), `Screen ${JSON.stringify(init)}`).toBe(false);
+      expect(store.num("setup.brightness", NaN), JSON.stringify(init)).toBe(10);
+    }
+    expect(await press("Screen", "ArrowLeft"), "the arrow alone turns it").toBe(true);
+    expect(store.num("setup.brightness", NaN)).toBe(9);
+  });
+
   it("lands the keys and the wheel on the value's own steps, as a drag does", async () => {
     const control = (shell: Shell, label: string): HTMLElement => {
       const node = turnables(shell.root).find((n) => n.getAttribute("aria-label") === label);
