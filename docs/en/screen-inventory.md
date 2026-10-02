@@ -1559,7 +1559,10 @@ the progress bar at y235..244, and the middle button carries the pause's two whi
 without rebuilding the screen. A press on the bars pauses the take; while paused the running time stands still and the
 bars are the ●'s red, `--transport-rec`, and a press on the red bars records again, the running time going on from
 where it stood. A press on [■] ends recording and returns the screen to the state it opened in. A second press on [●]
-while armed does the same as [■], and [●] does nothing while a take records or is paused.
+while armed does the same as [■], and [●] does nothing while a take records or is paused. On a card with nearly all its
+room free, the unit's Record tab progress bar is an empty groove from end to end and stays one while a take records. The
+simulator keeps it an empty groove whatever room the card has (f under Record in the user guide's "RECORDER menu" says
+it shows the remaining free space on the microSD card).
 
 Armed, recording or paused, the recorder is in recording mode. [Track Count] and the eject button keep what they show
 on the face of a button that cannot be used (`--surface-disabled`, their name and mark `--menu-text-disabled`) and do

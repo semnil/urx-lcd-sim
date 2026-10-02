@@ -171,6 +171,24 @@ describe("what the recorder leaves on the card", () => {
     expect(shell.root.querySelector(".dialog-text"), "saying nothing").toBeNull();
   });
 
+  it("leaves the Record tab's progress bar an empty groove whatever room the card has, recording or not", async () => {
+    const shell = await mount({ id: "microsd.recorder" }, []);
+    const store = shell.ctx.store;
+    const bar = (): string | undefined => shell.root.querySelector(".rec-progress")?.outerHTML;
+    const groove = '<div class="rec-progress"></div>';
+    expect([shell.root.querySelector(".rec-slots") !== null, bar()], "an empty card, on the Record tab").toEqual([true, groove]);
+    const free = freeBytes(store);
+    await writeCard(store, [{ name: "full.wav", kind: "take", seconds: 10_000_000, tracks: 16, stamp: "", dir: "/" }]);
+    await flush();
+    expect([freeBytes(store) < free, freeBytes(store), bar()], "a full card").toEqual([true, 0, groove]);
+    await writeCard(store, [{ name: "half.wav", kind: "take", seconds: 200_000, tracks: 2, stamp: "", dir: "/" }]);
+    await store.set("sd.rec", "armed");
+    recordTake(store);
+    await flush();
+    expect([store.str("sd.rec", ""), bar()], "a take recording").toEqual(["recording", groove]);
+    stopTake(store);
+  });
+
   it("takes the room the take needs off the card", async () => {
     const shell = await mount({ id: "microsd.recorder" }, []);
     const store = shell.ctx.store;
