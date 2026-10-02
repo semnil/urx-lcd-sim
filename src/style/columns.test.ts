@@ -1469,6 +1469,9 @@ describe("the dynamics screens", () => {
     // The narrow box is not wide enough for every name; what does not fit is cut
     // off by the box rather than drawn over the arrow beside it.
     expect(declarations(CSS, ".ch-chip.is-narrow")["overflow"]).toBe("hidden");
+    // A name with a space in it stays one line, so the channel's number above it
+    // stays inside the box.
+    expect(declarations(CSS, ".ch-chip-name")["white-space"], "a channel name never wraps").toBe("nowrap");
     expect(declarations(CSS, ".badge.badge-title")["white-space"], "and a screen name never wraps").toBe("nowrap");
     // A long screen name is set at the size of the shorter ones; no rule sets it
     // a size down.

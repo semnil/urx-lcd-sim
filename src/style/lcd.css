@@ -4303,9 +4303,11 @@
   font-weight: 400;
 }
 
+/* A name stays one line, a space in it too, so the number above it keeps its row. */
 .ch-chip-name {
   font-size: 12.5px;
   translate: 1px 0;
+  white-space: nowrap;
 }
 
 .param-header {
