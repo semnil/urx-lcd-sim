@@ -268,3 +268,55 @@ describe("the model the page opens on", () => {
     expect(modelSelect()?.value).toBe("URX44V");
   });
 });
+
+describe("[Reset the unit]", () => {
+  const resetBox = (): HTMLElement => document.querySelector<HTMLElement>(".chrome-reset")!;
+  const button = (text: string): HTMLElement =>
+    [...resetBox().querySelectorAll<HTMLElement>("button")].find((b) => b.textContent === text)!;
+  const click = (node: HTMLElement, detail: number): void => {
+    node.dispatchEvent(new MouseEvent("click", { bubbles: true, detail }));
+  };
+
+  /** A URX44V with CH 1's level stored at -9, and [Reset the unit] asking. */
+  async function asking(): Promise<void> {
+    window.localStorage.setItem(STATE_KEY, JSON.stringify({ version: 1, model: "URX44V", values: { "ch.ch1.level": -9 } }));
+    await openPage();
+    click(button("Reset the unit"), 1);
+    expect(button("Reset"), "the question is up").toBeDefined();
+  }
+
+  it("leaves the unit alone when the second click of a double click lands on [Reset]", async () => {
+    await asking();
+    click(button("Reset"), 2);
+    expect(window.localStorage.getItem(STATE_KEY), "what the unit holds is still stored").not.toBeNull();
+    expect(firstLevel()?.getAttribute("aria-valuenow")).toBe("-9");
+  });
+
+  it("leaves the unit alone for the second click of a double click slower than the question's hold", async () => {
+    await asking();
+    await pause(600);
+    click(button("Reset"), 2);
+    expect(window.localStorage.getItem(STATE_KEY)).not.toBeNull();
+  });
+
+  it("leaves the unit alone when [Reset] is pressed the moment the question appears", async () => {
+    await asking();
+    click(button("Reset"), 1);
+    expect(window.localStorage.getItem(STATE_KEY)).not.toBeNull();
+  });
+
+  it("starts again from the unit as it ships when [Reset] is pressed once the question is up", async () => {
+    await asking();
+    await pause(600);
+    click(button("Reset"), 1);
+    expect(window.localStorage.getItem(STATE_KEY), "what was stored is dropped").toBeNull();
+    await until("the unit as it ships", () => firstLevel()?.getAttribute("aria-valuenow") !== "-9");
+  });
+
+  it("keeps [Reset the unit] where it was while it asks, and the question up under a second click on it", async () => {
+    await asking();
+    expect(resetBox().firstElementChild?.textContent, "the button stays first in the row").toBe("Reset the unit");
+    click(button("Reset the unit"), 2);
+    expect(button("Reset"), "the question is still up").toBeDefined();
+  });
+});

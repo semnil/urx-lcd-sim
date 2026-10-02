@@ -29,6 +29,9 @@ const MODEL_IDS: ModelId[] = ["URX44V", "URX44", "URX22"];
 const ZOOM_PERCENTS = [50, 75, 100, 150, 200] as const;
 const DEFAULT_ZOOM = 100;
 
+/** How long [Reset the unit]'s [Reset] does nothing after the question appears, longer than a double click. */
+const RESET_HOLD_MS = 500;
+
 function applyZoom(percent: number): void {
   document.documentElement.style.setProperty("--zoom", String(percent / 100));
   document.documentElement.dataset["zoom"] = String(percent);
@@ -84,28 +87,42 @@ async function boot(modelId: ModelId, mount: HTMLElement): Promise<void> {
 
   // The unit as it ships, for a start from nothing: what the unit's own
   // Initialize All Memories does, on the simulator's chrome rather than a
-  // screen. It asks in place first, with the focus on [Cancel], since it drops
-  // everything the unit holds. [Cancel] and Escape on the question take it back
-  // and leave the focus on [Reset the unit].
+  // screen. It asks first, with the focus on [Cancel], since it drops everything
+  // the unit holds, on a panel under the button that moves nothing else on the
+  // page. [Cancel] and Escape on the question take it back and leave the focus on
+  // [Reset the unit]. A click on [Reset] does nothing for the second click of a
+  // double click, nor until RESET_HOLD_MS after the question appears.
   const resetBox = el("span", { class: "chrome-reset" });
+  let askedAt = 0;
   const drawReset = (asking: boolean, refocus = false): void => {
     const ask = el("button", {
       class: "chrome-button",
       text: "Reset the unit",
-      onTap: () => drawReset(true),
+      attrs: { "aria-expanded": String(asking) },
+      onTap: () => {
+        if (!asking) drawReset(true);
+      },
     });
     const cancel = el("button", { class: "chrome-button", text: "Cancel", onTap: () => drawReset(false, true) });
+    if (asking) askedAt = performance.now();
     resetBox.replaceChildren(
+      ask,
       ...(asking
         ? [
-            el("span", { class: "chrome-reset-ask", text: "Drop everything and start again?" }),
-            el("button", { class: "chrome-button is-danger", text: "Reset", onTap: () => {
-              forget();
-              void boot(modelId, mount);
-            } }),
-            cancel,
+            el("span", {
+              class: "chrome-reset-panel",
+              children: [
+                el("span", { class: "chrome-reset-ask", text: "Drop everything and start again?" }),
+                el("button", { class: "chrome-button is-danger", text: "Reset", onTap: (ev) => {
+                  if (ev instanceof MouseEvent && (ev.detail > 1 || performance.now() - askedAt < RESET_HOLD_MS)) return;
+                  forget();
+                  void boot(modelId, mount);
+                } }),
+                cancel,
+              ],
+            }),
           ]
-        : [ask]),
+        : []),
     );
     if (asking) cancel.focus();
     else if (refocus) ask.focus();

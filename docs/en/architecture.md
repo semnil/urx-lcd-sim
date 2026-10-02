@@ -92,7 +92,10 @@ What is left out is **what the unit was doing** at that moment: a take or a play
 (`sd.rec` and the rest) and a name half typed (`ui.titleEntry.`, `ui.dateTimeDraft.`) come back
 stopped, as they do on a unit that has been switched off. The result of TOOLS' card test (`sd.tested`)
 is left out too, as a unit switched off no longer shows it. [Reset the unit], outside the screen, asks
-in place and then forgets what was stored and starts again from the unit as it ships.
+in place and then forgets what was stored and starts again from the unit as it ships. The question
+sits on a panel laid over the page under the button, so the other controls and the glass stay where
+they are, and a click on its [Reset] does not answer as the second click of a double click or within
+500 ms of the question appearing.
 
 A value stored in an earlier form is brought to the current one as it is read. A state stored while
 the channel view's [SAFE] was a switch apart from [Clip Safe] comes back with a [SAFE] that was on as

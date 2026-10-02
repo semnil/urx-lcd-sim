@@ -76,11 +76,30 @@ body {
   background: #2b313b;
 }
 
-/* Resetting drops everything the unit holds, so the button asks in place. */
+/* Resetting drops everything the unit holds, so the button asks first, on a
+ * panel hung under it. The panel stands outside the header's row, so asking
+ * moves no other control and not the glass, and its [Reset] lies clear of the
+ * button that opened it. */
 .chrome-reset {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+.chrome-reset-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  padding: 8px;
+  background: #1b1f25;
+  border: 1px solid #3a4150;
+  border-radius: var(--radius-md);
 }
 
 .chrome-reset-ask {
