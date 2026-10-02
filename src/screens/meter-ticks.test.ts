@@ -274,10 +274,10 @@ describe("a falling bar on a screen drawn again", () => {
 });
 
 // A device's meter stream carries whatever it carries. A reading that is not a
-// number reads as nothing and one of +Infinity as a clip, and the bars go on
-// from the next reading as they would from those.
+// number reads as nothing and one over 0 dB, +Infinity included, as a clip at
+// 0 dB, and the bars go on from the next reading as they would from those.
 
-describe("a meter stream that reads something other than a number", () => {
+describe("a meter stream that reads something other than a level up to 0 dB", () => {
   const at = (db: number): string => `${(1 - levelBarShare(db)) * 100}%`;
 
   it("takes HOME's strip meter, its clip mark and its dots on from the next reading", async () => {
@@ -286,6 +286,8 @@ describe("a meter stream that reads something other than a number", () => {
       ["silence", -96, -13],
       ["not a number", Number.NaN, -13],
       ["+Infinity", Number.POSITIVE_INFINITY, 0],
+      ["a number too large to fall from", 1e300, 0],
+      ["a level over 0 dB", 6, 0],
     ];
     for (const [name, odd, dropped] of cases) {
       const shell = await mount();
@@ -330,6 +332,8 @@ describe("a meter stream that reads something other than a number", () => {
     };
     expect(read(Number.NaN), "not a number, as silence").toEqual(read(SILENT_DB));
     expect(read(Number.POSITIVE_INFINITY), "+Infinity, as a clip").toEqual(read(CLIP_DB));
+    expect(read(1e300), "a number too large to fall from, as a clip").toEqual(read(CLIP_DB));
+    expect(read(6), "a level over 0 dB, as a clip").toEqual(read(CLIP_DB));
   });
 
   it("holds nothing over from a reading taken at no moment", async () => {

@@ -93,7 +93,8 @@ export function markClipSafe(store: DeviceStore, node: HTMLElement, connector: S
  * `monitor.<n>`, the cue bus, the oscillator, the card's playback, or two of
  * them side by side. `at` is the moment the synthetic signal is read at, so two
  * readings can be taken of the same instant. A device's reading that is not a
- * number reads as nothing, and one of +Infinity as a clip.
+ * number reads as nothing, and one over 0 dB, +Infinity included, as a clip at
+ * 0 dB.
  */
 export function meterLevels(store: DeviceStore, id: string, channels: number, at = readingMoment()): number[] {
   const members = pairMembers(id);
@@ -103,7 +104,7 @@ export function meterLevels(store: DeviceStore, id: string, channels: number, at
       return member === undefined ? SILENT : (meterLevels(store, member, 1, at)[0] ?? SILENT);
     });
   }
-  if (source) return source(id, channels).map((db) => (Number.isNaN(db) ? SILENT : db === Number.POSITIVE_INFINITY ? CLIP_DB : db));
+  if (source) return source(id, channels).map((db) => (Number.isNaN(db) ? SILENT : Math.min(db, CLIP_DB)));
   const levels = flowLevels(flowCtx(store), id, at);
   return Array.from({ length: channels }, (_, c) => levels[c] ?? SILENT);
 }
