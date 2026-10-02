@@ -74,6 +74,10 @@ export class Shell {
       setKnobs: (specs) => {
         this.knobs = specs;
       },
+      rewindKnobs: () => {
+        this.knobPage = 0;
+        this.scheduleRepaint();
+      },
       overlay: (node, onClose) => {
         // Marked so the Escape handler knows something is layered over the screen.
         node.dataset["overlay"] = "";

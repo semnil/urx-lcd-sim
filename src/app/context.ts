@@ -21,6 +21,8 @@ export interface AppContext {
    * and prints a word in its division, and its knob turns nothing.
    */
   setKnobs(specs: (NumericSpec | KnobReadout | null)[]): void;
+  /** Put the readout bar back on its first page, as a change of screen does. */
+  rewindKnobs(): void;
   /**
    * Put an element over the whole screen — a dialog box or a popup menu. It is
    * mounted inside the 480x272 frame, so it covers the glass and nothing else,

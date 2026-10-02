@@ -166,8 +166,14 @@ function effectButton(ctx: AppContext, holder: EffectHolder): HTMLElement {
 /** Where the screen keeps the page it is showing. */
 const PAGE_PATH = "ui.effectPage";
 
+/** Put the screen on page `at` of the effect, and the readout bar on its own first page. */
+const toPage = (ctx: AppContext, at: number): void => {
+  ctx.rewindKnobs();
+  void ctx.store.set(PAGE_PATH, at);
+};
+
 /** Put the screen on the effect's first page, which is the page it opens on. */
-const toFirstPage = (ctx: AppContext): void => void ctx.store.set(PAGE_PATH, 0);
+const toFirstPage = (ctx: AppContext): void => toPage(ctx, 0);
 
 /**
  * Open the settings for the effect a strip runs. The screen opens on the first
@@ -743,7 +749,7 @@ function pageArrow(ctx: AppContext, dir: "prev" | "next", to: number): HTMLEleme
   return el("button", {
     class: `ssmcs-page ssmcs-page-${dir} efx-page efx-page-${dir}`,
     attrs: { "aria-label": dir === "next" ? "Next page of settings" : "Previous page of settings" },
-    onTap: () => void ctx.store.set(PAGE_PATH, to),
+    onTap: () => toPage(ctx, to),
     children: [dir === "next" ? Icons.pageOn() : Icons.pageBack()],
   });
 }

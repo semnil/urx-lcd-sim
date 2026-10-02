@@ -370,7 +370,8 @@ on or off, a cell with an assignment turns that parameter, as on the unit.
 
 There are four cells, so when a screen passes five or more parameters they are shown four at a time,
 and `‹` / `›` appears at the end of the label band on the side where more follow (COMP in p099-1).
-Pressing it swaps in the next four. Changing screens returns to the first page.
+Pressing it swaps in the next four. Changing screens, stepping an effect's screen to another of its
+pages and taking another effect return to the first page.
 
 ## Head amp column in the channel view
 

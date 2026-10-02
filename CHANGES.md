@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Start the readout bar from its first page when an effect's screen steps to another of its pages or takes another effect, as when the screen opens, so the value the page frames is on the bar. The bar stayed on the page its `›` had turned to: after `›`, Rev-X Hall stepped to its second page and back read Diffusion / Hi.Ratio / Lo.Ratio / Lo.Freq. with Rev.Time framed, and Clean taken over Compander-H read Volume / Distortion / Blend / Output with Treble framed.
 - Leave the arrow keys, Home and End held with Alt, Cmd or Ctrl to the browser on a value box, HOME's levels, the handles on the dynamics plots and the readout bar's cells. Alt+←, Cmd+← and Ctrl+← turned the value down a detent, as ← alone does, and the page kept the key from the browser.
 - Act once for Escape held down, as for the back arrow held down: a held Escape that cancels a dialog, a sheet or a list leaves the screen behind it, and one on a screen goes back one screen. Each repeat of the key went back another screen, so a held Escape on COMP went back to HOME.
 - Let the first press on another control act after a name typed into CH SETTING's Name field without Enter, by mouse or by finger. That press only committed the name and did nothing else: HOME, the channel arrows and a pulldown took a second press. The name is still kept, written once the press has acted.
