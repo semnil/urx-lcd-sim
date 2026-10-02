@@ -801,7 +801,8 @@ M.B.Comp sets out no panels: like the companders it is drawn in the frame the ch
 arrows the other effects use.
 
 The first page carries the bands themselves. The plot runs frequency across it (20 Hz to 20 kHz,
-logarithmic) and band gain up it. Each band is filled from the crossover beside it to the next, as high as
+logarithmic) and band gain up it, from the Gain's lowest step, -60 dB, to its highest, +18 dB. Each
+band is filled from the crossover beside it to the next, as high as
 its gain: Low in the transfer curve's own line colour, Mid and High in theirs. Five grips stand on it — L,
 M and H at the middle of their band, moved up and down for its gain, and LM and MH where two bands meet,
 moved across for the crossover. Out Gain stands to the right on a panel of its own (caption, value box and

@@ -533,7 +533,8 @@ describe("the screen an effect is set on", () => {
     expect(shell.root.querySelector(".efx-page-prev"), "nothing before the first page").toBeNull();
     expect(named(), "no band is named on it").toBe("");
     // 125 Hz and 3.35 kHz stand about a quarter and three quarters across a
-    // 20 Hz..20 kHz log axis, and +2 dB about 78% of the way up a -60..+19 dB one.
+    // 20 Hz..20 kHz log axis, and +2 dB about 79% of the way up a -60..+18 dB one,
+    // the Gain's lowest step to its highest.
     const fills = [...shell.root.querySelectorAll(".mbc-fill")].map((r) => ({
       x: Number(r.getAttribute("x")),
       width: Number(r.getAttribute("width")),
@@ -541,7 +542,17 @@ describe("the screen an effect is set on", () => {
     }));
     expect(fills.map((f) => Math.round(f.x))).toEqual([0, 70, 195]);
     expect(fills.map((f) => Math.round(f.x + f.width)), "each band reaches the next crossover").toEqual([70, 195, 263]);
-    expect(fills.map((f) => Math.round(f.y)), "and stands as high as its own gain").toEqual([37, 37, 37]);
+    const low = async (step: number): Promise<number[]> => {
+      await shell.ctx.store.set("ch.bus.stereo.insFx.lowGain", step);
+      await flush();
+      const fill = shell.root.querySelector(".mbc-fill-low");
+      return [Number(fill?.getAttribute("y")), Number(fill?.getAttribute("height"))];
+    };
+    const plotH = Number(shell.root.querySelector(".mbc-fill-low")?.closest("svg")?.getAttribute("viewBox")?.split(" ")[3]);
+    expect(await low(55), "the Gain's top step fills the plot to its top").toEqual([0, plotH]);
+    expect(await low(1), "and its lowest leaves it empty").toEqual([plotH, 0]);
+    await low(39);
+    expect(fills.map((f) => Math.round(f.y)), "and stands as high as its own gain").toEqual([35, 35, 35]);
     expect(shell.root.querySelector(".efx-cell .value-box.is-focused")?.textContent, "Out Gain opens framed").toBe("4");
 
     for (const band of ["Low", "Mid", "High"]) {
