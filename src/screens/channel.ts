@@ -165,7 +165,7 @@ export function titleBox(label: string, extraClass = ""): HTMLElement {
 export function channelSelector(ctx: AppContext, strip: Strip, route: Route, narrow = false): HTMLElement {
   const move = (delta: number): void => {
     const next = stepChannel(ctx, delta, strip);
-    ctx.nav.replace({ ...route, strip: next.id });
+    ctx.nav.stepStrip(next.id);
   };
   // The name opens the screen that sets it on the screen a channel opens on,
   // the one that carries the copy mark. On the screens under it and on CH

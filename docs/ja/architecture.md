@@ -194,7 +194,8 @@ flowchart LR
 
 `Navigator` は画面スタックを持つ。実機のツールバーが「戻る矢印」と「ホームボタン」を持つ構造に
 対応する: `back()` が 1 段戻り、`home()` が HOME まで戻る。`openTop()` は HOME の直上に置くので、
-SETUP や MONITOR から 1 回の戻るで HOME へ帰る。`Escape` はどの画面でも `back()` を呼ぶ。
+SETUP や MONITOR から 1 回の戻るで HOME へ帰る。チャンネルの画面の矢印は `stepStrip()` を呼び、その画面と
+下に積んだチャンネルの画面をまとめて送った先のストリップへ移す。`Escape` はどの画面でも `back()` を呼ぶ。
 
 ## 座標系
 

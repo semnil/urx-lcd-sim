@@ -218,8 +218,9 @@ How the screens connect is drawn in [screen-map.md](screen-map.md).
 
 `Navigator` holds the screen stack. It matches the unit's toolbar, which has a back arrow and a home
 button: `back()` goes back one level and `home()` goes back to HOME. `openTop()` places a screen
-directly above HOME, so a single back from SETUP or MONITOR returns to HOME. `Escape` calls `back()`
-on every screen.
+directly above HOME, so a single back from SETUP or MONITOR returns to HOME. A channel screen's arrows
+call `stepStrip()`, which moves that screen and every channel screen stacked under it onto the strip
+stepped to. `Escape` calls `back()` on every screen.
 
 ## Coordinate system
 

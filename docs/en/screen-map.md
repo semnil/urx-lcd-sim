@@ -113,8 +113,10 @@ flowchart LR
 - **Name entry opens from two places.** A scene's name (`scene.title`) and a card folder's or file's
   name (`microsd.name`) are built the same way, and each returns where it was opened from.
 - **A channel screen carries its strip.** The arrows either side of the toolbar's channel name change
-  the strip without leaving the screen, and a block the strip does not carry opens no screen. On a strip that does
-  not carry the block, the GATE, COMP, DUCKER, DELAY and SSMCS screens draw no title and nothing to operate, only
-  `This channel has no GATE screen` (and so on) in the middle.
+  the strip without leaving the screen, and a block the strip does not carry opens no screen. The channel view and
+  any other channel screen stacked under it move to the strip stepped to as well, so the back arrow returns to that
+  strip's channel view and HOME keeps it selected. On a strip that does not carry the block, the GATE, COMP, DUCKER,
+  DELAY and SSMCS screens draw no title and nothing to operate, only `This channel has no GATE screen` (and so on) in
+  the middle.
 - **The name box opens CH SETTING.** Every channel screen but CH SETTING opens CH SETTING for its strip
   from the name box in the toolbar. The map draws that arrow from the channel view alone.

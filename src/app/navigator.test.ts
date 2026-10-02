@@ -54,6 +54,23 @@ describe("Navigator", () => {
     expect(nav.depth).toBe(2);
   });
 
+  it("steps the screen on top and every channel screen under it onto a strip, and leaves the rest", () => {
+    const nav = new Navigator();
+    const listener = vi.fn();
+    nav.push({ id: "channel-view", strip: "ch1" });
+    nav.push({ id: "ch.gate" });
+    nav.onChange(listener);
+
+    nav.stepStrip("ch3");
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect([nav.current, nav.depth]).toEqual([{ id: "ch.gate", strip: "ch3" }, 3]);
+    nav.back();
+    expect(nav.current).toEqual({ id: "channel-view", strip: "ch3" });
+    nav.back();
+    expect(nav.current, "HOME carries no strip").toEqual({ id: "home" });
+  });
+
   it("notifies once per move", () => {
     const nav = new Navigator();
     const listener = vi.fn();

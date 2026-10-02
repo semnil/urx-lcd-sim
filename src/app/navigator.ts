@@ -45,9 +45,20 @@ export class Navigator {
     this.emit("push");
   }
 
-  /** Replace the top of the stack — used when a screen switches strips. */
+  /** Replace the top of the stack — used when a screen gives way to another in its place. */
   replace(route: Route): void {
     this.stack[this.stack.length - 1] = route;
+    this.emit("replace");
+  }
+
+  /**
+   * Put the screen on top, and every channel screen under it, onto `strip` —
+   * what a channel screen's arrows do, so the screens under it come back on
+   * the strip stepped to. A screen under it with no strip stays as it is.
+   */
+  stepStrip(strip: string): void {
+    const top = this.stack.length - 1;
+    this.stack = this.stack.map((route, i) => (i === top || route.strip !== undefined ? { ...route, strip } : route));
     this.emit("replace");
   }
 

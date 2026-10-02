@@ -4571,6 +4571,36 @@ describe("what the dedicated channel screens draw", () => {
     expect(shell.ctx.nav.current.strip).toBe("ch4");
   });
 
+  it("goes back to the channel view of the channel the arrows stepped to, and HOME keeps that channel selected", async () => {
+    const seen: (string | number | null)[][] = [];
+    const want: (string | number | null)[][] = [];
+    for (const [model, walked] of [["URX44V", "ch3"], ["URX22", "ch_3_4"]] as const) {
+      for (const screen of ["ch.gate", "ch.input", "ch.setting", "ch.sendto", "ch.insfx", "ch.ssmcs.sc"]) {
+        const shell = await mount(model);
+        const icon = (name: string): HTMLElement | null => shell.root.querySelector<HTMLElement>(`.icon-btn[aria-label="${name}"]`);
+        const label = findStrip(shell.ctx.model, walked)?.label ?? "";
+        shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+        shell.ctx.nav.push({ id: screen, strip: "ch1" });
+        await flush();
+        for (let i = 0; i < 2; i++) {
+          shell.root.querySelector<HTMLElement>('.ch-arrow[aria-label="Next channel"]')?.click();
+          await flush();
+        }
+        const walkedTo = shell.ctx.nav.current.strip ?? null;
+        icon("Back")?.click();
+        await flush();
+        const back = [shell.ctx.nav.current.id, shell.ctx.nav.current.strip ?? null, shell.ctx.nav.depth, shell.ctx.store.str("ui.selectedStrip", "")];
+        icon("HOME")?.click();
+        await flush();
+        const home = [shell.ctx.store.str("ui.selectedStrip", ""), shell.root.querySelector(".strip.is-selected .strip-id")?.textContent ?? null];
+        seen.push([model, screen, walkedTo, ...back, ...home]);
+        want.push([model, screen, walked, "channel-view", walked, 2, walked, walked, label]);
+        shell.destroy();
+      }
+    }
+    expect(seen).toEqual(want);
+  });
+
   it("opens CH SETTING from the channel view's name alone, and keeps the name on the screens under it and on CH SETTING out of reach", async () => {
     const shell = await mount();
     const chip = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".ch-chip");
