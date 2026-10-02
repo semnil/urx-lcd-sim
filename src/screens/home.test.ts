@@ -5,9 +5,10 @@ import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
 import { CH_COLOR_PALETTE, unitById } from "../model/units";
-import { bankStrips } from "../model/types";
+import type { Strip } from "../model/types";
+import { bankStrips, findStrip } from "../model/types";
 import { OSC_TARGETS } from "../model/oscillator";
-import { bankName, channelLabel } from "./strip-state";
+import { bankName, channelLabel, stripLane } from "./strip-state";
 import { buildRegistry } from "./index";
 import { meterLevels, setMeterSource, startMeterTicker } from "./meters";
 import { storeScene } from "./scene";
@@ -3904,8 +3905,8 @@ describe("the readout bar with more parameters than divisions", () => {
 
   it("draws no step where four divisions hold everything", async () => {
     const shell = await mount();
-    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
-    shell.ctx.nav.push({ id: "ch.ducker", strip: "ch1" });
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch_5_6" });
+    shell.ctx.nav.push({ id: "ch.ducker", strip: "ch_5_6" });
     await flush();
     expect(shell.root.querySelectorAll(".knob-cell").length).toBe(4);
     expect(shell.root.querySelector(".knob-page-next")).toBeNull();
@@ -4259,10 +4260,13 @@ describe("EQ's shape list and Operation Mode's previews", () => {
 });
 
 describe("what the dedicated channel screens draw", () => {
+  /** DUCKER is a stereo input's block and DELAY STREAMING's; every other screen opens on CH 1. */
+  const BLOCK_STRIP: Record<string, string> = { "ch.ducker": "ch_5_6", "ch.delay": "bus.stream" };
   const open = async (id: string): Promise<Shell> => {
     const shell = await mount();
-    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
-    shell.ctx.nav.push({ id, strip: "ch1" });
+    const strip = BLOCK_STRIP[id] ?? "ch1";
+    shell.ctx.nav.push({ id: "channel-view", strip });
+    shell.ctx.nav.push({ id, strip });
     await flush();
     return shell;
   };
@@ -4394,7 +4398,7 @@ describe("what the dedicated channel screens draw", () => {
 
   it("prints a ducking decay past a second in seconds, and the shorter times in ms", async () => {
     const shell = await open("ch.ducker");
-    await shell.ctx.store.set("ch.ch1.ducker.decay", 4800);
+    await shell.ctx.store.set("ch.ch_5_6.ducker.decay", 4800);
     await flush();
     const cells = [...shell.root.querySelectorAll<HTMLElement>(".knob-cell")];
     const read = (label: string): string | undefined =>
@@ -4415,7 +4419,7 @@ describe("what the dedicated channel screens draw", () => {
     const boxes = (): (string | null)[] =>
       [...shell.root.querySelectorAll<HTMLElement>(".delay-cell .value-box")].map((n) => n.textContent);
     expect(boxes()).toEqual(["1.00", "0.03", "0.3", "1.1"]);
-    await shell.ctx.store.set("ch.ch1.delay.ms", 10);
+    await shell.ctx.store.set("ch.bus.stream.delay.ms", 10);
     await flush();
     expect(boxes(), "one value, four ways of naming it").toEqual(["10.00", "0.30", "3.4", "11.3"]);
   });
@@ -4467,6 +4471,59 @@ describe("what the dedicated channel screens draw", () => {
       await flush();
       expect(shell.ctx.nav.current.id, `${id} stays on itself`).toBe(id);
       expect(shell.ctx.nav.current.strip, "and lands on the first channel").toBe("ch1");
+    }
+  });
+
+  it("says a channel stepped to without the block has no such screen, and leaves nothing on it to operate", async () => {
+    // GATE, COMP and SSMCS are a mono input's, DUCKER a stereo input's, DELAY STREAMING's.
+    const screens: [string, string, string, string][] = [
+      ["ch.gate", "GATE", "ch1", "monoIn"],
+      ["ch.comp", "COMP", "ch1", "monoIn"],
+      ["ch.ducker", "DUCKER", "ch_5_6", "stIn"],
+      ["ch.delay", "DELAY", "bus.stream", "streaming"],
+      ["ch.ssmcs", "SSMCS", "ch1", "monoIn"],
+      ["ch.ssmcs.comp", "SSMCS", "ch1", "monoIn"],
+      ["ch.ssmcs.sc", "SSMCS", "ch1", "monoIn"],
+      ["ch.ssmcs.eq", "SSMCS", "ch1", "monoIn"],
+    ];
+    for (const [id, name, from, kind] of screens) {
+      const shell = await mount();
+      const store = shell.ctx.store;
+      shell.ctx.nav.push({ id: "channel-view", strip: from });
+      shell.ctx.nav.push({ id, strip: from });
+      await flush();
+      const mixer = new Set(store.pathsUnder("ch"));
+      const landed = { with: 0, without: 0 };
+      const here = (): [Strip, string] => {
+        const strip = findStrip(shell.ctx.model, shell.ctx.nav.current.strip ?? "");
+        if (!strip) throw new Error(`${id}: no strip ${shell.ctx.nav.current.strip}`);
+        return [strip, `${id} on ${strip.id} lane ${stripLane(shell.ctx, strip)}`];
+      };
+      const start = here()[1];
+      // Once round every channel, back to the one it opened on.
+      for (let step = 0; step === 0 || here()[1] !== start; step++) {
+        [...shell.root.querySelectorAll<HTMLElement>(".ch-arrow")].at(-1)?.click();
+        await flush();
+        const [strip, at] = here();
+        expect(shell.ctx.nav.current.id, `${at}: the screen stays`).toBe(id);
+        expect(shell.root.querySelector(".ch-chip-id")?.textContent, `${at}: the toolbar names the channel`).toBe(
+          channelLabel(strip, stripLane(shell.ctx, strip), true),
+        );
+        const title = shell.root.querySelector(".toolbar .badge-title")?.textContent;
+        const missing = shell.root.querySelector(".main .screen-missing")?.textContent;
+        if (strip.kind === kind) {
+          landed.with++;
+          expect([title, missing], `${at}: the block's own screen`).toEqual([name, undefined]);
+          continue;
+        }
+        landed.without++;
+        expect([title, missing], at).toEqual([undefined, `This channel has no ${name} screen`]);
+        const controls = [...shell.root.querySelectorAll<HTMLElement>(".main button, .main [role], .main [tabindex], .knob-strip [role]")];
+        expect(controls.map((c) => c.className), `${at}: nothing to operate`).toEqual([]);
+      }
+      expect(landed.with > 0 && landed.without > 0, `${id} lands both ways`).toBe(true);
+      expect(store.pathsUnder("ch").filter((p) => !mixer.has(p)), `${id}: no value written`).toEqual([]);
+      shell.destroy();
     }
   });
 
@@ -4594,10 +4651,10 @@ describe("what the dedicated channel screens draw", () => {
 describe("the grips on a dedicated screen's graph", () => {
   // User guide, "GATE screen", "COMP screen", "DUCKER screen" and "EQ screen":
   // the values are set by working the graph directly.
-  const open = async (id: string): Promise<Shell> => {
+  const open = async (id: string, strip = "ch1"): Promise<Shell> => {
     const shell = await mount();
-    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
-    shell.ctx.nav.push({ id, strip: "ch1" });
+    shell.ctx.nav.push({ id: "channel-view", strip });
+    shell.ctx.nav.push({ id, strip });
     await flush();
     return shell;
   };
@@ -4627,15 +4684,10 @@ describe("the grips on a dedicated screen's graph", () => {
     // R stands on the curve's far end, which a higher ratio takes down.
     expect(await moved(comp, '[aria-label^="R handle"]', 0, 20, ["ch.ch1.comp.ratio"]), "COMP R down").toEqual([1]);
 
-    const ducker = await open("ch.ducker");
-    // The factory state leaves these to the screen's own fallbacks, which the store does not hold.
-    await ducker.ctx.store.set("ch.ch1.ducker.range", -24);
-    await ducker.ctx.store.set("ch.ch1.ducker.attack", 20.17);
-    await ducker.ctx.store.set("ch.ch1.ducker.decay", 1000);
-    await flush();
-    expect(await moved(ducker, '[aria-label^="R handle"]', 0, -20, ["ch.ch1.ducker.range"]), "DUCKER R up").toEqual([1]);
-    expect(await moved(ducker, '[aria-label^="A handle"]', 40, 0, ["ch.ch1.ducker.attack"]), "DUCKER A right").toEqual([1]);
-    expect(await moved(ducker, '[aria-label^="D handle"]', 40, 0, ["ch.ch1.ducker.decay"]), "DUCKER D right").toEqual([1]);
+    const ducker = await open("ch.ducker", "ch_5_6");
+    expect(await moved(ducker, '[aria-label^="R handle"]', 0, -20, ["ch.ch_5_6.ducker.range"]), "DUCKER R up").toEqual([1]);
+    expect(await moved(ducker, '[aria-label^="A handle"]', 40, 0, ["ch.ch_5_6.ducker.attack"]), "DUCKER A right").toEqual([1]);
+    expect(await moved(ducker, '[aria-label^="D handle"]', 40, 0, ["ch.ch_5_6.ducker.decay"]), "DUCKER D right").toEqual([1]);
   });
 
   it("takes a grip's value to either end of its range by Home and End", async () => {

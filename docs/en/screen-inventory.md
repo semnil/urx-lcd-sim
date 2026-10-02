@@ -535,6 +535,11 @@ box writes STEREO as `ST` and STREAMING as `STR`. The second line is the name se
 two-channel strip meters the channel in view alone in its gain column. The name box opens CH SETTING, but
 opens nothing while CH SETTING is showing.
 
+GATE, COMP and SSMCS belong to the mono inputs, DUCKER to the stereo inputs and DELAY to STREAMING. Stepped to a
+channel whose strip does not carry the block, these screens keep the channel's name in the toolbar, draw no title, and
+show `This channel has no GATE screen` (`COMP`, `DUCKER`, `DELAY` and `SSMCS` in the same form) in the middle, with
+nothing to operate and nothing written.
+
 The screen name does not wrap.
 
 The block name (COMP / GATE / EQ / DUCKER / DELAY / INS FX) stands in the middle of the toolbar, in

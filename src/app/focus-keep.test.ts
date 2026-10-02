@@ -434,6 +434,7 @@ describe("the focus through a redraw", () => {
 
   it("follows [Next SSMCS screen] onto the screen it steps to in place of this one, so Enter steps on", async () => {
     const shell = await mount();
+    await shell.ctx.store.set("ch.ch1.compEqOrder", "SSMCS");
     shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
     shell.ctx.nav.push({ id: "ch.ssmcs", strip: "ch1" });
     await flush();
@@ -449,6 +450,7 @@ describe("the focus through a redraw", () => {
 
   it("takes the focus onto the arrow the other way on the SSMCS screen at either end, so Enter steps back", async () => {
     const shell = await mount();
+    await shell.ctx.store.set("ch.ch1.compEqOrder", "SSMCS");
     shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
     shell.ctx.nav.push({ id: "ch.ssmcs", strip: "ch1" });
     await flush();
@@ -529,9 +531,10 @@ describe("the grips on a dynamics plot", () => {
         .map((n) => `${n.tagName}.${n.getAttribute("class") ?? ""}`),
     };
   };
-  /** A channel's screen, opened from its channel view. */
+  /** A channel's screen, opened from its channel view; an SSMCS screen on the channel put on SSMCS. */
   const open = async (id: string, strip: string): Promise<Shell> => {
     const shell = await mount();
+    if (id.startsWith("ch.ssmcs")) await shell.ctx.store.set(`ch.${strip}.compEqOrder`, "SSMCS");
     shell.ctx.nav.push({ id: "channel-view", strip });
     shell.ctx.nav.push({ id, strip });
     await flush();

@@ -10,7 +10,7 @@ import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, GATE_DEFAULTS, compEqBankDefaults
 import { COMP_KNEE_WIDTH, compResponse, grBarShare, levelBarShare } from "../model/dynamics";
 import { DYNAMICS_TIME_STOPS, type DynamicsTime } from "../model/dynamics-times";
 import { EQ_SHAPES, eqBandOn, eqBandShape, fourBandResponse } from "../model/channel-eq";
-import type { Strip } from "../model/types";
+import type { Strip, StripKind } from "../model/types";
 import { findStrip, sendsTo } from "../model/types";
 import { CH_COLOR_NONE, CH_COLOR_OFF, CH_COLOR_PALETTE } from "../model/units";
 import { el, makeTappable, setPressed } from "../ui/dom";
@@ -35,6 +35,26 @@ import type { ScreenBody, ScreenDef } from "./types";
 /** What a channel screen shows when the route names no channel. */
 export function noChannel(): ScreenBody {
   return { main: el("div", { class: "screen-missing", text: "No channel selected" }) };
+}
+
+/** The kind of strip each block with a screen of its own belongs to. */
+const BLOCK_STRIPS = { GATE: "monoIn", COMP: "monoIn", SSMCS: "monoIn", DUCKER: "stIn", DELAY: "streaming" } satisfies Record<string, StripKind>;
+
+/** Whether the strip carries the block. */
+export function carriesBlock(strip: Strip, block: keyof typeof BLOCK_STRIPS): boolean {
+  return strip.kind === BLOCK_STRIPS[block];
+}
+
+/**
+ * What a block's screen shows on a strip the arrows step to that does not carry
+ * the block: the channel's name in the toolbar, no title, a line saying so in the
+ * middle, and nothing to operate.
+ */
+export function noBlock(ctx: AppContext, strip: Strip, route: Route, block: keyof typeof BLOCK_STRIPS): ScreenBody {
+  return {
+    main: el("div", { class: "screen-missing", text: `This channel has no ${block} screen` }),
+    headerLeft: channelSelector(ctx, strip, route, true),
+  };
 }
 
 /**
@@ -1143,6 +1163,7 @@ export const gateScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (!carriesBlock(strip, "GATE")) return noBlock(ctx, strip, route, "GATE");
     const b = `ch.${strip.id}`;
     const threshold = gateThreshold(b);
     const range = dbSpec(`${b}.gate.range`, "Range", -73, 0, GATE_DEFAULTS.range, 1, 0);
@@ -1196,6 +1217,7 @@ export const compScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (!carriesBlock(strip, "COMP")) return noBlock(ctx, strip, route, "COMP");
     const b = `ch.${strip.id}`;
     // While 1-knob is on, its level holds the focus and no other value on the screen turns.
     const oneKnob = ctx.store.bool(`${b}.comp.oneKnob.on`, false);
@@ -1292,6 +1314,7 @@ export const duckerScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (!carriesBlock(strip, "DUCKER")) return noBlock(ctx, strip, route, "DUCKER");
     const b = `ch.${strip.id}`;
     const threshold = duckerThreshold(b);
     const range = dbSpec(`${b}.ducker.range`, "Range", -70, 0, -24, 1, 0);
@@ -1420,6 +1443,7 @@ export const delayScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (!carriesBlock(strip, "DELAY")) return noBlock(ctx, strip, route, "DELAY");
     const b = `ch.${strip.id}`;
     const on = ctx.store.bool(`${b}.delay.on`, false);
     const rate = delayFrameRate(ctx, b);

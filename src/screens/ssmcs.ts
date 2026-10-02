@@ -34,11 +34,13 @@ import {
   PLOT_MIN,
   PLOT_SPAN,
   PLOT_W,
+  carriesBlock,
   channelSelector,
   compResponse,
   dynMeters,
   dynSetting,
   hidePlotDrawing,
+  noBlock,
   noChannel,
   plotCurve,
   plotHandle,
@@ -465,6 +467,7 @@ export const ssmcsScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (!carriesBlock(strip, "SSMCS")) return noBlock(ctx, strip, route, "SSMCS");
     const b = `ch.${strip.id}`;
     const drive = driveSpec(b);
     const morphing = morphingSpec(b);
@@ -526,6 +529,7 @@ export const ssmcsScreen: ScreenDef = {
 function compFace(ctx: AppContext, route: Route, sideChain: boolean): ScreenBody {
   const strip = routeStrip(ctx, route);
   if (!strip) return noChannel();
+  if (!carriesBlock(strip, "SSMCS")) return noBlock(ctx, strip, route, "SSMCS");
   const b = `ch.${strip.id}`;
   const drive = driveSpec(b);
   const ratio = ratioSpec(b);
@@ -614,6 +618,7 @@ export const ssmcsEqScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (!carriesBlock(strip, "SSMCS")) return noBlock(ctx, strip, route, "SSMCS");
     const b = `ch.${strip.id}`;
     const bandKey = ctx.store.str("ui.ssmcsBand", "mid");
     const band = SSMCS_BANDS.find((x) => x.key === bandKey) ?? SSMCS_BANDS[1];
