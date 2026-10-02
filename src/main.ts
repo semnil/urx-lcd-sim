@@ -83,7 +83,8 @@ async function boot(modelId: ModelId, mount: HTMLElement): Promise<void> {
 
   // The unit as it ships, for a start from nothing: what the unit's own
   // Initialize All Memories does, on the simulator's chrome rather than a
-  // screen. It asks in place first, since it drops everything the unit holds.
+  // screen. It asks in place first, with the focus on [Cancel], since it drops
+  // everything the unit holds.
   const resetBox = el("span", { class: "chrome-reset" });
   const drawReset = (asking: boolean): void => {
     const ask = el("button", {
@@ -91,6 +92,7 @@ async function boot(modelId: ModelId, mount: HTMLElement): Promise<void> {
       text: "Reset the unit",
       onTap: () => drawReset(true),
     });
+    const cancel = el("button", { class: "chrome-button", text: "Cancel", onTap: () => drawReset(false) });
     resetBox.replaceChildren(
       ...(asking
         ? [
@@ -99,11 +101,11 @@ async function boot(modelId: ModelId, mount: HTMLElement): Promise<void> {
               forget();
               void boot(modelId, mount);
             } }),
-            el("button", { class: "chrome-button", text: "Cancel", onTap: () => drawReset(false) }),
+            cancel,
           ]
         : [ask]),
     );
-    if (asking) resetBox.querySelector<HTMLElement>(".is-danger")?.focus();
+    if (asking) cancel.focus();
   };
   drawReset(false);
 
