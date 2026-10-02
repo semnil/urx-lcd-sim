@@ -4,7 +4,7 @@ The LCD screens shown in the URX44V/44/22 user guide (English, revision D0), and
 status in the simulator. The "Ref." column is the user guide page number. IDs such as `p045-1` and
 `wide/p040-2` in the text are the files of captures extracted from that page; where they are and how
 they are named is in [the "How the values were sampled" section of design-tokens.md](design-tokens.md#how-the-values-were-sampled)
-(`reference/` is gitignored; to regenerate, `node scripts/extract-ug-screens.mjs --pdf <user guide PDF>`).
+(`reference/` is gitignored; how to regenerate it is in [the "Where the appearance comes from" section of README.md](../../README.md#where-the-appearance-comes-from)).
 
 "Screen ID" is the identifier registered in `ScreenRegistry`, and `buildRegistry()` in
 `src/screens/index.ts` is the only place a screen is registered.

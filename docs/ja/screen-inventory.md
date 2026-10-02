@@ -3,7 +3,7 @@
 URX44V/44/22 ユーザーガイド (英語版 revision D0) が載せている LCD 画面の一覧と、シミュレーターでの
 実装状況。「参照」列はユーザーガイドのページ番号。文中の `p045-1` や `wide/p040-2` はそのページから
 抽出したキャプチャのファイルで、置き場所と命名は [design-tokens.md の「採取方法」](design-tokens.md#採取方法)
-にある (`reference/` は git 管理外。再生成は `node scripts/extract-ug-screens.mjs --pdf <ユーザーガイド PDF>`)。
+にある (`reference/` は git 管理外。再生成の手順は [README.ja.md の「画面の見た目の根拠」](../../README.ja.md#画面の見た目の根拠))。
 
 「画面 ID」は `ScreenRegistry` に登録されている識別子で、`src/screens/index.ts` の
 `buildRegistry()` が唯一の登録場所。
