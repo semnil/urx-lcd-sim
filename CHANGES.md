@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Hold the marks either side of a held EQ band still when the browser asks for reduced motion, as the other blinking marks already were. They kept blinking.
 - Keep a channel name with a space in it on one line in the narrow name box of the screens under a channel view. It broke in two at the space and pushed `CH 1` off the top of the box.
 - Keep the settings panels of COMP, GATE, DUCKER and the other screens with a readout bar where they stand when USER DEFINED KNOBS is switched on. The main area grew under the bar and pushed the bottom value box, such as COMP's Release, under it, out of reach.
 - Send nothing of an edit or of an operation to a unit connected through a `BridgeTransport` when one of the unit's paths it writes has no bound address, and put the screen back; a value the screen keeps for itself, such as the recorder's clock or SCENE's menu, holds nothing back, and stays on the screen unsent where it has no address, keeping what it held before the move onto the unit: switching on HI-Z with no address bound for it brought a bound A.Gain at +70 dB down to +40 dB on the unit, an edit to an unbound path of a linked pair was written for the other channel, and taking a BUS Type or a Signal Type with no address for it reset the bus's sends or wrote the pair's PAN/BAL and placing, while the edit itself was refused.

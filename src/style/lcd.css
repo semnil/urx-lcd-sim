@@ -5429,9 +5429,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dyn-handle-mark.is-held .dyn-handle-arrow,
-  .eq-grip.is-held::before,
-  .eq-grip.is-held::after {
+  .dyn-handle-mark.is-held .dyn-handle-arrow {
     animation: none;
   }
 }
@@ -7529,6 +7527,13 @@
   height: 0;
   border-top: 4px solid transparent;
   border-bottom: 4px solid transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eq-grip.is-held::before,
+  .eq-grip.is-held::after {
+    animation: none;
+  }
 }
 
 .eq-grip.is-held::before {

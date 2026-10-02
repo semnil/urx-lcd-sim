@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { KNOB_SIZE } from "../ui/param-spec";
-import { columnGap, declarations, declarationsOn, px, readStyle, styleRules, subject } from "./css-read";
+import { columnGap, declarations, declarationsOn, placedRules, px, readStyle, styleRules, subject } from "./css-read";
 
 // A value has to read under the panel it belongs to. The HOME bank, the knob
 // readout strip and the head-amp column of a channel view therefore stand on one
@@ -3321,7 +3321,10 @@ describe("the marks on the control holding the focus", () => {
     expect(declarations(CSS, ".eq-grip.is-held::before")["animation"]).toBe("focus-mark-blink 2s ease-in-out infinite");
     expect(CSS).toMatch(/@keyframes focus-mark-blink\s*\{\s*50%\s*\{\s*opacity:\s*0;/);
     expect(CSS, "no blinking for a reader who asks for less motion").toMatch(
-      /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.dyn-handle-mark\.is-held \.dyn-handle-arrow,\s*\.eq-grip\.is-held::before,\s*\.eq-grip\.is-held::after\s*\{\s*animation: none;/,
+      /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.dyn-handle-mark\.is-held \.dyn-handle-arrow\s*\{\s*animation: none;/,
+    );
+    expect(CSS, "for a held band's marks as well").toMatch(
+      /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.eq-grip\.is-held::before,\s*\.eq-grip\.is-held::after\s*\{\s*animation: none;/,
     );
   });
 
@@ -3740,5 +3743,30 @@ describe("what lies over the USER DEFINED KNOBS bar", () => {
     expect([dark["position"], dark["inset"]]).toEqual(["absolute", declarations(CSS, ".lcd .knob-strip::after")["inset"]]);
     const parts = rules.filter((r) => r.selectors.some((s) => /\.knob-(cell|bank|page)/.test(s)) && "z-index" in r.body);
     expect([Number(dark["z-index"]) > 0, parts.map((r) => r.selectors.join())]).toEqual([true, []]);
+  });
+});
+
+describe("a reader who asks for less motion", () => {
+  it("has each blink and slide stopped by a rule later in the sheet than the one that starts it", () => {
+    // The stop carries the same selector as the rule it stops, so it holds only
+    // where it comes after that rule.
+    const reduce = (within: string): boolean => /prefers-reduced-motion:\s*reduce/.test(within);
+    let stops = 0;
+    for (const file of ["lcd.css", "app.css"]) {
+      const rules = placedRules(readStyle(file));
+      const late: string[] = [];
+      rules.forEach((rule, at) => {
+        if (!reduce(rule.within)) return;
+        for (const selector of rule.selectors) {
+          for (const motion of ["animation", "transition"].filter((m) => rule.body[m] !== undefined)) {
+            stops++;
+            const starts = rules.flatMap((r, i) => (!reduce(r.within) && r.selectors.includes(selector) && r.body[motion] !== undefined ? [i] : []));
+            if (starts.length === 0 || starts.some((i) => i > at)) late.push(`${file} ${selector} ${motion}`);
+          }
+        }
+      });
+      expect(late, "a stop with no rule before it to stop, or one a later rule starts again").toEqual([]);
+    }
+    expect(stops, "the sheets carry stops to check").toBeGreaterThan(0);
   });
 });

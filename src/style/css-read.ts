@@ -91,15 +91,27 @@ function readBody(body: string): Record<string, string> {
 
 /** Every style rule in the sheet, the ones inside `@media` and `@supports` too, in source order. */
 export function styleRules(css: string): { selectors: string[]; body: Record<string, string> }[] {
-  const out: { selectors: string[]; body: Record<string, string> }[] = [];
+  return placedRules(css).map(({ selectors, body }) => ({ selectors, body }));
+}
+
+/** Every style rule in the sheet in source order, with the header of the at-rule it stands in ("" for none). */
+export function placedRules(css: string): { selectors: string[]; body: Record<string, string>; within: string }[] {
+  const out: { selectors: string[]; body: Record<string, string>; within: string }[] = [];
+  let within = "";
   for (const block of css.split("}")) {
     const brace = block.lastIndexOf("{");
-    if (brace < 0) continue;
+    // A block with no brace of its own is what is left once an at-rule closes.
+    if (brace < 0) {
+      within = "";
+      continue;
+    }
     // A rule opened inside an at-rule shares its block with the at-rule's own header.
-    const head = block.slice(block.lastIndexOf("{", brace - 1) + 1, brace).trim();
+    const outer = block.lastIndexOf("{", brace - 1);
+    if (outer >= 0) within = block.slice(0, outer).trim();
+    const head = block.slice(outer + 1, brace).trim();
     // `@keyframes` steps (`from`, `to`, `50%`) select no element.
     if (!head || head.startsWith("@") || /^(from|to|[\d.]+%)(\s*,\s*(from|to|[\d.]+%))*$/.test(head)) continue;
-    out.push({ selectors: selectorList(head), body: readBody(block.slice(brace + 1)) });
+    out.push({ selectors: selectorList(head), body: readBody(block.slice(brace + 1)), within });
   }
   return out;
 }
