@@ -1647,8 +1647,9 @@ Edit tabs alike). [New folder] under a name the folder already carries, a folder
 sheet and goes back to the Edit tab saying nothing and making nothing, as the unit does. TOOLS' [Format] leaves the card
 with nothing on it. On SAVE/LOAD, [Save] writes the unit's settings over the selected settings file,
 [Save as] writes them under the name that is typed with `.urxf` after it, and [Load] puts a file
-back on the unit. Writing over a file that is already there asks `File alerady exists. Replace it?`
-first; loading asks nothing. [Save] and [Load] stand out of reach until a settings file is under the
+back on the unit. Writing over a file that is already there, or a [Save as] under the name of a folder in the folder
+that is open, asks `File already exists. Replace it?` first; loading asks nothing. Under a folder's name, [OK] leaves
+the folder as it is and writes nothing, as the unit does. [Save] and [Load] stand out of reach until a settings file is under the
 cursor. A settings file carries every value but the screen's own state (`ui.`) and the card itself
 (`sd.`). A source the file holds no D.Gain for comes back to 0 dB when it is loaded, and a scene number
 the file holds nothing under comes back empty.

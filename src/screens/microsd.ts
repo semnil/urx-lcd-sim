@@ -396,23 +396,40 @@ function newFolder(ctx: AppContext): void {
   }, { max: NAME_MAX });
 }
 
-/** Write the unit's settings to the card under `name`, over a file of that name. */
-function saveSettings(ctx: AppContext, name: string): void {
+/**
+ * Write the unit's settings to the card under `name` in the folder that is
+ * open: over the settings file at row `at`, or as a new file where `at` is -1.
+ */
+function saveSettings(ctx: AppContext, name: string, at = -1): void {
   const entry: CardEntry = { name, kind: "data", seconds: 0, tracks: 0, stamp: cardStamp(ctx.store), dir: cardPath(ctx) };
   void ctx.store.set(filePath(entry), toJson(captureSettings(ctx.store)));
   const entries = cardEntries(ctx);
-  const at = entries.findIndex((e) => e.name === name && e.dir === cardPath(ctx));
   updateCard(ctx, at < 0 ? [...entries, entry] : entries.map((e, i) => (i === at ? entry : e)));
+}
+
+/** The row of the settings file the folder that is open carries under `name`, or -1 where it carries none. */
+function settingsRow(ctx: AppContext, name: string): number {
+  return cardEntries(ctx).findIndex((e) => e.kind === "data" && e.dir === cardPath(ctx) && e.name === name);
 }
 
 /** What SAVE/LOAD's three buttons do: over the selected file, under a new name, and back onto the unit. */
 function saveLoadAction(ctx: AppContext, label: string): void {
+  const row = cursorRow(ctx);
   const entry = selectedEntry(ctx);
   if (label === "Save as") {
     nameOnCard(ctx, "", (name) => {
-      const taken = folderCarries(cardEntries(ctx), cardPath(ctx), name);
-      if (taken) ctx.overlay(dialog({ message: REPLACE_ASK, onOk: () => saveSettings(ctx, name) }));
-      else saveSettings(ctx, name);
+      // A name the folder already carries asks first. [OK] writes over a
+      // settings file of that name, and leaves a folder of that name as it is,
+      // writing nothing.
+      if (!folderCarries(cardEntries(ctx), cardPath(ctx), name)) {
+        saveSettings(ctx, name);
+        return;
+      }
+      const over = (): void => {
+        const at = settingsRow(ctx, name);
+        if (at >= 0) saveSettings(ctx, name, at);
+      };
+      ctx.overlay(dialog({ message: REPLACE_ASK, onOk: over }));
     }, { suffix: SETTINGS_SUFFIX, max: SAVE_AS_MAX });
     return;
   }
@@ -421,8 +438,8 @@ function saveLoadAction(ctx: AppContext, label: string): void {
     loadSettings(ctx, entry);
     return;
   }
-  // Saving over a file that is already there asks first; nothing else does.
-  ctx.overlay(dialog({ message: REPLACE_ASK, onOk: () => saveSettings(ctx, entry.name) }));
+  // Saving over the file the cursor stands on asks first; nothing else does.
+  ctx.overlay(dialog({ message: REPLACE_ASK, onOk: () => saveSettings(ctx, entry.name, row) }));
 }
 
 /** Put a settings file back on the unit, a GATE, COMP or DUCKER time off its stops on the stop nearest it. */
@@ -443,7 +460,7 @@ function loadSettings(ctx: AppContext, entry: CardEntry): void {
 }
 
 /** What the unit asks before it writes over a file that is already on the card. */
-const REPLACE_ASK = "File alerady exists. Replace it?";
+const REPLACE_ASK = "File already exists. Replace it?";
 
 /** What the unit says when an entry is renamed onto a name its folder already carries. */
 const NAME_TAKEN = "File already exists.";

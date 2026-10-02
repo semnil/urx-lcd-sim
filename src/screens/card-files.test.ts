@@ -301,18 +301,61 @@ describe("what the card's own actions do to it", () => {
     await flush();
     action(shell, "Save")?.click();
     await flush();
-    expect(ask(), "over a file that is already there").toBe("File alerady exists. Replace it?");
+    expect(ask(), "over a file that is already there").toBe("File already exists. Replace it?");
     await okDialog(shell);
 
     action(shell, "Save as")?.click();
     await flush();
     await typeTitle(shell, "mine");
-    expect(ask(), "and under a name the card already carries").toBe("File alerady exists. Replace it?");
+    expect(ask(), "and under a name the card already carries").toBe("File already exists. Replace it?");
     await okDialog(shell);
 
     action(shell, "Load")?.click();
     await flush();
     expect(ask(), "loading asks nothing").toBeUndefined();
+  });
+
+  it("asks before [Save as] onto a folder of that name, and on [OK] leaves the folder as it is and writes nothing", async () => {
+    const shell = await mount({ id: "microsd.saveload" }, [
+      { name: "cfg.urxf", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" },
+      { name: "inside.wav", kind: "take", seconds: 10, tracks: 2, stamp: "", dir: "/cfg.urxf/" },
+    ]);
+    const store = shell.ctx.store;
+    const before = readCard(store);
+    const free = freeBytes(store);
+    action(shell, "Save as")?.click();
+    await flush();
+    await typeTitle(shell, "cfg");
+    expect(shell.root.querySelector(".dialog-text")?.textContent, "asked as over a file").toBe("File already exists. Replace it?");
+    expect(shell.root.querySelector(".dialog:not(.is-caution) .dialog-mark svg"), "under the information mark").not.toBeNull();
+    expect([...shell.root.querySelectorAll(".dialog-actions .btn")].map((b) => b.textContent)).toEqual(["Cancel", "OK"]);
+    await okDialog(shell);
+    expect([readCard(store), freeBytes(store), store.str("sd.file./cfg.urxf", "")], "the folder kept, nothing written").toEqual([before, free, ""]);
+
+    action(shell, "Save as")?.click();
+    await flush();
+    await typeTitle(shell, "set");
+    action(shell, "Save as")?.click();
+    await flush();
+    await typeTitle(shell, "set");
+    await okDialog(shell);
+    expect(readCard(store).map((e) => `${e.dir}${e.name}:${e.kind}`), "the control: [OK] writes over a settings file").toEqual(["/cfg.urxf:folder", "/set.urxf:data", "/cfg.urxf/inside.wav:take"]);
+  });
+
+  it("writes [Save] over the settings file the cursor stands on, not a folder of its name", async () => {
+    const shell = await mount({ id: "microsd.saveload" }, [
+      { name: "x.urxf", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" },
+      { name: "x.urxf", kind: "data", seconds: 0, tracks: 0, stamp: "", dir: "/" },
+    ]);
+    const store = shell.ctx.store;
+    await store.set("sd.selectedFile", 1);
+    await flush();
+    action(shell, "Save")?.click();
+    await flush();
+    await okDialog(shell);
+    const after = readCard(store);
+    expect(after.map((e) => e.kind), "the folder kept, the file written").toEqual(["folder", "data"]);
+    expect([after[1]?.stamp !== "", store.str("sd.file./x.urxf", "") !== "", store.num("sd.selectedFile", -1)], "the file the cursor stood on").toEqual([true, true, 1]);
   });
 
   it("takes a file off the card once the dialog is answered", async () => {
