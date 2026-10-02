@@ -645,6 +645,27 @@ describe("the meters after a fader", () => {
     expect(mono(store, tapId("ch3", "post"))).toBe(0);
     expect(read(store, tapId("bus.stereo", "sum"))).toEqual([SILENT, SILENT]);
   });
+
+  it("read over on the side whose input to the fader is over, and the other side at its own level", async () => {
+    const store = await unit();
+    await only(store, "ch3");
+    await store.set("ch.ch3.gain", 60);
+    await store.set("ch.ch3.pan", -63);
+    await store.set("ch.bus.stereo.level", -20);
+    const [sumL = SILENT] = read(store, tapId("bus.stereo", "preFader"));
+    expect(sumL, "the stereo bus's left goes into its fader over").toBeGreaterThanOrEqual(0);
+    expect(read(store, tapId("bus.stereo", "preIns")), "the stereo bus before its INS FX").toEqual([0, SILENT]);
+
+    const stereo = await unit();
+    await only(stereo, "ch_5_6");
+    await stereo.set("ch.ch_5_6.source", "MIC/LINE 1/2");
+    await stereo.set("ch.ch1.gain", 60);
+    await stereo.set("ch.ch2.gain", 40);
+    await stereo.set("ch.ch_5_6.level", -20);
+    const [preL = SILENT, preR = SILENT] = read(stereo, tapId("ch_5_6", "preFader"));
+    expect([preL >= 0, preR < 0], "only the left goes into the fader over").toEqual([true, true]);
+    expect(read(stereo, tapId("ch_5_6", "preDucker")), "the stereo channel before its DUCKER").toEqual([0, expect.closeTo(preR - 20, 6)]);
+  });
 });
 
 describe("the streaming bus", () => {

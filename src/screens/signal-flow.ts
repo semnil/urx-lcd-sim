@@ -470,8 +470,8 @@ type Lanes = Lane[];
 
 interface Flow {
   taps: Map<string, Lanes>;
-  /** The meters just after a fader that read the level before it while that level is over. */
-  over: Set<string>;
+  /** The meters just after a fader, and which of their lanes read over while that lane going into the fader is over. */
+  over: Map<string, boolean[]>;
 }
 
 /** A fader's gain: its stored level, and nothing at the bottom of its travel. */
@@ -572,7 +572,7 @@ const runs = (option: EffectOption | undefined, rate: number): boolean => option
 
 class FlowBuilder {
   readonly taps = new Map<string, Lanes>();
-  readonly over = new Set<string>();
+  readonly over = new Map<string, boolean[]>();
   readonly rate: number;
   readonly osc: Lane;
 
@@ -609,10 +609,9 @@ class FlowBuilder {
     return insertGainDb(this.store, spec, heardOn(spec, this.read(spec.level)));
   }
 
-  /** Mark the meter after a fader as reading over while what goes into the fader is over. */
+  /** Mark each lane of the meter after a fader as reading over while that lane going into the fader is over. */
   carryOver(stripId: string, into: Lanes, tap: Tap): void {
-    if (into.some((lane) => levelDb(lane) >= CLIP_DB)) this.over.add(tapId(stripId, tap));
-    else this.over.delete(tapId(stripId, tap));
+    this.over.set(tapId(stripId, tap), into.map((lane) => levelDb(lane) >= CLIP_DB));
   }
 
   on(strip: Strip): boolean {
@@ -909,7 +908,7 @@ function resolve(id: string): { strip: string; tap: Tap } {
   return cut < 0 ? { strip: id, tap: "post" } : { strip: id.slice(0, cut), tap: id.slice(cut + 1) as Tap };
 }
 
-/** Each lane a meter reads at `at`, in dB: a meter just after a fader reads over while what goes into the fader is. */
+/** Each lane a meter reads at `at`, in dB: a lane of a meter just after a fader reads over while that lane going into the fader is. */
 export function flowLevels(fc: FlowCtx, id: string, at: number): number[] {
   if (id === OSC_METER) return [oscillatorLevel(fc.store, at)];
   if (id === CUE_METER) return cueBus(fc, at).map(levelDb);
@@ -926,8 +925,8 @@ export function flowLevels(fc: FlowCtx, id: string, at: number): number[] {
   if (tap === "input" && (strip?.kind === "monoIn" || strip?.kind === "stIn")) return inputLanes(fc.store, strip, at).map(levelDb);
   const flow = flowAt(fc, at);
   const lanes = flow.taps.get(tapId(stripId, tap)) ?? [];
-  const over = flow.over.has(tapId(stripId, tap));
-  return lanes.map((lane) => (over ? Math.max(CLIP_DB, levelDb(lane)) : levelDb(lane)));
+  const over = flow.over.get(tapId(stripId, tap));
+  return lanes.map((lane, i) => (over?.[i] ? Math.max(CLIP_DB, levelDb(lane)) : levelDb(lane)));
 }
 
 /** The lanes a meter reads at `at`, for a detector to hear. */

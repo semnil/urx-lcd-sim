@@ -1320,8 +1320,8 @@ and URX44 run the same laws, bar the number of channels.
   The right dot lights only while the level clips (0 dB).
 - While the level just ahead of a fader clips, the meter just after the fader reads the clip even with [ON]
   off and the fader down (on MONO IN and FX the LEVEL meter, on a stereo channel the one before DUCKER, on
-  MIX and STEREO the one before the INS FX). The meters after DUCKER and the INS FX do not, and nothing of
-  it goes on.
+  MIX and STEREO the one before the INS FX). The two sides read apart: a side that does not clip reads its
+  own level. The meters after DUCKER and the INS FX do not, and nothing of it goes on.
 - Bars, clip marks and the indicator dots rise at once and fall at 30 dB a second. Reduction bars carry
   no tail.
 
