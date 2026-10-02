@@ -30,6 +30,10 @@
   height: var(--lcd-h);
   background: var(--lcd-bg);
   color: var(--text);
+  /* The glass and every part on it keep the unit's own colours under a forced
+   * palette such as a high-contrast theme; the chrome around it takes the
+   * browser's. */
+  forced-color-adjust: none;
   font-family: var(--font);
   font-size: var(--fs-md);
   overflow: hidden;

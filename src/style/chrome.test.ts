@@ -49,4 +49,13 @@ describe("the chrome around the glass", () => {
     const panel = declarations(APP, ".panel");
     expect([panel["width"], panel["margin-inline"]]).toEqual(["fit-content", "auto"]);
   });
+
+  it("takes the browser's forced palette, while the glass keeps the unit's own colours", () => {
+    // A forced palette (a high-contrast theme) recolours a page's backgrounds,
+    // text and borders and drops its shadows. The glass opts out once, and every
+    // part on it inherits that.
+    expect(declarations(LCD, ".lcd")["forced-color-adjust"]).toBe("none");
+    expect(LCD.match(/forced-color-adjust/g)?.length, "no part on the glass takes the forced palette back").toBe(1);
+    expect(APP.includes("forced-color-adjust"), "the title row and the notes take the forced palette").toBe(false);
+  });
 });

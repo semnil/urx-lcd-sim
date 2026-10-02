@@ -266,7 +266,10 @@ left the focus elsewhere (`tappedControl`), or on the control drawn in its place
 [Cancel] and [OK] opens with the focus on [Cancel], so an Enter pressed after the key that opened it does not carry out what
 the dialog asks; a dialog whose only button is [OK] opens with the focus on [OK]. A list opens with the focus on the value its box holds, or on its first choice where it holds none of them, and its choices
 are `role="option"`, the one held `aria-selected`. A loading modal holds nothing to operate, and Escape does not take it
-down. Meter animation stops under `prefers-reduced-motion`.
+down. Meter animation stops under `prefers-reduced-motion`. Under a forced palette such as a high-contrast theme
+(`forced-colors`), the glass keeps the unit's own colours, so a lit switch, a selection and a meter still read as
+they do on the unit (`forced-color-adjust: none` on `.lcd`); the rows above and under the glass take the browser's
+palette.
 
 Where the keys stand is drawn by the simulator, in a layer over the glass (`src/ui/focus-ring.ts`). No control draws a
 ring of its own, so neither a neighbour nor a parent box can cover it. The ring stands outside the box of the control

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Draw the screen in the unit's own colours under a forced palette such as a Windows contrast theme; the rows above and under it take the browser's palette. The browser's palette replaced the screen's, so a lit [ON] and an unlit [CUE], or the chosen sampling frequency and the others, looked alike, and the meters and the selected strip's frame were gone.
 - End a card name too long for its line in `…` at the main area's right edge on TOOLS, SAVE/LOAD and RECORDER, the free space staying on the line under it. An 11-character volume label of wide letters such as `W` was cut off part-way through a letter at that edge, and a label with a space in it broke onto two lines and pushed the free space a line down.
 - Take a touch over 36x36 at the default scale on the readout bar's page steps, the USER DEFINED KNOBS bank steps and a list's scroll bar and thumb, which draw as they did. Only what they draw took a touch, as little as 16x17 screen pixels for a page step and 8 across for a thumb.
 - Show the end of a title wider than the title sheet's field, with the caret, and bring a caret moved back past the start of what shows to the field's left edge. Sixteen wide characters such as `W` ran past the field's right edge, the last of them and the caret out of sight.
