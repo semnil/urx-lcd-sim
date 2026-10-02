@@ -100,6 +100,11 @@ PY
 | `--handle-arrow` | `#ce0484` | The triangles on both sides of the way a handle holding the focus moves (x141..147 / y93..100 in p103-1) |
 | `--graph-fill` | `#424529` | The fill under the COMP curve (p099-1) |
 | `--graph-line` | `#ada24a` | The COMP curve itself (p099-1) |
+| `--mbc-gr-open` | `#e6e6e6` | M.B.Comp: the 1px frame round the reduction bar of the band whose page is open |
+| `--mbc-mid-line` | `#29b5d6` | M.B.Comp's Mid band: its fill on the first page, and the curve on its own page |
+| `--mbc-mid-fill` | `#23444c` | The area under the Mid band's curve on its own page |
+| `--mbc-high-line` | `#8c4ade` | M.B.Comp's High band: its fill on the first page, and the curve on its own page |
+| `--mbc-high-fill` | `#3b2a4e` | The area under the High band's curve on its own page |
 | `--eq-fill` | `#314529` | The fill under the EQ curve (p106-1) |
 | `--eq-line` | `#6baa4a` | The curve on the EQ screen (x60 / y160 in p106-1) |
 | `--eq-thumb-line` | `#7bba63` | The lower row of the curve in a channel view's EQ block (y106 in p098-1) |
@@ -317,7 +322,10 @@ PY
 | `--corner-flag-d` | `#3a3942` | INPUT's flags: bottom corner over the band, the outer shade (p100-1 at x107..174 / y147..170) |
 | `--corner-flag-e` | `#737573` | INPUT's flags: bottom corner over the band, the second shade (p100-1 at x107..174 / y147..170) |
 | `--corner-flag-f` | `#949694` | INPUT's flags: bottom corner over the band, the third shade (p100-1 at x107..174 / y147..170) |
+| `--px-cut-out` | `40%` | A radius-4 corner: the share of the ground let through the pixels beside the cut along the button's edges ("Button corners" in screen-inventory.md) |
+| `--px-cut-in` | `8%` | The same, through the pixel beside the cut on the diagonal |
 | `--px-band-cast` | `31%` | The share of black laid over a face to draw its 3px band. HOME's [Sends] tab draws its band so, over `--accent-sends`. The share comes from that tab in p045-1, whose band reads `#8c3119` under the face's `#ce4529` (x422..479 / y50..106) |
+| `--px-foot-off` | `0px` | How far the cut at a button's foot stands above its bottom edge: none at rest, and the depth the face sinks while the button is sunk, so the outline stays the one it has at rest ("Button corners" in screen-inventory.md) |
 | `--band-wizard` | `#a6a6a6` | the band under the mode wizard's buttons |
 | `--corner-eq-band-a` | `#213131` | an EQ band's box: top corner, the outer shade (p106-1 at x2..56 / y49..86) |
 | `--corner-eq-band-b` | `#8cbace` | an EQ band's box: top corner, the second shade (p106-1 at x2..56 / y49..86) |
@@ -509,6 +517,7 @@ PY
 | `--radius-md` | `4px` | The rounded corner of buttons, dropdowns and the scene name box (the top-left of the COMP box at x254 / y2 and the Off dropdown at x306 / y49 in p099-1, and of the scene name box at x2 / y2 and the [Sends] button at x422 / y50 in p045-1; a quarter circle fitted to each gives radius 4). Value boxes, wells and sunk cells draw their corners in pixels instead (Button corners in screen-inventory.md) |
 | `--radius-strip` | `6px` | The corner of the selected HOME strip, which keeps a rounded box since its frame runs round a curve (the top-right of strip 3 at x311 / y50 in p045-1; a quarter circle fitted to it gives radius 6). A strip that is not selected draws its corners in pixels |
 | `--radius-lg` | `6px` | The corner of a band along the screen's edge: the bottom-left of the toolbar icon row's band (x384 / y41 in p099-1, x295 / y41 in p045-1). A quarter circle fitted to it gives radius 6. The knob readout bar and the channel view's panels draw their corners in pixels |
+| `--key-held` | `#ffffff3d` | Laid over a Pitch Fix key while it is held down. No figure shows it; the simulator's own value |
 | `--scrim` | `#000000ce` | The shade a sheet over the screen casts on the screen below, in a browser without backdrop-filter. A browser with backdrop-filter darkens the pixels below with an SVG filter (`src/ui/scrim.ts`) that scales R by 0.204, G by 0.202 and B by 0.192 and rounds R and B to 32 steps and G to 64. The factors are fitted to the darkened pixels of p100-2, p060-2 and p051-1 |
 | `--sheet-shadow-near` | `#000000b8` | The first pixel outside the shadow a sheet drops to its right and below, which the 2px offset darkens further, to 0.82 in all (p100-2, p060-2) |
 | `--sheet-shadow-far` | `#00000059` | The second pixel out, darkened by 0.35. Nothing is darkened to the sheet's left or above it |
