@@ -639,6 +639,53 @@ describe("the colour rail along the bottom of a strip", () => {
   });
 });
 
+describe("the bank a sideways swipe on HOME steps to", () => {
+  /** A press on the main area, off any control, at `from`, let go on the main area at `to`. */
+  const swipe = async (shell: Shell, from: number, to: number): Promise<void> => {
+    const main = shell.root.querySelector(".main");
+    main?.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, cancelable: true, clientX: from, clientY: 100 }));
+    main?.dispatchEvent(new MouseEvent("pointerup", { bubbles: true, cancelable: true, clientX: to, clientY: 100 }));
+    await flush();
+  };
+  const at = (shell: Shell): [string, number] => [shell.ctx.store.str("ui.bankSide", "input"), shell.ctx.store.num("ui.bank", 0)];
+  const first = (shell: Shell): string | null | undefined => shell.root.querySelector(".strip-id")?.textContent;
+
+  it("steps to the next bank for a swipe to the left and back for one to the right, and stays for a short move", async () => {
+    const shell = await mount();
+    expect([at(shell), first(shell)]).toEqual([["input", 0], "CH 1"]);
+    await swipe(shell, 300, 200);
+    expect([at(shell), first(shell)], "to the left").toEqual([["input", 1], "CH 5/6"]);
+    await swipe(shell, 200, 300);
+    expect([at(shell), first(shell)], "to the right").toEqual([["input", 0], "CH 1"]);
+    await swipe(shell, 300, 280);
+    expect(at(shell), "a short move").toEqual(["input", 0]);
+  });
+
+  it("goes round within the INPUT side, from its last bank to its first and back", async () => {
+    for (const [id, last] of [["URX44V", 2], ["URX22", 1]] as const) {
+      const shell = await mount(id);
+      await shell.ctx.store.set("ui.bank", last);
+      await flush();
+      await swipe(shell, 300, 200);
+      expect(at(shell), `${id}: past the last bank to the first`).toEqual(["input", 0]);
+      await swipe(shell, 200, 300);
+      expect(at(shell), `${id}: before the first bank to the last`).toEqual(["input", last]);
+    }
+  });
+
+  it("steps no bank on a screen other than HOME", async () => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    await flush();
+    await swipe(shell, 300, 200);
+    expect(at(shell), "on a channel view").toEqual(["input", 0]);
+    shell.ctx.nav.openTop({ id: "setup" });
+    await flush();
+    await swipe(shell, 300, 200);
+    expect(at(shell), "on SETUP").toEqual(["input", 0]);
+  });
+});
+
 describe("the channel-bank marks", () => {
   const marks = (shell: Shell): number => shell.root.querySelectorAll(".bank-cell").length;
 
@@ -2943,6 +2990,45 @@ describe("the channel the dedicated screens show", () => {
     expect(shell.root.querySelector(".ch-chip-id")?.textContent, "the screens open on CH 6").toBe("CH 6");
     const gain = shell.root.querySelector<HTMLElement>(".cv-gain .meter");
     expect([gain?.dataset["meterLane"], gain?.querySelectorAll(".meter-bar").length], "its gain meter shows CH 6 alone").toEqual(["1", 1]);
+  });
+
+  it("takes a stereo input back to its first channel at a second tap on its name area", async () => {
+    const shell = await mount();
+    await shell.ctx.store.set("ui.bank", 1);
+    shell.ctx.repaint();
+    await flush();
+    const name = (): HTMLElement | undefined =>
+      [...shell.root.querySelectorAll<HTMLElement>(".strip-name")].find((n) => n.querySelector(".strip-id")?.textContent === "CH 5/6");
+    const dark = (): string | null | undefined => name()?.querySelector(".strip-id .is-other")?.textContent;
+    name()?.click();
+    await flush();
+    expect(dark(), "the first tap moves to CH 6").toBe("5");
+    name()?.click();
+    await flush();
+    expect(dark(), "the second tap moves back to CH 5").toBe("6");
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch_5_6" });
+    await flush();
+    expect(shell.root.querySelector(".ch-chip-id")?.textContent, "the screens open on CH 5").toBe("CH 5");
+  });
+
+  it("selects a strip at a tap on its indicator rows, and opens its channel view at a tap once it is selected", async () => {
+    const shell = await mount();
+    const indicators = (): HTMLElement | null => shell.root.querySelector<HTMLElement>('[aria-label="CH 2 settings"]');
+    const state = (): string[] => [
+      shell.ctx.store.str("ui.selectedStrip", ""),
+      shell.ctx.nav.current.id,
+      shell.root.querySelector(".strip.is-selected .strip-id")?.textContent ?? "",
+    ];
+    expect(state()).toEqual(["ch1", "home", "CH 1"]);
+    indicators()?.click();
+    await flush();
+    expect(state(), "the first tap selects CH 2 and stays on HOME").toEqual(["ch2", "home", "CH 2"]);
+    indicators()?.click();
+    await flush();
+    expect([shell.ctx.nav.current.id, shell.root.querySelector(".ch-chip-id")?.textContent], "the next opens CH 2's channel view").toEqual([
+      "channel-view",
+      "CH 2",
+    ]);
   });
 
   it("opens a bus from HOME on its L channel", async () => {

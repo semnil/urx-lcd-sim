@@ -11,11 +11,11 @@ import { blockReduction, setMeterSource, startMeterTicker } from "./meters";
 import { compSpec } from "./signal-flow";
 
 // What a screen shows of a moving signal outside the dynamics screens' own meters:
-// the channel view's GATE and DUCKER lamps and COMP bars, the M.B.Comp bands'
-// reduction bars and the RECORDER's track meters. Each is taken from silence to
-// 0 dB and back, and reads the same after the meter ticker has run as after the
-// screen is opened afresh. The levels are set per strip, whichever point on it a
-// meter reads.
+// the pair of lamps on a HOME strip, the channel view's GATE and DUCKER lamps and
+// COMP bars, the M.B.Comp bands' reduction bars and the RECORDER's track meters.
+// Each is taken from silence to 0 dB and back, and reads the same after the meter
+// ticker has run as after the screen is opened afresh. The levels are set per
+// strip, whichever point on it a meter reads.
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -75,6 +75,25 @@ const unlit = (shell: Shell, selector: string): string[] =>
   [...shell.root.querySelectorAll<HTMLElement>(selector)].map((n) => n.style.getPropertyValue("--unlit"));
 
 describe("views that follow the signal as the meters move", () => {
+  it("lights the pair of lamps at the top of a HOME strip's indicator block", async () => {
+    const shell = await mount();
+    const lamps = (): boolean[] =>
+      [...shell.root.querySelectorAll('[data-lamp-source="ch1@input"] .dot')].map((n) => n.classList.contains("is-on"));
+    await follow(shell, [], "ch1", lamps);
+
+    // At -20 dB the left one lights alone, and it goes out once the channel is silent again.
+    for (const [db, lit] of [
+      [-20, [true, false]],
+      [-96, [false, false]],
+    ] as const) {
+      levels["ch1"] = db;
+      const stop = startMeterTicker(shell.ctx.store, shell.root, 200);
+      vi.advanceTimersByTime(4000);
+      stop();
+      expect(lamps(), `at ${db} dB`).toEqual(lit);
+    }
+  });
+
   it("lights the channel view's GATE lamps", async () => {
     const shell = await mount();
     await shell.ctx.store.set("ch.ch1.gate.on", true);
