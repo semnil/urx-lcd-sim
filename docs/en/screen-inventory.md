@@ -1598,7 +1598,9 @@ the plain face with its mark greyed, as [↑] does, and a touch on it does nothi
 folder on the Play tab only brings the cursor to it and does not open it, and the Record and Edit tabs take the face
 of a tab that cannot be used and do nothing when pressed, as the unit does. [■] lets the file go, and both come back.
 
-While a file plays, the card-eject button cannot be used (a dimmed face in p081-1, the plain face in p083-1). The
+While a file plays, the card-eject button cannot be used (a dimmed face in p081-1, the plain face in p083-1). On the
+microSD top, while a file is held, playing or paused, [USB Storage Mode] and the eject button take the face of a
+button that cannot be used and do nothing when pressed, as the unit does. The
 Play tab lists folders and the files that play, and leaves a file of four tracks or more off; its marks are a folder,
 a file that plays, and the file playing or paused (a speaker). The Edit tab lists a file of four tracks or more as well, marked
 `4tr` to `16tr` (List icons under Play and Edit in the user guide's "RECORDER menu"). Neither tab lists a file recorded

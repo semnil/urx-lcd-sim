@@ -48,6 +48,7 @@ export const microsdScreen: ScreenDef = {
     // reach and carries the record dot.
     const usbOn = ctx.store.bool("sd.usbStorage", false);
     const taking = recordMode(ctx.store);
+    const held = holdsFile(ctx.store);
     const entry = (label: string, onTap: () => void, usable = !usbOn): HTMLElement =>
       markShut(menuButton(label, usable ? onTap : () => undefined), !usable);
     const recorder = entry("Recorder", open("microsd.recorder"));
@@ -63,11 +64,13 @@ export const microsdScreen: ScreenDef = {
       ),
       headerLeft: (() => {
         // The button asks before it goes either way, and lights while the mode is on.
-        const node = button("USB Storage Mode", () => (taking ? undefined : usbStorageAsk(ctx, usbOn)), "usb-storage");
+        // In recording mode and while playback holds a file, playing or paused, it is out of reach.
+        const shut = taking || held;
+        const node = button("USB Storage Mode", () => (shut ? undefined : usbStorageAsk(ctx, usbOn)), "usb-storage");
         setPressed(node, usbOn);
-        return markShut(node, taking);
+        return markShut(node, shut);
       })(),
-      ...(usbOn ? {} : { headerRight: ejectButton(ctx) }),
+      ...(usbOn ? {} : { headerRight: ejectButton(ctx, held) }),
     };
   },
 };
@@ -75,10 +78,11 @@ export const microsdScreen: ScreenDef = {
 /**
  * The button that takes the card out. It asks what the unit asks, and [OK]
  * stands for the card being pulled from the slot. In recording mode and while a
- * file plays it is out of reach.
+ * file plays it is out of reach, and so it is while `held` says playback holds
+ * a file paused.
  */
-function ejectButton(ctx: AppContext): HTMLElement {
-  const usable = !recordMode(ctx.store) && !ctx.store.bool("sd.playing", false);
+function ejectButton(ctx: AppContext, held = false): HTMLElement {
+  const usable = !held && !recordMode(ctx.store) && !ctx.store.bool("sd.playing", false);
   const ask = (): void => {
     ctx.overlay(
       dialog({
