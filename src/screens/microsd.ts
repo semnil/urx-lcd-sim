@@ -308,8 +308,8 @@ function iconAction(label: string, icon: SVGSVGElement, usable: boolean, onTap: 
   return markShut(node, !usable);
 }
 
-/** Put a changed card back, the cursor going with its entry, and draw it as it now stands. */
-function updateCard(ctx: AppContext, entries: readonly CardEntry[]): void {
+/** Put a changed card back, the cursor and the file playback holds going with their entries, and draw it as it now stands. */
+function updateCard(ctx: AppContext, entries: readonly (CardEntry | undefined)[]): void {
   void changeCard(ctx.store, entries);
   ctx.repaint();
 }
@@ -328,10 +328,9 @@ function deleteSelected(ctx: AppContext): void {
         void ctx.store.set(filePath(entry), "");
         // The cursor goes on to the next entry of the same folder, else back to
         // the one before it, else onto nothing.
-        const rest = entries.filter((_, i) => i !== row);
-        const next = rest[row]?.dir === entry.dir ? row : rest[row - 1]?.dir === entry.dir ? row - 1 : -1;
+        const next = entries[row + 1]?.dir === entry.dir ? row + 1 : entries[row - 1]?.dir === entry.dir ? row - 1 : -1;
         void ctx.store.set("sd.selectedFile", next);
-        updateCard(ctx, rest);
+        updateCard(ctx, entries.map((e, i) => (i === row ? undefined : e)));
       },
     }),
   );

@@ -98,15 +98,18 @@ export async function writeCard(store: DeviceStore, entries: readonly CardEntry[
 }
 
 /**
- * Put a changed card back, the list's cursor going with the entry it stood on
- * to wherever the card now sorts it, or onto nothing where the card no longer
- * carries that entry. `entries` holds each entry at the row it stood at,
- * changed in place, and anything new after them.
+ * Put a changed card back, the list's cursor and the file playback holds each
+ * going with the entry it stood on to wherever the card now sorts it, or onto
+ * nothing where the card no longer carries that entry. `entries` holds each
+ * entry at the row it stood at, changed in place or left `undefined` where it
+ * is taken off, and anything new after them.
  */
-export async function changeCard(store: DeviceStore, entries: readonly CardEntry[]): Promise<void> {
+export async function changeCard(store: DeviceStore, entries: readonly (CardEntry | undefined)[]): Promise<void> {
   const cursor = entries[store.num("sd.selectedFile", 0)];
-  const sorted = [...entries].sort(cardOrder);
+  const held = entries[store.num("sd.playingFile", -1)];
+  const sorted = entries.filter((e) => e !== undefined).sort(cardOrder);
   void store.set("sd.selectedFile", cursor ? sorted.indexOf(cursor) : -1);
+  void store.set("sd.playingFile", held ? sorted.indexOf(held) : -1);
   await store.set(CARD, JSON.stringify(sorted));
 }
 
