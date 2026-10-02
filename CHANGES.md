@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Let go of the channel view a change of value has drawn again. Each change kept the screen it replaced in memory, and each later move of the focus ran over all of them.
 - Hold the marks either side of a held EQ band still when the browser asks for reduced motion, as the other blinking marks already were. They kept blinking.
 - Keep a channel name with a space in it on one line in the narrow name box of the screens under a channel view. It broke in two at the space and pushed `CH 1` off the top of the box.
 - Keep the settings panels of COMP, GATE, DUCKER and the other screens with a readout bar where they stand when USER DEFINED KNOBS is switched on. The main area grew under the bar and pushed the bottom value box, such as COMP's Release, under it, out of reach.

@@ -1,3 +1,5 @@
+import { setFlagsFromString } from "node:v8";
+import { runInNewContext } from "node:vm";
 import { afterEach, describe, expect, it } from "vitest";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
@@ -595,5 +597,30 @@ describe("the USER DEFINED KNOBS bar", () => {
     shell.ctx.nav.push({ id: "ch.comp", strip: "ch1" });
     await flush();
     expect([home, marks()], "HOME, then CH 1's COMP").toEqual([[false, true], [true, true]]);
+  });
+});
+
+describe("what a redraw lets go of", () => {
+  it("leaves the focus holding only the drawn screen's controls, however many times a value redraws it", async () => {
+    setFlagsFromString("--expose-gc");
+    const gc = runInNewContext("gc") as () => void;
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    await flush();
+    const listening = (): number => (shell.ctx.focus as unknown as { listeners: Set<unknown> }).listeners.size;
+    const first = listening();
+    for (let i = 0; i < 100; i++) {
+      await shell.ctx.store.set("ch.ch1.pan", i % 2 === 0 ? 10 : -10);
+      await flush();
+    }
+    for (let i = 0; i < 4; i++) {
+      gc();
+      await flush();
+    }
+    // A listener whose control has gone lets go the next time the focus moves.
+    shell.ctx.focus.takeKey("one");
+    shell.ctx.focus.takeKey("two");
+    expect(first, "the channel view follows the focus").toBeGreaterThan(0);
+    expect(listening()).toBe(first);
   });
 });

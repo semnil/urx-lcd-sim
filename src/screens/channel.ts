@@ -231,6 +231,17 @@ export function channelSelector(ctx: AppContext, strip: Strip, route: Route, nar
 }
 
 /**
+ * Lets a block's panel sink under a touch only while the value under `key` holds
+ * the focus. It holds the context and the key and nothing of the screen.
+ */
+function sinkWhileFocused(ctx: AppContext, key: string): (node: Element) => void {
+  return (n) => {
+    if (ctx.focus.holds(key)) n.removeAttribute("data-press");
+    else n.setAttribute("data-press", "none");
+  };
+}
+
+/**
  * One processing block. Its name is the switch that turns the block on and off;
  * an `inert` block's name switches nothing, and a touch on it is the block's own.
  * A block with a value the knob turns takes the focus at the first touch, framing
@@ -263,12 +274,7 @@ export function block(
   // A block with a value on the knobs takes two touches: the first brings the
   // focus to it and the second opens its screen. The first one does not sink the
   // panel, so it only gains its frame.
-  if (knob) {
-    followFocus(ctx, node, () => {
-      if (ctx.focus.holds(key)) node.removeAttribute("data-press");
-      else node.setAttribute("data-press", "none");
-    });
-  }
+  if (knob) followFocus(ctx, node, sinkWhileFocused(ctx, key));
   if (knob) {
     markFocus(ctx, knob.frame, key);
     attachSpin(ctx, node, knob.spec, () => ctx.focus.take(knob.spec), false);
