@@ -53,6 +53,10 @@ is built is in [screen-inventory.md](screen-inventory.md).
   a name longer than 255 characters with its extension, and [New folder] takes more than 255 characters and makes the
   folder under the name cut short. This simulator stops [Rename] at 255 characters less the extension's (250 for
   `.urxf`, 251 for `.wav`) and [New folder] at 255, and a key typed past that changes nothing.
+- **Recording onto a full microSD card.** What the unit does when a take uses up what the card has left, and when
+  [●] is pressed on a card with no room left, has not been tried on the unit. This simulator stops the take, saying
+  nothing, at the moment it fills what the card has left, and leaves it on the card within that room. With no room
+  for a second of take at the recorder's [Track Count] and frequency, [●] does nothing.
 - **COMP's 1-knob only takes the rows too.** While it is on the unit recomputes Threshold, Ratio,
   Gain and Knee from the Level. What that computation is is not known, so this simulator leaves the
   other rows out of reach, as the unit does, and moves no value.

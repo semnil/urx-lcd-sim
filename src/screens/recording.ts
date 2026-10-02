@@ -4,7 +4,7 @@
 
 import type { DeviceStore } from "../device/store";
 import type { CardEntry } from "../model/card";
-import { CARD_ROOT, cardStamp, changeCard, readCard, takeName } from "../model/card";
+import { CARD_ROOT, cardStamp, changeCard, readCard, roomSeconds, takeName } from "../model/card";
 
 /** Where the recorder stands: stopped, armed by [●], recording, or paused. */
 export type RecState = "idle" | "armed" | "recording" | "paused";
@@ -55,6 +55,18 @@ export function takeSeconds(store: DeviceStore, now = Date.now()): number {
   return Math.floor(takeTime(store, now));
 }
 
+/** How many whole seconds of take the card has room for, at the tracks and the frequency the recorder is set to. */
+export function takeRoom(store: DeviceStore): number {
+  return roomSeconds(store, store.num("setup.samplingFrequency", 48_000), store.num("sd.trackCount", 16));
+}
+
+/** The moment the take recording fills the room the card has; a take with no start moment fills nothing more. */
+function takeFullAt(store: DeviceStore): number {
+  const since = store.num("sd.recSince", 0);
+  if (since <= 0) return Number.POSITIVE_INFINITY;
+  return since + takeRoom(store) * 1000 - Math.round(store.num("sd.recSeconds", 0) * 1000);
+}
+
 /** Seconds as the recorder's counter prints them, hh:mm:ss. */
 export function formatClock(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds));
@@ -79,10 +91,10 @@ export function pauseTake(store: DeviceStore, now = Date.now()): void {
  * [■], or [●] pressed again while armed: back to the recorder as it opens, the
  * counter cleared. A take that recorded anything is left in the folder the card
  * browser is open on, named for the moment it was taken and holding the tracks
- * the recorder was set to.
+ * the recorder was set to, no longer than the card has room for.
  */
 export function stopTake(store: DeviceStore, now = Date.now()): void {
-  const seconds = takeSeconds(store, now);
+  const seconds = Math.min(takeSeconds(store, now), takeRoom(store));
   if (seconds > 0 && store.bool("sd.mounted", true)) {
     const entry: CardEntry = {
       name: takeName(store, now),
@@ -156,13 +168,18 @@ export function stopPlayback(store: DeviceStore): void {
 /**
  * Keep the counters on the page at the running time of the take and of the file
  * playing, in place rather than by repainting the screen once a second. The
- * file playing stops at its end.
+ * take recording stops, saying nothing, at the moment it fills the room the
+ * card has, and the file playing stops at its end.
  */
 export function startRecorderClock(store: DeviceStore, root: HTMLElement, intervalMs = 100): () => void {
   const id = window.setInterval(() => {
     const write = (selector: string, text: string): void => {
       for (const node of root.querySelectorAll<HTMLElement>(selector)) if (node.textContent !== text) node.textContent = text;
     };
+    if (recState(store) === "recording") {
+      const full = takeFullAt(store);
+      if (Date.now() >= full) stopTake(store, full);
+    }
     write("[data-rec-clock]", formatClock(takeSeconds(store)));
 
     const length = readCard(store)[store.num("sd.playingFile", -1)]?.seconds ?? 0;

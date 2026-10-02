@@ -151,6 +151,26 @@ describe("what the recorder leaves on the card", () => {
     expect(readCard(shell.ctx.store)).toEqual([]);
   });
 
+  it("does nothing on [●] once the card has no room for a second of take", async () => {
+    const shell = await mount({ id: "microsd.recorder" }, [{ name: "full.wav", kind: "take", seconds: 10, tracks: 2, stamp: "", dir: "/" }]);
+    const store = shell.ctx.store;
+    await store.set("sd.trackCount", 2);
+    const second = 48_000 * 3 * 2;
+    const press = async (capacity: number): Promise<string> => {
+      await store.set("sd.capacity", capacity);
+      await flush();
+      shell.root.querySelector<HTMLElement>(".rec-rec")?.click();
+      await flush();
+      const rec = store.str("sd.rec", "");
+      await store.set("sd.rec", "idle");
+      return rec;
+    };
+    expect(await press(11 * second), "the control: room for a second").toBe("armed");
+    expect(await press(10 * second + 1_000), "room for less than a second").toBe("idle");
+    expect(await press(10 * second), "nothing free").toBe("idle");
+    expect(shell.root.querySelector(".dialog-text"), "saying nothing").toBeNull();
+  });
+
   it("takes the room the take needs off the card", async () => {
     const shell = await mount({ id: "microsd.recorder" }, []);
     const store = shell.ctx.store;

@@ -1616,7 +1616,9 @@ name. The simulator ships with a card named `test` in the slot and nothing on it
 [■] leaves the take on the card. Its name comes from the unit's clock as `YYYYMMDD_HHMMSS.wav`, its
 length from the counter, its track count from [Track Count] and its place from the folder the card
 browser is open on; a name the card already carries, in any case, takes the next second that is free, and a take
-shorter than a second leaves nothing. RECORDER's `Time` column is the take's length, and
+shorter than a second leaves nothing. A take stops, saying nothing, at the moment it fills what the card has left,
+and is left on the card within that room; with no room for a second of take at the recorder's [Track Count] and
+frequency, [●] does nothing (see [known-issues.md](known-issues.md)). RECORDER's `Time` column is the take's length, and
 SAVE/LOAD's `Date/Time` column is when the file was written.
 
 The free space is the card's capacity less what is on it. The capacity is the 125,000,000,000 bytes a

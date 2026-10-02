@@ -139,6 +139,11 @@ export function freeBytes(store: DeviceStore): number {
   return Math.max(0, store.num("sd.capacity", CARD_CAPACITY) - used);
 }
 
+/** How many whole seconds of a take of `tracks` recorded at `rate` what is left on the card holds. */
+export function roomSeconds(store: DeviceStore, rate: number, tracks: number): number {
+  return Math.floor(freeBytes(store) / (rate * BYTES_PER_SAMPLE * tracks));
+}
+
 /** What is left on the card, as the screens print it. */
 export function formatFree(bytes: number): string {
   return `${(bytes / 1024 ** 3).toFixed(1)}GB Free`;

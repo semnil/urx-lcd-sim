@@ -21,7 +21,7 @@ import { Icons } from "../ui/icons";
 import { LIST_THUMB_MIN_PX, button, dialog, dropdown, listView, loadingDialog, menuButton, menuGrid, meter, pickerGrid, pickerSheet, scrollbar, sideTab, toggle } from "../ui/widgets";
 import { meterLevels, pairMeterId } from "./meters";
 import { listenedTap } from "./signal-flow";
-import { formatClock, holdsFile, pausePlayback, pauseTake, playedSeconds, recState, recordMode, recordTake, releaseOnRateChange, startPlayback, stopPlayback, stopTake, takeOpen, takeSeconds } from "./recording";
+import { formatClock, holdsFile, pausePlayback, pauseTake, playedSeconds, recState, recordMode, recordTake, releaseOnRateChange, startPlayback, stopPlayback, stopTake, takeOpen, takeRoom, takeSeconds } from "./recording";
 import type { TitleDraft } from "./title-entry";
 import { draftTitle, titleEntryScreen } from "./title-entry";
 import type { ScreenBody, ScreenDef } from "./types";
@@ -688,8 +688,9 @@ export const recorderScreen: ScreenDef = {
                 else if (rec === "recording") pauseTake(ctx.store);
               }, { "aria-pressed": String(rec === "paused") }),
               // [●] stands pressed in recording mode.
+              // A card with no room for a second of take leaves Record doing nothing.
               iconButton("Record", Icons.record(), `rec-rec${rec === "armed" ? " is-armed" : ""}`, () => {
-                if (rec === "idle") void ctx.store.set("sd.rec", "armed");
+                if (rec === "idle" && takeRoom(ctx.store) > 0) void ctx.store.set("sd.rec", "armed");
                 else if (rec === "armed") stopTake(ctx.store);
               }, { "aria-pressed": String(busy) }),
             ],
