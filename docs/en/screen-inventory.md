@@ -207,8 +207,8 @@ Dynamics threshold and range are integer dB (`-33dB` / `-20dB`, p099-1 / p103-1)
 has one decimal place (`18.0dB`). A time is spelled differently for the same value: `34.58m` in the
 panel's value box and `34.58ms` on the readout bar (p099-1 / p103-1). A time that can go past one
 second switches to seconds from 1000 ms (`4.8s`, p114-1). No space goes before the unit. Frequency
-has one decimal place and switches to kHz from 1 kHz, and a value box that has a caption shows no
-unit (`80.0` and `80.0Hz`, p100-1).
+is read to three figures (`80.0Hz` / `440Hz` / `1.00kHz` / `11.8kHz`) and switches to kHz from 1 kHz, and a value
+box that has a caption shows no unit (`80.0` and `80.0Hz`, p100-1).
 
 HI-Z belongs to the input jack, not to every MIC/LINE connector: MIC/LINE 3 and 4 on the URX44 and
 URX44V, MIC/LINE 2 on the URX22. On a channel that is not on one of those, that cell of the head amp
