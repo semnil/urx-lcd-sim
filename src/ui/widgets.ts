@@ -11,7 +11,7 @@ import { levelBarShare } from "../model/dynamics";
 import { OFF_MARK, el, makeTappable, setPressed } from "./dom";
 import { Icons } from "./icons";
 import type { NumericSpec } from "./param-spec";
-import { KNOB_SIZE, KNOB_START_DEG, KNOB_SWEEP_DEG, formatValue, unitOf } from "./param-spec";
+import { KNOB_SIZE, KNOB_START_DEG, KNOB_SWEEP_DEG, formatValue, rangeAttrs, unitOf } from "./param-spec";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -610,10 +610,7 @@ export function valueBox(ctx: AppContext, spec: NumericSpec, extraClass = "", fr
     attrs: {
       role: "spinbutton",
       "aria-label": spec.label,
-      "aria-valuenow": String(value),
-      "aria-valuemin": String(spec.min),
-      "aria-valuemax": String(spec.max),
-      "aria-valuetext": formatValue(spec, value),
+      ...rangeAttrs(spec, value),
       // A box the unit reads out but does not let the operator turn keeps its
       // reading and its name, and takes no key and no drag. A box that stands
       // still for now reads as out of reach as well.

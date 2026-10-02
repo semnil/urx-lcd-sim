@@ -7,7 +7,7 @@ import type { AppContext } from "../app/context";
 import { STRIPS_PER_BANK, allStrips, bankCount, bankStrips, type Strip } from "../model/types";
 import { el, formatPan, makeTappable } from "../ui/dom";
 import { Icons } from "../ui/icons";
-import { faderSpec, formatValue, type NumericSpec } from "../ui/param-spec";
+import { faderSpec, rangeAttrs, type NumericSpec } from "../ui/param-spec";
 import { faderShipped, sendShipsOn } from "../model/defaults";
 import { attachSpin, fractionOf, knobGraphic, meter, panSlider, toggle } from "../ui/widgets";
 import type { ScreenBody, ScreenDef } from "./types";
@@ -238,10 +238,8 @@ function stripView(ctx: AppContext, strip: Strip, selected: boolean, linkedTo?: 
     attrs: {
       role: "slider",
       "aria-label": `${strip.label} ${levelSpec.label}`,
-      "aria-valuenow": String(level),
-      "aria-valuemin": String(levelSpec.min),
-      "aria-valuemax": String(levelSpec.max),
-      "aria-valuetext": levelLocked ? FIXED_LEVEL_TEXT : formatValue(levelSpec, level),
+      ...rangeAttrs(levelSpec, level),
+      ...(levelLocked ? { "aria-valuetext": FIXED_LEVEL_TEXT } : {}),
     },
     children: [
       knobGraphic(fractionOf(levelSpec, level)),

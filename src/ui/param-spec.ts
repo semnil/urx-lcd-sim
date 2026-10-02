@@ -209,6 +209,22 @@ export function formatValue(spec: NumericSpec, value: number): string {
   return text === OFF_MARK ? text : text + unitOf(spec.unit, value);
 }
 
+/**
+ * What a control that turns `spec` tells assistive technology at `value`: the
+ * value, the two ends and the reading. A value or an end at ∞, which no number
+ * carries (a compressor's Ratio at INF), stands at the stop under it, and the
+ * reading says INF.
+ */
+export function rangeAttrs(spec: NumericSpec, value: number): Record<string, string> {
+  const number = (v: number): string => String(v === Number.POSITIVE_INFINITY ? (spec.travel?.step(v, -1) ?? v) : v);
+  return {
+    "aria-valuenow": number(value),
+    "aria-valuemin": number(spec.min),
+    "aria-valuemax": number(spec.max),
+    "aria-valuetext": formatValue(spec, value),
+  };
+}
+
 /** The suffix a unit comes to for a value. */
 export function unitOf(unit: NumericSpec["unit"], value: number): string {
   return typeof unit === "function" ? unit(value) : (unit ?? "");

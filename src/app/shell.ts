@@ -14,7 +14,7 @@ import { attachPress } from "../ui/press";
 import { attachSpin, modalOf, standsStill } from "../ui/widgets";
 import type { Modal } from "../ui/widgets";
 import type { NumericSpec } from "../ui/param-spec";
-import { BRIGHTNESS_MAX, formatValue } from "../ui/param-spec";
+import { BRIGHTNESS_MAX, formatValue, rangeAttrs } from "../ui/param-spec";
 import type { ScreenBody, ScreenRegistry } from "../screens/types";
 import { recordMode } from "../screens/recording";
 import { drawAtOneMoment } from "../screens/signal-flow";
@@ -415,10 +415,7 @@ export class Shell {
     cell.tabIndex = 0;
     cell.setAttribute("role", "slider");
     cell.setAttribute("aria-label", name);
-    cell.setAttribute("aria-valuenow", String(v));
-    cell.setAttribute("aria-valuemin", String(spec.min));
-    cell.setAttribute("aria-valuemax", String(spec.max));
-    cell.setAttribute("aria-valuetext", formatValue(spec, v));
+    for (const [name, value] of Object.entries(rangeAttrs(spec, v))) cell.setAttribute(name, value);
     if (standsStill(this.ctx, spec)) cell.setAttribute("aria-disabled", "true");
     attachSpin(this.ctx, cell, spec, onEngage);
   }

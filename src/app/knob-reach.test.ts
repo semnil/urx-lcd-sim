@@ -521,6 +521,47 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     expect(outside).toEqual([]);
   });
 
+  it.each(STRIPS)("writes every control's value and ends as numbers assistive technology reads (%s)", async (strip) => {
+    // Every control writes its value and both its ends as numbers, the top of
+    // a Ratio included, so assistive technology reads where it stands.
+    const registry = buildRegistry();
+    const unread: string[] = [];
+    let checked = 0;
+    for (const id of registry.ids()) {
+      const { shell } = await mount();
+      await open(shell, { id, strip });
+      for (const node of turnables(shell.root)) {
+        checked += 1;
+        const attrs = ["aria-valuenow", "aria-valuemin", "aria-valuemax"].map((a) => node.getAttribute(a));
+        if (!attrs.every((a) => a !== null && Number.isFinite(Number(a)))) unread.push(`${id} (${strip}): ${node.getAttribute("aria-label")} ${attrs.join(" ")}`);
+      }
+    }
+    expect(checked, "the sweep found controls to check").toBeGreaterThan(30);
+    expect(unread).toEqual([]);
+  });
+
+  it("puts a Ratio at INF at the stop under it, and reads it out as INF", async () => {
+    const seen: Record<string, string[]> = {};
+    for (const [id, path] of [
+      ["ch.comp", "ch.ch1.comp.ratio"],
+      ["ch.ssmcs.comp", "ch.ch1.ssmcs.comp.ratio"],
+    ] as const) {
+      const { shell, store } = await mount();
+      await store.set(path, Number.POSITIVE_INFINITY);
+      await open(shell, { id: "channel-view", strip: "ch1" });
+      await open(shell, { id, strip: "ch1" });
+      for (const node of turnables(shell.root).filter((n) => n.getAttribute("aria-label")?.endsWith("Ratio"))) {
+        seen[`${id} ${node.getAttribute("aria-label")}`] = ["aria-valuenow", "aria-valuemin", "aria-valuemax", "aria-valuetext"].map((a) => node.getAttribute(a) ?? "none");
+      }
+    }
+    expect(seen).toEqual({
+      "ch.comp R handle: Ratio": ["500", "1", "500", "INF:1"],
+      "ch.comp Ratio": ["500", "1", "500", "INF:1"],
+      "ch.ssmcs.comp R handle: Ratio": ["500", "1", "500", "INF:1"],
+      "ch.ssmcs.comp Ratio": ["500", "1", "500", "INF:1"],
+    });
+  });
+
   it("finds screens that bind knobs at all, so the sweep cannot pass vacuously", async () => {
     const registry = buildRegistry();
     let binding = 0;

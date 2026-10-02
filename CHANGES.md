@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Tell assistive technology a compressor's Ratio on COMP and SSMCS Comp, its plot grip and its readout bar division, as a number within its range: the range runs from 1 to 500, and INF stands at 500 with the reading `INF:1`. The top of the range read `Infinity`, which Chrome takes for 0, so the Ratio was told as 0 in a range from 1 to 0.
 - Open the confirmation dialogs that hold [Cancel] and [OK] with the focus on [Cancel], so pressing Enter again after the key that opened one does nothing; a dialog whose only button is [OK] still opens on [OK]. They opened on [OK], and that second Enter carried out what they asked, such as deleting a file or a scene, storing over a scene or starting Format.
 - Hold the glass in the page's main landmark, so a screen reader's landmark navigation reaches the simulator between the header and the footer. The page had no main landmark, and that navigation reached only the header and the footer.
 - Tell assistive technology whether [Shift] on the title and name sheets is on: it stands pressed while lit. It was lit for the eye alone.
