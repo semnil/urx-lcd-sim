@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
-import { cardStamp, freeBytes, readCard } from "../model/card";
+import { freeBytes, readCard } from "../model/card";
+import { clockParts } from "../model/clock";
 import { unitById } from "../model/units";
 import { formatClock, pausePlayback, pauseTake, playedSeconds, recordTake, startPlayback, startRecorderClock, stopTake, takeOpen, takeSeconds } from "./recording";
 
@@ -87,7 +88,7 @@ describe("the recorder's take", () => {
     const take = readCard(s).find((e) => e.kind === "take");
     expect(short, "the control: 8.3 s in, short of the room").toBe("recording");
     expect([s.str("sd.rec", ""), take?.seconds, freeBytes(s)], "stopped, the take in the room").toEqual(["idle", 10, 1_000]);
-    expect(take?.stamp, "written at the moment the room ran out").toBe(cardStamp(s, full));
+    expect(take?.written, "written at the moment the room ran out").toEqual(clockParts(s, full));
   });
 
   it("leaves a take [■] stops no longer than the card has room for", async () => {

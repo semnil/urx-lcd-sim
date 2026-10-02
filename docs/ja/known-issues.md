@@ -72,6 +72,9 @@
 - **夏時間。** 実機の時計は [Time Zone] の都市の標準時を一年を通して表示し、夏時間に切り替わらない
   (9 月に Tokyo の 21:15 が London では 12:15、実機で確認済み)。このシミュレーターも同じく標準時で
   表示するので、夏時間の期間中は、夏時間を持つ地域のコンピューターの時計と 1 時間ずれる。
+- **SAVE/LOAD の一覧の 12 時間表示。** ユーザーガイドは「Date/Time menu」で [Display Format] の Time ボタンを
+  「Selects the display format for the time.」とするが、実機の SAVE/LOAD の `Date/Time` 欄は、日付が Date の書式に
+  従う一方で、時刻は Time を 12h にしても 24 時間で出る。このシミュレーターもその欄の時刻を 24 時間で出す。
 - **+48V と HI-Z の排他。** ユーザーガイドは INPUT 画面の [+48V] の説明で「The phantom power supply
   and HI-Z cannot be turned on at the same time.」とするが、実機は [+48V] を入れたまま [HI-Z] を押しても、
   [HI-Z] を入れたまま [+48V] を押しても、[+48V] と [HI-Z] がどちらも入になる (URX44V、2026-09-22 に

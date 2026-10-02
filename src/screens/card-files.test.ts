@@ -71,7 +71,7 @@ describe("what the recorder leaves on the card", () => {
     const [take] = readCard(store);
     expect(take?.name, "the moment it was taken, to the second").toBe("20260920_140526.wav");
     expect([take?.kind, take?.seconds, take?.tracks], "as long as it ran, on the tracks it was set to").toEqual(["take", 25, 4]);
-    expect(take?.stamp).toBe("09/20/2026\n14:05:26");
+    expect(take?.written).toEqual({ year: 2026, month: 9, day: 20, hour: 14, minute: 5, second: 26 });
   });
 
   it("gives a take the next second when the card already carries the name its own second gives", async () => {
@@ -98,7 +98,7 @@ describe("what the recorder leaves on the card", () => {
     stopTake(store, 59_000);
     await flush();
     expect(names(shell)).toEqual(["20261001_120059.wav", "20261001_120100.wav"]);
-    expect(readCard(store)[1]?.stamp, "written at 12:00:59").toBe("10/01/2026\n12:00:59");
+    expect(readCard(store)[1]?.written, "written at 12:00:59").toEqual({ year: 2026, month: 10, day: 1, hour: 12, minute: 0, second: 59 });
   });
 
   it("gives a take a name the card does not carry when every second of its minute is taken", async () => {
@@ -433,7 +433,7 @@ describe("what the card's own actions do to it", () => {
     await okDialog(shell);
     const after = readCard(store);
     expect(after.map((e) => e.kind), "the folder kept, the file written").toEqual(["folder", "data"]);
-    expect([after[1]?.stamp !== "", store.str("sd.file./x.urxf", "") !== "", store.num("sd.selectedFile", -1)], "the file the cursor stood on").toEqual([true, true, 1]);
+    expect([after[1]?.written !== undefined, store.str("sd.file./x.urxf", "") !== "", store.num("sd.selectedFile", -1)], "the file the cursor stood on").toEqual([true, true, 1]);
   });
 
   it("writes [Save as] over a settings file whose name differs in case alone, without asking, under the name the file carries", async () => {
@@ -687,6 +687,44 @@ describe("what the card's own actions do to it", () => {
     await okDialog(shell);
     await flush();
     expect([store.num("ch.ch1.level", 0), store.num("setup.brightness", 0)]).toEqual([-12, 3]);
+  });
+
+  it("prints the day each file was written in the order DATE / TIME's Display Format is set to now, over the time on the 24-hour clock", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(1_800_000_000_000);
+      // A take whose moment the card kept as the list printed it.
+      const shell = await mount({ id: "microsd.saveload" }, [{ name: "kept.wav", kind: "take", seconds: 10, tracks: 2, stamp: "04/30/2026\n15:29:28", dir: "/" }]);
+      const store = shell.ctx.store;
+      await setClock(store, { year: 2026, month: 10, day: 1, hour: 22, minute: 5 });
+      vi.setSystemTime(Date.now() + 7_000);
+      const column = (): Record<string, string> =>
+        Object.fromEntries(
+          [...shell.root.querySelectorAll(".sd-list .list-row")].map((r) => [...r.querySelectorAll(".list-cell")].map((c) => c.textContent ?? "")).map((c) => [c[1], c[2]]),
+        );
+      action(shell, "Save as")?.click();
+      await flush();
+      await typeTitle(shell, "first");
+      expect(column(), "the control: the formats the unit ships with").toEqual({ "first.urxf": "10/01/2026\n22:05:07", "kept.wav": "04/30/2026\n15:29:28" });
+
+      await store.set("setup.dateTime.dateFormat", "DD/MM/YYYY");
+      await store.set("setup.dateTime.timeFormat", "12h");
+      await flush();
+      action(shell, "Save as")?.click();
+      await flush();
+      await typeTitle(shell, "second");
+      expect(column(), "day first, both files, the hour still on 24").toEqual({
+        "first.urxf": "01/10/2026\n22:05:07",
+        "kept.wav": "04/30/2026\n15:29:28",
+        "second.urxf": "01/10/2026\n22:05:07",
+      });
+
+      await store.set("setup.dateTime.dateFormat", "YYYY/MM/DD");
+      await flush();
+      expect(column()["first.urxf"], "year first").toBe("2026/10/01\n22:05:07");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("leaves a scene number the settings file holds nothing under empty once the file is loaded", async () => {

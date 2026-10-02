@@ -8,7 +8,8 @@
 import type { AppContext } from "../app/context";
 import type { ParamValue } from "../device/path";
 import type { CardEntry } from "../model/card";
-import { CARD_ROOT, TAKE_SUFFIX, cardStamp, changeCard, filePath, folderPath, formatFree, formatRate, freeBytes, parentPath, readCard, sameName, takeRate } from "../model/card";
+import { CARD_ROOT, TAKE_SUFFIX, changeCard, filePath, folderPath, formatFree, formatRate, freeBytes, parentPath, readCard, sameName, takeRate } from "../model/card";
+import { clockParts } from "../model/clock";
 import { applySettings, captureSettings } from "../model/settings-file";
 import { onDynamicsTimeStops } from "../model/dynamics-times";
 import { TRACK_COUNTS, dropTracksOverRate, trackCountCeiling } from "../model/track-count";
@@ -21,6 +22,7 @@ import { Icons } from "../ui/icons";
 import { LIST_THUMB_MIN_PX, button, dialog, dropdown, listView, loadingDialog, menuButton, menuGrid, meter, pickerGrid, pickerSheet, scrollbar, sideTab, toggle } from "../ui/widgets";
 import { meterLevels, pairMeterId } from "./meters";
 import { listenedTap } from "./signal-flow";
+import { dateText } from "./date-time";
 import { formatClock, holdsFile, pausePlayback, pauseTake, playedSeconds, recState, recordMode, recordTake, releaseOnRateChange, startPlayback, stopPlayback, stopTake, takeOpen, takeRoom, takeSeconds } from "./recording";
 import type { TitleDraft } from "./title-entry";
 import { draftTitle, titleEntryScreen } from "./title-entry";
@@ -398,7 +400,7 @@ function newFolder(ctx: AppContext): void {
   nameOnCard(ctx, "", (name) => {
     const entries = cardEntries(ctx);
     if (folderCarries(entries, cardPath(ctx), name)) return;
-    updateCard(ctx, [...entries, { name, kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: cardPath(ctx) }]);
+    updateCard(ctx, [...entries, { name, kind: "folder", seconds: 0, tracks: 0, dir: cardPath(ctx) }]);
   }, { max: NAME_MAX });
 }
 
@@ -407,7 +409,7 @@ function newFolder(ctx: AppContext): void {
  * open: over the settings file at row `at`, or as a new file where `at` is -1.
  */
 function saveSettings(ctx: AppContext, name: string, at = -1): void {
-  const entry: CardEntry = { name, kind: "data", seconds: 0, tracks: 0, stamp: cardStamp(ctx.store), dir: cardPath(ctx) };
+  const entry: CardEntry = { name, kind: "data", seconds: 0, tracks: 0, written: clockParts(ctx.store), dir: cardPath(ctx) };
   void ctx.store.set(filePath(entry), toJson(captureSettings(ctx.store)));
   const entries = cardEntries(ctx);
   updateCard(ctx, at < 0 ? [...entries, entry] : entries.map((e, i) => (i === at ? entry : e)));
@@ -728,6 +730,19 @@ export const recorderScreen: ScreenDef = {
   },
 };
 
+/**
+ * What SAVE/LOAD's Date/Time column reads for an entry: the day it was written,
+ * in the order DATE / TIME's Display Format is set to, over the time on the
+ * 24-hour clock whatever its Time is set to. An entry the card keeps as the list
+ * printed it reads as printed.
+ */
+function writtenText(ctx: AppContext, entry: CardEntry): string {
+  const at = entry.written;
+  if (!at) return entry.stamp ?? "";
+  const time = [at.hour, at.minute, at.second].map((n) => String(n).padStart(2, "0")).join(":");
+  return `${dateText(ctx.store, at, "/")}\n${time}`;
+}
+
 export const saveLoadScreen: ScreenDef = {
   id: "microsd.saveload",
   toolbar: "sub",
@@ -751,7 +766,7 @@ export const saveLoadScreen: ScreenDef = {
             return markShut(button(label, () => (usable ? saveLoadAction(ctx, label) : undefined)), !usable);
           });
     return {
-      main: cardBrowser(ctx, { listName: "SAVE/LOAD files", metaColumn: "Date/Time", meta: (entry) => entry.stamp, actions }),
+      main: cardBrowser(ctx, { listName: "SAVE/LOAD files", metaColumn: "Date/Time", meta: (entry) => writtenText(ctx, entry), actions }),
       side: (["Save/\nLoad", "Edit"] as const).map((t) =>
         sideTab(t, tab === t, () => void ctx.store.set("ui.sdSaveTab", t), t === "Edit" ? Icons.edit() : Icons.save(), t === "Edit" ? "is-name-raised" : "is-name-apart"),
       ),

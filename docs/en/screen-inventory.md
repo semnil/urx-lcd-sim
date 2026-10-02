@@ -1631,7 +1631,9 @@ browser is open on; a name the card already carries, in any case, takes the next
 shorter than a second leaves nothing. A take stops, saying nothing, at the moment it fills what the card has left,
 and is left on the card within that room; with no room for a second of take at the recorder's [Track Count] and
 frequency, [●] does nothing (see [known-issues.md](known-issues.md)). RECORDER's `Time` column is the take's length, and
-SAVE/LOAD's `Date/Time` column is when the file was written.
+SAVE/LOAD's `Date/Time` column is when the file was written. Its date is printed in the order DATE / TIME's Display
+Format Date is set to each time the list is drawn (a file written before the format changed reads in the format as it
+now stands), and its time on the 24-hour clock whatever Time is set to (see [known-issues.md](known-issues.md)).
 
 The free space is the card's capacity less what is on it. The capacity is the 125,000,000,000 bytes a
 formatted 128 GB card leaves; a take costs its seconds × 48,000 × 3 bytes × its tracks (the guide's

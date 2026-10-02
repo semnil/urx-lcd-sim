@@ -6,7 +6,7 @@
 // the card's capacity less everything on it.
 
 import type { DeviceStore } from "../device/store";
-import { clockParts } from "./clock";
+import { clockParts, type ClockParts } from "./clock";
 
 /** What an entry on the card is. */
 export type CardKind = "folder" | "take" | "data";
@@ -21,8 +21,10 @@ export interface CardEntry {
   /** The sampling frequency it was recorded at. A take written before the
    *  recorder followed the frequency carries none and is costed at 48 kHz. */
   rate?: number;
-  /** When it was written, as the list prints it: the date over the time. */
-  stamp: string;
+  /** When it was written, on the unit's clock. A folder carries none. */
+  written?: ClockParts;
+  /** When it was written, as the list printed it, on an entry that carries no `written`. */
+  stamp?: string;
   /** The folder holding it, from the root: "/" or "/new sound/". */
   dir: string;
 }
@@ -150,12 +152,6 @@ export function formatFree(bytes: number): string {
 }
 
 const pad = (n: number, width = 2): string => String(n).padStart(width, "0");
-
-/** When an entry was written, as the card's list prints it. */
-export function cardStamp(store: DeviceStore, at = Date.now()): string {
-  const { year, month, day, hour, minute, second } = clockParts(store, at);
-  return `${pad(month)}/${pad(day)}/${year}\n${pad(hour)}:${pad(minute)}:${pad(second)}`;
-}
 
 /**
  * What the recorder names a take: the unit's clock, to the second. A name the

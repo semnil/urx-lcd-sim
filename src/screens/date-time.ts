@@ -37,15 +37,15 @@ function draft(ctx: AppContext, key: FieldKey): number {
   return ctx.store.num(`${DRAFT}.${key}`, field?.fallback ?? 0);
 }
 
-/** The date, in the order the screen's Display Format is set to. */
-function dateText(store: DeviceStore, time: ClockTime): string {
+/** The date, in the order the screen's Display Format is set to, its parts split by `sep`. */
+export function dateText(store: DeviceStore, time: ClockTime, sep = " / "): string {
   const y = pad(time.year, 4);
   const m = pad(time.month, 2);
   const d = pad(time.day, 2);
   const format = store.str("setup.dateTime.dateFormat", "MM/DD/YYYY");
-  if (format === "DD/MM/YYYY") return `${d} / ${m} / ${y}`;
-  if (format === "YYYY/MM/DD") return `${y} / ${m} / ${d}`;
-  return `${m} / ${d} / ${y}`;
+  if (format === "DD/MM/YYYY") return [d, m, y].join(sep);
+  if (format === "YYYY/MM/DD") return [y, m, d].join(sep);
+  return [m, d, y].join(sep);
 }
 
 /** The time, on the 24- or 12-hour clock the screen is set to; the 12-hour clock reads the hours 0 and 12 as 00. */

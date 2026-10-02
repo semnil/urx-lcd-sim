@@ -4,7 +4,8 @@
 
 import type { DeviceStore } from "../device/store";
 import type { CardEntry } from "../model/card";
-import { CARD_ROOT, cardStamp, changeCard, readCard, roomSeconds, takeName } from "../model/card";
+import { CARD_ROOT, changeCard, readCard, roomSeconds, takeName } from "../model/card";
+import { clockParts } from "../model/clock";
 
 /** Where the recorder stands: stopped, armed by [●], recording, or paused. */
 export type RecState = "idle" | "armed" | "recording" | "paused";
@@ -102,7 +103,7 @@ export function stopTake(store: DeviceStore, now = Date.now()): void {
       seconds,
       tracks: store.num("sd.trackCount", 16),
       rate: store.num("setup.samplingFrequency", 48_000),
-      stamp: cardStamp(store, now),
+      written: clockParts(store, now),
       dir: store.str("sd.path", CARD_ROOT),
     };
     void changeCard(store, [...readCard(store), entry]);
