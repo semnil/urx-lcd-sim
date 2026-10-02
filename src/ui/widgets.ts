@@ -8,7 +8,7 @@
 import type { AppContext } from "../app/context";
 import { clamp } from "../device/store";
 import { levelBarShare } from "../model/dynamics";
-import { OFF_MARK, drawnScale, el, makeTappable, setPressed } from "./dom";
+import { OFF_MARK, drawnScale, el, fromInnerControl, makeTappable, setPressed } from "./dom";
 import { Icons } from "./icons";
 import type { NumericSpec } from "./param-spec";
 import { KNOB_SIZE, KNOB_START_DEG, KNOB_SWEEP_DEG, formatValue, unitOf } from "./param-spec";
@@ -498,6 +498,8 @@ export function attachSpin(
   );
 
   node.addEventListener("keydown", (ev) => {
+    // A control inside this one, such as a block's switch, keeps the keys it takes.
+    if (fromInnerControl(ev, node)) return;
     const map: Record<string, number> = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 };
     const dir = map[ev.key];
     if (dir === undefined) return;

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Leave GATE's and COMP's Threshold where it is under the arrow keys while the keys are on the block's switch on the channel view. An arrow key there turned the block's Threshold a detent and moved the pink frame onto it.
 - Step HOME's channel bank only for a swipe let go on the main area. A press on the main area let go on the toolbar or the side rail, or cancelled, left its start behind, and the next tap on a button in a strip, such as [ON], stepped the bank as well.
 - Move a list and its scroll thumb as far on the screen as the pointer drags them, at every display scale. At the default 100% they moved twice as far as the pointer, and at 200% four times as far.
 - Leave a value where it is under a sideways scroll of the wheel or the trackpad, and let the page scroll instead. A sideways scroll turned the value down a detent, or the larger Shift step, whichever way it went.

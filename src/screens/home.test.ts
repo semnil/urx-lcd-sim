@@ -874,6 +874,35 @@ describe("a processing block on the channel view", () => {
     await flush();
     expect(shell.ctx.nav.current.id).toBe("ch.gate");
   });
+
+  it("leaves the arrow keys on the block's switch to the switch, and turns the threshold by the block's own", async () => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    await flush();
+    const store = shell.ctx.store;
+    const arrow = (node: Element | null, key: string): boolean => {
+      const ev = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+      node?.dispatchEvent(ev);
+      return ev.defaultPrevented;
+    };
+    for (const block of ["gate", "comp"] as const) {
+      const path = `ch.ch1.${block}.threshold`;
+      const before = store.num(path, Number.NaN);
+      for (const key of ["ArrowUp", "ArrowDown"]) {
+        const switched = shell.root.querySelector(`.cv-block-${block} .badge-switch`);
+        expect(switched, `${block} has a switch`).not.toBeNull();
+        expect(arrow(switched, key), `${block} switch, ${key}: the page keeps the key`).toBe(false);
+        await flush();
+        expect(store.num(path, Number.NaN), `${block} switch, ${key}: the threshold stays`).toBe(before);
+        expect(shell.root.querySelector(".cv-block .is-focused"), `${block} switch, ${key}: no block takes the focus`).toBeNull();
+      }
+    }
+
+    const gate = store.num("ch.ch1.gate.threshold", Number.NaN);
+    expect(arrow(shell.root.querySelector(".cv-block-gate"), "ArrowUp"), "the block takes its own key").toBe(true);
+    await flush();
+    expect(store.num("ch.ch1.gate.threshold", Number.NaN)).toBe(gate + 1);
+  });
 });
 
 describe("what a channel view's blocks draw", () => {
