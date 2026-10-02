@@ -7736,8 +7736,8 @@
   font-size: var(--fs-sm);
 }
 
-/* A name longer than the panel ends the way every other name too long for its
- * box does, rather than running under the mark beside it. */
+/* A name longer than the panel ends in `…` rather than running under the mark
+ * beside it. */
 .efx-cell .pulldown-value {
   overflow: hidden;
   text-overflow: ellipsis;
