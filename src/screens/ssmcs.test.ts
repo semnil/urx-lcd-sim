@@ -632,6 +632,8 @@ describe("the side chain's own meter", () => {
     await flush();
     expect(Number.parseFloat(bar()), "and the filter's gain lifts it").toBeLessThan(Number.parseFloat(lit));
 
+    // The bar falls 30 dB a second, so it is read four seconds on.
+    vi.setSystemTime(Date.now() + 4000);
     await shell.ctx.store.set("ch.ch1.ssmcs.sc.on", false);
     await flush();
     expect(bar(), "an open side chain feeds nothing").toBe("100%");

@@ -48,7 +48,7 @@ import {
   routeStrip,
   titleBadge,
 } from "./channel";
-import { type GrSpec, blockReduction, markReduction, meterLevels } from "./meters";
+import { type GrSpec, blockReduction, drawnLevels, markReduction } from "./meters";
 import { ssmcsSpec, tapId } from "./signal-flow";
 import type { ScreenBody, ScreenDef } from "./types";
 
@@ -357,7 +357,7 @@ function sideChainMeter(ctx: AppContext, strip: Parameters<typeof dynMeters>[1])
   const source = tapId(strip.id, "sideChain");
   return el("div", {
     class: "ssmcs-sc-meter",
-    children: [meter({ levels: meterLevels(ctx.store, source, 1), source })],
+    children: [meter({ levels: drawnLevels(ctx.store, source, 1), source })],
   });
 }
 

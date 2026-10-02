@@ -64,11 +64,11 @@ export function lampTap(strip: Strip): Tap {
   return "input";
 }
 
-/** Meter values in dB for one strip at `tap`: one entry for mono, two for stereo. */
+/** Meter values in dB for one strip at `tap` as a screen draws them: one entry for mono, two for stereo. */
 export function simulatedLevel(ctx: AppContext, strip: Strip | undefined, stereo: boolean, tap: Tap = "post"): number[] {
   const channels = stereo ? 2 : 1;
   if (!strip) return Array.from({ length: channels }, () => SILENT);
-  return meterLevels(ctx.store, tapId(strip.id, tap), channels);
+  return drawnLevels(ctx.store, tapId(strip.id, tap), channels);
 }
 
 /** Draw `node`, a Clip Safe switch, as holding the gain down or not. */
@@ -124,6 +124,21 @@ export function shownLevels(store: DeviceStore, id: string, channels: number, at
     seen.set(key, { db: now, at });
     return now;
   });
+}
+
+/** Whether the ticker moves the meters: under reduced motion they stand as drawn. */
+function metersMove(): boolean {
+  return !(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false);
+}
+
+/**
+ * Meter values as a screen draws them when it is built: where the ticker has the
+ * bar at that moment, so a bar falling when the screen is drawn again goes on
+ * falling from where it stood. While the meters stand still under reduced
+ * motion, what the meter reads.
+ */
+export function drawnLevels(store: DeviceStore, id: string, channels: number, at = readingMoment()): number[] {
+  return metersMove() ? shownLevels(store, id, channels, at) : meterLevels(store, id, channels, at);
 }
 
 /**
@@ -194,7 +209,7 @@ export function markLevelBar(node: HTMLElement, store: DeviceStore, source: stri
 
 function showLevelBar(node: HTMLElement, store: DeviceStore, at?: number): void {
   const id = node.dataset["levelBar"] ?? "";
-  const level = (at === undefined ? meterLevels(store, id, 1) : shownLevels(store, id, 1, at))[0] ?? SILENT;
+  const level = (at === undefined ? drawnLevels(store, id, 1) : shownLevels(store, id, 1, at))[0] ?? SILENT;
   const lit = node.querySelector<HTMLElement>("i");
   if (lit) lit.style.width = `${levelBarShare(level) * 100}%`;
 }
@@ -241,7 +256,7 @@ export function readGrSpec(node: HTMLElement): GrSpec | null {
  * gain down.
  */
 export function startMeterTicker(store: DeviceStore, root: HTMLElement, intervalMs = 100): () => void {
-  const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+  const reduceMotion = !metersMove();
   const showClipSafes = (): void => {
     for (const node of root.querySelectorAll<HTMLElement>("[data-clip-safe]")) {
       showClipSafe(node, clipSafe(store, Number(node.dataset["clipSafe"])).engaged);

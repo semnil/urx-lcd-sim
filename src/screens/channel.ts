@@ -19,7 +19,7 @@ import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
 import { compRatioSpec, dbSpec, faderSpec, fineGainSpec, freqSpec, intSpec, logFreqSpec, msSpec, panSpec, stoppedMsSpec } from "../ui/param-spec";
 import { attachDrag, attachSpin, followFocus, knobControl, markFocus, meter, panSlider, pickerSheet, pulldown, setAriaValue, sideTab, toggle, unbuilt, valueBox } from "../ui/widgets";
-import { type GrSpec, type LampState, blockReduction, inputMeterId, markBlockLamps, markClipSafe, markLevelBar, markReduction, meterLevels, showBlockLamps, simulatedLevel } from "./meters";
+import { type GrSpec, type LampState, blockReduction, drawnLevels, inputMeterId, markBlockLamps, markClipSafe, markLevelBar, markReduction, showBlockLamps } from "./meters";
 import { type Tap, compSpec, duckerSources, duckerSpec, gateSpec, stripTap, tapId } from "./signal-flow";
 import { PAN_BAL, SIGNAL_TYPES, carriesStereo, enterSsmcs, setPanBal, setSignalType, signalType, stripPosition } from "./stereo-link";
 import { BUS_TYPES, FIXED_LEVEL_TEXT, busType, panLinkOn, sendLocks, sendPanPath, setBusType, setPanLink } from "./mix-bus";
@@ -363,9 +363,9 @@ function inputMeter(ctx: AppContext, strip: Strip): HTMLElement {
   const source = strip.kind === "mix" || strip.kind === "stereo" ? tapId(strip.id, "sum") : inputMeterId(strip.id);
   if (stripLanes(strip) === 2 && strip.kind !== "fx") {
     const lane = stripLane(ctx, strip);
-    return meter({ levels: [meterLevels(ctx.store, source, 2)[lane] ?? -96], source, lane });
+    return meter({ levels: [drawnLevels(ctx.store, source, 2)[lane] ?? -96], source, lane });
   }
-  return meter({ levels: meterLevels(ctx.store, source, 1), source });
+  return meter({ levels: drawnLevels(ctx.store, source, 1), source });
 }
 
 export const channelViewScreen: ScreenDef = {
@@ -588,7 +588,7 @@ export const channelViewScreen: ScreenDef = {
         ...(streaming
           ? []
           : [toggle("ON", ctx.store.bool(`${base}.on`, true), () => void ctx.store.set(`${base}.on`, !ctx.store.bool(`${base}.on`, true)), "btn-switch btn-on")]),
-        meter({ levels: simulatedLevel(ctx, strip, !mono), height: 80, source: strip.id }),
+        meter({ levels: drawnLevels(ctx.store, strip.id, mono ? 1 : 2), height: 80, source: strip.id }),
       ],
     });
 
@@ -1089,7 +1089,7 @@ export function dynMeters(ctx: AppContext, strip: Strip, block: MeteredBlock): H
   const [into, out] = blockTaps(strip, block);
   const column = (caption: string, tap: Tap, pair: boolean): HTMLElement => {
     const source = stripTap(ctx, strip, tap);
-    const bars = meter({ levels: meterLevels(ctx.store, source, pair ? 2 : 1), source });
+    const bars = meter({ levels: drawnLevels(ctx.store, source, pair ? 2 : 1), source });
     return el("div", { class: "dyn-io-col", children: [el("span", { class: "dyn-io-caption", text: caption }), bars] });
   };
   // An FX channel is fed by one bus and returns two, so it is the one block

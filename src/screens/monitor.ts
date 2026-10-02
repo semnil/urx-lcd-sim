@@ -10,7 +10,7 @@ import { knobControl, knobGraphic, menuButton, menuGrid, meter, paramCell, picke
 import { OSC_TARGETS } from "../model/oscillator";
 import { findStrip } from "../model/types";
 import { fxShutOut } from "./effect-params";
-import { meterLevels, oscillatorLevel } from "./meters";
+import { drawnLevels } from "./meters";
 import type { ScreenBody, ScreenDef } from "./types";
 
 const OSC_MODES = ["Sine Wave", "Pink Noise", "Burst Noise"] as const;
@@ -120,7 +120,7 @@ export const monitorLevelScreen: ScreenDef = {
         class: "mon-strip",
         children: [
           el("div", { class: "mon-head", text: String(n) }),
-          el("div", { class: "mon-meter", children: [meter({ levels: meterLevels(ctx.store, source, 2), source })] }),
+          el("div", { class: "mon-meter", children: [meter({ levels: drawnLevels(ctx.store, source, 2), source })] }),
           toggle("ON", on, () => void ctx.store.set(`monitor.${n}.on`, !on), "btn-switch btn-on"),
           el("div", { class: "mon-level", children: spec ? [knobControl(ctx, spec), valueBox(ctx, spec)] : [] }),
         ],
@@ -261,7 +261,7 @@ export const oscillatorScreen: ScreenDef = {
               // What the oscillator is putting out, beside the level that sets it.
               el("div", {
                 class: "osc-meter",
-                children: [meter({ levels: [oscillatorLevel(ctx.store)], source: "osc" })],
+                children: [meter({ levels: drawnLevels(ctx.store, "osc", 1), source: "osc" })],
               }),
             ],
           }),

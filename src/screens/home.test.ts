@@ -684,8 +684,10 @@ describe("the pair of lamps at the top of a strip's indicator block", () => {
     };
   };
 
+  /** The lamps once they have come to rest on `db`: they fall 30 dB a second, so four seconds on. */
   const atLevel = async (shell: Shell, db: number): Promise<{ signal: boolean; clip: boolean }> => {
     setMeterSource((_, channels) => Array.from({ length: channels }, () => db));
+    vi.setSystemTime(Date.now() + 4000);
     shell.ctx.repaint();
     await flush();
     return lamps(shell);
@@ -693,6 +695,7 @@ describe("the pair of lamps at the top of a strip's indicator block", () => {
 
   it("lights the left one green from -40 dB up and the right one where the meter clips, the left one staying lit", async () => {
     const shell = await mount();
+    vi.useFakeTimers({ toFake: ["Date"] });
     try {
       expect(await atLevel(shell, -20)).toEqual({ signal: true, clip: false });
       expect(await atLevel(shell, -39), "just over -40 dB is signal").toEqual({ signal: true, clip: false });
@@ -702,6 +705,7 @@ describe("the pair of lamps at the top of a strip's indicator block", () => {
       expect(await atLevel(shell, -96), "a silent channel lights neither").toEqual({ signal: false, clip: false });
     } finally {
       setMeterSource(null);
+      vi.useRealTimers();
     }
   });
 

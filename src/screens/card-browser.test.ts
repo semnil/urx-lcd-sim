@@ -1192,6 +1192,8 @@ describe("the microSD card browser", () => {
       const drawn = (levels: number[]): string[] => levels.map((db) => `${(1 - levelBarShare(db)) * 100}%`);
       for (const tab of ["Play", "Edit"]) {
         stopPlayback(store);
+        // OUT falls from where it stood, as every meter the ticker moves, and comes to rest within 4 s.
+        vi.advanceTimersByTime(4_000);
         await pickTab(shell, "ui.sdTab", tab);
         expect(shell.root.querySelector(".sd-out .dyn-io-caption")?.textContent, tab).toBe("OUT");
         expect(unlit(), `${tab}, stopped`).toEqual(["100%", "100%"]);
