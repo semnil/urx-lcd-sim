@@ -92,9 +92,9 @@ export function followFocus(ctx: AppContext, node: Element, apply: () => void): 
  * Follow the pointer that pressed in `start` on the window until it is let go or
  * cancelled, calling `move` on each of its moves and `end` at the end. Other
  * pointers are not heard, and a mouse that moves with no button held has been let
- * go where the page did not hear it.
+ * go where the page did not hear it. The returned function ends it early.
  */
-function followPointer(start: PointerEvent, move: (m: PointerEvent) => void, end: () => void): void {
+function followPointer(start: PointerEvent, move: (m: PointerEvent) => void, end: () => void): () => void {
   const onMove = (m: PointerEvent): void => {
     if (m.pointerId !== start.pointerId) return;
     if (m.pointerType === "mouse" && m.buttons === 0) stop();
@@ -112,6 +112,7 @@ function followPointer(start: PointerEvent, move: (m: PointerEvent) => void, end
   window.addEventListener("pointermove", onMove);
   window.addEventListener("pointerup", onUp);
   window.addEventListener("pointercancel", onUp);
+  return stop;
 }
 
 export function scrollbar(
@@ -598,10 +599,13 @@ export function attachDrag(ctx: AppContext, node: HTMLElement, spec: NumericSpec
     };
     const up = (): void => {
       document.documentElement.classList.remove(TURNING);
+      leave();
     };
     // The first turn repaints the screen and this node is replaced, so the rest
     // of the gesture is followed on the window rather than on the node.
-    followPointer(ev, move, up);
+    const stop = followPointer(ev, move, up);
+    // The drag ends with the screen it started on.
+    const leave = ctx.nav.onChange(stop);
   });
 }
 

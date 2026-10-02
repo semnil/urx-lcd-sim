@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- End a value's drag when the screen changes under it, by Escape or by a second finger on HOME. The drag went on turning the value of the screen left behind until the pointer was let go: BRIGHTNESS's Screen went on dimming the glass after Escape had gone back to SETUP.
 - Turn a value and scroll a list only by a drag of the main button, a finger or a pen's tip, and only by the pointer that started it. The right button started a drag as the main one does, a second finger's moves turned the value or scrolled the list the first finger held, and the second finger's lift or cancel ended the first finger's drag. A mouse that moves with no button held now ends its drag, as one let go where the page did not hear it.
 - Give a screen reader COMP's and SSMCS's Ratio in numbers: `aria-valuemax` is 500, the last stop before INF, and at INF `aria-valuenow` is 500 while `aria-valuetext` reads `INF:1`. `aria-valuemax` read `Infinity`, and at INF so did `aria-valuenow`.
 - Leave GATE's and COMP's Threshold where it is under the arrow keys while the keys are on the block's switch on the channel view. An arrow key there turned the block's Threshold a detent and moved the pink frame onto it.

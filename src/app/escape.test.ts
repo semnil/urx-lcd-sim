@@ -143,6 +143,59 @@ describe("what a screen gives back", () => {
     expect(closed, "and whatever it was holding is given up with it").toBe(1);
   });
 
+  it("lets go of a value being dragged when the screen changes under it", async () => {
+    const shell = await mount();
+    const store = shell.ctx.store;
+    const nav = shell.ctx.nav;
+    const brightness = (): number => store.num("setup.brightness", NaN);
+    const turning = (): boolean => document.documentElement.classList.contains("is-turning");
+    const at = (type: string, y: number): MouseEvent => new MouseEvent(type, { bubbles: true, clientY: y });
+    const box = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".single-param .value-box");
+    const subscribe = nav.onChange.bind(nav);
+    let following = 0;
+    nav.onChange = (listener) => {
+      following++;
+      const off = subscribe(listener);
+      return () => {
+        following--;
+        return off();
+      };
+    };
+    const open = async (): Promise<void> => {
+      await store.set("setup.brightness", 10);
+      nav.openTop({ id: "setup" });
+      nav.push({ id: "setup.brightness" });
+      await flush();
+    };
+    const press = async (): Promise<void> => {
+      box()?.dispatchEvent(at("pointerdown", 300));
+      window.dispatchEvent(at("pointermove", 320));
+      await flush();
+    };
+
+    // A drag that stays on its screen turns the value, and lets the screen go once it is let go.
+    await open();
+    const before = following;
+    await press();
+    expect(brightness(), "a drag on its own screen").toBe(9);
+    window.dispatchEvent(at("pointerup", 320));
+    expect([turning(), following], "let go").toEqual([false, before]);
+
+    // Escape, or a second finger on HOME, takes the screen away and the drag with it.
+    for (const leave of [() => escape(), async () => shell.root.querySelector<HTMLElement>('[aria-label="HOME"]')?.click()]) {
+      await open();
+      await press();
+      await leave();
+      await flush();
+      expect(nav.current.id === "setup.brightness", "the screen went").toBe(false);
+      expect([turning(), following], "the drag went with it").toEqual([false, before]);
+      window.dispatchEvent(at("pointermove", 480));
+      await flush();
+      expect(brightness(), "the pointer moving on").toBe(9);
+      window.dispatchEvent(at("pointerup", 480));
+    }
+  });
+
   it("gives the key back when the screen under an open list goes away", async () => {
     const shell = await mount();
     shell.ctx.nav.push({ id: "ch.setting", strip: "ch1" });
