@@ -64,6 +64,20 @@ describe("Navigator", () => {
     expect(listener).toHaveBeenCalledTimes(2);
   });
 
+  it("names each move by the method that made it", () => {
+    const nav = new Navigator();
+    const moves: string[] = [];
+    nav.onChange((_route, change) => moves.push(change));
+
+    nav.push({ id: "setup" });
+    nav.replace({ id: "monitor" });
+    nav.back();
+    nav.home();
+    nav.openTop({ id: "scene" });
+
+    expect(moves).toEqual(["push", "replace", "back", "home", "openTop"]);
+  });
+
   it("does not stack a top-level screen on itself", () => {
     const nav = new Navigator();
     nav.openTop({ id: "home" });

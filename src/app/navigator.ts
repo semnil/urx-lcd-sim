@@ -11,7 +11,10 @@ export interface Route {
   strip?: string;
 }
 
-export type RouteListener = (route: Route) => void;
+/** How the stack moved: named by the method that moved it. */
+export type RouteChange = "push" | "replace" | "back" | "home" | "openTop";
+
+export type RouteListener = (route: Route, change: RouteChange) => void;
 
 export class Navigator {
   private stack: Route[];
@@ -39,34 +42,34 @@ export class Navigator {
   /** Open a screen on top of the current one. */
   push(route: Route): void {
     this.stack.push(route);
-    this.emit();
+    this.emit("push");
   }
 
   /** Replace the top of the stack — used when a screen switches strips. */
   replace(route: Route): void {
     this.stack[this.stack.length - 1] = route;
-    this.emit();
+    this.emit("replace");
   }
 
   /** The toolbar's back arrow. Never empties the stack. */
   back(): void {
     if (!this.canGoBack) return;
     this.stack.pop();
-    this.emit();
+    this.emit("back");
   }
 
   /** The toolbar's home button. */
   home(): void {
     const bottom = this.stack[0];
     this.stack = [bottom ?? { id: "home" }];
-    this.emit();
+    this.emit("home");
   }
 
   /** Jump to a top-level screen: home plus that screen, so back returns home. */
   openTop(route: Route): void {
     const bottom = this.stack[0] ?? { id: "home" };
     this.stack = route.id === bottom.id ? [bottom] : [bottom, route];
-    this.emit();
+    this.emit("openTop");
   }
 
   onChange(listener: RouteListener): () => void {
@@ -74,7 +77,7 @@ export class Navigator {
     return () => this.listeners.delete(listener);
   }
 
-  private emit(): void {
-    for (const l of [...this.listeners]) l(this.current);
+  private emit(change: RouteChange): void {
+    for (const l of [...this.listeners]) l(this.current, change);
   }
 }

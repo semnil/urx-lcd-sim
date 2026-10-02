@@ -27,6 +27,7 @@ import { panLinkWriteRule } from "../screens/mix-bus";
 import { bankSide, bankTotal, currentBank, stepBank } from "../screens/strip-state";
 import type { AppContext, KnobReadout } from "./context";
 import { Navigator } from "./navigator";
+import type { RouteChange } from "./navigator";
 import { scrimFilter } from "../ui/scrim";
 
 /** Divisions the multi-function readout bar has. */
@@ -51,6 +52,8 @@ export class Shell {
   private repaintScheduled = false;
   /** The screen the glass last drew. */
   private drawn: string | null = null;
+  /** How the stack has moved since the glass last drew. */
+  private moves: RouteChange[] = [];
   /** What is layered over the screen, by its closer and bottom first, so nothing is dropped unclosed. */
   private readonly overlays = new Map<() => void, { node: HTMLElement; modal: Modal | undefined }>();
   private readonly onTab: (ev: KeyboardEvent) => void;
@@ -112,7 +115,8 @@ export class Shell {
     });
     this.root = this.lcd;
 
-    nav.onChange(() => {
+    nav.onChange((_route, change) => {
+      this.moves.push(change);
       focus.release();
       this.knobPage = 0;
       // A list or a dialog belongs to the screen that opened it.
@@ -194,6 +198,7 @@ export class Shell {
     const refocus = this.focusPlace();
     this.dim();
     this.drawn = route.id;
+    this.moves = [];
     this.knobs = [];
     clear(this.mainNode);
     clear(this.sideNode);
@@ -240,15 +245,26 @@ export class Shell {
   /**
    * The step that puts the page's focus back on the control it stood on once the
    * same screen is drawn again: the control of the same kind at the same place, or
-   * else the one control of that kind with the same words. A different screen
-   * leaves the focus where the rebuild left it.
+   * else the one control of that kind with the same words, or else the control that
+   * now stands at that place. A screen put in place of this one takes the focus
+   * onto its one control of the same kind and name. Any other screen leaves the
+   * focus where the rebuild left it.
    */
   private focusPlace(): () => void {
     const active = document.activeElement;
-    if (this.drawn !== this.ctx.nav.current.id || !active || active === this.root || !this.root.contains(active)) return () => undefined;
+    if (!active || active === this.root || !this.root.contains(active)) return () => undefined;
     // A control's kind is its tag and its classes, less the ones naming its state.
     const kind = (node: Element): string => [node.tagName, ...[...node.classList].filter((c) => !c.startsWith("is-"))].join(" ");
     const was = kind(active);
+    if (this.drawn !== this.ctx.nav.current.id) {
+      if (this.moves.length === 0 || this.moves.some((move) => move !== "replace")) return () => undefined;
+      const name = (node: Element): string | null => node.getAttribute("aria-label") ?? node.textContent;
+      const said = name(active);
+      return () => {
+        const alike = [...this.root.querySelectorAll(active.tagName)].filter((n) => kind(n) === was && name(n) === said);
+        if (alike.length === 1) (alike[0] as HTMLElement).focus({ preventScroll: true });
+      };
+    }
     const path: number[] = [];
     for (let node: Element = active; node !== this.root && node.parentElement; node = node.parentElement) {
       path.unshift([...node.parentElement.children].indexOf(node));
@@ -256,9 +272,10 @@ export class Shell {
     return () => {
       let node: Element | undefined = this.root;
       for (const i of path) node = node?.children[i];
+      const there = node !== this.root ? node : undefined;
       if (!node || node === this.root || kind(node) !== was) {
         const alike = [...this.root.querySelectorAll(active.tagName)].filter((n) => kind(n) === was && n.textContent === active.textContent);
-        node = alike.length === 1 ? alike[0] : undefined;
+        node = alike.length === 1 ? alike[0] : there?.matches(INTERACTIVE) ? there : undefined;
       }
       if (node && "focus" in node) (node as HTMLElement).focus({ preventScroll: true });
     };

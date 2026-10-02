@@ -181,8 +181,10 @@ draws nowhere else.
 
 Every change draws the screen again, and while the screen stays the same the focus goes back to the
 control it stood on: the control of the same kind at the same place, or else the one control of that kind
-with the same words (the shell's `focusPlace`). A value therefore turns press after press, and a switch can
-be pressed again without Tab. A rotary drawn beside a value box stays out of the Tab order, the box
+with the same words, or else the control that now stands at that place, as when a page step goes and the step the
+other way takes its place (the shell's `focusPlace`). A value therefore turns press after press, and a switch can
+be pressed again without Tab. A screen put in place of the current one, as the four SSMCS screens step from one to
+the next, takes the focus onto its one control of the same kind and name. A rotary drawn beside a value box stays out of the Tab order, the box
 carrying its keys. A list's scroll bar answers the pointer alone; the keys scroll a list by moving through
 its rows, and the LICENSE text, which holds no rows, is a Tab stop of its own that rims its bar when it
 takes the focus. The still of HOME on Operation Mode is `inert` and holds no Tab stop. The keys of the title sheet

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Keep the focus on the glass when a page step pressed with the keys gives its place to the step the other way, on the readout bar, an effect's pages and the USER DEFINED KNOBS bar, and carry it from [Next SSMCS screen] or [Previous SSMCS screen] onto the same arrow of the SSMCS screen they step to. The focus fell off the glass, so a second Enter stepped nowhere.
 - Keep the focus on the page's own controls as they are drawn again: on [Reset the unit] once [Cancel] takes its question back or [Reset] starts the unit again, and on the model selector once it changes the model. The focus fell off every control onto the page itself.
 - Leave Escape pressed on the page around the glass to the control holding the focus there: on the model and display scale selectors or [Reset the unit] it no longer steps the screen back or cancels a dialog on it. Escape on [Reset the unit]'s question takes it back as [Cancel] does, with the focus on [Reset the unit]; the question stayed up while the screen stepped back.
 - Hold the USER DEFINED KNOBS bar out of reach under the dark around the channel-bank list, as the rest of what shows through there is. Its knobs and its page step still took a touch, a drag and the keys, so Phones 1's level or the knob page changed with the list open.

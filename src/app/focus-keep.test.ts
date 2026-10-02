@@ -4,6 +4,8 @@ import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
 import { buildRegistry } from "../screens";
+import type { ScreenDef } from "../screens/types";
+import { el } from "../ui/dom";
 import { Shell } from "./shell";
 
 // Every change draws the screen again from scratch. The keys stay on the control
@@ -22,11 +24,11 @@ afterEach(() => {
 });
 
 /** A shell on the page, where the focus can stand. */
-async function mount(): Promise<Shell> {
+async function mount(registry = buildRegistry()): Promise<Shell> {
   const model = unitById("URX44V");
   const store = new DeviceStore();
   await store.attach(new SimTransport(factoryState(model)));
-  const shell = new Shell(buildRegistry(), store, model);
+  const shell = new Shell(registry, store, model);
   document.body.appendChild(shell.root);
   mounted.push(shell);
   await flush();
@@ -181,6 +183,102 @@ describe("the focus through a redraw", () => {
       "channel-view null->null",
       "channel-view null->null",
     ]);
+  });
+
+  it("goes to the control standing where a pressed page step stood, once the step goes", async () => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    shell.ctx.nav.push({ id: "ch.gate", strip: "ch1" });
+    await flush();
+    const name = (): string | null | undefined => (shell.root.contains(document.activeElement) ? document.activeElement?.getAttribute("aria-label") : "off the glass");
+    const seen: (string | null | undefined)[] = [];
+    shell.root.querySelector<HTMLElement>(".knob-page-next")?.focus();
+    for (let i = 0; i < 2; i++) {
+      await press("Enter");
+      seen.push(name());
+    }
+    // The USER DEFINED KNOBS bar's first page, stepped back to from its second.
+    await shell.ctx.store.set("ui.userDefinedKnobs", true);
+    await shell.ctx.store.set("setup.udk.bank", 2);
+    await flush();
+    shell.root.querySelector<HTMLElement>(".knob-bank-prev")?.focus();
+    await press("Enter");
+    seen.push(`${shell.ctx.store.num("setup.udk.bank", 0)} ${name()}`);
+    expect(seen).toEqual(["Knob page 1 of 2", "Knob page 2 of 2", "1 User defined knobs page 2"]);
+  });
+
+  it("leaves the focus off a place a pressed control gives up to something that is no control", async () => {
+    // A button that gives its place to a text the Tab key stops on once it is pressed.
+    let pressed = false;
+    const screen: ScreenDef = {
+      id: "gives.place",
+      toolbar: "sub",
+      build: (ctx) => ({
+        main: el("div", {
+          children: [
+            pressed
+              ? el("div", { class: "given", text: "Done", attrs: { tabindex: "0" } })
+              : el("button", {
+                  class: "giver",
+                  text: "Go",
+                  onTap: () => {
+                    pressed = true;
+                    ctx.repaint();
+                  },
+                }),
+          ],
+        }),
+      }),
+    };
+    const shell = await mount(buildRegistry().register(screen));
+    shell.ctx.nav.push({ id: "gives.place" });
+    await flush();
+    shell.root.querySelector<HTMLElement>(".giver")?.focus();
+    await press("Enter");
+    expect([shell.root.querySelector(".given") !== null, document.activeElement === document.body]).toEqual([true, true]);
+  });
+
+  it("follows [Next SSMCS screen] onto the screen it steps to in place of this one, so Enter steps on", async () => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    shell.ctx.nav.push({ id: "ch.ssmcs", strip: "ch1" });
+    await flush();
+    shell.root.querySelector<HTMLElement>(".ssmcs-page-next")?.focus();
+    const seen: (string | null | undefined)[] = [];
+    for (let i = 0; i < 2; i++) {
+      await press("Enter");
+      await flush();
+      seen.push(`${shell.ctx.nav.current.id} ${shell.ctx.nav.depth} ${document.activeElement?.getAttribute("aria-label")}`);
+    }
+    expect(seen).toEqual(["ch.ssmcs.comp 3 Next SSMCS screen", "ch.ssmcs.sc 3 Next SSMCS screen"]);
+  });
+
+  it("takes onto a screen put in place of this one only its one control of the same kind and name, wherever it stands", async () => {
+    // Two screens that step to each other in place, holding their buttons in another order, the second two [C].
+    const step = (id: string, to: string, labels: string[]): ScreenDef => ({
+      id,
+      toolbar: "sub",
+      build: (ctx) => ({
+        main: el("div", {
+          children: labels.map((label) => el("button", { class: "step", attrs: { "aria-label": label }, onTap: () => ctx.nav.replace({ id: to }) })),
+        }),
+      }),
+    });
+    const shell = await mount(buildRegistry().register(step("step.a", "step.b", ["A", "B", "C"]), step("step.b", "step.a", ["B", "A", "C", "C"])));
+    shell.ctx.nav.push({ id: "step.a" });
+    await flush();
+    const button = (label: string): HTMLElement | null => shell.root.querySelector<HTMLElement>(`.step[aria-label="${label}"]`);
+    const at = (): string => `${shell.ctx.nav.current.id} ${shell.root.contains(document.activeElement) ? document.activeElement?.getAttribute("aria-label") : "off the glass"}`;
+    const seen: string[] = [];
+    button("A")?.focus();
+    await press("Enter");
+    seen.push(at());
+    await press("Enter");
+    seen.push(at());
+    button("C")?.focus();
+    await press("Enter");
+    seen.push(at());
+    expect(seen).toEqual(["step.b A", "step.a A", "step.b off the glass"]);
   });
 
   it("leaves the focus on the page when the press opens another screen", async () => {
