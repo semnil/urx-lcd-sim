@@ -1649,9 +1649,10 @@ The card's name, the volume label it was formatted under, stands on a line above
 set left from x313 (x313..387 / y58..81). Every card screen puts them in the same place (URX44V, the operator,
 2026-09-22): SAVE/LOAD's p084-1 and TOOLS' p087-1 show both lines, and RECORDER's p081-1 and p083-1 show the name
 line empty. With no card none of these screens
-is open: the microSD top takes their place. A touch on the eject button brings up the unit's dialog,
-`Now you may safely remove the microSD card.` with [OK] alone: the text on one line, the circled i
-mark to its left and [OK] at the lower right (URX44V, the operator, 2026-09-22). [OK] stands for the
+is open: the microSD top takes their place. A touch on the eject button first asks `Eject the microSD card?` under the
+circled i mark, with [Cancel] and [OK], as the unit does (URX44V, the operator, 2026-10-04). Its [OK] brings up the unit's
+dialog `Now you may safely remove the microSD card.` with [OK] alone: the text on one line, the circled i
+mark to its left and [OK] at the lower right (URX44V, the operator, 2026-09-22). That [OK] stands for the
 card being pulled out (see [known-issues.md](known-issues.md)).
 
 The first touch on a folder brings the cursor to it, and a touch on the folder the cursor stands on

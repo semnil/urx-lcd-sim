@@ -437,17 +437,30 @@ describe("the microSD card browser", () => {
     for (const id of ["microsd", "microsd.recorder", "microsd.saveload", "microsd.tools"]) {
       const shell = await mount({ id });
       const eject = shell.root.querySelector<HTMLElement>(".toolbar .sd-eject");
+      const said = (): [string | null, string[], boolean] => [
+        shell.root.querySelector(".dialog-text")?.textContent ?? null,
+        [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].map((b) => b.textContent ?? ""),
+        shell.root.querySelector(".dialog:not(.is-caution) .dialog-mark svg") !== null,
+      ];
+      const answer = async (label: string): Promise<void> => {
+        [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === label)?.click();
+        await flush();
+      };
       expect([eject?.classList.contains("is-disabled"), eject?.hasAttribute("aria-disabled")], `${id}: in reach`).toEqual([false, false]);
       eject?.click();
       await flush();
-      expect(shell.root.querySelector(".dialog-text")?.textContent, id).toBe("Now you may safely remove the microSD card.");
-      const answers = [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")];
-      expect(answers.map((b) => b.textContent), `${id}: [OK] alone`).toEqual(["OK"]);
+      expect(said(), `${id}: asked first, under the i mark`).toEqual(["Eject the microSD card?", ["Cancel", "OK"], true]);
+      await answer("Cancel");
+      expect([shell.root.querySelector(".dialog-overlay"), shell.ctx.store.bool("sd.mounted", false)], `${id}: [Cancel] leaves the card in`).toEqual([null, true]);
+
+      eject?.click();
+      await flush();
+      await answer("OK");
+      expect(said(), `${id}: then told the card can come out`).toEqual(["Now you may safely remove the microSD card.", ["OK"], true]);
       expect(shell.ctx.store.bool("sd.mounted", false), `${id}: asking takes nothing out`).toBe(true);
 
       // [OK] stands for the card being pulled from the slot.
-      answers[0]?.click();
-      await flush();
+      await answer("OK");
       expect(shell.ctx.store.bool("sd.mounted", true), id).toBe(false);
       expect(shell.ctx.nav.current.id, id).toBe("microsd");
       expect(shell.root.querySelector(".sd-no-card"), id).not.toBeNull();

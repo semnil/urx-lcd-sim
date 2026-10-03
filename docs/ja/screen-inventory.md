@@ -1424,8 +1424,9 @@ microSD Card Slot: WAV 24-bit)、設定ファイルは 50,668 バイト (設定�
 ボリュームラベル) をもう 1 行置き、2 行を右上に x313 から左揃えで出す (x313..387 / y58..81)。どのカードの画面も同じ
 位置で (URX44V、2026-09-22 操作者確認)、SAVE/LOAD の p084-1 と TOOLS の p087-1 は 2 行、RECORDER の p081-1・p083-1 は
 名前の行が空の図。カードが無いときはこれらの画面を開かず、microSD のトップに移る。取り出しボタンに
-触れると、実機と同じく `Now you may safely remove the microSD card.` と [OK] だけのダイアログを出す。
-文言は 1 行で、左に丸に i の印、[OK] は右下 (URX44V、2026-09-22 操作者確認)。[OK] でカードを抜いたことにする
+触れると、実機と同じく、まず丸に i の印と `Eject the microSD card?`・[Cancel]・[OK] のダイアログで尋ね (URX44V、2026-10-04
+操作者確認)、その [OK] で `Now you may safely remove the microSD card.` と [OK] だけのダイアログを出す。
+文言は 1 行で、左に丸に i の印、[OK] は右下 (URX44V、2026-09-22 操作者確認)。この [OK] でカードを抜いたことにする
 ([known-issues.md](known-issues.md))。
 
 フォルダーは 1 回目の接触でカーソルが移り、カーソルのある状態でもう一度触れると開く (RECORDER がファイルを

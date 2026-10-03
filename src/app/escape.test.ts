@@ -542,6 +542,7 @@ describe("a dialog or a sheet over the screen", () => {
       { routes: [{ id: "microsd" }], state: { "sd.mounted": false }, opener: bySelector(".sd-no-card") },
       { routes: [{ id: "microsd" }], opener: bySelector(".usb-storage") },
       { routes: [{ id: "microsd" }], state: { "sd.usbStorage": true }, opener: bySelector(".usb-storage") },
+      { routes: [{ id: "microsd" }], opener: bySelector(".sd-eject") },
     ];
     const seen: string[] = [];
     for (const ask of asks) {
@@ -570,10 +571,12 @@ describe("a dialog or a sheet over the screen", () => {
       "Simulate inserting the microSD card?: Cancel, nothing done",
       "This microSD card is recognized as a storage: Cancel, nothing done",
       "Please make sure that the microSD storage: Cancel, nothing done",
+      "Eject the microSD card?: Cancel, nothing done",
     ]);
 
     const shell = await onPage({ id: "microsd" });
     await enter(shell.root.querySelector<HTMLElement>(".sd-eject"));
+    await enter([...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === "OK"));
     expect([shell.root.querySelector('[role="dialog"]')?.getAttribute("aria-label"), document.activeElement?.textContent]).toEqual([
       "Now you may safely remove the microSD card.",
       "OK",

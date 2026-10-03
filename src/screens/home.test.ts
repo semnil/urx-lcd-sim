@@ -3267,6 +3267,7 @@ describe("the moves USER DEFINED KNOBS mode goes off on", () => {
       const shell = await onAt([{ id: "microsd" }, { id }]);
       await tap(shell, ".sd-eject");
       await tap(shell, ".dialog-actions .btn", "OK");
+      await tap(shell, ".dialog-actions .btn", "OK");
       expect([where(shell), shell.root.querySelector(".sd-no-card")?.textContent, shell.root.querySelector(".udk-toggle"), ...mode(shell)]).toEqual([
         "microsd",
         "Not inserted microSD card",
@@ -5386,6 +5387,7 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
 
     shell.root.querySelector<HTMLElement>(".toolbar .sd-eject")?.click();
     await flush();
+    await okDialog();
     await okDialog();
     expect(shell.ctx.store.bool("sd.mounted", true), "the card out").toBe(false);
     shell.root.querySelector<HTMLElement>(".sd-no-card")?.click();

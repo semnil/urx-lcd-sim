@@ -79,14 +79,15 @@ export const microsdScreen: ScreenDef = {
 };
 
 /**
- * The button that takes the card out. It asks what the unit asks, and [OK]
- * stands for the card being pulled from the slot, which lets go of the card
- * test's result. In recording mode and while playback holds a file, playing or
- * paused, it is out of reach on every screen that carries it.
+ * The button that takes the card out. It asks what the unit asks, `Eject the
+ * microSD card?`, and its [OK] says what the unit says once the card can come
+ * out. That dialog's [OK] stands for the card being pulled from the slot, which
+ * lets go of the card test's result. In recording mode and while playback holds
+ * a file, playing or paused, it is out of reach on every screen that carries it.
  */
 function ejectButton(ctx: AppContext): HTMLElement {
   const usable = !holdsFile(ctx.store) && !recordMode(ctx.store);
-  const ask = (): void => {
+  const pull = (): void => {
     ctx.overlay(
       dialog({
         message: "Now you may safely remove the microSD card.",
@@ -97,6 +98,9 @@ function ejectButton(ctx: AppContext): HTMLElement {
         },
       }),
     );
+  };
+  const ask = (): void => {
+    ctx.overlay(dialog({ message: "Eject the microSD card?", onOk: pull }));
   };
   return el("button", {
     class: `sd-eject${usable ? "" : " is-disabled"}`,

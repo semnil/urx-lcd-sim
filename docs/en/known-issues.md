@@ -44,8 +44,9 @@ is built is in [screen-inventory.md](screen-inventory.md).
   them unusable either — the unit lets the operator turn them after it has computed them. The values
   under `01 Basic` are the ones it knows, and those are what it ships with.
 - **The microSD card going in and out, how long a name on it runs, and recording onto it when it is full.**
-  The card goes in and out on the screen. The eject button brings up the unit's dialog. On
-  the unit the dialog closes by itself after a few seconds and [OK] does nothing, since the unit
+  The card goes in and out on the screen. The eject button asks the unit's question, and its [OK] brings up the
+  unit's `Now you may safely remove the microSD card.`. On
+  the unit that dialog closes by itself after a few seconds and [OK] does nothing, since the unit
   detects the card leaving the slot. Here the dialog stays until [OK], and [OK] stands for the card
   being pulled out. On the microSD top with no card, a touch on `Not inserted microSD card` brings up
   a question of the simulator's own, `Simulate inserting the microSD card?` ([Cancel] / [OK]), and
