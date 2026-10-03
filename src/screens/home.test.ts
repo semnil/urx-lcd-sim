@@ -4518,12 +4518,13 @@ describe("what the dedicated channel screens draw", () => {
       [100000, "30", ["1000.00", "30.00", "343.6", "1127.3"]],
       [400, "24", ["4.00", "0.10", "1.4", "4.5"]],
       [2916, "24", ["29.16", "0.70", "10.0", "32.9"]],
-      // 0.025 and 0.035 frame stand on a half of the last place, held in binary a
-      // hair over it (0.025000000000000001) and a hair under it
-      // (0.034999999999999996), and the unit reads both 0.03.
+      // 0.025 and 0.035 frame stand on a half of the last place. Worked in double
+      // precision they come to 0.025 and 0.034999999999999996, × 100 to 2.5 and
+      // 3.4999999999999996, and the unit reads both 0.03.
       [100, "25", ["1.00", "0.03", "0.3", "1.1"]],
       [140, "25", ["1.40", "0.03", "0.5", "1.6"]],
-      // 508.00 ms is 572.65 ft, held in binary as 572.6499999999999, and the unit reads 572.6.
+      // 508.00 ms is 572.65 ft, worked in double precision 572.6499999999999 and × 10
+      // 5726.499999999998, and the unit reads 572.6.
       [50800, "30", ["508.00", "15.24", "174.5", "572.6"]],
     ];
     const seen: [number, string, (string | null)[]][] = [];

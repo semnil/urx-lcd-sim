@@ -1473,7 +1473,7 @@ const DELAY_UNITS = [
   { label: "feet", scale: (): DelayScale => FEET_SCALE, digits: 1, step: 5, fine: 0.1 },
 ] as const;
 
-/** A delay cell's value to its places by Math.round on the value as it is held in binary. */
+/** A delay cell's value to its places by Math.round on the value × 10 to its places, worked in double precision. */
 const delayRound = (v: number, digits: number): number => Math.round(v * 10 ** digits) / 10 ** digits;
 
 /** A delay time lands on 0.02 ms. */

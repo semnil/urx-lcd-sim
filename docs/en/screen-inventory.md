@@ -939,10 +939,10 @@ meter / feet, and turning any of them moves the same value.
 
 The time runs 1.00..1000.00 ms and is held on 0.02 ms. The four cells work it in double precision as ms / 1000 ×
 the frame rate in frames, × 343.59 in metres and × 343.59 / 0.3048 in feet, and read it to their places, ms and
-frame to two and meter and feet to one, by Math.round on the value as binary holds it. A value on a half of the
-last place goes up where binary holds it a hair over the half and down where it holds it a hair under: at 25
-frames a second 1.00 ms (0.025 frame) reads 0.03, and so does 1.40 ms (0.035 frame), and 508.00 ms (572.65 ft)
-reads 572.6 ft (URX44V, the operator, 2026-10-03). A detent (an arrow key, the wheel or a knob under the screen;
+frame to two and meter and feet to one, by Math.round on the value × 100 on ms and frame and × 10 on meter and
+feet, that product worked in double precision. At 25 frames a second 1.00 ms (0.025 frame) reads 0.03, and so does
+1.40 ms (0.035 frame), and 508.00 ms (572.65 ft) reads 572.6 ft (URX44V, the operator, 2026-10-03); the products
+come to 2.5, 3.4999999999999996 and 5726.499999999998. A detent (an arrow key, the wheel or a knob under the screen;
 a drag turns as many detents as it covers) adds the cell's step to the reading the cell shows, rounds the sum to
 the cell's places and turns that back into a time by the same steps undone. The step is 1.00 ms on ms (45.86 goes
 to 46.86), 0.2 frame on frame, 1.0 m on meter and 5.0 ft on feet: 24.00 ms reads 8.2 m, so a detent up on meter
