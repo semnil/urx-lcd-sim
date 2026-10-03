@@ -81,7 +81,8 @@ is built is in [screen-inventory.md](screen-inventory.md).
 - **GATE opens and closes at once.** Attack, Hold and Decay are kept as values only: the gate closes to
   RANGE as soon as the input is at or under the threshold and opens as soon as it is over. The middle,
   yellow one of the channel view's GATE lamps, which shows the gate opening or closing, does not light.
-- **The clock keeps the unit's time zones, but reads its own years outside 2000 to 2099.** As on the unit,
+- **The clock keeps each city on one offset in every year and SAVE/LOAD's list on the 24-hour clock, as the unit does, but reads its own years outside 2000 to 2099.**
+  As on the unit,
   each [Time Zone] city keeps one time ahead of or behind UTC, the same all year and in every year, with no
   summer time (21:15 in Tokyo reads 12:15 in London in September, confirmed on the unit). Samoa reads 13 hours
   ahead of UTC in 2011, when it kept 11 hours behind, as in 2012, and Volgograd 3 hours ahead in 2019, when it
