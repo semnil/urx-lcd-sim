@@ -374,8 +374,9 @@ and COMP and CH 2's SSMCS Low and Out Gain). A detent of the unit's knob keeps t
 (URX44V, the operator, 2026-10-03: CH 1's EQ L-MID from 1.5 dB to 2.5 dB, and CH 2's SSMCS SC, Low, Mid and
 High Gain, SC from 5.3 dB to 6.3 dB). Here a detent turns EQ's, COMP's and SSMCS's gains 1.0 dB and
 a detent with Shift 0.1 dB, keeping the tenths, from a cell, a value box or COMP's G handle, and a drag,
-an EQ grip's included, stops on the tenths. The channel view's knobs do not push in (URX44V, the operator,
-2026-10-03), and the channel view's values turn the same detent with Shift as without it.
+an EQ grip's included, stops on the tenths. The knob on the DELAY block of STREAMING's channel view does not
+push in (URX44V, the operator, 2026-10-03), and the channel view's values turn the same detent with Shift as
+without it.
 
 There are four cells, so when a screen passes five or more parameters they are shown four at a time,
 and `‹` / `›` appears at the end of the label band on the side where more follow (COMP in p099-1).

@@ -1021,7 +1021,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
   }
 
   // FX 2 ships Mono Delay, whose delay turns 5 ms a detent, and STREAMING's channel view turns its DELAY block's
-  // time: the channel view's knobs do not push in (URX44V, the operator, 2026-10-03).
+  // time: the knob on that DELAY block does not push in (URX44V, the operator, 2026-10-03).
   it.each([...STRIPS, "fx2", "bus.stream"])("turns a value a detent with Shift as without it, and a gain the knob turns finer pushed in by a finer one (%s)", async (strip) => {
     // The DELAY screen's cells turn their time by a step of their own with Shift.
     const ownShift = (move: string): boolean => move.startsWith("ch.delay ");
