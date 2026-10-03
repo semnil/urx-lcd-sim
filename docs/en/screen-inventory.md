@@ -1308,7 +1308,7 @@ and URX44 run the same laws, bar the number of channels.
 | The COMP Side Chain screen's SC meter | The SSMCS input plus the SC-Gain |
 | The MONITOR screen's meter | After the LEVEL |
 | A RECORDER track's meter | A channel at its Rec Point, a bus as it goes out |
-| OUT on RECORDER's Play and Edit tabs | What the file playing puts out (after microSD Playback's D.Gain); silent while stopped or paused |
+| OUT on RECORDER's Play and Edit tabs | What the file playing puts out (after microSD Playback's D.Gain); silent while stopped or paused (after [■] and paused, URX44V, the operator, 2026-10-03) |
 
 - The left dot (signal) lights green from about -40 dBFS and stays lit while the right dot (clip) is red.
   The right dot lights only while the level clips (0 dB).
