@@ -43,17 +43,18 @@ is built is in [screen-inventory.md](screen-inventory.md).
   computation is is not known, so this simulator leaves those values where they are. It does not draw
   them unusable either — the unit lets the operator turn them after it has computed them. The values
   under `01 Basic` are the ones it knows, and those are what it ships with.
-- **The microSD card goes in and out on the screen.** The eject button brings up the unit's dialog. On
+- **The microSD card going in and out, how long a name on it runs, and recording onto it when it is full.**
+  The card goes in and out on the screen. The eject button brings up the unit's dialog. On
   the unit the dialog closes by itself after a few seconds and [OK] does nothing, since the unit
   detects the card leaving the slot. Here the dialog stays until [OK], and [OK] stands for the card
   being pulled out. On the microSD top with no card, a touch on `Not inserted microSD card` brings up
   a question of the simulator's own, `Simulate inserting the microSD card?` ([Cancel] / [OK]), and
   [OK] stands for the same card going back in.
-- **How long a name on the microSD card runs.** On the unit, [Rename] takes about 255 characters and does not save
+  On the unit, [Rename] takes about 255 characters and does not save
   a name longer than 255 characters with its extension, and [New folder] takes more than 255 characters and makes the
   folder under the name cut short. This simulator stops [Rename] at 255 characters less the extension's (250 for
   `.urxf`, 251 for `.wav`) and [New folder] at 255, and a key typed past that changes nothing.
-- **Recording onto a full microSD card.** What the unit does when a take uses up what the card has left, and when
+  What the unit does when a take uses up what the card has left, and when
   [●] is pressed on a card with no room left, has not been tried on the unit. This simulator stops the take, saying
   nothing, at the moment it fills what the card has left, and leaves it on the card within that room. With no room
   for a second of take at the recorder's [Track Count] and frequency, [●] does nothing.
