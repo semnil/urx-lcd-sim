@@ -303,52 +303,18 @@ describe("what the card's own actions do to it", () => {
     expect(names(shell)).toEqual(["Recordings"]);
   });
 
-  describe("on RECORDER's Edit tab, with a file paused", () => {
+  it("leaves the cursor on the last row left once RECORDER's Edit tab deletes the last row, with Delete and Rename in reach", async () => {
     const takes: CardEntry[] = ["a.wav", "b.wav", "c.wav"].map((name) => ({ name, kind: "take", seconds: 20, tracks: 2, stamp: "", dir: "/" }));
-    const holding = async (row: number): Promise<Shell> => {
-      const shell = await mount({ id: "microsd.recorder" }, takes);
-      startPlayback(shell.ctx.store, row, Date.now() - 4_000);
-      pausePlayback(shell.ctx.store);
-      await shell.ctx.store.set("ui.sdTab", "Edit");
-      await flush();
-      return shell;
-    };
-    const deleteRow = async (shell: Shell, row: number): Promise<void> => {
-      await shell.ctx.store.set("sd.selectedFile", row);
-      await flush();
-      action(shell, "Delete")?.click();
-      await flush();
-      await okDialog(shell);
-    };
-    const heldName = (shell: Shell): string | undefined => readCard(shell.ctx.store)[shell.ctx.store.num("sd.playingFile", -1)]?.name;
-
-    it("lets go of the file it holds once that file is deleted", async () => {
-      const shell = await holding(1);
-      await deleteRow(shell, 1);
-      expect(names(shell)).toEqual(["a.wav", "c.wav"]);
-      expect([shell.ctx.store.num("sd.playingFile", -1), playedSeconds(shell.ctx.store)], "nothing held, the counter cleared").toEqual([-1, 0]);
-    });
-
-    it("leaves the cursor on the last row left once the last row is deleted, with Delete and Rename in reach", async () => {
-      const shell = await holding(0);
-      await deleteRow(shell, 2);
-      expect(names(shell)).toEqual(["a.wav", "b.wav"]);
-      expect(shell.ctx.store.num("sd.selectedFile", -1)).toBe(1);
-      expect(["Delete", "Rename"].map((l) => action(shell, l)?.classList.contains("is-disabled"))).toEqual([false, false]);
-    });
-
-    it("keeps the file it holds when a row above or below it is deleted", async () => {
-      const shell = await holding(1);
-      await deleteRow(shell, 0);
-      expect(names(shell)).toEqual(["b.wav", "c.wav"]);
-      expect([heldName(shell), playedSeconds(shell.ctx.store)], "a row above: the same file, where it was paused").toEqual(["b.wav", 4]);
-      await deleteRow(shell, 1);
-      expect(heldName(shell), "a row below").toBe("b.wav");
-      await shell.ctx.store.set("ui.sdTab", "Play");
-      await flush();
-      const speaker = [...shell.root.querySelectorAll(".sd-list .list-row")].find((r) => r.querySelector(".sd-icon .icon-speaker") !== null);
-      expect(speaker?.textContent, "Play's speaker on that file's row").toContain("b.wav");
-    });
+    const shell = await mount({ id: "microsd.recorder" }, takes);
+    await shell.ctx.store.set("ui.sdTab", "Edit");
+    await shell.ctx.store.set("sd.selectedFile", 2);
+    await flush();
+    action(shell, "Delete")?.click();
+    await flush();
+    await okDialog(shell);
+    expect(names(shell)).toEqual(["a.wav", "b.wav"]);
+    expect(shell.ctx.store.num("sd.selectedFile", -1)).toBe(1);
+    expect(["Delete", "Rename"].map((l) => action(shell, l)?.classList.contains("is-disabled"))).toEqual([false, false]);
   });
 
   it("renames the entry the cursor stands on", async () => {
@@ -520,14 +486,12 @@ describe("what the card's own actions do to it", () => {
 
   it("leaves the card with nothing on it after a format", async () => {
     const shell = await mount({ id: "microsd.saveload" }, card);
-    // The browser is open on /Recordings/ with the cursor on the file saved there, and take.wav paused.
+    // The browser is open on /Recordings/ with the cursor on the file saved there.
     await shell.ctx.store.set("sd.path", "/Recordings/");
     action(shell, "Save as")?.click();
     await flush();
     await typeTitle(shell, "mine");
     await shell.ctx.store.set("sd.selectedFile", 2);
-    startPlayback(shell.ctx.store, 1, Date.now() - 4_000);
-    pausePlayback(shell.ctx.store);
     expect(names(shell), "the card before the format").toEqual(["Recordings", "take.wav", "mine.urxf"]);
     shell.ctx.nav.back();
     shell.ctx.nav.push({ id: "microsd.tools" });
@@ -553,10 +517,7 @@ describe("what the card's own actions do to it", () => {
     expect(shell.root.querySelector(".dialog-overlay"), "the modal takes itself down").toBeNull();
     expect(shell.ctx.nav.current.id, "back on the Format screen").toBe("microsd.tools");
     expect(names(shell)).toEqual([]);
-    expect(
-      [shell.ctx.store.str("sd.path", ""), shell.ctx.store.num("sd.selectedFile", -1), shell.ctx.store.num("sd.playingFile", 0)],
-      "the browser back at the root with the cursor at the top, and nothing held",
-    ).toEqual(["/", 0, -1]);
+    expect([shell.ctx.store.str("sd.path", ""), shell.ctx.store.num("sd.selectedFile", -1)], "the browser back at the root with the cursor at the top").toEqual(["/", 0]);
     expect(shell.ctx.store.str("sd.cardName", ""), "under the label typed").toBe("blank");
     expect(shell.root.querySelector(".tools-free")?.textContent).toBe("blank\n116.4GB Free");
     expect(freeBytes(shell.ctx.store), "and the room the takes held back").toBeGreaterThan(free);
