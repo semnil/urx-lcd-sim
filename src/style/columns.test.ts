@@ -3458,10 +3458,10 @@ describe("the marks on the control holding the focus", () => {
   });
 
   it("draws the play triangle by those two rules alone, a file paused as a file playing", () => {
-    const naming = ["tokens.css", "app.css", "lcd.css"].flatMap((file) =>
-      styleRules(readStyle(file)).flatMap((rule) => rule.selectors.filter((s) => s.includes("play-mark")).map((s) => `${file} ${s}`)),
-    );
-    expect(naming).toEqual(["lcd.css .icon-btn.has-play-mark", "lcd.css .play-mark"]);
+    const selectors = ["tokens.css", "app.css", "lcd.css"].flatMap((file) => styleRules(readStyle(file)).flatMap((rule) => rule.selectors.map((s) => `${file} ${s}`)));
+    expect(selectors.filter((s) => s.includes("play-mark"))).toEqual(["lcd.css .icon-btn.has-play-mark", "lcd.css .play-mark"]);
+    // The microSD icon tells a file paused from one playing by its name alone, so no rule picks a control by its name.
+    expect(selectors.filter((s) => s.includes("[aria-label"))).toEqual([]);
   });
 
   it("greys Simple Mode, which cannot be chosen", () => {
