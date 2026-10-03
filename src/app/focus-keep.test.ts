@@ -57,7 +57,7 @@ describe("the focus through a redraw", () => {
       await press("ArrowUp");
       seen.push(document.activeElement === box() ? box()?.textContent : "focus lost");
     }
-    expect(seen).toEqual(["1.00", "1.01", "1.02"]);
+    expect(seen).toEqual(["1.00", "2.00", "3.00"]);
   });
 
   it("stays on a switch pressed with Enter", async () => {

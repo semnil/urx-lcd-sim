@@ -596,7 +596,11 @@ export function attachSpin(
       return;
     }
     const size = fast ? (spec.fastStep ?? spec.step) : spec.step;
-    put(spec.free ? value() + steps * size : onStep(spec, value() + steps * size));
+    if (spec.turn) {
+      put(spec.turn(value(), steps * size));
+      return;
+    }
+    put(onStep(spec, value() + steps * size));
   };
 
   // A control whose touch does something else of its own turns by the wheel and the keys alone.
@@ -722,6 +726,11 @@ export function attachDrag(ctx: AppContext, node: HTMLElement, spec: NumericSpec
       }
       if (travel) {
         put(travel.valueAt(clamp(travel.position(anchorValue) + reach, 0, 1)));
+        return;
+      }
+      if (spec.turn) {
+        const steps = Math.round((reach * (spec.max - spec.min)) / spec.step);
+        put(steps === 0 ? anchorValue : spec.turn(anchorValue, steps * spec.step));
         return;
       }
       const raw = anchorValue + reach * (spec.max - spec.min);

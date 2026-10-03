@@ -4460,56 +4460,149 @@ describe("what the dedicated channel screens draw", () => {
     expect(boxes(), "one value, four ways of naming it").toEqual(["10.00", "0.30", "3.4", "11.3"]);
   });
 
-  it("turns each delay cell by the last place it prints, at a press and at a Shift press", async () => {
+  it("reads the four delay cells as the unit does, to their places with a half going up", async () => {
+    const shell = await open("ch.delay");
+    const boxes = (): (string | null)[] => [...shell.root.querySelectorAll<HTMLElement>(".delay-cell .value-box")].map((n) => n.textContent);
+    // A time in hundredths of a ms, the frame rate, and what ms / frame / meter / feet read.
+    const readings: [number, string, string[]][] = [
+      [100, "30", ["1.00", "0.03", "0.3", "1.1"]],
+      [400, "30", ["4.00", "0.12", "1.4", "4.5"]],
+      [2400, "30", ["24.00", "0.72", "8.2", "27.1"]],
+      [3260, "30", ["32.60", "0.98", "11.2", "36.7"]],
+      [4586, "30", ["45.86", "1.38", "15.8", "51.7"]],
+      [99800, "30", ["998.00", "29.94", "342.9", "1125.0"]],
+      [100000, "30", ["1000.00", "30.00", "343.6", "1127.3"]],
+      [400, "24", ["4.00", "0.10", "1.4", "4.5"]],
+      [2916, "24", ["29.16", "0.70", "10.0", "32.9"]],
+      // 0.025 and 0.125 frame, 42.95 m and 42.95 ft stand on a half of the last place.
+      [100, "25", ["1.00", "0.03", "0.3", "1.1"]],
+      [500, "25", ["5.00", "0.13", "1.7", "5.6"]],
+      [12500, "30", ["125.00", "3.75", "43.0", "140.9"]],
+      [3810, "30", ["38.10", "1.14", "13.1", "43.0"]],
+    ];
+    const seen: [number, string, (string | null)[]][] = [];
+    for (const [raw, rate] of readings) {
+      await shell.ctx.store.set("ch.bus.stream.delay.frameRate", rate);
+      await shell.ctx.store.set("ch.bus.stream.delay.ms", raw / 100);
+      await flush();
+      seen.push([raw, rate, boxes()]);
+    }
+    expect(seen).toEqual(readings);
+  });
+
+  it("turns a delay cell from the reading it shows onto 0.02 ms, as the unit's detents went", async () => {
+    const shell = await open("ch.delay");
+    const cells = ["ms", "frame", "meter", "feet"];
+    const box = (cell: string): HTMLElement | undefined =>
+      [...shell.root.querySelectorAll<HTMLElement>(".delay-cell .value-box")][cells.indexOf(cell)];
+    // The cell turned, the time it starts at in hundredths of a ms, the way it
+    // turns, the frame rate, and the time after each detent.
+    const runs: [string, number, "ArrowUp" | "ArrowDown", string, number[]][] = [
+      ["ms", 100, "ArrowUp", "30", [200, 300, 400, 500]],
+      ["ms", 500, "ArrowDown", "30", [400]],
+      ["frame", 400, "ArrowUp", "30", [1066, 1734, 2400]],
+      ["meter", 2400, "ArrowUp", "30", [2678, 2968, 3260]],
+      ["feet", 3260, "ArrowUp", "30", [3700, 4142, 4586]],
+      ["ms", 4586, "ArrowUp", "30", [4686, 4786]],
+      ["ms", 4786, "ArrowDown", "30", [4686, 4586]],
+      ["frame", 4586, "ArrowUp", "30", [5266, 5934, 6600, 7266, 7934, 8600, 9266, 9934, 10600, 11266]],
+      ["frame", 11266, "ArrowDown", "30", [10600, 9934, 9266, 8600, 7934, 7266, 6600]],
+      ["frame", 6600, "ArrowUp", "30", [7266]],
+      ["frame", 7266, "ArrowDown", "30", [6600, 5934, 5266, 4600]],
+      ["meter", 4600, "ArrowUp", "30", [4890, 5180, 5472, 5762, 6054]],
+      ["meter", 6054, "ArrowDown", "30", [5762, 5472, 5180, 4890, 4598]],
+      ["feet", 4598, "ArrowUp", "30", [5038, 5482, 5926, 6370, 6812]],
+      ["feet", 6812, "ArrowDown", "30", [6370, 5926, 5482, 5038, 4596]],
+      // At the top a detent past 1000.00 ms stops there.
+      ["ms", 99800, "ArrowDown", "30", [99700, 99600, 99500]],
+      ["frame", 99500, "ArrowUp", "30", [100000]],
+      ["meter", 99800, "ArrowUp", "30", [100000]],
+      ["ms", 99712, "ArrowUp", "30", [99812, 99912, 100000]],
+      // At the bottom a detent past 1.00 ms stops there.
+      ["frame", 300, "ArrowDown", "30", [100]],
+      ["meter", 100, "ArrowUp", "30", [378]],
+      ["ms", 378, "ArrowDown", "30", [278, 178, 100]],
+      ["feet", 100, "ArrowUp", "30", [542]],
+      ["feet", 542, "ArrowDown", "30", [100]],
+      ["meter", 378, "ArrowDown", "30", [100]],
+      ["frame", 400, "ArrowUp", "24", [1250, 2084, 2916]],
+    ];
+    const seen: [string, number, string, string, number[]][] = [];
+    for (const [cell, from, key, rate, want] of runs) {
+      await shell.ctx.store.set("ch.bus.stream.delay.frameRate", rate);
+      await shell.ctx.store.set("ch.bus.stream.delay.ms", from / 100);
+      await flush();
+      const went: number[] = [];
+      for (let n = 0; n < want.length; n++) {
+        box(cell)?.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+        await flush();
+        went.push(Math.round(shell.ctx.store.num("ch.bus.stream.delay.ms", 0) * 100));
+      }
+      seen.push([cell, from, key, rate, went]);
+    }
+    expect(seen).toEqual(runs);
+    expect(shell.ctx.store.num("ch.bus.stream.delay.ms", 0), "a time the unit holds, on 0.02 ms").toBe(29.16);
+  });
+
+  it("turns a delay cell ten detents' worth at a Shift press, and stops at either end", async () => {
     const shell = await open("ch.delay");
     const box = (i: number): HTMLElement | undefined => [...shell.root.querySelectorAll<HTMLElement>(".delay-cell .value-box")][i];
-    const seen: (string | null | undefined)[][] = [];
-    for (const shiftKey of [false, true]) {
+    const shifted = async (from: number, key: string): Promise<number[]> => {
+      const went: number[] = [];
       for (let i = 0; i < 4; i++) {
-        await shell.ctx.store.set("ch.bus.stream.delay.ms", 10);
+        await shell.ctx.store.set("ch.bus.stream.delay.ms", from);
         await flush();
-        const before = box(i)?.textContent;
-        box(i)?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", shiftKey, bubbles: true }));
+        box(i)?.dispatchEvent(new KeyboardEvent("keydown", { key, shiftKey: true, bubbles: true }));
         await flush();
-        seen.push([before, box(i)?.textContent, box(i)?.getAttribute("aria-valuetext")]);
+        went.push(Math.round(shell.ctx.store.num("ch.bus.stream.delay.ms", 0) * 100));
       }
-    }
-    expect(seen).toEqual([
-      ["10.00", "10.01", "10.01"],
-      ["0.30", "0.31", "0.31"],
-      ["3.4", "3.5", "3.5"],
-      ["11.3", "11.4", "11.4"],
-      ["10.00", "10.10", "10.10"],
-      ["0.30", "0.40", "0.40"],
-      ["3.4", "4.4", "4.4"],
-      ["11.3", "12.3", "12.3"],
-    ]);
+      return went;
+    };
+    // 10 ms, 2 frames, 10 m and 50 ft from 24.00 ms (0.72 frame, 8.2 m, 27.1 ft).
+    expect(await shifted(24, "ArrowUp")).toEqual([3400, 9066, 5296, 6840]);
+    expect(await shifted(500, "ArrowDown")).toEqual([49000, 43334, 47090, 45560]);
+    expect(await shifted(24, "ArrowDown")).toEqual([1400, 100, 100, 100]);
+    expect(await shifted(995, "ArrowUp")).toEqual([100000, 100000, 100000, 100000]);
+  });
 
-    // Ten presses in a row move meter and feet a place each, from a time feet reads on a half.
-    for (const [i, from] of [[2, 3.4], [3, 11.3]] as const) {
-      await shell.ctx.store.set("ch.bus.stream.delay.ms", 10);
-      await flush();
-      const walk: string[] = [];
-      for (let n = 0; n < 10; n++) {
-        box(i)?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
-        await flush();
-        walk.push(box(i)?.textContent ?? "");
-      }
-      expect(walk).toEqual(Array.from({ length: 10 }, (_, n) => (from + (n + 1) / 10).toFixed(1)));
-    }
+  it("lands a delay time half way between two 0.02 ms on the upper one", async () => {
+    const shell = await open("ch.delay");
+    // At 24 frames a second 12.00 ms reads 0.29 frame, and 0.09 frame is 3.75 ms.
+    await shell.ctx.store.set("ch.bus.stream.delay.frameRate", "24");
+    await shell.ctx.store.set("ch.bus.stream.delay.ms", 12);
+    await flush();
+    [...shell.root.querySelectorAll<HTMLElement>(".delay-cell .value-box")][1]?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    await flush();
+    expect(shell.ctx.store.num("ch.bus.stream.delay.ms", 0)).toBe(3.76);
+  });
 
-    // At 25 frames a second, 1 ms and 5 ms read on a half of frame's last place.
-    await shell.ctx.store.set("ch.bus.stream.delay.frameRate", "25");
-    const frames: (string | null | undefined)[][] = [];
-    for (const [ms, key] of [[1, "ArrowUp"], [5, "ArrowDown"]] as const) {
-      await shell.ctx.store.set("ch.bus.stream.delay.ms", ms);
+  it("turns a delay cell by the same detent from its rotary, the knobs under the screen and a drag", async () => {
+    const shell = await open("ch.delay");
+    const ms = (): number => Math.round(shell.ctx.store.num("ch.bus.stream.delay.ms", 0) * 100);
+    await shell.ctx.store.set("ch.bus.stream.delay.ms", 24);
+    await flush();
+    // meter's rotary under the wheel: 8.2 m to 9.2 m.
+    shell.root.querySelectorAll<HTMLElement>(".delay-cell .knob-graphic")[2]?.dispatchEvent(new WheelEvent("wheel", { deltaY: -1, bubbles: true, cancelable: true }));
+    await flush();
+    const went = [ms()];
+    // meter's knob under the screen: 9.2 m to 10.2 m.
+    shell.root.querySelectorAll<HTMLElement>(".knob-strip .knob-cell")[2]?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
+    await flush();
+    went.push(ms());
+    expect(went).toEqual([2678, 2968]);
+
+    // A drag on feet counts whole steps of 5 ft from 4 px off the press, and back there it is where it started.
+    await shell.ctx.store.set("ch.bus.stream.delay.ms", 32.6);
+    await flush();
+    shell.root.querySelectorAll<HTMLElement>(".delay-cell .value-box")[3]?.dispatchEvent(new MouseEvent("pointerdown", { clientY: 200, bubbles: true }));
+    const dragged: number[] = [];
+    for (const y of [195.8, 195, 194, 196]) {
+      window.dispatchEvent(new MouseEvent("pointermove", { clientY: y }));
       await flush();
-      const before = box(1)?.textContent;
-      box(1)?.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
-      await flush();
-      frames.push([before, box(1)?.textContent]);
+      dragged.push(ms());
     }
-    expect(frames).toEqual([["0.03", "0.04"], ["0.13", "0.12"]]);
+    window.dispatchEvent(new MouseEvent("pointerup", {}));
+    expect(dragged).toEqual([3260, 3700, 4142, 3260]);
   });
 
   it("picks the EQ band from the grips on the plot", async () => {

@@ -932,8 +932,16 @@ Measured on p115-1. The top row has the Frame rate caption (x15..76), the dropdo
 y48..87, its value 20px in from the left and its ▼ a 9x6 `--drop-mark` at x151..159 / y64..69) and `Frame / s` (from x178). Below it is the `Delay Time` band (x12..411 / y110..133, face `--dialog-sheet`). Four
 86x84 cells are spaced evenly across the band's width (x12..411 / y144..227), each holding a unit
 name, a 60x22 value box (y163..184) and a 38 knob stacked vertically. One time is shown four ways, in ms / frame /
-meter / feet, and turning any of them moves the same value (sound travels 0.343 m = 1.125 feet in one
-millisecond).
+meter / feet, and turning any of them moves the same value.
+
+The time runs 1.00..1000.00 ms and is held on 0.02 ms. The four cells read it rounded half up, ms and frame to
+two places and meter and feet to one, with sound at 343.6 m/s, a foot of 0.3048 m and a frame of 1000 / the
+frame rate ms. A detent (an arrow key, the wheel or a knob under the screen; a drag turns as many detents as it
+covers) adds the cell's step to the reading the cell shows and turns that back into a time. The step is 1.00 ms
+on ms (45.86 goes to 46.86), 0.2 frame on frame, 1.0 m on meter and 5.0 ft on feet: 24.00 ms reads 8.2 m, so a
+detent up on meter goes to 9.2 m (26.78 ms). The time reached is rounded to 0.02 ms, a half going up, and a
+detent past 1.00 ms or 1000.00 ms stops there (URX44V, the operator, 2026-10-03; frame on 30 and 24 frames a
+second). A detent with Shift held turns ten steps' worth, 10 ms, 2 frames, 10 m or 50 ft, the same way.
 
 ## EQ screen
 

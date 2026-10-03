@@ -1433,17 +1433,38 @@ const DUCK_FALL = [0.162, 0.318] as const;
 const DUCK_HOLD = 0.546;
 const DUCK_RISE = [0.899, 1] as const;
 
-/** How the DELAY screen names one time in four units. */
+/** Sound covers 343.6 m a second, and a foot is 0.3048 m. */
+const SOUND_M_PER_MS = 343.6 / 1000;
+const FOOT_M = 0.3048;
+
+/**
+ * How the DELAY screen names one time in four units: how many of the unit a
+ * millisecond makes (frame's comes from the rate), the places its reading runs
+ * to, and how far a detent moves that reading.
+ */
 const DELAY_UNITS = [
-  { label: "ms", per: 1, digits: 2 },
-  { label: "frame", per: 0, digits: 2 },
-  // Sound covers 0.343 m in a millisecond, which is 1.125 feet.
-  { label: "meter", per: 0.343, digits: 1 },
-  { label: "feet", per: 1.125, digits: 1 },
+  { label: "ms", per: 1, digits: 2, step: 1 },
+  { label: "frame", per: 0, digits: 2, step: 0.2 },
+  { label: "meter", per: SOUND_M_PER_MS, digits: 1, step: 1 },
+  { label: "feet", per: SOUND_M_PER_MS / FOOT_M, digits: 1, step: 5 },
 ] as const;
 
 /** A delay cell's reading to its places, a half on the last place going up wherever its binary value lands. */
 const delayReading = (v: number, digits: number): string => (Math.round(v * 10 ** digits + 1e-9) / 10 ** digits).toFixed(digits);
+
+/** A delay time lands on 0.02 ms. */
+const DELAY_GRID_MS = 0.02;
+
+/** `ms` on the nearest 0.02 ms, a half going up. */
+const onDelayGridMs = (ms: number): number => Number((Math.round(ms / DELAY_GRID_MS + 1e-9) * DELAY_GRID_MS).toFixed(2));
+
+/**
+ * A delay cell's turn of `by` ms: the cell's reading moves by as much of its own
+ * unit, and the time that reading names lands on 0.02 ms.
+ */
+function delayTurn(per: number, digits: number): (ms: number, by: number) => number {
+  return (ms, by) => onDelayGridMs((Number(delayReading(ms * per, digits)) + by * per) / per);
+}
 
 /** The frame rates the DELAY screen counts a time in. `D` is drop frame. */
 const DELAY_FRAME_RATES = ["24", "25", "29.97D", "29.97", "30D", "30", "60", "120"] as const;
@@ -1485,7 +1506,7 @@ export const delayScreen: ScreenDef = {
     // One delay time, named in four units. Turning any of them turns the time.
     const ms = delayTime(b);
     // The value stays in milliseconds; each cell prints it in its own unit and
-    // turns it by the step that unit reads in.
+    // turns it from that reading, ten detents' worth with Shift.
     const specs = DELAY_UNITS.map((u) => {
       const per = u.label === "frame" ? frameRateOf(rate) / 1000 : u.per;
       return {
@@ -1493,9 +1514,9 @@ export const delayScreen: ScreenDef = {
         label: u.label,
         // Each cell is framed on its own, though the four turn one time.
         focusKey: `${b}.delay.${u.label}`,
-        step: 10 ** -u.digits / per,
-        fastStep: 10 ** (1 - u.digits) / per,
-        free: true,
+        step: u.step / per,
+        fastStep: (u.step * 10) / per,
+        turn: delayTurn(per, u.digits),
         format: (v: number) => delayReading(v * per, u.digits),
       };
     });
