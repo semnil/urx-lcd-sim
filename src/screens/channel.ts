@@ -1441,13 +1441,13 @@ const FOOT_M = 0.3048;
 /**
  * How the DELAY screen names one time in four units: how many of the unit a
  * millisecond makes (frame's comes from the rate), the places its reading runs
- * to, and how far a detent moves that reading.
+ * to, how far a detent moves that reading, and how far a fine detent moves it.
  */
 const DELAY_UNITS = [
-  { label: "ms", per: 1, digits: 2, step: 1 },
-  { label: "frame", per: 0, digits: 2, step: 0.2 },
-  { label: "meter", per: SOUND_M_PER_MS, digits: 1, step: 1 },
-  { label: "feet", per: SOUND_M_PER_MS / FOOT_M, digits: 1, step: 5 },
+  { label: "ms", per: 1, digits: 2, step: 1, fine: 0.02 },
+  { label: "frame", per: 0, digits: 2, step: 0.2, fine: 0.01 },
+  { label: "meter", per: SOUND_M_PER_MS, digits: 1, step: 1, fine: 0.1 },
+  { label: "feet", per: SOUND_M_PER_MS / FOOT_M, digits: 1, step: 5, fine: 0.1 },
 ] as const;
 
 /** A delay cell's reading to its places, a half on the last place going up wherever its binary value lands. */
@@ -1469,10 +1469,11 @@ function delayTurn(per: number, digits: number): (ms: number, by: number) => num
 
 /**
  * How a delay cell in `u`, `per` of it to a millisecond, turns the time: a detent
- * moves the cell's reading by the unit's step, and Shift by ten steps.
+ * moves the cell's reading by the unit's step, and one with Shift by its fine
+ * step, as the unit's knob turned pressed in does.
  */
 function delayDetents(u: (typeof DELAY_UNITS)[number], per: number): Pick<NumericSpec, "step" | "fastStep" | "turn"> {
-  return { step: u.step / per, fastStep: (u.step * 10) / per, turn: delayTurn(per, u.digits) };
+  return { step: u.step / per, fastStep: u.fine / per, turn: delayTurn(per, u.digits) };
 }
 
 /**
@@ -1527,7 +1528,7 @@ export const delayScreen: ScreenDef = {
     // One delay time, named in four units. Turning any of them turns the time.
     const ms = delayTime(b);
     // The value stays in milliseconds; each cell prints it in its own unit and
-    // turns it from that reading, ten detents' worth with Shift.
+    // turns it from that reading, by its fine step with Shift.
     const specs = DELAY_UNITS.map((u) => {
       const per = u.label === "frame" ? frameRateOf(rate) / 1000 : u.per;
       return {

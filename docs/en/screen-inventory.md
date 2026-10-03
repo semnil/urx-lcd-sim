@@ -944,9 +944,12 @@ covers) adds the cell's step to the reading the cell shows and turns that back i
 on ms (45.86 goes to 46.86), 0.2 frame on frame, 1.0 m on meter and 5.0 ft on feet: 24.00 ms reads 8.2 m, so a
 detent up on meter goes to 9.2 m (26.78 ms). The time reached is rounded to 0.02 ms, a half going up, and a
 detent past 1.00 ms or 1000.00 ms stops there (URX44V, the operator, 2026-10-03; frame at 24, 25, 29.97,
-29.97D, 30, 60 and 120 frames a second). A detent with Shift held turns ten steps' worth, 10 ms, 2 frames,
-10 m or 50 ft, the same way. A time that a browser save or a settings file holds off 0.02 ms comes back on the
-0.02 ms nearest it, and the next save holds that time.
+29.97D, 30, 60 and 120 frames a second). A detent with Shift held turns a finer step the same way, as the unit's
+knob turned pressed in does: 0.02 ms on ms, and the reading's last place on frame, meter and feet, 0.01 frame,
+0.1 m or 0.1 ft. From 24.00 ms it goes to 24.02 ms on ms, 24.34 ms on frame (0.73 frame) and 24.16 ms on meter
+(8.3 m) (URX44V, the operator, 2026-10-03; at 30 frames a second). It stops at 1.00 ms and 1000.00 ms as a
+detent does. A time that a browser save or a settings file holds off 0.02 ms comes back on the 0.02 ms nearest
+it, and the next save holds that time.
 
 ## EQ screen
 

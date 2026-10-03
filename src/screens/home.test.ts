@@ -4597,25 +4597,54 @@ describe("what the dedicated channel screens draw", () => {
     expect(shell.ctx.store.num("ch.bus.stream.delay.ms", 0), "a time the unit holds, on 0.02 ms").toBe(29.16);
   });
 
-  it("turns a delay cell ten detents' worth at a Shift press, and stops at either end", async () => {
+  it("turns a delay cell by the unit's fine step at a Shift press, and stops at either end", async () => {
     const shell = await open("ch.delay");
-    const box = (i: number): HTMLElement | undefined => [...shell.root.querySelectorAll<HTMLElement>(".delay-cell .value-box")][i];
-    const shifted = async (from: number, key: string): Promise<number[]> => {
-      const went: number[] = [];
-      for (let i = 0; i < 4; i++) {
-        await shell.ctx.store.set("ch.bus.stream.delay.ms", from);
-        await flush();
-        box(i)?.dispatchEvent(new KeyboardEvent("keydown", { key, shiftKey: true, bubbles: true }));
-        await flush();
-        went.push(Math.round(shell.ctx.store.num("ch.bus.stream.delay.ms", 0) * 100));
-      }
-      return went;
+    const cells = ["ms", "frame", "meter", "feet"];
+    const ms = (): number => Math.round(shell.ctx.store.num("ch.bus.stream.delay.ms", 0) * 100);
+    const at = async (from: number): Promise<void> => {
+      await shell.ctx.store.set("ch.bus.stream.delay.ms", from / 100);
+      await flush();
     };
-    // 10 ms, 2 frames, 10 m and 50 ft from 24.00 ms (0.72 frame, 8.2 m, 27.1 ft).
-    expect(await shifted(24, "ArrowUp")).toEqual([3400, 9066, 5298, 6840]);
-    expect(await shifted(500, "ArrowDown")).toEqual([49000, 43334, 47092, 45562]);
-    expect(await shifted(24, "ArrowDown")).toEqual([1400, 100, 100, 100]);
-    expect(await shifted(995, "ArrowUp")).toEqual([100000, 100000, 100000, 100000]);
+    // The cell, the time it starts at in hundredths of a ms, the way it turns, and
+    // the time after a Shift press.
+    const runs: [string, number, "ArrowUp" | "ArrowDown", number][] = [
+      // As the unit's knob turned pressed in went: ms by 0.02 ms, and frame, meter
+      // and feet by their reading's last place, 0.01 frame, 0.1 m and 0.1 ft.
+      ["ms", 2400, "ArrowUp", 2402],
+      ["ms", 2402, "ArrowDown", 2400],
+      ["frame", 2400, "ArrowUp", 2434],
+      ["frame", 2434, "ArrowDown", 2400],
+      ["meter", 2400, "ArrowUp", 2416],
+      ["meter", 2416, "ArrowDown", 2386],
+      ["feet", 2386, "ArrowUp", 2396],
+      ["feet", 2396, "ArrowDown", 2386],
+      // ms keeps its hundredths.
+      ["ms", 4586, "ArrowUp", 4588],
+      // Past 1.00 ms or 1000.00 ms it stops there.
+      ...cells.map((c): [string, number, "ArrowUp" | "ArrowDown", number] => [c, 100, "ArrowDown", 100]),
+      ...cells.map((c): [string, number, "ArrowUp" | "ArrowDown", number] => [c, 100000, "ArrowUp", 100000]),
+    ];
+    const seen: [string, number, string, number][] = [];
+    for (const [cell, from, key] of runs) {
+      await at(from);
+      [...shell.root.querySelectorAll<HTMLElement>(".delay-cell .value-box")][cells.indexOf(cell)]?.dispatchEvent(
+        new KeyboardEvent("keydown", { key, shiftKey: true, bubbles: true }),
+      );
+      await flush();
+      seen.push([cell, from, key, ms()]);
+    }
+    expect(seen).toEqual(runs);
+
+    // The rotary under the wheel and the knob under the screen take the same step with Shift.
+    await at(2400);
+    shell.root.querySelectorAll<HTMLElement>(".delay-cell .knob-graphic")[2]?.dispatchEvent(new WheelEvent("wheel", { deltaY: -1, shiftKey: true, bubbles: true, cancelable: true }));
+    await flush();
+    const went = [ms()];
+    await at(2386);
+    shell.root.querySelectorAll<HTMLElement>(".knob-strip .knob-cell")[3]?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", shiftKey: true, bubbles: true }));
+    await flush();
+    went.push(ms());
+    expect(went, "meter's rotary 8.2 m to 8.3 m, feet's knob 26.9 ft to 27.0 ft").toEqual([2416, 2396]);
   });
 
   it("lands a delay time half way between two 0.02 ms on the upper one", async () => {
