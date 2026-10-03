@@ -50,8 +50,8 @@ is built is in [screen-inventory.md](screen-inventory.md).
   being pulled out. On the microSD top with no card, a touch on `Not inserted microSD card` brings up
   a question of the simulator's own, `Simulate inserting the microSD card?` ([Cancel] / [OK]), and
   [OK] stands for the same card going back in.
-  On the unit, [Rename] takes about 255 characters and does not save a name typed that far (from what length it
-  stops saving a name has not been tried on the unit), and [New folder] takes more than 255 characters and makes the
+  On the unit, [Rename] takes about 255 characters and does not save a long name (from what length it stops saving
+  one has not been tried on the unit), and [New folder] takes more than 255 characters and makes the
   folder under the name cut short. This simulator stops [Rename] at 255 characters less the extension's (250 for
   `.urxf`, 251 for `.wav`) and [New folder] at 255, and a key typed past that changes nothing.
   What the unit does when a take uses up what the card has left, and when
