@@ -937,7 +937,7 @@ name, a 60x22 value box (y163..184) and a 38 knob stacked vertically. One time i
 meter / feet, and turning any of them moves the same value.
 
 The time runs 1.00..1000.00 ms and is held on 0.02 ms. The four cells read it rounded half up, ms and frame to
-two places and meter and feet to one, with sound at 343.59 m/s, a foot of 0.3048 m and a frame of 1000 / the
+two places and meter and feet to one, with sound at 343.589 m/s, a foot of 0.3048 m and a frame of 1000 / the
 frame rate ms. A detent (an arrow key, the wheel or a knob under the screen; a drag turns as many detents as it
 covers) adds the cell's step to the reading the cell shows and turns that back into a time. The step is 1.00 ms
 on ms (45.86 goes to 46.86), 0.2 frame on frame, 1.0 m on meter and 5.0 ft on feet: 24.00 ms reads 8.2 m, so a

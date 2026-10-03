@@ -4514,10 +4514,11 @@ describe("what the dedicated channel screens draw", () => {
       [100000, "30", ["1000.00", "30.00", "343.6", "1127.3"]],
       [400, "24", ["4.00", "0.10", "1.4", "4.5"]],
       [2916, "24", ["29.16", "0.70", "10.0", "32.9"]],
-      // 0.025 and 0.125 frame and 572.65 ft stand on a half of the last place.
+      // 0.025 and 0.125 frame stand on a half of the last place.
       [100, "25", ["1.00", "0.03", "0.3", "1.1"]],
       [500, "25", ["5.00", "0.13", "1.7", "5.6"]],
-      [50800, "30", ["508.00", "15.24", "174.5", "572.7"]],
+      // 508.00 ms is 572.648 ft, two thousandths under a half, and the unit reads 572.6.
+      [50800, "30", ["508.00", "15.24", "174.5", "572.6"]],
     ];
     const seen: [number, string, (string | null)[]][] = [];
     for (const [raw, rate] of readings) {
