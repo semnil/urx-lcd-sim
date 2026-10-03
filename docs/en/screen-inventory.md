@@ -1745,7 +1745,8 @@ list that row, SCENE LIST opens the tab that does; a row both tabs list leaves t
 stands (URX44V, the operator, 2026-10-04, for Simple's P02 and 09 loaded with Standard open, and Standard's 00 loaded with Simple open). The bank USER DEFINED KNOBS
 stands on is in the file, and a load brings back the bank the file was saved on, as on the unit
 (URX44V, the operator, 2026-10-03). A source the file holds no D.Gain for comes back to 0 dB when it
-is loaded, a BALANCE the file holds none for comes back to the centre, and a scene number the file holds nothing under comes back empty.
+is loaded, a BALANCE the file holds none for comes back to the centre, and a scene number the file holds nothing
+under comes back empty.
 
 A playback runs against the take's length, writing the counter and the bar in place once a second.
 At the end of the file playback lets the file go, as [■] does: the triangle leaves the microSD icon, and RECORDER's card-eject
@@ -1787,12 +1788,12 @@ sheet and on the question stores nothing.
 
 [Recall] cannot be used on a number with nothing stored, and a press asks nothing. On a stored number and on a factory scene
 it asks `Recall scene "Band"?` (the title is the picked scene's) with [Cancel] / [OK], and on [OK] puts that scene's mixer
-back and makes it the recalled one. A source the scene holds no D.Gain for comes back to 0 dB, and a BALANCE the scene
-holds none for comes back to the centre. 00 Initial Data puts the
-factory mixer back. P01 to P03 lay settings of their own over the factory mixer. The main ones are below; the whole of what
-a preset changes is in `src/model/scene-presets.ts`. The table's channels go onto the mono and the stereo channels from the lowest number
-up, the mono channels on a HI-Z connector (CH 3-4 in the table) apart from the rest: on a URX22, CH 1 takes the table's CH 1,
-CH 2 on its HI-Z connector takes the table's CH 3, and CH 3/4 to 9/10 take its four stereo channels.
+back and makes it the recalled one. A source the scene holds no D.Gain for comes back to 0 dB, and a BALANCE the scene holds
+none for comes back to the centre. 00 Initial Data puts the factory mixer back. P01 to P03 lay settings of their own over the
+factory mixer. The main ones are below; the whole of what a preset changes is in `src/model/scene-presets.ts`. The table's
+channels go onto the mono and the stereo channels from the lowest number up, the mono channels on a HI-Z connector (CH 3-4 in
+the table) apart from the rest: on a URX22, CH 1 takes the table's CH 1, CH 2 on its HI-Z connector takes the table's CH 3,
+and CH 3/4 to 9/10 take its four stereo channels.
 
 | Preset | Mono channels | Stereo channels (lowest number first) |
 | --- | --- | --- |
