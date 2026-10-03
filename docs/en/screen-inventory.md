@@ -1693,8 +1693,8 @@ A playback runs against the take's length, writing the counter and the bar in pl
 At the end of the file playback lets the file go, as [■] does: the triangle leaves the microSD icon, and RECORDER's card-eject
 button and the microSD top's [Save/Load] and [Tools] come back in reach, as the unit does (URX44V, the operator,
 2026-10-03), as do the microSD top's card-eject button and [USB Storage Mode] (2026-10-04). The Play tab shows what it
-showed before the file played, the counter and the bar gone, and the cursor stays on the row of the file that played,
-after a visit to the microSD top as well (2026-10-04).
+showed before the file played, the counter and the bar gone, and the cursor stays where it stood: on the unit, standing
+on the file that played, it stayed there, after a visit to the microSD top as well (2026-10-04).
 
 ## The SCENE LIST list
 
