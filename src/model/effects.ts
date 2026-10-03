@@ -221,7 +221,7 @@ export function guitarOutputDb(step: number): number {
 
 /** A value that runs evenly over its range. */
 function even(min: number, max: number, step: number, format: (v: number) => string, extra: Partial<ParamShape> = {}): ParamShape {
-  return { min, max, step, fastStep: step * 10, format, ...extra };
+  return { min, max, step, format, ...extra };
 }
 
 /** A whole number. */
@@ -241,7 +241,7 @@ function stops(values: readonly number[], format: (v: number) => string, extra: 
 
 /** A value held as its place on the control's own scale, `count` settings long. */
 function scale(count: number, format: (v: number) => string, extra: Partial<ParamShape> = {}): ParamShape {
-  return { min: 0, max: count - 1, step: 1, fastStep: 5, format, ...extra };
+  return { min: 0, max: count - 1, step: 1, format, ...extra };
 }
 
 /** A frequency table, in the hertz the unit prints. */
@@ -600,7 +600,7 @@ function delayFaces(label: string, min: number, max: number, hpf: number, lpf: n
         fixed("hpf", "HPF", hpf, thruLow(FX2_HPF_HZ)),
         fixed("lpf", "LPF", lpf, thruHigh(FX2_LPF_HZ)),
         // One click of the unit's encoder moves this by 5 ms.
-        fixed("delay", label, 500, even(min, max, 5, msReading, { ...MS_UNITS, fastStep: 50 })),
+        fixed("delay", label, 500, even(min, max, 5, msReading, MS_UNITS)),
         fixed("feedback", "FB.Gain", feedback, PERCENT),
         fixed("hiRatio", "Hi.Ratio", hiRatio, RATIO_TENTHS(1)),
         flag("sync", "Sync", false),

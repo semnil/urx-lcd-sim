@@ -117,6 +117,11 @@ export class DeviceStore {
     this.writeRule = rule;
   }
 
+  /** The paths an edit of `path` to `value` carries a write onto. */
+  carries(path: ParamPath, value: ParamValue): ParamPath[] {
+    return this.writeRule ? [...this.writeRule(path, value)].map(([p]) => p) : [];
+  }
+
   /**
    * Edit a value: mirror it now, send it to the device, revert on rejection.
    * Returns the write promise so callers that must sequence can await it; UI
@@ -155,13 +160,6 @@ export class DeviceStore {
         l({ path, attempted: value, restored: previous, error });
       }
     });
-  }
-
-  /** Nudge a numeric value and clamp it — what every knob gesture does. */
-  step(path: ParamPath, delta: number, min: number, max: number, fallback = 0): number {
-    const next = clamp(this.num(path, fallback) + delta, min, max);
-    void this.set(path, next);
-    return next;
   }
 
   onChange(listener: ChangeListener): () => void {
