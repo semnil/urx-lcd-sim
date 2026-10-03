@@ -2,7 +2,7 @@
 // or Space key holds it down: the face slides down the depth of the band and
 // covers it.
 
-import { INTERACTIVE } from "./dom";
+import { INTERACTIVE, placeOf } from "./dom";
 
 /**
  * The depth of the band a computed `box-shadow` draws along an element's bottom
@@ -50,6 +50,19 @@ const PRESS_KEYS = new Set(["Enter", " "]);
 /** The holder of a sunk control that is the key rather than a pointer. */
 const KEY = "key";
 
+/** What `attachPress` hands back. */
+export interface Press {
+  /** Stop listening, and let every control rise. */
+  off(): void;
+  /**
+   * Before the screen is drawn again: the step that, once it is drawn, sinks the
+   * control drawn in the place of each one held down, held by the same pointers or
+   * key and marked `is-carried`, as it is down already and does not slide down again.
+   * A holder whose control has none in its place keeps nothing down.
+   */
+  carry(): () => void;
+}
+
 /**
  * Sink the banded control each pointer presses inside `root` until that pointer
  * lets go or is cancelled, and the one holding the focus while Enter or Space is
@@ -62,10 +75,9 @@ const KEY = "key";
  * control while that one is still on the glass, a dialog the key opened taking it
  * included, lets it rise and sinks nothing. A control out of reach, and one
  * carrying `data-press="none"` because this touch only brings the focus to it,
- * does not sink. The window losing the focus lets every control rise. Returns the
- * step that stops listening.
+ * does not sink. The window losing the focus lets every control rise.
  */
-export function attachPress(root: HTMLElement): () => void {
+export function attachPress(root: HTMLElement): Press {
   // The control each pointer, by its id, and the key keep down.
   const held = new Map<number | typeof KEY, HTMLElement>();
   // The control the key went down on, band or none.
@@ -74,10 +86,10 @@ export function attachPress(root: HTMLElement): () => void {
     const node = held.get(holder);
     held.delete(holder);
     if (!node || [...held.values()].includes(node)) return;
-    node.classList.remove("is-pressed");
+    node.classList.remove("is-pressed", "is-carried");
     for (const prop of ["--press", "--press-radius", "translate"]) node.style.removeProperty(prop);
   };
-  const sink = (holder: number | typeof KEY, target: EventTarget | null): void => {
+  const sink = (holder: number | typeof KEY, target: EventTarget | null, carried = false): void => {
     release(holder);
     const node = target instanceof Element ? target.closest<HTMLElement>(INTERACTIVE) : null;
     if (!node || !root.contains(node) || node.matches(":disabled, [aria-disabled='true'], [data-press='none']")) return;
@@ -92,6 +104,7 @@ export function attachPress(root: HTMLElement): () => void {
       node.style.setProperty("--press-radius", corners.map((r) => r || "0px").join(" "));
       node.style.setProperty("translate", `${x} calc(${y} + ${depth}px)`);
       node.classList.add("is-pressed");
+      if (carried) node.classList.add("is-carried");
     }
     held.set(holder, node);
   };
@@ -128,7 +141,19 @@ export function attachPress(root: HTMLElement): () => void {
   window.addEventListener("pointerup", onPointerEnd);
   window.addEventListener("pointercancel", onPointerEnd);
   window.addEventListener("blur", onBlur);
-  return () => {
+  const carry = (): (() => void) => {
+    const places = [...held]
+      .filter(([, node]) => root.contains(node))
+      .map(([holder, node]) => ({ holder, node, find: placeOf(root, node) }));
+    return () => {
+      for (const { holder, node, find } of places) {
+        if (held.get(holder) !== node || node.isConnected) continue;
+        const next = find();
+        if (next) sink(holder, next, true);
+      }
+    };
+  };
+  const off = (): void => {
     onBlur();
     root.removeEventListener("pointerdown", onPointer);
     root.removeEventListener("keydown", onKeyDown);
@@ -138,4 +163,5 @@ export function attachPress(root: HTMLElement): () => void {
     window.removeEventListener("pointercancel", onPointerEnd);
     window.removeEventListener("blur", onBlur);
   };
+  return { off, carry };
 }

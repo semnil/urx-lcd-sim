@@ -6,10 +6,11 @@ import { clamp, combineWriteRules } from "../device/store";
 import type { DeviceStore } from "../device/store";
 import type { UnitModel } from "../model/types";
 import { UDK_BANKS, UDK_KNOBS, UDK_UNASSIGNED, udkAssignment, udkPath } from "../model/udk";
-import { INTERACTIVE, clear, el, setPressed } from "../ui/dom";
+import { INTERACTIVE, clear, el, placeOf, setPressed } from "../ui/dom";
 import { FocusController } from "../ui/focus";
 import { Icons } from "../ui/icons";
 import { attachFocusRing } from "../ui/focus-ring";
+import type { Press } from "../ui/press";
 import { attachPress } from "../ui/press";
 import { PointerHolds, attachSpin, setAriaValue } from "../ui/widgets";
 import type { NumericSpec } from "../ui/param-spec";
@@ -50,11 +51,13 @@ export class Shell {
   private repaintScheduled = false;
   /** The screen the glass last drew. */
   private drawn: string | null = null;
+  /** The strip of the screen the glass last drew. */
+  private drawnStrip: string | undefined;
   /** Closers for what is layered over the screen, so nothing is dropped unclosed. */
   private readonly overlays = new Set<() => void>();
   private readonly onEscape: (ev: KeyboardEvent) => void;
   private readonly offStore: () => void;
-  private readonly offPress: () => void;
+  private readonly press: Press;
   private readonly offFocusRing: () => void;
   private readonly offSwipe: () => void;
 
@@ -132,7 +135,7 @@ export class Shell {
     );
     this.offSwipe = this.attachSwipe();
     this.attachBackdrop();
-    this.offPress = attachPress(this.lcd);
+    this.press = attachPress(this.lcd);
     this.offFocusRing = attachFocusRing(this.lcd);
     this.onEscape = this.buildEscapeHandler();
     window.addEventListener("keydown", this.onEscape);
@@ -144,7 +147,7 @@ export class Shell {
     window.removeEventListener("keydown", this.onEscape);
     this.offStore();
     this.ctx.store.setWriteRule(null);
-    this.offPress();
+    this.press.off();
     this.offFocusRing();
     this.offSwipe();
     this.closeOverlays();
@@ -171,8 +174,11 @@ export class Shell {
       return;
     }
     const refocus = this.focusPlace();
+    // The same screen of the same strip drawn again keeps down what is held down.
+    const repress = this.drawn === route.id && this.drawnStrip === route.strip ? this.press.carry() : () => undefined;
     this.dim();
     this.drawn = route.id;
+    this.drawnStrip = route.strip;
     this.knobs = [];
     clear(this.mainNode);
     clear(this.sideNode);
@@ -213,6 +219,7 @@ export class Shell {
       }
     }
     if (showStrip) this.buildKnobStrip(udkMode);
+    repress();
     refocus();
   }
 
@@ -225,20 +232,9 @@ export class Shell {
   private focusPlace(): () => void {
     const active = document.activeElement;
     if (this.drawn !== this.ctx.nav.current.id || !active || active === this.root || !this.root.contains(active)) return () => undefined;
-    // A control's kind is its tag and its classes, less the ones naming its state.
-    const kind = (node: Element): string => [node.tagName, ...[...node.classList].filter((c) => !c.startsWith("is-"))].join(" ");
-    const was = kind(active);
-    const path: number[] = [];
-    for (let node: Element = active; node !== this.root && node.parentElement; node = node.parentElement) {
-      path.unshift([...node.parentElement.children].indexOf(node));
-    }
+    const find = placeOf(this.root, active);
     return () => {
-      let node: Element | undefined = this.root;
-      for (const i of path) node = node?.children[i];
-      if (!node || node === this.root || kind(node) !== was) {
-        const alike = [...this.root.querySelectorAll(active.tagName)].filter((n) => kind(n) === was && n.textContent === active.textContent);
-        node = alike.length === 1 ? alike[0] : undefined;
-      }
+      const node = find();
       if (node && "focus" in node) (node as HTMLElement).focus({ preventScroll: true });
     };
   }

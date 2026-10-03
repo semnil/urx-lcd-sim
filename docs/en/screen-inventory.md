@@ -1465,7 +1465,8 @@ its place. When the focus moves elsewhere while the control the key went down on
 key opened taking the focus to its [OK], say), that control comes back up and the one the focus moved to does not sink.
 Each pointer holds down the control it pressed until that pointer is let go or cancelled: a second finger on another
 control sinks that one too and leaves the first finger's down, and a control two fingers hold comes up when the last of
-them is let go.
+them is let go. When the same screen of the same channel is drawn again while a control is held down, the control drawn
+in its place stands down at once, with no slide (`is-carried`), until the pointers holding it are let go.
 The shell reads which control has a band from its computed `box-shadow` at the moment it is pressed
 (`src/ui/press.ts`), so a control given a band sinks with nothing more to do. A control out of reach does not sink.
 Under `prefers-reduced-motion` the slide is not animated.

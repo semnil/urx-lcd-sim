@@ -3400,6 +3400,7 @@ describe("the marks on the control holding the focus", () => {
       expect(badgeCorners, "the foot's four rows stand over the band").toContain(layer);
     }
     expect(CSS, "no sliding for a reader who asks for less motion").toMatch(/@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.lcd \.is-pressed\s*\{\s*transition: none;/);
+    expect(declarations(CSS, ".lcd .is-pressed.is-carried")["transition"], "no sliding again for one drawn again while held").toBe("none");
   });
 
   it("sets the type and places chosen against the guide's figures, 2026-09-18 round", () => {

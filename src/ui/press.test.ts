@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import type { Press } from "./press";
 import { attachPress, bandDepth } from "./press";
 
 describe("the band a control's shadow draws", () => {
@@ -26,7 +27,7 @@ describe("a pressed control", () => {
     document.body.innerHTML = "";
   });
 
-  const mount = (): { root: HTMLElement; banded: HTMLButtonElement; plain: HTMLButtonElement; off: HTMLButtonElement } => {
+  const mount = (): { root: HTMLElement; banded: HTMLButtonElement; plain: HTMLButtonElement; off: HTMLButtonElement; press: Press } => {
     const root = document.createElement("div");
     const button = (shadow: string): HTMLButtonElement => {
       const b = document.createElement("button");
@@ -41,8 +42,9 @@ describe("a pressed control", () => {
     const off = button("inset 0 -3px 0 rgb(49, 57, 58)");
     off.setAttribute("aria-disabled", "true");
     document.body.appendChild(root);
-    cleanups.push(attachPress(root));
-    return { root, banded, plain, off };
+    const press = attachPress(root);
+    cleanups.push(() => press.off());
+    return { root, banded, plain, off, press };
   };
 
   const down = (node: Element | null): void => {
@@ -237,6 +239,58 @@ describe("a pressed control", () => {
       released: [true, false],
       keyUp: false,
     });
+  });
+
+  it("keeps each pointer's control down in the control drawn in its place, until that pointer is let go", () => {
+    const { banded, root, press } = mount();
+    const second = document.createElement("button");
+    second.className = "second";
+    second.style.boxShadow = "inset 0 -4px 0 rgb(0, 0, 0)";
+    root.appendChild(second);
+    const finger = (type: string, node: EventTarget, pointerId: number): void => {
+      node.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId, pointerType: "touch" }));
+    };
+    // A control of the same kind drawn anew in the place of `old`, as the screen draws it.
+    const redraw = (old: HTMLButtonElement, shadow: string, translate = ""): HTMLButtonElement => {
+      const next = document.createElement("button");
+      next.className = old.className.replace(/\bis-\S+/g, "").trim();
+      next.style.boxShadow = shadow;
+      if (translate) next.style.translate = translate;
+      old.replaceWith(next);
+      return next;
+    };
+
+    finger("pointerdown", banded, 1);
+    finger("pointerdown", second, 2);
+    const both = press.carry();
+    const first = redraw(banded, "inset 0 -3px 0 rgb(49, 57, 58)", "2px -1px");
+    const other = redraw(second, "inset 0 -4px 0 rgb(0, 0, 0)");
+    both();
+    const sunk = (): boolean[] => [first, other].map((b) => b.classList.contains("is-pressed"));
+    expect([...sunk(), first.style.translate], "drawn again under two fingers").toEqual([true, true, "2px calc(-1px + 3px)"]);
+    expect([first, other].map((b) => b.classList.contains("is-carried")), "down already, so they do not slide down again").toEqual([true, true]);
+    finger("pointerup", window, 2);
+    expect([...sunk(), other.classList.contains("is-carried")], "the second finger let go").toEqual([true, false, false]);
+
+    const one = press.carry();
+    const again = redraw(first, "inset 0 -3px 0 rgb(49, 57, 58)");
+    one();
+    expect(again.classList.contains("is-pressed"), "drawn again under one finger").toBe(true);
+    finger("pointercancel", window, 1);
+    expect(again.classList.contains("is-pressed"), "the finger cancelled").toBe(false);
+  });
+
+  it("sinks nothing in the place of a held control drawn again as a control of another kind", () => {
+    const { banded, press } = mount();
+    banded.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 1, pointerType: "touch" }));
+    const carried = press.carry();
+    const next = document.createElement("button");
+    next.className = "another";
+    next.style.boxShadow = "inset 0 -3px 0 rgb(49, 57, 58)";
+    banded.replaceWith(next);
+    carried();
+    expect(next.classList.contains("is-pressed")).toBe(false);
+    window.dispatchEvent(new PointerEvent("pointerup", { pointerId: 1, pointerType: "touch" }));
   });
 
   it("lets every control rise when the window loses the focus", () => {
