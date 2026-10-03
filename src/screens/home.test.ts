@@ -4798,7 +4798,7 @@ describe("screens laid out from the guide's figures", () => {
     expect(shell.root.querySelector("[data-overlay]") !== null, "stopped, a source opens its list").toBe(true);
   });
 
-  it("marks the microSD icon with the play triangle while a file plays, and with nothing once it pauses or [■] lets it go", async () => {
+  it("marks the microSD icon with the play triangle while playback holds a file, playing or paused, and with nothing once [■] lets it go", async () => {
     const shell = await mount();
     const sdIcon = (): HTMLElement | null => shell.root.querySelector<HTMLElement>('.toolbar-icons .icon-btn[aria-label^="microSD"]');
     const mark = (): [string | null | undefined, boolean, boolean] => [
@@ -4838,7 +4838,7 @@ describe("screens laid out from the guide's figures", () => {
     await recorder();
     await press("Play/Pause");
     await home();
-    expect([shell.ctx.store.num("sd.playingFile", -1), mark()], "paused").toEqual([0, ["microSD", false, false]]);
+    expect([shell.ctx.store.bool("sd.playing", false), shell.ctx.store.num("sd.playingFile", -1), mark()], "paused").toEqual([false, 0, ["microSD, paused", true, false]]);
     await recorder();
     await press("Play/Pause");
     await press("Stop");
