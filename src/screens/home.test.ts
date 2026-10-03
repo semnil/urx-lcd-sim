@@ -1292,7 +1292,7 @@ describe("a processing block on the channel view", () => {
     expect(store.num("ch.ch1.gate.threshold", Number.NaN)).toBe(gate + 1);
   });
 
-  it("turns DELAY's time as the DELAY screen's ms cell does, as the unit's detents went", async () => {
+  it("turns DELAY's time as the DELAY screen's ms cell does a detent, with Shift held too, as the unit's detents went", async () => {
     const shell = await mount();
     shell.ctx.nav.push({ id: "channel-view", strip: "bus.stream" });
     await flush();
@@ -1321,15 +1321,19 @@ describe("a processing block on the channel view", () => {
     // A time set off 0.02 ms lands on the 0.02 ms nearest its reading plus 1.00 ms, a half going up.
     expect(await turn(4587, "ArrowUp", 1), "onto 0.02 ms").toEqual([4688]);
     expect([...(await turn(99912, "ArrowUp", 1)), ...(await turn(178, "ArrowDown", 1))], "stopped at either end").toEqual([100000, 100]);
-    expect([...(await turn(100, "ArrowUp", 1, true)), ...(await turn(2400, "ArrowDown", 1, true))], "ten detents' worth with Shift").toEqual([1100, 1400]);
-    expect([...(await turn(99500, "ArrowUp", 1, true)), ...(await turn(500, "ArrowDown", 1, true))], "and the ends with Shift").toEqual([100000, 100]);
+    // The unit's knob on the channel view takes no press, and Shift turns the same detent.
+    expect([...(await turn(4586, "ArrowUp", 1, true)), ...(await turn(2400, "ArrowDown", 1, true))], "1.00 ms with Shift too").toEqual([4686, 2300]);
+    expect([...(await turn(99912, "ArrowUp", 1, true)), ...(await turn(178, "ArrowDown", 1, true))], "and the ends with Shift").toEqual([100000, 100]);
 
-    // The wheel turns the block by the same detent.
+    // The wheel turns the block by the same detent, with Shift held or not.
     await shell.ctx.store.set("ch.bus.stream.delay.ms", 45.86);
     await flush();
     shell.root.querySelector<HTMLElement>(".cv-block-delay")?.dispatchEvent(new WheelEvent("wheel", { deltaY: -1, bubbles: true, cancelable: true }));
     await flush();
     expect(ms(), "a wheel detent").toBe(4686);
+    shell.root.querySelector<HTMLElement>(".cv-block-delay")?.dispatchEvent(new WheelEvent("wheel", { deltaY: -1, shiftKey: true, bubbles: true, cancelable: true }));
+    await flush();
+    expect(ms(), "a wheel detent with Shift").toBe(4786);
   });
 });
 

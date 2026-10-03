@@ -389,7 +389,8 @@ const duckerThreshold = (b: string): NumericSpec => dbSpec(`${b}.ducker.threshol
 /** One of GATE's, COMP's and DUCKER's times, on its own stops, read to `digits` places under 100 ms. */
 const dynTime = (b: string, time: DynamicsTime, label: string, fallback: number, digits?: number): NumericSpec =>
   stoppedMsSpec(`${b}.${time}`, label, DYNAMICS_TIME_STOPS[time], fallback, digits);
-const delayTime = (b: string): NumericSpec => ({ ...msSpec(`${b}.delay.ms`, "ms", 1, DELAY_MAX_MS, 1), ...delayDetents(DELAY_UNITS[0], 1), unit: "", boxUnit: "", sweep: DELAY_SWEEP_DEG });
+// DELAY's time turns 1.00 ms a detent on the channel view with Shift held too.
+const delayTime = (b: string): NumericSpec => ({ ...msSpec(`${b}.delay.ms`, "ms", 1, DELAY_MAX_MS, 1), ...delayDetents(DELAY_UNITS[0], 1), fastStep: DELAY_UNITS[0].step, unit: "", boxUnit: "", sweep: DELAY_SWEEP_DEG });
 /** How deep [1-knob] works COMP or EQ, in percent. */
 const oneKnobDepth = (path: string): NumericSpec => intSpec(path, "1-knob", 0, 100, 0, "%");
 
