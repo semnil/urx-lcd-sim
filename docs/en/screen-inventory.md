@@ -343,13 +343,14 @@ SAVE/LOAD, TOOLS or RECORDER gives way to microSD's `Not inserted microSD card` 
 taken out. The mode itself goes off: the screen it was switched on at opens again without the bar. Every
 other move keeps it on: the back arrow onto a screen that carries the toggle, the HOME icon, a channel's ‹ ›,
 a touch on the screen that opens another (a strip on HOME to its channel view, a block to its screen),
-tabs, page steps, sheets and lists. Sheets, lists and dialogs lie over the bar, which stays drawn under them
-and shows again once they close. While a sheet or a dialog is up, what shows of the bar is dark and takes
-nothing, and the knobs turn nothing. On an ordinary screen the bar lies over the screen's bottom edge,
+tabs, page steps, sheets and lists. Sheets and lists lie over the bar, which stays drawn under them and
+shows again once they close, and a dialog lies over it too. What shows of the bar at the edge of DATE / TIME's
+TIME ZONE sheet is dark, as is the bar behind SAVE/LOAD's eject dialog, and while either is up the knobs
+turn nothing. On an ordinary screen the bar lies over the screen's bottom edge,
 SAVE/LOAD's [Save as] and SCENE LIST's [Store] included (URX44V, confirmed by the operator on 2026-10-03).
-The simulator draws the bar the same way under a list, and while a sheet, a list or a dialog is up the bar's
-divisions and page steps take no touch, drag, wheel, arrow key or Tab. How the dark is drawn is under
-"Sheets over the screen".
+The simulator draws what shows of the bar dark under a sheet, a list or a dialog alike, and while one is up
+the bar's divisions and page steps take no touch, drag, wheel, arrow key or Tab. How the dark is drawn is
+under "Sheets over the screen".
 The shell switches the mode off in one place (`src/app/shell.ts`) and holds the bar out of reach under a sheet
 as it draws the screen; `src/screens/home.test.ts` holds the moves that switch the mode off, one of each kind
 that keeps it on, and the bar under each kind of sheet, list and dialog, and `src/style/columns.test.ts` holds
@@ -1126,9 +1127,10 @@ stays bright (measured on p051-1: the toolbar face (66,73,82) becomes (8,12,16),
 `is-lit`. A dialog darkens the glass around it the same way (wide/p040-2: the toolbar beside the dialog
 reads (8,12,16)).
 A sheet that takes the whole glass (the title and name sheets, the knob assignment, and DATE / TIME's
-[Date/Time] and TIME ZONE) leaves a 4px margin, where the USER DEFINED KNOBS bar under it shows dark
-(URX44V, confirmed by the operator on 2026-10-03); the simulator darkens that edge of the bar through the
-same filter. The bar takes nothing under any of these (see "Knob readout bar").
+[Date/Time] and TIME ZONE) leaves a 4px margin, where the USER DEFINED KNOBS bar under it shows. Around
+TIME ZONE that edge of the bar shows dark (URX44V, confirmed by the operator on 2026-10-03), and the
+simulator darkens it through the same filter around each of these sheets. In the simulator the bar takes
+nothing under any of these (see "Knob readout bar").
 
 [Sends] on HOME's rail is always lit in the colour of the destination in view (STEREO red in p047-1, MIX 1 orange in
 p157-1), the same as the unit shows. p036-1 draws it unlit, and that figure is treated as wrong.
