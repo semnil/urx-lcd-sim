@@ -586,16 +586,18 @@ export function attachDrag(ctx: AppContext, node: HTMLElement, spec: NumericSpec
     document.documentElement.classList.add(TURNING);
     let anchorAt = along(ev);
     let anchorValue = ctx.store.num(spec.path, spec.fallback);
-    let fine = ev.shiftKey;
+    let fine = false;
     let dragged = false;
     const move = (m: PointerEvent): void => {
       // A pointer within DRAG_SLOP_PX of the press along the axis is a tap and
-      // turns nothing; a drag counts from the edge of the slop it passed.
+      // turns nothing; a drag counts from the edge of the slop it passed, as
+      // fine as Shift makes it there.
       if (!dragged) {
         const moved = along(m) - anchorAt;
         if (Math.abs(moved) < DRAG_SLOP_PX) return;
         dragged = true;
         anchorAt += Math.sign(moved) * DRAG_SLOP_PX;
+        fine = m.shiftKey;
       }
       // Taking Shift up or down mid-drag re-anchors, so the value does not jump
       // to where the coarse gesture would have put it.

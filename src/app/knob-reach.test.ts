@@ -178,6 +178,24 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     const stored = snapshot(store);
     await gesture("[aria-label^='D handle']", "ch.ch1.ducker.decay", [[4, 0]]);
     expect([store.has("ch.ch1.ducker.decay"), snapshot(store)]).toEqual([false, stored]);
+
+    // Shift taken or let go inside the slop runs the drag from the slop's edge, as Shift held or not from the press.
+    await open(shell, { id: "monitor.osc" });
+    const level = async (downShift: boolean, moves: [number, boolean][]): Promise<number> => {
+      await store.set("osc.level", -14);
+      await flush();
+      const node = turnables(shell.root).find((n) => n.getAttribute("aria-label") === "Level");
+      if (!node) throw new Error("no Level");
+      node.dispatchEvent(new MouseEvent("pointerdown", { clientY: 200, shiftKey: downShift, bubbles: true }));
+      for (const [dy, shiftKey] of moves) window.dispatchEvent(new MouseEvent("pointermove", { clientY: 200 + dy, shiftKey }));
+      window.dispatchEvent(new MouseEvent("pointerup", {}));
+      await flush();
+      return store.num("osc.level", NaN);
+    };
+    // 20 px down counts 16 px: 8 dB, or a fifth of that with Shift.
+    expect([await level(true, [[20, true]]), await level(false, [[20, false]])], "Shift held and not").toEqual([-15.6, -22]);
+    expect(await level(false, [[2, true], [20, true]]), "Shift taken inside the slop").toBe(-15.6);
+    expect(await level(true, [[2, false], [20, false]]), "Shift let go inside the slop").toBe(-22);
   });
 
   it("turns a value from the rotary beside its box, not only from the box", async () => {
