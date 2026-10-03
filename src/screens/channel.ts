@@ -1470,7 +1470,7 @@ function delayTurn(per: number, digits: number): (ms: number, by: number) => num
 /**
  * How a delay cell in `u`, `per` of it to a millisecond, turns the time: a detent
  * moves the cell's reading by the unit's step, and one with Shift by its fine
- * step, as the unit's knob turned pressed in does.
+ * step, as the unit's knob turns finer while it is pushed in as it turns.
  */
 function delayDetents(u: (typeof DELAY_UNITS)[number], per: number): Pick<NumericSpec, "step" | "fastStep" | "turn"> {
   return { step: u.step / per, fastStep: u.fine / per, turn: delayTurn(per, u.digits) };

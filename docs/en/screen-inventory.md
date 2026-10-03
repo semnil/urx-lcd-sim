@@ -465,8 +465,8 @@ face (white for COMP). A block with a value the knob turns takes the focus at th
 opens that block's screen at the next: GATE, COMP and DUCKER turn their threshold, DELAY its time, and COMP and EQ their
 depth while 1-knob is on. EQ with 1-knob off and INS FX open the screen at the first touch.
 DELAY's block turns its time as the DELAY screen's ms cell does, 1.00 ms a detent with the hundredths kept
-(45.86 ms goes to 46.86 ms), and the same 1.00 ms with Shift held: the unit's knob there takes no press, so it
-has no fine adjustment (URX44V, the operator, 2026-10-03).
+(45.86 ms goes to 46.86 ms), and the same 1.00 ms with Shift held: the channel view's knobs do not push in, so
+they turn it no finer (URX44V, the operator, 2026-10-03).
 The touch that only brings the focus does not sink the panel, which gains its frame alone; the touch that opens the
 screen sinks it.
 
@@ -945,11 +945,11 @@ on ms (45.86 goes to 46.86), 0.2 frame on frame, 1.0 m on meter and 5.0 ft on fe
 detent up on meter goes to 9.2 m (26.78 ms). The time reached is rounded to 0.02 ms, a half going up, and a
 detent past 1.00 ms or 1000.00 ms stops there (URX44V, the operator, 2026-10-03; frame at 24, 25, 29.97,
 29.97D, 30, 60 and 120 frames a second). A detent with Shift held turns a finer step the same way, as the unit's
-knob turned pressed in does: 0.02 ms on ms, and the reading's last place on frame, meter and feet, 0.01 frame,
-0.1 m or 0.1 ft. From 24.00 ms it goes to 24.02 ms on ms, 24.34 ms on frame (0.73 frame) and 24.16 ms on meter
-(8.3 m) (URX44V, the operator, 2026-10-03; at 30 frames a second). It stops at 1.00 ms and 1000.00 ms as a
-detent does. A time that a browser save or a settings file holds off 0.02 ms comes back on the 0.02 ms nearest
-it, and the next save holds that time.
+knob turns finer while it is pushed in as it turns: 0.02 ms on ms, and the reading's last place on frame, meter
+and feet, 0.01 frame, 0.1 m or 0.1 ft. From 24.00 ms it goes to 24.02 ms on ms, 24.34 ms on frame (0.73 frame)
+and 24.16 ms on meter (8.3 m) (URX44V, the operator, 2026-10-03; at 30 frames a second). It stops at 1.00 ms
+and 1000.00 ms as a detent does. A time that a browser save or a settings file holds off 0.02 ms comes back on
+the 0.02 ms nearest it, and the next save holds that time.
 
 ## EQ screen
 

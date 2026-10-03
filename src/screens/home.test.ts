@@ -1321,7 +1321,7 @@ describe("a processing block on the channel view", () => {
     // A time set off 0.02 ms lands on the 0.02 ms nearest its reading plus 1.00 ms, a half going up.
     expect(await turn(4587, "ArrowUp", 1), "onto 0.02 ms").toEqual([4688]);
     expect([...(await turn(99912, "ArrowUp", 1)), ...(await turn(178, "ArrowDown", 1))], "stopped at either end").toEqual([100000, 100]);
-    // The unit's knob on the channel view takes no press, and Shift turns the same detent.
+    // The channel view's knobs do not push in, and Shift turns the same detent.
     expect([...(await turn(4586, "ArrowUp", 1, true)), ...(await turn(2400, "ArrowDown", 1, true))], "1.00 ms with Shift too").toEqual([4686, 2300]);
     expect([...(await turn(99912, "ArrowUp", 1, true)), ...(await turn(178, "ArrowDown", 1, true))], "and the ends with Shift").toEqual([100000, 100]);
 
@@ -4610,7 +4610,7 @@ describe("what the dedicated channel screens draw", () => {
     // The cell, the time it starts at in hundredths of a ms, the way it turns, and
     // the time after a Shift press.
     const runs: [string, number, "ArrowUp" | "ArrowDown", number][] = [
-      // As the unit's knob turned pressed in went: ms by 0.02 ms, and frame, meter
+      // The unit's knob pushed in as it turned took ms by 0.02 ms, and frame, meter
       // and feet by their reading's last place, 0.01 frame, 0.1 m and 0.1 ft.
       ["ms", 2400, "ArrowUp", 2402],
       ["ms", 2402, "ArrowDown", 2400],
