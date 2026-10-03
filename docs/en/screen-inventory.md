@@ -153,7 +153,8 @@ the unit, its row says so with the result and the date.
   the frequency shows, the progress bar is grey throughout, and the button left of the bar greys its
   mark. Paused, the counter and the frequency show, the bar is blue as far as the file has played, the
   file keeps the speaker, and that button's mark is white, a touch on it bringing the cursor back to
-  the file. [Play/Pause] carries the green triangle in both, and the eject button can be used in both.
+  the file. [Play/Pause] carries the green triangle in both. The eject button can be used stopped, and
+  paused it takes the face of a button that cannot be used (URX44V, the operator, 2026-10-03).
   The triangle follows the picture in the guide's description.
 - The channel view of the STEREO bus — the channel view figures are of input channels (p090-1, p098-1
   and others) and of STREAMING (p098-2). None has the STEREO bus open. The channel selector
@@ -1608,9 +1609,10 @@ the plain face with its mark greyed, as [↑] does, and a touch on it does nothi
 folder on the Play tab only brings the cursor to it and does not open it, and the Record and Edit tabs take the face
 of a tab that cannot be used and do nothing when pressed, as the unit does. [■] lets the file go, and both come back.
 
-While a file plays, the card-eject button cannot be used (a dimmed face in p081-1, the plain face in p083-1). On the
-microSD top, while a file is held, playing or paused, [USB Storage Mode] and the eject button take the face of a
-button that cannot be used and do nothing when pressed, as the unit does. The
+While playback holds a file, playing or paused, the card-eject button cannot be used (a dimmed face in p081-1, the
+plain face in p083-1; paused on RECORDER's Play tab as well, URX44V, the operator, 2026-10-03). On the microSD top,
+while a file is held, playing or paused, [USB Storage Mode] and the eject button take the face of a button that cannot
+be used and do nothing when pressed, as the unit does. The
 Play tab lists folders and the files that play, and leaves a file of four tracks or more off; its marks are a folder,
 a file that plays, and the file playing or paused (a speaker). The Edit tab lists a file of four tracks or more as well, marked
 `4tr` to `16tr` (List icons under Play and Edit in the user guide's "RECORDER menu"). Neither tab lists a file recorded

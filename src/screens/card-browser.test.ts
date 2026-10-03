@@ -454,16 +454,30 @@ describe("the microSD card browser", () => {
     }
   });
 
-  it("lets go of the file playback holds paused once the card is taken out", async () => {
+  it("keeps the card in and the paused file held when the eject button on RECORDER's Play tab is touched", async () => {
     const shell = await mount({ id: "microsd.recorder" });
+    const store = shell.ctx.store;
     await pickTab(shell, "ui.sdTab", "Play");
-    await shell.ctx.store.set("sd.playingFile", 1);
+    rows(shell).find((r) => cellsOf(r)[1] === "20251020_112323.wav")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await flush();
-    shell.root.querySelector<HTMLElement>(".toolbar .sd-eject")?.click();
+    for (let i = 0; i < 2; i++) {
+      [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === "Play/Pause")?.click();
+      await flush();
+    }
+    const eject = shell.root.querySelector<HTMLElement>(".toolbar .sd-eject");
+    expect([store.bool("sd.playing", true), store.num("sd.playingFile", -1), eject?.classList.contains("is-disabled"), eject?.getAttribute("aria-disabled")], "paused").toEqual([
+      false,
+      1,
+      true,
+      "true",
+    ]);
+    eject?.click();
     await flush();
-    shell.root.querySelector<HTMLElement>(".dialog-actions .btn")?.click();
-    await flush();
-    expect(shell.ctx.store.num("sd.playingFile", -1)).toBe(-1);
+    expect([shell.root.querySelector(".dialog-overlay"), store.bool("sd.mounted", false), store.num("sd.playingFile", -1)], "nothing asked, the card in and the file held").toEqual([
+      null,
+      true,
+      1,
+    ]);
   });
 
   it("keeps the file playback holds paused, under the speaker and on [Play/Pause], when the card sorts anew around it", async () => {
@@ -548,7 +562,7 @@ describe("the microSD card browser", () => {
     }
   });
 
-  it("puts the card-eject button out of reach while a file plays and in recording mode", async () => {
+  it("puts the card-eject button out of reach while a file plays and in recording mode, and back in reach once [■] lets the file go", async () => {
     const out = async (shell: Shell, why: string): Promise<void> => {
       const eject = shell.root.querySelector<HTMLElement>(".toolbar .sd-eject");
       expect([eject?.classList.contains("is-disabled"), eject?.getAttribute("aria-disabled")], why).toEqual([true, "true"]);
@@ -557,10 +571,19 @@ describe("the microSD card browser", () => {
       expect(shell.root.querySelector(".dialog-overlay"), `${why}: nothing asked`).toBeNull();
     };
     const playing = await mount({ id: "microsd.recorder" });
+    const press = async (label: string): Promise<void> => {
+      [...playing.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === label)?.click();
+      await flush();
+    };
     await pickTab(playing, "ui.sdTab", "Play");
-    await playing.ctx.store.set("sd.playing", true);
+    rows(playing).find((r) => cellsOf(r)[1] === "20251020_112323.wav")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await flush();
+    await press("Play/Pause");
+    expect([playing.ctx.store.bool("sd.playing", false), playing.ctx.store.num("sd.playingFile", -1)], "a file playing").toEqual([true, 1]);
     await out(playing, "a file playing");
+    await press("Stop");
+    const back = playing.root.querySelector<HTMLElement>(".toolbar .sd-eject");
+    expect([back?.classList.contains("is-disabled"), back?.getAttribute("aria-disabled")], "[■] lets the file go").toEqual([false, null]);
 
     const armed = await mount({ id: "microsd" });
     await armed.ctx.store.set("sd.rec", "armed");

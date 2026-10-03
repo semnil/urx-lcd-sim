@@ -72,27 +72,25 @@ export const microsdScreen: ScreenDef = {
         setPressed(node, usbOn);
         return markShut(node, shut);
       })(),
-      ...(usbOn ? {} : { headerRight: ejectButton(ctx, held) }),
+      ...(usbOn ? {} : { headerRight: ejectButton(ctx) }),
     };
   },
 };
 
 /**
  * The button that takes the card out. It asks what the unit asks, and [OK]
- * stands for the card being pulled from the slot, which lets go of the file
- * playback holds and of the card test's result. In recording mode and while a
- * file plays it is out of reach, and so it is while `held` says playback holds
- * a file paused.
+ * stands for the card being pulled from the slot, which lets go of the card
+ * test's result. In recording mode and while playback holds a file, playing or
+ * paused, it is out of reach on every screen that carries it.
  */
-function ejectButton(ctx: AppContext, held = false): HTMLElement {
-  const usable = !held && !recordMode(ctx.store) && !ctx.store.bool("sd.playing", false);
+function ejectButton(ctx: AppContext): HTMLElement {
+  const usable = !holdsFile(ctx.store) && !recordMode(ctx.store);
   const ask = (): void => {
     ctx.overlay(
       dialog({
         message: "Now you may safely remove the microSD card.",
         okOnly: true,
         onOk: () => {
-          stopPlayback(ctx.store);
           void ctx.store.set("sd.tested", false);
           void ctx.store.set("sd.mounted", false);
         },
