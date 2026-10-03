@@ -308,11 +308,12 @@ A = Brightness Screen・D = Oscillator Level、バンク 3 が A = Monitor 1 Lev
 USER DEFINED KNOBS モードは、HOME の SETUP・microSD・MONITOR のアイコン、シーンの名前の箱、チャンネルバンクの
 ボタンで切れ、切り替えボタンを持たない SETUP・microSD・MONITOR へ戻る矢印で戻るときと、SAVE/LOAD・TOOLS・RECORDER で
 カードを抜いて microSD の `Not inserted microSD card` の画面へ移るときも切れる。切れるのはモードそのもので、
-モードを入れた画面を開き直してもバーは出ない。戻る矢印でバーが消えるのを見たのは、SETUP の USER DEFINED KNOBS から
-SETUP へ、SAVE/LOAD・RECORDER・TOOLS から microSD へ、MONITOR の下の画面から MONITOR へ戻るときで、SAVE/LOAD・
-DATE / TIME とその MONITOR の下の画面は、戻る矢印で上の画面へ戻った後に開き直してもバーが出ないのを見た。
+モードを入れた画面を開き直してもバーは出ない。
 それ以外の移動では入のまま残る: 切り替えボタンのある画面へ戻る戻る矢印、HOME のアイコン、チャンネルの ‹ ›、
 画面の中のタップで開く画面 (HOME のストリップからチャンネルビュー、ブロックからその画面)、タブ、ページ送り、シート、選択肢。
+戻る矢印でバーが消えるのを見たのは、SETUP の USER DEFINED KNOBS から SETUP へ、SAVE/LOAD・RECORDER・TOOLS から
+microSD へ、MONITOR の下の画面から MONITOR へ戻るときで、SAVE/LOAD・DATE / TIME とその MONITOR の下の画面は、
+戻る矢印で上の画面へ戻った後に開き直してもバーが出ないのを見た。
 シート・選択肢はバーの上に重なり、バーはその裏に描かれたまま残って、閉じると見える。ダイアログもバーの上に重なる。
 DATE / TIME の TIME ZONE のシートの縁に見えるバーは暗く、SAVE/LOAD の取り出しのダイアログの裏のバーも暗く、
 どちらの間もノブは何も回さない。Sends の送り先シートの間もノブは何も回さない。TIME ZONE の縁の暗いバーに触れると

@@ -340,13 +340,13 @@ small for its em. On a screen with more than four parameters, the page step is a
 USER DEFINED KNOBS mode goes off on HOME's SETUP, microSD and MONITOR icons, its scene name box and its
 channel-bank button, on the back arrow onto SETUP, microSD or MONITOR, which carry no toggle, and when
 SAVE/LOAD, TOOLS or RECORDER gives way to microSD's `Not inserted microSD card` screen once the card is
-taken out. The mode itself goes off: the screen it was switched on at opens again without the bar. The bar
-was seen to go on the back arrow from SETUP's USER DEFINED KNOBS onto SETUP, from SAVE/LOAD, RECORDER and
-TOOLS onto microSD and from a screen under MONITOR onto MONITOR, and SAVE/LOAD, DATE / TIME and that screen
-under MONITOR were seen to open again without it after the back arrow onto the screen above them. Every
+taken out. The mode itself goes off: the screen it was switched on at opens again without the bar. Every
 other move keeps it on: the back arrow onto a screen that carries the toggle, the HOME icon, a channel's ‹ ›,
 a touch on the screen that opens another (a strip on HOME to its channel view, a block to its screen),
-tabs, page steps, sheets and lists. Sheets and lists lie over the bar, which stays drawn under them and
+tabs, page steps, sheets and lists. The bar was seen to go on the back arrow from SETUP's USER DEFINED KNOBS
+onto SETUP, from SAVE/LOAD, RECORDER and TOOLS onto microSD and from a screen under MONITOR onto MONITOR,
+and SAVE/LOAD, DATE / TIME and that screen under MONITOR were seen to open again without it after the back
+arrow onto the screen above them. Sheets and lists lie over the bar, which stays drawn under them and
 shows again once they close, and a dialog lies over it too. What shows of the bar at the edge of DATE / TIME's
 TIME ZONE sheet is dark, as is the bar behind SAVE/LOAD's eject dialog, and while either is up the knobs
 turn nothing; under the Sends destination sheet they turn nothing either. A touch on the dark bar at the
