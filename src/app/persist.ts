@@ -22,6 +22,7 @@ import { placeOfReading } from "../model/effects";
 import { dropTracksOverRate } from "../model/track-count";
 import type { UnitModel } from "../model/types";
 import { unitById } from "../model/units";
+import { onDelayGrid } from "../screens/channel";
 import { settlePanLink } from "../screens/mix-bus";
 import { onSsmcsStops } from "../screens/ssmcs";
 import { fromJson, toJson } from "../device/value-json";
@@ -452,13 +453,14 @@ export function modelOf(kept: Kept): string | null {
 /**
  * Put the unit `kept` holds for `model` back, one value after another. A GATE,
  * COMP or DUCKER time, and an SSMCS frequency, Attack or Release, off its stops
- * comes back on the stop nearest it. A connected unit is left as it is.
+ * comes back on the stop nearest it, and a delay time off 0.02 ms on the
+ * 0.02 ms nearest it. A connected unit is left as it is.
  */
 export async function restore(store: DeviceStore, model: UnitModel["id"], kept: Kept): Promise<void> {
   if (onConnectedUnit(store)) return;
   const saved = readUnit(kept, model);
   if (!saved) return;
-  const values = onSsmcsStops(onDynamicsTimeStops(saved));
+  const values = onDelayGrid(onSsmcsStops(onDynamicsTimeStops(saved)));
   for (const [path, value] of Object.entries(values)) {
     // A clock that stood still is not put back: the clock runs with the computer's.
     if (LEGACY_SAFE.test(path) || LEGACY_CLOCK.test(path)) continue;

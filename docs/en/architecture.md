@@ -133,7 +133,8 @@ stored as parts that stood still is not put back: the clock runs with the comput
 amp's Type or Amp Type stored by its name comes back at the place on its knob that reads that name,
 and a name the amp does not have is not put back. A state stored while Pan Link left each send's own placing where
 it was, or kept Pan Link on over a FIXED bus, comes back with Pan Link where the unit's screen leaves it. A GATE,
-COMP or DUCKER time, or an SSMCS frequency, Attack or Release, stored off its stops comes back on the stop nearest it.
+COMP or DUCKER time, or an SSMCS frequency, Attack or Release, stored off its stops comes back on the stop nearest it,
+and a DELAY time stored off 0.02 ms on the 0.02 ms nearest it.
 A state stored while a settings file's contents were kept under the file's name alone gives those contents to
 every settings file of that name, whatever folder holds it (they are now kept under the folder and the name, so
 files of one name in two folders hold their own).

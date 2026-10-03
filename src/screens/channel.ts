@@ -1466,6 +1466,18 @@ function delayTurn(per: number, digits: number): (ms: number, by: number) => num
   return (ms, by) => onDelayGridMs((Number(delayReading(ms * per, digits)) + by * per) / per);
 }
 
+/**
+ * A saved state as it is put back, with a delay time on the 0.02 ms nearest the
+ * value it holds. The next save holds that time.
+ */
+export function onDelayGrid(state: Record<ParamPath, ParamValue>): Record<ParamPath, ParamValue> {
+  const out = { ...state };
+  for (const [path, value] of Object.entries(state)) {
+    if (path.startsWith("ch.") && path.endsWith(".delay.ms") && typeof value === "number") out[path] = onDelayGridMs(value);
+  }
+  return out;
+}
+
 /** The frame rates the DELAY screen counts a time in. `D` is drop frame. */
 const DELAY_FRAME_RATES = ["24", "25", "29.97D", "29.97", "30D", "30", "60", "120"] as const;
 

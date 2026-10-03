@@ -941,7 +941,9 @@ covers) adds the cell's step to the reading the cell shows and turns that back i
 on ms (45.86 goes to 46.86), 0.2 frame on frame, 1.0 m on meter and 5.0 ft on feet: 24.00 ms reads 8.2 m, so a
 detent up on meter goes to 9.2 m (26.78 ms). The time reached is rounded to 0.02 ms, a half going up, and a
 detent past 1.00 ms or 1000.00 ms stops there (URX44V, the operator, 2026-10-03; frame on 30 and 24 frames a
-second). A detent with Shift held turns ten steps' worth, 10 ms, 2 frames, 10 m or 50 ft, the same way.
+second). A detent with Shift held turns ten steps' worth, 10 ms, 2 frames, 10 m or 50 ft, the same way. A time
+that a browser save or a settings file holds off 0.02 ms comes back on the 0.02 ms nearest it, and the next save
+holds that time.
 
 ## EQ screen
 

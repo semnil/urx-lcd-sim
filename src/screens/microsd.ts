@@ -18,6 +18,7 @@ import { followSceneCursor } from "./scene";
 import { followRecall, pairStates } from "./stereo-link";
 import { settlePanLink } from "./mix-bus";
 import { onSsmcsStops } from "./ssmcs";
+import { onDelayGrid } from "./channel";
 import { allStrips, channelPairs } from "../model/types";
 import { el, markShut, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
@@ -491,14 +492,15 @@ function saveLoadAction(ctx: AppContext, label: string): void {
 
 /**
  * Put a settings file back on the unit, a GATE, COMP or DUCKER time, and an SSMCS
- * frequency, Attack or Release, off its stops on the stop nearest it.
+ * frequency, Attack or Release, off its stops on the stop nearest it, and a delay
+ * time off 0.02 ms on the 0.02 ms nearest it.
  */
 function loadSettings(ctx: AppContext, entry: CardEntry): void {
   const held = ctx.store.str(filePath(entry), "");
   if (!held) return;
   const before = ctx.store.num("setup.samplingFrequency", 48000);
   const pairs = pairStates(ctx);
-  void applySettings(ctx.store, onSsmcsStops(onDynamicsTimeStops(fromJson(held) as Record<string, ParamValue>))).then(() => {
+  void applySettings(ctx.store, onDelayGrid(onSsmcsStops(onDynamicsTimeStops(fromJson(held) as Record<string, ParamValue>)))).then(() => {
     followRecall(ctx, pairs);
     settlePanLink(ctx);
     const rate = ctx.store.num("setup.samplingFrequency", 48000);

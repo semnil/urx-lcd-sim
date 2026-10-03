@@ -354,6 +354,22 @@ describe("playing a file back", () => {
     expect([store.num("ch.ch1.ssmcs.sc.freq", 0), store.num("ch.ch1.ssmcs.comp.release", 0)]).toEqual([90, 92]);
   });
 
+  it("puts a delay time an older settings file holds off 0.02 ms on the 0.02 ms nearest it", async () => {
+    // A file saved by an earlier version, with STREAMING's delay where that version's meter step of 0.01 m left it from 45.86 ms.
+    const shell = await mount({ id: "microsd.saveload" }, [{ name: "Recordings", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" }]);
+    const store = shell.ctx.store;
+    await store.set("ch.bus.stream.delay.ms", 45.86 + 0.01 / 0.343);
+    action(shell, "Save as")?.click();
+    await flush();
+    await typeTitle(shell, "older");
+    await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === "older.urxf"));
+    await flush();
+    action(shell, "Load")?.click();
+    await flush();
+    await flush();
+    expect(store.num("ch.bus.stream.delay.ms", 0)).toBe(45.88);
+  });
+
   it("stops at the end of the file and lets it go", async () => {
     vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
     try {
