@@ -4589,6 +4589,7 @@ describe("what the dedicated channel screens draw", () => {
       ["frame", 400, "ArrowUp", "24", [1250, 2084, 2916]],
     ];
     const seen: [string, number, string, string, number[]][] = [];
+    const held: number[] = [];
     for (const [cell, from, key, rate, want] of runs) {
       await shell.ctx.store.set("ch.bus.stream.delay.frameRate", rate);
       await shell.ctx.store.set("ch.bus.stream.delay.ms", from / 100);
@@ -4597,11 +4598,13 @@ describe("what the dedicated channel screens draw", () => {
       for (let n = 0; n < want.length; n++) {
         box(cell)?.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
         await flush();
+        held.push(shell.ctx.store.num("ch.bus.stream.delay.ms", 0));
         went.push(Math.round(shell.ctx.store.num("ch.bus.stream.delay.ms", 0) * 100));
       }
       seen.push([cell, from, key, rate, went]);
     }
     expect(seen).toEqual(runs);
+    expect(held.filter((v) => v !== Math.round(v * 100) / 100), "each time held as the double nearest its hundredths").toEqual([]);
     expect(shell.ctx.store.num("ch.bus.stream.delay.ms", 0), "a time the unit holds, on 0.02 ms").toBe(29.16);
   });
 
@@ -4707,6 +4710,20 @@ describe("what the dedicated channel screens draw", () => {
     }
     window.dispatchEvent(new MouseEvent("pointerup", {}));
     expect(dragged).toEqual([3260, 3700, 4142, 3260]);
+
+    // A drag on meter counts steps of 1 m in the time a metre names, 2.91 ms, the
+    // range in 192 px past the 4 px off the press: a pixel covers 5.20 ms, two steps, 8.2 m to 10.2 m.
+    await shell.ctx.store.set("ch.bus.stream.delay.ms", 24);
+    await flush();
+    shell.root.querySelectorAll<HTMLElement>(".delay-cell .value-box")[2]?.dispatchEvent(new MouseEvent("pointerdown", { clientY: 200, bubbles: true }));
+    const metres: number[] = [];
+    for (const y of [195, 196]) {
+      window.dispatchEvent(new MouseEvent("pointermove", { clientY: y }));
+      await flush();
+      metres.push(ms());
+    }
+    window.dispatchEvent(new MouseEvent("pointerup", {}));
+    expect(metres).toEqual([2968, 2400]);
   });
 
   it("picks the EQ band from the grips on the plot", async () => {
