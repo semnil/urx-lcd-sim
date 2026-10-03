@@ -812,9 +812,9 @@ describe("every knob-bound parameter is reachable on the glass", () => {
   });
 
   /**
-   * What one arrow key moves on each control `id` draws for `strip`, in render order: the up arrow, or the down
-   * arrow where the up arrow moves nothing. Runs with Shift and without start from the same unit and press the same
-   * controls in the same order, so their lists line up.
+   * What one arrow key moves on each control `id` draws for `strip`, the channel view's blocks among them, in render
+   * order: the up arrow, or the down arrow where the up arrow moves nothing. Runs with Shift and without start from
+   * the same unit and press the same controls in the same order, so their lists line up.
    */
   async function detents(id: string, strip: string, shiftKey: boolean): Promise<string[]> {
     const { shell, store } = await mount();
@@ -822,7 +822,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     const numbers = (): Map<string, number> =>
       new Map(store.paths().flatMap((p) => (typeof store.get(p, 0) === "number" ? [[p, store.num(p)] as const] : [])));
     const moves: string[] = [];
-    for (const node of turnables(shell.root)) {
+    for (const node of [...turnables(shell.root), ...shell.root.querySelectorAll<HTMLElement>(".cv-block")]) {
       let moved = "";
       for (const key of ["ArrowUp", "ArrowDown"]) {
         const before = numbers();
@@ -839,10 +839,11 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     return moves;
   }
 
-  // FX 2 ships Mono Delay, whose delay turns 5 ms a detent.
-  it.each([...STRIPS, "fx2"])("turns a value a detent with Shift as without it (%s)", async (strip) => {
+  // FX 2 ships Mono Delay, whose delay turns 5 ms a detent, and STREAMING's channel view turns its DELAY block's
+  // time: the channel view's knobs do not push in (URX44V, the operator, 2026-10-03).
+  it.each([...STRIPS, "fx2", "bus.stream"])("turns a value a detent with Shift as without it (%s)", async (strip) => {
     // The DELAY screen's cells turn their time by a step of their own with Shift.
-    const ownShift = (move: string): boolean => /\.delay\.ms /.test(move);
+    const ownShift = (move: string): boolean => move.startsWith("ch.delay ");
     const registry = buildRegistry();
     const differ: string[] = [];
     let turned = 0;
