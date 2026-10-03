@@ -6019,12 +6019,25 @@
   pointer-events: none;
 }
 
+/* A sheet over the whole glass leaves the knob bar under it in sight at its
+ * edges, taken down the same way. */
+.lcd:has(> .main > .pick-dialog) .knob-strip::before {
+  content: "";
+  position: absolute;
+  inset: -2px -2px 0;
+  background: transparent;
+  backdrop-filter: url(#lcd-scrim);
+  z-index: 1;
+  pointer-events: none;
+}
+
 /* The overlays darken what lies under them through the filter the shell puts
  * in the LCD (src/ui/scrim.ts). A browser without backdrop-filter gets a plain
  * black wash instead. */
 @supports not (backdrop-filter: none) {
   .dialog-overlay,
   .lcd.is-dimmed::after,
+  .lcd:has(> .main > .pick-dialog) .knob-strip::before,
   .source-overlay {
     background: var(--scrim);
   }

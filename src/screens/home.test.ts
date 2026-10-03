@@ -12,6 +12,8 @@ import { meterLevels, setMeterSource, startMeterTicker } from "./meters";
 import { declarations, px, readStyle } from "../style/css-read";
 import { INTERACTIVE } from "../ui/dom";
 import { dialog } from "../ui/widgets";
+import { udkAssignment } from "../model/udk";
+import { openDateTimeSet, openTimeZone } from "./date-time";
 import { version as packageVersion } from "../../package.json";
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
@@ -2758,6 +2760,115 @@ describe("the moves USER DEFINED KNOBS mode goes off on", () => {
     await tap(shell, ".sends-btn");
     expect([where(shell), ...mode(shell)], "closed").toEqual(["home", ...ON]);
   });
+});
+
+describe("the USER DEFINED KNOBS bar under a sheet, a list or a dialog", () => {
+  const PHONES_1 = udkAssignment("Phones 1 Level").spec?.path ?? "";
+  /** Bank 1's two knobs and its page step, as the unit ships it. */
+  const BAR = ["Phones 1 Level", "Phones 2 Level", "User defined knobs page 2"];
+
+  /**
+   * The bar's controls, each live or out of reach. Out of reach is under an inert node, which a
+   * browser's hit test, Tab and focus() pass over; jsdom's do not, so this reads the attribute.
+   */
+  const reach = (shell: Shell): string[] =>
+    [...(shell.root.querySelector(".knob-strip")?.querySelectorAll(INTERACTIVE) ?? [])].map(
+      (n) => `${accessibleName(n)} ${n.closest("[inert]") === null ? "live" : "out of reach"}`,
+    );
+
+  /** Whether a key, the wheel and a drag on Phones 1's division each move its level. */
+  async function turns(shell: Shell): Promise<boolean[]> {
+    const level = (): number => shell.ctx.store.num(PHONES_1, Number.NaN);
+    const cell = (): HTMLElement | undefined =>
+      [...shell.root.querySelectorAll<HTMLElement>(".knob-strip .knob-cell")].find((c) => accessibleName(c) === "Phones 1 Level");
+    const inputs: ((c: HTMLElement) => void)[] = [
+      (c) => c.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true })),
+      (c) => c.dispatchEvent(new WheelEvent("wheel", { deltaY: -100, bubbles: true, cancelable: true })),
+      (c) => {
+        c.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientY: 250 }));
+        window.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientY: 200 }));
+        window.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, clientY: 200 }));
+      },
+    ];
+    const moved: boolean[] = [];
+    for (const input of inputs) {
+      const before = level();
+      const c = cell();
+      if (c) input(c);
+      await flush();
+      moved.push(level() > before);
+    }
+    return moved;
+  }
+
+  async function tap(shell: Shell, selector: string, label?: string): Promise<void> {
+    const node = [...shell.root.querySelectorAll<HTMLElement>(selector)].find((n) => label === undefined || accessibleName(n) === label);
+    if (!node) throw new Error(`nothing at ${selector} ${label ?? ""}`);
+    node.click();
+    await flush();
+  }
+  const escape = async (): Promise<void> => {
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    await flush();
+  };
+  const cancel = (shell: Shell): Promise<void> => tap(shell, ".pick-dialog-cancel");
+
+  /** What draws the bar dark while it is up: the full-glass sheet's own dark over the bar, the dark over the screen, or the layer over the glass. */
+  const dark = (shell: Shell): string | undefined =>
+    shell.root.matches(":has(> .main > .pick-dialog)")
+      ? "the sheet's dark over the bar"
+      : shell.root.classList.contains("is-dimmed")
+        ? "the dark over the screen"
+        : shell.root.querySelector(":scope > [data-overlay]")?.className;
+
+  const COVERS: {
+    name: string;
+    under: { id: string; strip?: string }[];
+    open: (shell: Shell) => Promise<void> | void;
+    close: (shell: Shell) => Promise<void>;
+    darkBy: string;
+  }[] = [
+    { name: "TIME ZONE", under: [{ id: "setup" }, { id: "setup.datetime" }], open: (s) => openTimeZone(s.ctx), close: cancel, darkBy: "the sheet's dark over the bar" },
+    { name: "[Date/Time]", under: [{ id: "setup" }, { id: "setup.datetime" }], open: (s) => openDateTimeSet(s.ctx), close: cancel, darkBy: "the sheet's dark over the bar" },
+    { name: "a scene's title sheet", under: [{ id: "scene" }], open: (s) => s.ctx.nav.push({ id: "scene.title" }), close: cancel, darkBy: "the sheet's dark over the bar" },
+    { name: "[Save as]'s name sheet", under: [{ id: "microsd" }, { id: "microsd.saveload" }], open: (s) => tap(s, ".btn", "Save as"), close: cancel, darkBy: "the sheet's dark over the bar" },
+    { name: "the knob assignment", under: [{ id: "setup" }, { id: "setup.udk" }], open: (s) => tap(s, ".udk-knob"), close: cancel, darkBy: "the sheet's dark over the bar" },
+    { name: "the Sends destination sheet", under: [], open: (s) => tap(s, ".sends-btn"), close: (s) => tap(s, ".sends-btn"), darkBy: "the dark over the screen" },
+    {
+      name: "the INPUT source sheet",
+      under: [
+        { id: "channel-view", strip: "ch1" },
+        { id: "ch.input", strip: "ch1" },
+      ],
+      open: (s) => tap(s, ".input-source-btn"),
+      close: (s) => tap(s, ".source-sheet .source-back"),
+      darkBy: "source-overlay",
+    },
+    { name: "the Date format list", under: [{ id: "setup" }, { id: "setup.datetime" }], open: (s) => tap(s, ".pulldown", "Date: MM/DD/YYYY (3 options)"), close: escape, darkBy: "dropdown-sheet" },
+    { name: "the eject dialog", under: [{ id: "microsd" }, { id: "microsd.saveload" }], open: (s) => tap(s, ".sd-eject"), close: escape, darkBy: "dialog-overlay" },
+  ];
+
+  for (const cover of COVERS) {
+    it(`draws the bar dark and holds it out of reach under ${cover.name}, and gives it back once it closes`, async () => {
+      const shell = await mount();
+      for (const route of cover.under) shell.ctx.nav.push(route);
+      await flush();
+      await tap(shell, ".udk-toggle");
+      expect([reach(shell), dark(shell)], "the bar answers before").toEqual([BAR.map((n) => `${n} live`), undefined]);
+
+      await cover.open(shell);
+      await flush();
+      expect([shell.ctx.store.bool("ui.userDefinedKnobs", false), reach(shell), dark(shell)], "up").toEqual([
+        true,
+        BAR.map((n) => `${n} out of reach`),
+        cover.darkBy,
+      ]);
+
+      await cover.close(shell);
+      expect([shell.ctx.nav.current.id, reach(shell), dark(shell)], "closed").toEqual([cover.under.at(-1)?.id ?? "home", BAR.map((n) => `${n} live`), undefined]);
+      expect(await turns(shell), "a key, the wheel and a drag turn Phones 1 again").toEqual([true, true, true]);
+    });
+  }
 });
 
 describe("a dedicated channel screen's toolbar", () => {

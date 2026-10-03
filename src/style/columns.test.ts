@@ -1134,11 +1134,16 @@ describe("a sheet over the screen below it", () => {
       const d = declarations(CSS, sel);
       expect([d["background"], d["backdrop-filter"]], sel).toEqual(["transparent", "url(#lcd-scrim)"]);
     }
-    // Where backdrop-filter is missing, the plain wash stands in.
+    // Where backdrop-filter is missing, the plain wash stands in for every layer that darkens through the filter.
     const block = CSS.slice(CSS.indexOf("@supports not (backdrop-filter: none)"));
-    expect(block.slice(0, block.indexOf("}")), "the fallback").toMatch(
-      /\.dialog-overlay,\s*\.lcd\.is-dimmed::after,\s*\.source-overlay\s*\{\s*background: var\(--scrim\);/,
+    const fallback = styleRules(block.slice(0, block.indexOf("}") + 1))[0];
+    const filtered = styleRules(CSS)
+      .filter((r) => r.body["backdrop-filter"] === "url(#lcd-scrim)")
+      .flatMap((r) => r.selectors);
+    expect(filtered, "the layers that darken through it").toEqual(
+      expect.arrayContaining([".dialog-overlay", ".lcd.is-dimmed::after", ".source-overlay", ".lcd:has(> .main > .pick-dialog) .knob-strip::before"]),
     );
+    expect([[...(fallback?.selectors ?? [])].sort(), fallback?.body["background"]], "the fallback").toEqual([[...filtered].sort(), "var(--scrim)"]);
   });
 
   it("keeps the sheet and the control it was opened from above it", () => {
@@ -3679,5 +3684,18 @@ describe("what lies over the USER DEFINED KNOBS bar", () => {
     expect(
       rivals.filter(({ s, at }) => classes(s) > classes(sheetSelector) || (classes(s) === classes(sheetSelector) && at > sheetAt)).map(({ s }) => s),
     ).toEqual([]);
+  });
+
+  it("darkens what a full-glass sheet leaves in sight of it through the scrim filter, over all it draws", () => {
+    // The dark keys on what the sheet's own rule keys on: a main area holding a full-glass sheet.
+    const darkSelector = ".lcd:has(> .main > .pick-dialog) .knob-strip::before";
+    expect(sheetSelector.endsWith(".main:has(> .pick-dialog)"), "the sheet's rule").toBe(true);
+    const dark = declarations(CSS, darkSelector);
+    expect([dark["content"], dark["background"], dark["backdrop-filter"], dark["pointer-events"]]).toEqual(['""', "transparent", "url(#lcd-scrim)", "none"]);
+    // It covers the bar's frame as the corners' layer does, and stands over every part of the bar,
+    // none of which takes a z-index of its own.
+    expect([dark["position"], dark["inset"]]).toEqual(["absolute", declarations(CSS, ".lcd .knob-strip::after")["inset"]]);
+    const parts = rules.filter((r) => r.selectors.some((s) => /\.knob-(cell|bank|page)/.test(s)) && "z-index" in r.body);
+    expect([Number(dark["z-index"]) > 0, parts.map((r) => r.selectors.join())]).toEqual([true, []]);
   });
 });

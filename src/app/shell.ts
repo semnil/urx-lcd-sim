@@ -241,11 +241,17 @@ export class Shell {
     this.buildToolbar(def.toolbar, def.title?.(this.ctx, route), body, def.bankButton === true, exits || dims);
     if (showStrip) this.buildKnobStrip(udkMode);
     if (dims && !exits) {
-      for (const node of [this.toolbarNode, this.sideNode, this.knobStripNode]) {
+      for (const node of [this.toolbarNode, this.sideNode]) {
         for (const control of node.querySelectorAll(INTERACTIVE)) {
           if (!control.classList.contains("is-lit")) control.toggleAttribute("inert", true);
         }
       }
+    }
+    // A sheet over the screen, one that darkens it or one that takes the whole
+    // glass, holds the knob bar under it out of reach: its knobs turn nothing
+    // until the sheet goes.
+    if (dims || body.main.classList.contains("pick-dialog")) {
+      for (const control of this.knobStripNode.querySelectorAll(INTERACTIVE)) control.toggleAttribute("inert", true);
     }
     refocus();
   }

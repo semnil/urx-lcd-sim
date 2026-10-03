@@ -52,9 +52,9 @@ export interface ScreenDef {
    * Whether the screen is a sheet over the one below it. The shell darkens
    * everything outside the main area, leaving the control the screen marks
    * `is-lit` — the button the sheet was opened from — at full strength. The
-   * toolbar's icons show through even where `shellExits` is false; there, every
-   * control under the dark but the lit one is inert, and a touch on it is a
-   * touch on the bare screen.
+   * knob bar under the dark is inert. The toolbar's icons show through even
+   * where `shellExits` is false; there, every control under the dark but the lit
+   * one is inert, and a touch on it is a touch on the bare screen.
    */
   dimsBehind?: boolean;
   /**
