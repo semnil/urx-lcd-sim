@@ -313,7 +313,8 @@ describe("storing and recalling a scene", () => {
   });
 
   it("brings a BALANCE an older scene or settings file does not name back to the centre, and puts back one it names", async () => {
-    // A scene or a settings file stored before FX 1-2, MIX 1-2 and STEREO shipped a BALANCE names none for them.
+    // A scene or a settings file stored before FX 1-2, MIX 1-2 and STEREO shipped a BALANCE, and before their
+    // BALANCE was turned, names none for them.
     const shell = await mount();
     const s = shell.ctx.store;
     const absent = ["ch.fx1.balance", "ch.fx2.balance", "ch.bus.mix1.balance", "ch.bus.mix2.balance", "ch.bus.stereo.balance"];
