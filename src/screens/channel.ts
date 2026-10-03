@@ -390,7 +390,7 @@ const duckerThreshold = (b: string): NumericSpec => dbSpec(`${b}.ducker.threshol
 const dynTime = (b: string, time: DynamicsTime, label: string, fallback: number, digits?: number): NumericSpec =>
   stoppedMsSpec(`${b}.${time}`, label, DYNAMICS_TIME_STOPS[time], fallback, digits);
 // DELAY's time turns 1.00 ms a detent on the channel view with Shift held too.
-const delayTime = (b: string): NumericSpec => ({ ...msSpec(`${b}.delay.ms`, "ms", 1, DELAY_MAX_MS, 1), ...delayDetents(DELAY_UNITS[0], 1), fastStep: DELAY_UNITS[0].step, unit: "", boxUnit: "", sweep: DELAY_SWEEP_DEG });
+const delayTime = (b: string): NumericSpec => ({ ...msSpec(`${b}.delay.ms`, "ms", 1, DELAY_MAX_MS, 1), ...delayDetents(DELAY_UNITS[0], MS_SCALE), fastStep: DELAY_UNITS[0].step, unit: "", boxUnit: "", sweep: DELAY_SWEEP_DEG });
 /** How deep [1-knob] works COMP or EQ, in percent. */
 const oneKnobDepth = (path: string): NumericSpec => intSpec(path, "1-knob", 0, 100, 0, "%");
 
@@ -1434,24 +1434,39 @@ const DUCK_FALL = [0.162, 0.318] as const;
 const DUCK_HOLD = 0.546;
 const DUCK_RISE = [0.899, 1] as const;
 
-/** Sound covers 343.589 m a second, and a foot is 0.3048 m. */
-const SOUND_M_PER_MS = 343.589 / 1000;
+/** Sound covers 343.59 m a second, and a foot is 0.3048 m. */
+const SOUND_M_PER_S = 343.59;
 const FOOT_M = 0.3048;
 
 /**
- * How the DELAY screen names one time in four units: how many of the unit a
- * millisecond makes (frame's comes from the rate), the places its reading runs
- * to, how far a detent moves that reading, and how far a fine detent moves it.
+ * A time as a delay cell's value and that value as a time, worked in double
+ * precision in this order: ms / 1000 × the frame rate, × the speed of sound,
+ * or × the speed of sound / 0.3048, and back by the same steps undone.
+ */
+interface DelayScale {
+  of(ms: number): number;
+  ms(value: number): number;
+}
+
+const MS_SCALE: DelayScale = { of: (ms) => ms, ms: (v) => v };
+const METER_SCALE: DelayScale = { of: (ms) => (ms / 1000) * SOUND_M_PER_S, ms: (v) => (v / SOUND_M_PER_S) * 1000 };
+const FEET_SCALE: DelayScale = { of: (ms) => ((ms / 1000) * SOUND_M_PER_S) / FOOT_M, ms: (v) => ((v * FOOT_M) / SOUND_M_PER_S) * 1000 };
+const frameScale = (fps: number): DelayScale => ({ of: (ms) => (ms / 1000) * fps, ms: (v) => (v / fps) * 1000 });
+
+/**
+ * How the DELAY screen names one time in four units: its scale at a frame rate,
+ * the places its reading runs to, how far a detent moves that reading, and how
+ * far a fine detent moves it.
  */
 const DELAY_UNITS = [
-  { label: "ms", per: 1, digits: 2, step: 1, fine: 0.02 },
-  { label: "frame", per: 0, digits: 2, step: 0.2, fine: 0.01 },
-  { label: "meter", per: SOUND_M_PER_MS, digits: 1, step: 1, fine: 0.1 },
-  { label: "feet", per: SOUND_M_PER_MS / FOOT_M, digits: 1, step: 5, fine: 0.1 },
+  { label: "ms", scale: (): DelayScale => MS_SCALE, digits: 2, step: 1, fine: 0.02 },
+  { label: "frame", scale: frameScale, digits: 2, step: 0.2, fine: 0.01 },
+  { label: "meter", scale: (): DelayScale => METER_SCALE, digits: 1, step: 1, fine: 0.1 },
+  { label: "feet", scale: (): DelayScale => FEET_SCALE, digits: 1, step: 5, fine: 0.1 },
 ] as const;
 
-/** A delay cell's reading to its places, a half on the last place going up wherever its binary value lands. */
-const delayReading = (v: number, digits: number): string => (Math.round(v * 10 ** digits + 1e-9) / 10 ** digits).toFixed(digits);
+/** A delay cell's value to its places by Math.round on the value as it is held in binary. */
+const delayRound = (v: number, digits: number): number => Math.round(v * 10 ** digits) / 10 ** digits;
 
 /** A delay time lands on 0.02 ms. */
 const DELAY_GRID_MS = 0.02;
@@ -1461,19 +1476,21 @@ const onDelayGridMs = (ms: number): number => Number((Math.round(ms / DELAY_GRID
 
 /**
  * A delay cell's turn of `by` ms: the cell's reading moves by as much of its own
- * unit, and the time that reading names lands on 0.02 ms.
+ * unit, rounded to its places, and the time that reading names lands on 0.02 ms
+ * by Math.round on the time × 50.
  */
-function delayTurn(per: number, digits: number): (ms: number, by: number) => number {
-  return (ms, by) => onDelayGridMs((Number(delayReading(ms * per, digits)) + by * per) / per);
+function delayTurn(scale: DelayScale, per: number, digits: number): (ms: number, by: number) => number {
+  return (ms, by) => Math.round(scale.ms(delayRound(delayRound(scale.of(ms), digits) + by * per, digits)) * 50) / 50;
 }
 
 /**
- * How a delay cell in `u`, `per` of it to a millisecond, turns the time: a detent
- * moves the cell's reading by the unit's step, and one with Shift by its fine
- * step, as the unit's knob turns finer while it is pushed in as it turns.
+ * How a delay cell in `u` on `scale` turns the time: a detent moves the cell's
+ * reading by the unit's step, and one with Shift by its fine step, as the
+ * unit's knob turns finer while it is pushed in as it turns.
  */
-function delayDetents(u: (typeof DELAY_UNITS)[number], per: number): Pick<NumericSpec, "step" | "fastStep" | "turn"> {
-  return { step: u.step / per, fastStep: u.fine / per, turn: delayTurn(per, u.digits) };
+function delayDetents(u: (typeof DELAY_UNITS)[number], scale: DelayScale): Pick<NumericSpec, "step" | "fastStep" | "turn"> {
+  const per = scale.of(1);
+  return { step: u.step / per, fastStep: u.fine / per, turn: delayTurn(scale, per, u.digits) };
 }
 
 /**
@@ -1530,14 +1547,14 @@ export const delayScreen: ScreenDef = {
     // The value stays in milliseconds; each cell prints it in its own unit and
     // turns it from that reading, by its fine step with Shift.
     const specs = DELAY_UNITS.map((u) => {
-      const per = u.label === "frame" ? frameRateOf(rate) / 1000 : u.per;
+      const scale = u.scale(frameRateOf(rate));
       return {
         ...ms,
         label: u.label,
         // Each cell is framed on its own, though the four turn one time.
         focusKey: `${b}.delay.${u.label}`,
-        ...delayDetents(u, per),
-        format: (v: number) => delayReading(v * per, u.digits),
+        ...delayDetents(u, scale),
+        format: (v: number) => delayRound(scale.of(v), u.digits).toFixed(u.digits),
       };
     });
     ctx.setKnobs(specs);

@@ -4504,7 +4504,7 @@ describe("what the dedicated channel screens draw", () => {
     expect(boxes(), "one value, four ways of naming it").toEqual(["10.00", "0.30", "3.4", "11.3"]);
   });
 
-  it("reads the four delay cells as the unit does, to their places with a half going up", async () => {
+  it("reads the four delay cells as the unit does, to their places from the value as it is held in binary", async () => {
     const shell = await open("ch.delay");
     const boxes = (): (string | null)[] => [...shell.root.querySelectorAll<HTMLElement>(".delay-cell .value-box")].map((n) => n.textContent);
     // A time in hundredths of a ms, the frame rate, and what ms / frame / meter / feet read.
@@ -4518,12 +4518,12 @@ describe("what the dedicated channel screens draw", () => {
       [100000, "30", ["1000.00", "30.00", "343.6", "1127.3"]],
       [400, "24", ["4.00", "0.10", "1.4", "4.5"]],
       [2916, "24", ["29.16", "0.70", "10.0", "32.9"]],
-      // 0.025, 0.035 and 0.125 frame stand on a half of the last place, 0.035 a
-      // binary value a hair under it.
+      // 0.025 and 0.035 frame stand on a half of the last place, held in binary a
+      // hair over it (0.025000000000000001) and a hair under it
+      // (0.034999999999999996), and the unit reads both 0.03.
       [100, "25", ["1.00", "0.03", "0.3", "1.1"]],
-      [140, "25", ["1.40", "0.04", "0.5", "1.6"]],
-      [500, "25", ["5.00", "0.13", "1.7", "5.6"]],
-      // 508.00 ms is 572.648 ft, two thousandths under a half, and the unit reads 572.6.
+      [140, "25", ["1.40", "0.03", "0.5", "1.6"]],
+      // 508.00 ms is 572.65 ft, held in binary as 572.6499999999999, and the unit reads 572.6.
       [50800, "30", ["508.00", "15.24", "174.5", "572.6"]],
     ];
     const seen: [number, string, (string | null)[]][] = [];
@@ -4580,6 +4580,9 @@ describe("what the dedicated channel screens draw", () => {
       ["frame", 6306, "ArrowUp", "60", [6634, 6966]],
       ["frame", 6966, "ArrowUp", "120", [7134, 7300]],
       ["ms", 376, "ArrowDown", "25", [276, 176, 100]],
+      ["frame", 4584, "ArrowUp", "30D", [5266]],
+      ["frame", 5266, "ArrowDown", "30D", [4600]],
+      ["frame", 100000, "ArrowUp", "25", [100000]],
       ["frame", 400, "ArrowUp", "24", [1250, 2084, 2916]],
     ];
     const seen: [string, number, string, string, number[]][] = [];
@@ -4603,37 +4606,47 @@ describe("what the dedicated channel screens draw", () => {
     const shell = await open("ch.delay");
     const cells = ["ms", "frame", "meter", "feet"];
     const ms = (): number => Math.round(shell.ctx.store.num("ch.bus.stream.delay.ms", 0) * 100);
-    const at = async (from: number): Promise<void> => {
+    const at = async (from: number, rate = "30"): Promise<void> => {
+      await shell.ctx.store.set("ch.bus.stream.delay.frameRate", rate);
       await shell.ctx.store.set("ch.bus.stream.delay.ms", from / 100);
       await flush();
     };
-    // The cell, the time it starts at in hundredths of a ms, the way it turns, and
-    // the time after a Shift press.
-    const runs: [string, number, "ArrowUp" | "ArrowDown", number][] = [
+    // The cell, the time it starts at in hundredths of a ms, the way it turns, the
+    // frame rate, and the time after each Shift press.
+    const runs: [string, number, "ArrowUp" | "ArrowDown", string, number[]][] = [
       // The unit's knob pushed in as it turned took ms by 0.02 ms, and frame, meter
       // and feet by their reading's last place, 0.01 frame, 0.1 m and 0.1 ft.
-      ["ms", 2400, "ArrowUp", 2402],
-      ["ms", 2402, "ArrowDown", 2400],
-      ["frame", 2400, "ArrowUp", 2434],
-      ["frame", 2434, "ArrowDown", 2400],
-      ["meter", 2400, "ArrowUp", 2416],
-      ["meter", 2416, "ArrowDown", 2386],
-      ["feet", 2386, "ArrowUp", 2396],
-      ["feet", 2396, "ArrowDown", 2386],
+      ["ms", 2400, "ArrowUp", "30", [2402]],
+      ["ms", 2402, "ArrowDown", "30", [2400]],
+      ["frame", 2400, "ArrowUp", "30", [2434]],
+      ["frame", 2434, "ArrowDown", "30", [2400]],
+      ["meter", 2400, "ArrowUp", "30", [2416]],
+      ["meter", 2416, "ArrowDown", "30", [2386]],
+      ["feet", 2386, "ArrowUp", "30", [2396]],
+      ["feet", 2396, "ArrowDown", "30", [2386]],
       // ms keeps its hundredths.
-      ["ms", 4586, "ArrowUp", 4588],
+      ["ms", 4586, "ArrowUp", "30", [4588]],
+      // frame takes 0.01 frame at the rate it reads in.
+      ["frame", 4586, "ArrowUp", "60", [4600]],
+      ["frame", 4600, "ArrowDown", "60", [4584]],
       // Past 1.00 ms or 1000.00 ms it stops there.
-      ...cells.map((c): [string, number, "ArrowUp" | "ArrowDown", number] => [c, 100, "ArrowDown", 100]),
-      ...cells.map((c): [string, number, "ArrowUp" | "ArrowDown", number] => [c, 100000, "ArrowUp", 100000]),
+      ...cells.map((c): [string, number, "ArrowUp" | "ArrowDown", string, number[]] => [c, 100, "ArrowDown", "30", [100]]),
+      ...cells.map((c): [string, number, "ArrowUp" | "ArrowDown", string, number[]] => [c, 100000, "ArrowUp", "30", [100000]]),
+      ["meter", 99990, "ArrowUp", "25", [100000]],
+      ["frame", 100000, "ArrowUp", "25", [100000]],
     ];
-    const seen: [string, number, string, number][] = [];
-    for (const [cell, from, key] of runs) {
-      await at(from);
-      [...shell.root.querySelectorAll<HTMLElement>(".delay-cell .value-box")][cells.indexOf(cell)]?.dispatchEvent(
-        new KeyboardEvent("keydown", { key, shiftKey: true, bubbles: true }),
-      );
-      await flush();
-      seen.push([cell, from, key, ms()]);
+    const seen: [string, number, string, string, number[]][] = [];
+    for (const [cell, from, key, rate, want] of runs) {
+      await at(from, rate);
+      const went: number[] = [];
+      for (let n = 0; n < want.length; n++) {
+        [...shell.root.querySelectorAll<HTMLElement>(".delay-cell .value-box")][cells.indexOf(cell)]?.dispatchEvent(
+          new KeyboardEvent("keydown", { key, shiftKey: true, bubbles: true }),
+        );
+        await flush();
+        went.push(ms());
+      }
+      seen.push([cell, from, key, rate, went]);
     }
     expect(seen).toEqual(runs);
 
@@ -4649,9 +4662,10 @@ describe("what the dedicated channel screens draw", () => {
     expect(went, "meter's rotary 8.2 m to 8.3 m, feet's knob 26.9 ft to 27.0 ft").toEqual([2416, 2396]);
   });
 
-  it("lands a delay time half way between two 0.02 ms on the upper one", async () => {
+  it("lands 3.75 ms, held in binary half way between two 0.02 ms, on the upper one", async () => {
     const shell = await open("ch.delay");
-    // At 24 frames a second 12.00 ms reads 0.29 frame, and 0.09 frame is 3.75 ms.
+    // At 24 frames a second 12.00 ms reads 0.29 frame, and 0.09 frame is 3.75 ms,
+    // which the unit took to 3.76 ms.
     await shell.ctx.store.set("ch.bus.stream.delay.frameRate", "24");
     await shell.ctx.store.set("ch.bus.stream.delay.ms", 12);
     await flush();
