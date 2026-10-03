@@ -15,7 +15,7 @@ export interface NumericSpec {
   max: number;
   /** Value change for one encoder detent. */
   step: number;
-  /** Coarser step while the knob is turned quickly. */
+  /** The step a detent moves while Shift is held. A value without one moves the same step with Shift as without it. */
   fastStep?: number;
   fallback: number;
   format(value: number): string;
@@ -231,7 +231,6 @@ export function dbSpec(
     min,
     max,
     step,
-    fastStep: step * 5,
     fallback,
     format: (v) => formatDb(v, digits),
     unit: "dB",
@@ -240,7 +239,7 @@ export function dbSpec(
 
 /** The head amp of an input channel: whole dB, and the unit prints the sign. Its mark follows `marks`. */
 export function gainSpec(path: ParamPath, label: string, min: number, max: number, fallback: number, marks: readonly Mark[]): NumericSpec {
-  return { ...dbSpec(path, label, min, max, fallback, 1), format: formatGain, fastStep: 5, markAt: markedDial(marks) };
+  return { ...dbSpec(path, label, min, max, fallback, 1), format: formatGain, markAt: markedDial(marks) };
 }
 
 /**
@@ -253,7 +252,7 @@ export function faderSpec(path: ParamPath, label: string, fallback = 0): Numeric
 }
 
 export function panSpec(path: ParamPath, label = "PAN"): NumericSpec {
-  return { path, label, min: -63, max: 63, step: 1, fastStep: 4, fallback: 0, format: formatPan, centred: true };
+  return { path, label, min: -63, max: 63, step: 1, fallback: 0, format: formatPan, centred: true };
 }
 
 /**
@@ -284,7 +283,7 @@ export function freqSpec(
   fallback: number,
   step = 1,
 ): NumericSpec {
-  return { path, label, min, max, step, fastStep: step === 1 ? 10 : step, fallback, format: formatHz, unit: hzUnit };
+  return { path, label, min, max, step, fallback, format: formatHz, unit: hzUnit };
 }
 
 /**
@@ -327,7 +326,6 @@ export function scaleSpec(path: ParamPath, label: string, fallback: number): Num
     min: 0,
     max: 10,
     step: 0.1,
-    fastStep: 1,
     fallback,
     format: (v) => v.toFixed(1),
   };
@@ -355,7 +353,6 @@ export function msSpec(
     min,
     max,
     step,
-    fastStep: step * 10,
     fallback,
     format: (v) =>
       long(v) ? (v / MS_IN_SECOND).toFixed(1) : v >= 100 ? v.toFixed(1) : v.toFixed(digits),
@@ -403,7 +400,6 @@ export function compRatioSpec(path: ParamPath, fallback: number, threeFigures: b
     min: 1,
     max: Number.POSITIVE_INFINITY,
     step: 0.1,
-    fastStep: 1,
     fallback,
     travel: stopsTravel(RATIO_STOPS),
     format: (v) =>

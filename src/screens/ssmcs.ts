@@ -129,7 +129,6 @@ const driveSpec = (b: string): NumericSpec =>
       min: 0,
       max: 10,
       step: 0.05,
-      fastStep: 0.5,
       fallback: SSMCS_DEFAULTS.compDrive,
       travel: stopsTravel(DRIVE_STOPS),
     },
@@ -144,7 +143,6 @@ const morphingSpec = (b: string): NumericSpec =>
       min: 0,
       max: 120,
       step: 1,
-      fastStep: 5,
       fallback: SSMCS_DEFAULTS.morphing,
       travel: stopsTravel(MORPHING_STOPS),
     },
@@ -158,7 +156,7 @@ const gainSpec = (path: string, label: string, fallback: number): NumericSpec =>
 
 const qSpec = (path: string, label: string, fallback: number): NumericSpec =>
   spec(
-    { path, label, min: 0.5, max: 16, step: 0.01, fastStep: 0.1, fallback, travel: stopsTravel(Q_STOPS) },
+    { path, label, min: 0.5, max: 16, step: 0.01, fallback, travel: stopsTravel(Q_STOPS) },
     (v) => v.toFixed(2),
   );
 
@@ -176,7 +174,6 @@ const timeSpec = (path: string, label: string, stops: readonly number[], fallbac
       min: stops[0] ?? 0,
       max: stops[stops.length - 1] ?? 0,
       step: 0.001,
-      fastStep: 0.01,
       fallback,
       travel: stopsTravel(stops),
       unit: "ms",

@@ -327,7 +327,7 @@ describe("the stops of a time", () => {
     shell.destroy();
   });
 
-  it("turns each time four of its stops a detent with Shift, and stops at either end", async () => {
+  it("turns each time one stop a detent with Shift, as without it, and stops at either end", async () => {
     const { shell, store, bound } = await mount();
     const shifted: unknown[] = [];
     for (const t of TIMES) {
@@ -345,14 +345,14 @@ describe("the stops of a time", () => {
       };
       shifted.push({
         time: `${t.route.id} ${t.label}`,
-        up: [await from(0, "ArrowUp"), await from(last - 2, "ArrowUp")],
-        down: [await from(last, "ArrowDown"), await from(2, "ArrowDown")],
+        up: [await from(0, "ArrowUp"), await from(last - 1, "ArrowUp"), await from(last, "ArrowUp")],
+        down: [await from(last, "ArrowDown"), await from(1, "ArrowDown"), await from(0, "ArrowDown")],
       });
       shell.ctx.nav.back();
       await flush();
     }
-    expect(shifted, "four stops from either end, and to the end from two stops short of it").toEqual(
-      TIMES.map((t) => ({ time: `${t.route.id} ${t.label}`, up: [4, t.count - 1], down: [t.count - 5, 0] })),
+    expect(shifted, "a stop in from either end, onto the end from the stop next to it, and none past it").toEqual(
+      TIMES.map((t) => ({ time: `${t.route.id} ${t.label}`, up: [1, t.count - 1, t.count - 1], down: [t.count - 2, 0, 0] })),
     );
     shell.destroy();
   });

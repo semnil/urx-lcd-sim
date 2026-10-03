@@ -153,7 +153,7 @@ SETUP や MONITOR から 1 回の戻るで HOME へ帰る。`Escape` はどの�
 `role="spinbutton"`、HOME のレベル表示は `role="slider"` で、どちらもドラッグ・ホイール・矢印キーの
 いずれでも値が動く (`attachSpin` が 3 つの入力を 1 箇所で受ける)。ドラッグは押した点から 4px までは値を動かさず、
 押した点から 196px でレンジ全体 (Shift でその 1/5)、ホイールと矢印キーは 1 ディテント
-(Shift で `fastStep`、`travel` を持つ値はその 4 段)、
+(Shift を押しながらでは、`fastStep` を持つ値はその刻み、持たない値は同じ 1 ディテント)、
 Home / End はレンジの端へ動かす。
 Alt・Cmd・Ctrl を押しながらのこれらのキーはブラウザに任せる。ダイアログは
 フォーカストラップと Escape による

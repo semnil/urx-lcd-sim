@@ -482,8 +482,8 @@ const DRAG_FINE = 0.2;
  * Make `node` turn `spec`. A drag along `drag`'s axis (up the screen by default)
  * counts from DRAG_SLOP_PX off the press and runs the whole range in
  * DRAG_FULL_RANGE_PX from there, or a fifth of it with Shift held;
- * the wheel and the arrow keys move one detent, or with Shift `fastStep`, or four
- * stops on a control with a `travel`, and Home and End go to either end; a key
+ * the wheel and the arrow keys move one detent, or with Shift the spec's
+ * `fastStep` where it has one, and Home and End go to either end; a key
  * held with Alt, Cmd or Ctrl is left to the browser. `onEngage` runs
  * when a pointer or a key starts a turn. The value box, the rotaries and the
  * HOME strip level share this, so a parameter behaves the same wherever it is
@@ -503,7 +503,7 @@ export function attachSpin(
   const nudge = (steps: number, fast: boolean): void => {
     const travel = spec.travel;
     if (travel) {
-      put(travel.step(value(), steps * (fast ? 4 : 1)));
+      put(travel.step(value(), steps));
       return;
     }
     const size = fast ? (spec.fastStep ?? spec.step) : spec.step;

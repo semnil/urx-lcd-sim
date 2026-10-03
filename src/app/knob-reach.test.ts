@@ -428,8 +428,8 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     }
     expect(await press("CH 1 LEVEL", "ArrowLeft"), "the arrow alone turns it").toBe(true);
     expect(store.num("ch.ch1.level", NaN)).toBe(-0.4);
-    expect(await press("CH 1 LEVEL", "ArrowLeft", { shiftKey: true }), "and with Shift, four detents").toBe(true);
-    expect(store.num("ch.ch1.level", NaN)).toBe(-4);
+    expect(await press("CH 1 LEVEL", "ArrowLeft", { shiftKey: true }), "and with Shift, the one detent it turns without").toBe(true);
+    expect(store.num("ch.ch1.level", NaN)).toBe(-1.2);
 
     await open(shell, { id: "setup.brightness" });
     for (const init of held) {
@@ -809,6 +809,53 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     expect(checked, "the sweep found controls to check").toBeGreaterThan(30);
     expect(unreadable).toEqual([]);
     expect(outside).toEqual([]);
+  });
+
+  /**
+   * What one arrow key moves on each control `id` draws for `strip`, in render order: the up arrow, or the down
+   * arrow where the up arrow moves nothing. Runs with Shift and without start from the same unit and press the same
+   * controls in the same order, so their lists line up.
+   */
+  async function detents(id: string, strip: string, shiftKey: boolean): Promise<string[]> {
+    const { shell, store } = await mount();
+    await open(shell, { id, strip });
+    const numbers = (): Map<string, number> =>
+      new Map(store.paths().flatMap((p) => (typeof store.get(p, 0) === "number" ? [[p, store.num(p)] as const] : [])));
+    const moves: string[] = [];
+    for (const node of turnables(shell.root)) {
+      let moved = "";
+      for (const key of ["ArrowUp", "ArrowDown"]) {
+        const before = numbers();
+        node.dispatchEvent(new KeyboardEvent("keydown", { key, shiftKey, bubbles: true, cancelable: true }));
+        moved = [...numbers()]
+          .filter(([p, v]) => before.get(p) !== v)
+          .map(([p, v]) => `${p} ${before.get(p) ?? "unset"} -> ${v}`)
+          .join(", ");
+        if (moved) break;
+      }
+      moves.push(`${id} (${strip}) ${node.getAttribute("aria-label") ?? node.className}: ${moved || "nothing"}`);
+    }
+    shell.destroy();
+    return moves;
+  }
+
+  // FX 2 ships Mono Delay, whose delay turns 5 ms a detent.
+  it.each([...STRIPS, "fx2"])("turns a value a detent with Shift as without it (%s)", async (strip) => {
+    // The DELAY screen's cells turn their time by a step of their own with Shift.
+    const ownShift = (move: string): boolean => /\.delay\.ms /.test(move);
+    const registry = buildRegistry();
+    const differ: string[] = [];
+    let turned = 0;
+    for (const id of registry.ids()) {
+      const plain = await detents(id, strip, false);
+      const shifted = await detents(id, strip, true);
+      turned += plain.filter((m) => !m.endsWith(": nothing")).length;
+      plain.forEach((m, i) => {
+        if (m !== shifted[i] && !ownShift(m)) differ.push(`${m} | with Shift ${shifted[i] ?? "no control"}`);
+      });
+    }
+    expect(turned, "the sweep turned values").toBeGreaterThan(30);
+    expect(differ).toEqual([]);
   });
 
   it("reads a ratio of INF out as the top of its travel in numbers, and names it INF", async () => {

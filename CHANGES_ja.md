@@ -2,10 +2,11 @@
 
 ## 未リリース
 
+- Shift を押しながらでも、値を Shift なしと同じ 1 段だけ回すようにした。これまでは Shift を押すと大きな刻みで動き、HOME のレベルは 1 段が 0.4 dB のところ 0 dB から 3.2 dB、A.Gain と GATE の Threshold は 5 dB、PAN は 4、PHONES のレベルは 1.0 動き、COMP の Ratio や SSMCS の周波数のように自分の段を持つ値は 4 段動いていた。
 - 前の版で保存したブラウザへの保存・設定ファイル・シーンが GATE・COMP・DUCKER の時間を実機の段の外に持つとき、戻すときに最も近い段へ寄せ、次の保存からはその段で持つ。前の版で出荷時から 1 段上げた GATE の Hold の 16.3 ms は 16.0 ms に、DUCKER の Decay の 1001 ms は `1.0s` に戻る。
 - マウスでも指でも、押した点から 4px 未満しか動かない押下では値を動かさず、ドラッグは押した点から 4px 離れた所から数えるようにした。これまでは押したまま 1px 動いただけで値が書き換わり、GATE の Hold の上で横に 1px 動かすと出荷時の 15.3 ms が 15 ms に、EQ のつまみを横に 1px 動かすと LOW の Freq. が 125 Hz から 130 Hz になっていた。値のレンジ全体を動かすドラッグの距離は押した点から 196px で、これまでは 192px だった。
 - USER DEFINED KNOBS の区画が、実機と同じく 1-knob の入切に関わらず割り当てを回すようにした。これまでは COMP と EQ の 1-knob が入の間は区画が回らなかった。
-- GATE の Attack・Hold・Decay、COMP の Attack・Release、DUCKER の Attack・Decay を、実機のつまみと同じく実機の段で回すようにした。矢印キーとホイールの 1 段で 1 段動き、両端より先へは動かない。Attack は GATE・COMP・DUCKER で同じ 0.092..80.00 ms の 227 段、GATE の Hold は 0.02 ms..1.96 s の 214 段、GATE の Decay と COMP の Release は 9.3..999.0 ms の 277 段、DUCKER の Decay は 1.3 ms..5.0 s の 122 段。これまでは全域で 1 段が Attack は 0.1 ms、ほかは 1 ms で、DUCKER の Decay は出荷時の `1.0s` から `1.1s` まで 50 段かかり、最大 100 段のあいだ読みが変わらなかった。Shift を押しながらの 1 段は 4 段分 (これまでは Attack が 1 ms、ほかが 10 ms) で、ドラッグは段の上を等しく進む (これまではミリ秒で等しく進んでいた)。
+- GATE の Attack・Hold・Decay、COMP の Attack・Release、DUCKER の Attack・Decay を、実機のつまみと同じく実機の段で回すようにした。矢印キーとホイールの 1 段で 1 段動き、両端より先へは動かない。Attack は GATE・COMP・DUCKER で同じ 0.092..80.00 ms の 227 段、GATE の Hold は 0.02 ms..1.96 s の 214 段、GATE の Decay と COMP の Release は 9.3..999.0 ms の 277 段、DUCKER の Decay は 1.3 ms..5.0 s の 122 段。これまでは全域で 1 段が Attack は 0.1 ms、ほかは 1 ms で、DUCKER の Decay は出荷時の `1.0s` から `1.1s` まで 50 段かかり、最大 100 段のあいだ読みが変わらなかった。Shift を押しながらでも 1 段で (これまでは Attack が 1 ms、ほかが 10 ms)、ドラッグは段の上を等しく進む (これまではミリ秒で等しく進んでいた)。
 - エフェクトの画面が自分のページを送ったときとエフェクトを選び直したときに、画面を開いたときと同じく読み出しバーを先頭のページから出すようにした。ページが枠を付けた値はバーに出る。これまではバーが `›` で送ったページのまま残り、`›` の後に Rev-X Hall を 2 ページ目へ送って戻ると Diffusion / Hi.Ratio / Lo.Ratio / Lo.Freq. を出して枠は Rev.Time に付き、Compander-H から Clean に選び直すと Volume / Distortion / Blend / Output を出して枠は Treble に付いていた。
 - 値ボックス・HOME のレベル・ダイナミクスのグラフのハンドル・読み出しバーの区画で、Alt・Cmd・Ctrl を押しながらの矢印キーと Home / End をブラウザに任せるようにした。これまでは Alt+←・Cmd+←・Ctrl+← でも ← だけのときと同じく値が 1 段下がり、ページがキーをブラウザに渡していなかった。
 - Escape を押し続けても、戻る矢印を押し続けたときと同じく 1 回だけ働くようにした。ダイアログ・シート・一覧を閉じた押下はその下の画面を残し、画面の上では 1 画面だけ戻る。これまではキーのリピートごとにさらに 1 画面戻り、COMP で押し続けると HOME まで戻っていた。
