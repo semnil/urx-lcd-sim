@@ -78,30 +78,29 @@ is built is in [screen-inventory.md](screen-inventory.md).
   screen stepped one bank, while a quick one across the whole screen went from CH 1 - 4 to FX 1 - 2 and back
   (URX44V, read by the operator on 2026-10-04). This simulator steps one bank a swipe, and stops at the INPUT
   side's first and last bank as the unit does.
-- **GATE opens and closes at once.** It keeps Attack, Hold and Decay as values, but closes to RANGE as
-  soon as the input is at or under the threshold and opens as soon as it is over, so the middle, yellow
-  one of the channel view's GATE lamps, which shows the gate opening or closing, does not light.
-- **The clock outside 2000 to 2099.** Past midnight at the end of 31 December 2099, the unit's DATE / TIME screen
-  keeps its date at 31 December 2099 while the time runs on, and its [Date/Time] dialog opens on 1 January 2100.
-  Shortly into 1 January 2000, a [Time Zone] further west makes the screen read 1 January 2001 for a while, and then
-  31 December 2000. This simulator reads the year the clock has run into on the screen and in the dialog alike
-  (1 January 2100, 31 December 1999).
+- **GATE opens and closes at once.** Attack, Hold and Decay are kept as values only: the gate closes to
+  RANGE as soon as the input is at or under the threshold and opens as soon as it is over. The middle,
+  yellow one of the channel view's GATE lamps, which shows the gate opening or closing, does not light.
+- **The clock keeps the unit's time zones, but reads its own years outside 2000 to 2099.** As on the unit,
+  each [Time Zone] city keeps one time ahead of or behind UTC, the same all year and in every year, with no
+  summer time (21:15 in Tokyo reads 12:15 in London in September, confirmed on the unit). Samoa reads 13 hours
+  ahead of UTC in 2011, when it kept 11 hours behind, as in 2012, and Volgograd 3 hours ahead in 2019, when it
+  kept 4 (URX44V, the operator, 2026-10-03). This simulator gives each city the standard time it keeps in
+  2026, so while summer time is in force it reads an hour off the clock of a computer in a zone that keeps
+  summer time. Past midnight at the end of 31 December 2099, the unit's DATE / TIME screen keeps its date at
+  31 December 2099 while the time runs on, and its [Date/Time] dialog opens on 1 January 2100. Shortly into
+  1 January 2000, a [Time Zone] further west makes the screen read 1 January 2001 for a while, and then
+  31 December 2000. This simulator reads the year the clock has run into on the screen and in the dialog
+  alike (1 January 2100, 31 December 1999).
+  The user guide's "Date/Time menu" says of the [Display Format] Time
+  button "Selects the display format for the time.", but the unit's SAVE/LOAD `Date/Time` column gives the time on
+  the 24-hour clock with Time set to 12h, while its date follows the Date format. The simulator gives that column's
+  time on the 24-hour clock as well.
 
 ## What the unit itself does not do
 
 What the unit lacks, this simulator lacks as well.
 
-- **Summer time, or another time in another year, and the 12-hour clock on SAVE/LOAD's list.**
-  The unit's clock keeps each [Time Zone] city at one time
-  ahead of or behind UTC, the same all year and in every year, and does not switch to summer time (21:15 in
-  Tokyo reads 12:15 in London in September, confirmed on the unit). Samoa reads 13 hours ahead of UTC in 2011,
-  when it kept 11 hours behind, as in 2012, and Volgograd 3 hours ahead in 2019, when it kept 4 (URX44V, the
-  operator, 2026-10-03). The simulator does the same, giving each city the standard time it keeps in 2026, so
-  while summer time is in force it reads an hour off the clock of a computer in a zone that keeps summer time.
-  The user guide's "Date/Time menu" says of the [Display Format] Time
-  button "Selects the display format for the time.", but the unit's SAVE/LOAD `Date/Time` column gives the time on
-  the 24-hour clock with Time set to 12h, while its date follows the Date format. The simulator gives that column's
-  time on the 24-hour clock as well.
 - **+48V and HI-Z held apart.** The user guide's description of [+48V] on the INPUT screen says "The
   phantom power supply and HI-Z cannot be turned on at the same time.", but on the unit pressing [HI-Z]
   with [+48V] on, or [+48V] with [HI-Z] on, leaves [+48V] and [HI-Z] on together (URX44V, confirmed on
