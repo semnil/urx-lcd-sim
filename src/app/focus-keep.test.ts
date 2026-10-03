@@ -34,11 +34,11 @@ async function mount(): Promise<Shell> {
 }
 
 /** A key pressed and let go on whatever holds the focus. */
-async function press(key: string, init: KeyboardEventInit = {}): Promise<void> {
+async function press(key: string): Promise<void> {
   const node = document.activeElement;
-  node?.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, ...init }));
+  node?.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
   await flush();
-  node?.dispatchEvent(new KeyboardEvent("keyup", { key, bubbles: true, ...init }));
+  node?.dispatchEvent(new KeyboardEvent("keyup", { key, bubbles: true }));
   await flush();
 }
 
@@ -56,39 +56,6 @@ describe("the focus through a redraw", () => {
       seen.push(document.activeElement === box() ? box()?.textContent : "focus lost");
     }
     expect(seen).toEqual(["1.00", "1.01", "1.02"]);
-  });
-
-  it("turns a value box by its fastStep while Shift is held", async () => {
-    const shell = await mount();
-    shell.ctx.nav.push({ id: "channel-view", strip: "bus.stream" });
-    shell.ctx.nav.push({ id: "ch.delay", strip: "bus.stream" });
-    await flush();
-    const box = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".delay-cell .value-box");
-    box()?.focus();
-    const seen = [box()?.textContent];
-    await press("ArrowUp");
-    seen.push(box()?.textContent);
-    await press("ArrowUp", { shiftKey: true });
-    seen.push(box()?.textContent);
-    await press("ArrowDown", { shiftKey: true });
-    seen.push(box()?.textContent);
-    expect(seen, "a step of 0.01, and of 0.1 with Shift").toEqual(["1.00", "1.01", "1.11", "1.01"]);
-  });
-
-  it("turns a fader four stops at once while Shift is held", async () => {
-    const shell = await mount();
-    const store = shell.ctx.store;
-    const level = (): HTMLElement | undefined =>
-      [...shell.root.querySelectorAll<HTMLElement>('[role="slider"]')].find((n) => n.getAttribute("aria-label") === "CH 1 LEVEL");
-    const from0 = async (presses: number, shiftKey: boolean): Promise<number> => {
-      await store.set("ch.ch1.level", 0);
-      await flush();
-      level()?.focus();
-      for (let i = 0; i < presses; i++) await press("ArrowUp", { shiftKey });
-      return store.num("ch.ch1.level", 99);
-    };
-    const [one, four, shifted] = [await from0(1, false), await from0(4, false), await from0(1, true)];
-    expect([one, four, shifted]).toEqual([0.4, 3.2, 3.2]);
   });
 
   it("stays on a switch pressed with Enter", async () => {

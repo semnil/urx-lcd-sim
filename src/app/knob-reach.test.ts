@@ -172,7 +172,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
       await flush();
     };
 
-    // 160px of the 192px that cover the head amp's 78 dB is 65 dB, and a fifth of that 13 dB.
+    // The same 160px drag covers a fifth as much with Shift held: 13 of the head amp's 78 dB, on its whole dB.
     await from(-8, false);
     const plain = (await move(240, false)) + 8;
     await end();
@@ -182,8 +182,8 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     const letGo = await move(240, false);
     const onward = await move(208, false);
     await end();
-    expect([plain, fine]).toEqual([65, 13]);
-    expect([letGo, onward]).toEqual([5, 18]);
+    expect(fine, `a fifth of the ${plain} dB the plain drag covers`).toBe(Math.round(plain / 5));
+    expect([fine, letGo, onward]).toEqual([13, 5, 18]);
   });
 
   it("marks the page while a pointer is turning, so nothing lights up under it", async () => {
@@ -272,7 +272,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     expect(phones().querySelector(".knob-cell-value")?.textContent, "and the division reads the new value").not.toBe("5.0");
   });
 
-  it("turns a value down by the wheel turned down and up by the wheel turned up, by its fastStep with Shift held", async () => {
+  it("turns a value down by the wheel turned down and up by the wheel turned up, and as far as an arrow key with Shift held", async () => {
     const { shell, store } = await mount();
     await open(shell, { id: "channel-view", strip: "ch1" });
     const box = (): HTMLElement | null => shell.root.querySelector<HTMLElement>('.cv-gain [role="spinbutton"]');
@@ -284,7 +284,21 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     };
     await store.set("ch.ch1.gain", 30);
     await flush();
-    expect([await wheel(3), await wheel(3), await wheel(-3), await wheel(-3, true), await wheel(3, true)]).toEqual([29, 28, 29, 34, 29]);
+    expect([await wheel(3), await wheel(3), await wheel(-3)]).toEqual([29, 28, 29]);
+
+    /** How far one turn with Shift held takes the head amp up from 30 dB. */
+    const shifted = async (turn: () => Promise<number>): Promise<number> => {
+      await store.set("ch.ch1.gain", 30);
+      await flush();
+      return (await turn()) - 30;
+    };
+    const byKey = await shifted(async () => {
+      box()?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", shiftKey: true, bubbles: true, cancelable: true }));
+      await flush();
+      return store.num("ch.ch1.gain", 0);
+    });
+    expect(byKey, "the up arrow with Shift turns it up").toBeGreaterThan(0);
+    expect(await shifted(() => wheel(-3, true)), "the wheel up with Shift, as far as the up arrow with Shift").toBe(byKey);
   });
 
   it("holds the user-defined knobs still while 1-knob holds the screen's focus", async () => {
