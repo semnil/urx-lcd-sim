@@ -192,7 +192,22 @@ describe("the microSD card browser", () => {
     expect(list.scrollTop, "a second finger's move and cancel").toBe(200);
     window.dispatchEvent(pe("pointermove", { pointerId: 1, pointerType: "touch", buttons: 1, clientY: 80 }));
     expect(list.scrollTop, "the first finger goes on scrolling it").toBe(220);
-    window.dispatchEvent(pe("pointerup", { pointerId: 1, pointerType: "touch", clientY: 80 }));
+    // A second finger pressed on the rows or on the thumb while the first holds the list scrolls nothing.
+    for (const part of [list, thumb]) {
+      part.dispatchEvent(pe("pointerdown", { pointerId: 2, pointerType: "touch", button: 0, buttons: 1, clientY: 100 }));
+      window.dispatchEvent(pe("pointermove", { pointerId: 2, pointerType: "touch", buttons: 1, clientY: 140 }));
+      window.dispatchEvent(pe("pointerup", { pointerId: 2, pointerType: "touch", clientY: 140 }));
+      expect(list.scrollTop, `a second finger pressed on ${part.className}`).toBe(220);
+    }
+    window.dispatchEvent(pe("pointermove", { pointerId: 1, pointerType: "touch", buttons: 1, clientY: 70 }));
+    expect(list.scrollTop, "the first finger still holds it").toBe(230);
+    window.dispatchEvent(pe("pointerup", { pointerId: 1, pointerType: "touch", clientY: 70 }));
+    await flush();
+    // Once the first finger is let go, the next finger takes the list.
+    list.dispatchEvent(pe("pointerdown", { pointerId: 3, pointerType: "touch", button: 0, buttons: 1, clientY: 100 }));
+    window.dispatchEvent(pe("pointermove", { pointerId: 3, pointerType: "touch", buttons: 1, clientY: 90 }));
+    expect(list.scrollTop, "the next finger").toBe(240);
+    window.dispatchEvent(pe("pointerup", { pointerId: 3, pointerType: "touch", clientY: 90 }));
     await flush();
 
     // A mouse that comes back with no button held was let go where the page did not hear it.

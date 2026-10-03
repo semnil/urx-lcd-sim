@@ -115,6 +115,50 @@ function followPointer(start: PointerEvent, move: (m: PointerEvent) => void, end
   return stop;
 }
 
+/**
+ * Gestures each held by one pointer, from the press that takes it until that
+ * pointer is let go or cancelled. A gesture holds the keys it is taken with, and
+ * a press by another pointer on any key held meanwhile takes nothing.
+ */
+class PointerHolds<K> {
+  private readonly held = new Map<K, { pointerId: number; stop: () => void }>();
+
+  /**
+   * Whether the pointer that pressed in `ev` may take `keys`: not while another
+   * pointer holds one of them. A pointer that presses while it holds one was let
+   * go where the page did not hear it, and what it held ends here.
+   */
+  take(ev: PointerEvent, keys: readonly K[]): boolean {
+    const holders = new Set(keys.flatMap((k) => this.held.get(k) ?? []));
+    for (const h of holders) if (h.pointerId !== ev.pointerId) return false;
+    for (const h of holders) h.stop();
+    return true;
+  }
+
+  /** Follow `start`'s pointer as `followPointer` does, holding `keys` until it ends. Returns what ends it early. */
+  follow(start: PointerEvent, keys: readonly K[], move: (m: PointerEvent) => void, end: () => void): () => void {
+    const held = { pointerId: start.pointerId, stop: (): void => undefined };
+    held.stop = followPointer(start, move, () => {
+      for (const k of keys) if (this.held.get(k) === held) this.held.delete(k);
+      end();
+    });
+    for (const k of keys) this.held.set(k, held);
+    return held.stop;
+  }
+}
+
+/** The values held by a drag, by path, for each store that holds them. */
+const valueHolds = new WeakMap<AppContext["store"], PointerHolds<string>>();
+
+function valueHoldsOf(ctx: AppContext): PointerHolds<string> {
+  let holds = valueHolds.get(ctx.store);
+  if (!holds) {
+    holds = new PointerHolds();
+    valueHolds.set(ctx.store, holds);
+  }
+  return holds;
+}
+
 export function scrollbar(
   target: HTMLElement,
   track: number,
@@ -162,9 +206,11 @@ export function scrollbar(
   // list would otherwise end it in, so a row under the finger does not fire.
   // The list and the thumb move as far on the screen as the pointer does, at
   // whatever scale the glass is drawn; the slop is measured on the page.
+  // One pointer at a time drags the list, by its rows or by its thumb.
+  const holds = new PointerHolds<HTMLElement>();
   const drag = (start: PointerEvent, reach: (moved: number) => number): void => {
     // The main button drags, as a finger and a pen's tip do; the other buttons do not.
-    if (start.button !== 0) return;
+    if (start.button !== 0 || !holds.take(start, [target])) return;
     const from = target.scrollTop;
     const glass = target.closest<HTMLElement>(".lcd");
     const scale = glass ? drawnScale(glass) : 1;
@@ -184,7 +230,7 @@ export function scrollbar(
       target.addEventListener("click", swallow, true);
       setTimeout(() => target.removeEventListener("click", swallow, true), 0);
     };
-    followPointer(start, move, up);
+    holds.follow(start, [target], move, up);
   };
 
   // A finger on the rows or on the thumb scrolls the list and leaves the page where it is.
@@ -583,6 +629,11 @@ export function attachDrag(ctx: AppContext, node: HTMLElement, spec: NumericSpec
   node.addEventListener("pointerdown", (ev) => {
     // The main button turns the value, as a finger and a pen's tip do; the other buttons do not.
     if (ev.button !== 0) return;
+    // One pointer at a time turns a value, and each value a turn of it writes as
+    // well, such as a linked pair's other channel, on whatever control turns them.
+    const holds = valueHoldsOf(ctx);
+    const held = [spec.path, ...ctx.store.carries(spec.path, ctx.store.num(spec.path, spec.fallback))];
+    if (!holds.take(ev, held)) return;
     onEngage?.();
     if (standsStill(ctx, spec)) return;
     // A drag sweeps the pointer across whatever is in its way; marking the page
@@ -633,7 +684,7 @@ export function attachDrag(ctx: AppContext, node: HTMLElement, spec: NumericSpec
     };
     // The first turn repaints the screen and this node is replaced, so the rest
     // of the gesture is followed on the window rather than on the node.
-    const stop = followPointer(ev, move, up);
+    const stop = holds.follow(ev, held, move, up);
     // The drag ends with the screen it started on.
     const leave = ctx.nav.onChange(stop);
   });

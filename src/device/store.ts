@@ -117,6 +117,11 @@ export class DeviceStore {
     this.writeRule = rule;
   }
 
+  /** The paths an edit of `path` to `value` carries a write onto. */
+  carries(path: ParamPath, value: ParamValue): ParamPath[] {
+    return this.writeRule ? [...this.writeRule(path, value)].map(([p]) => p) : [];
+  }
+
   /**
    * Edit a value: mirror it now, send it to the device, revert on rejection.
    * Returns the write promise so callers that must sequence can await it; UI

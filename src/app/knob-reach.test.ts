@@ -301,6 +301,65 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     expect(pan(), "after the drag ended").toBe(0);
   });
 
+  it("leaves a value to the finger that took it until that finger is let go", async () => {
+    const { shell, store } = await mount();
+    await open(shell, { id: "setup" });
+    shell.ctx.nav.home();
+    await flush();
+    const level = (ch: number): HTMLElement | undefined =>
+      turnables(shell.root).find((n) => n.getAttribute("aria-label") === `CH ${ch} LEVEL`);
+    const value = (ch: number): number => store.num(`ch.ch${ch}.level`, NaN);
+    const finger = (node: EventTarget | undefined, type: string, pointerId: number, clientY: number): void => {
+      const buttons = type === "pointerdown" || type === "pointermove" ? 1 : 0;
+      node?.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId, pointerType: "touch", button: 0, buttons, clientY }));
+    };
+    const [one, two] = [value(1), value(2)];
+
+    // A second finger pressed on CH 1 LEVEL while the first holds it turns nothing, and its lift ends nothing.
+    finger(level(1), "pointerdown", 1, 300);
+    finger(level(1), "pointerdown", 2, 300);
+    finger(window, "pointermove", 2, 100);
+    await flush();
+    expect(value(1), "a second finger on the value the first holds").toBe(one);
+    finger(window, "pointerup", 2, 100);
+    finger(window, "pointermove", 1, 290);
+    await flush();
+    const turned = value(1);
+    expect(turned, "the first finger goes on turning it").toBeGreaterThan(one);
+
+    // A second finger on another value turns that one.
+    finger(level(2), "pointerdown", 3, 300);
+    finger(window, "pointermove", 3, 290);
+    await flush();
+    expect(value(2), "a second finger on another value").toBeGreaterThan(two);
+    finger(window, "pointerup", 3, 290);
+    finger(window, "pointerup", 1, 290);
+
+    // Once the first finger is let go, the next finger takes the value.
+    finger(level(1), "pointerdown", 4, 300);
+    finger(window, "pointermove", 4, 310);
+    await flush();
+    expect(value(1), "the next finger").toBeLessThan(turned);
+    finger(window, "pointerup", 4, 310);
+
+    // A linked pair holds one level, so a second finger on the other channel's turns nothing while the first holds it.
+    await store.set("ch.ch1.signalType", "STEREO");
+    await store.set("ch.ch2.signalType", "STEREO");
+    await flush();
+    const paired = [value(1), value(2)];
+    finger(level(1), "pointerdown", 5, 300);
+    finger(level(2), "pointerdown", 6, 300);
+    finger(window, "pointermove", 6, 100);
+    await flush();
+    expect([value(1), value(2)], "a second finger on the linked channel").toEqual(paired);
+    finger(window, "pointerup", 6, 100);
+    finger(window, "pointermove", 5, 290);
+    await flush();
+    expect(value(2), "the first finger turns the pair").toBe(value(1));
+    expect(value(1), "the first finger turns the pair").toBeGreaterThan(paired[0] ?? NaN);
+    finger(window, "pointerup", 5, 290);
+  });
+
   it("steps the user-defined knob pages from the ends of the bar", async () => {
     const { shell, store } = await mount();
     await store.set("ui.userDefinedKnobs", true);
