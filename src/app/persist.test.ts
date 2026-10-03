@@ -153,6 +153,25 @@ describe("what a reload carries over", () => {
     expect(store.num("sd.trackCount", 0)).toBe(2);
   });
 
+  it("brings a GATE, COMP or DUCKER time stored off its stops back on the stop nearest it", async () => {
+    // A unit stored by an earlier version: each time a detent up from where it ships, by that version's steps.
+    const times: [string, number][] = [
+      ["ch.ch1.gate.attack", 20.27],
+      ["ch.ch1.gate.hold", 16.3],
+      ["ch.ch1.gate.decay", 151.2],
+      ["ch.ch1.comp.release", 219],
+      ["ch.ch_5_6.ducker.decay", 1001],
+      ["ch.ch1.ssmcs.comp.attack", 4.124],
+    ];
+    window.localStorage.setItem("urx-lcd-sim.state", JSON.stringify({ version: 1, model: MODEL, values: Object.fromEntries(times) }));
+    const store = await unit();
+    await restore(store, MODEL);
+    expect(
+      times.map(([p]) => store.num(p, 0)),
+      "each on its nearest stop, and the SSMCS strip's Attack as it is stored",
+    ).toEqual([20.17, 16, 150.2, 218, 1000, 4.124]);
+  });
+
   it("leaves another model's unit alone", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const store = await unit();

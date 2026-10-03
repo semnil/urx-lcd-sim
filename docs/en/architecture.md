@@ -97,7 +97,8 @@ names a pair the current frequency cannot hold drops it, as a change of frequenc
 stored as parts that stood still is not put back: the clock runs with the computer's. A guitar
 amp's Type or Amp Type stored by its name comes back at the place on its knob that reads that name,
 and a name the amp does not have is not put back. A state stored while Pan Link left each send's own placing where
-it was, or kept Pan Link on over a FIXED bus, comes back with Pan Link where the unit's screen leaves it.
+it was, or kept Pan Link on over a FIXED bus, comes back with Pan Link where the unit's screen leaves it. A GATE,
+COMP or DUCKER time stored off its stops comes back on the stop nearest it.
 
 What is on the card, the scene memories and the settings files are values in the same mirror, and
 they are kept with it. The browser's storage, the scene memories and the settings files are written as JSON, which has

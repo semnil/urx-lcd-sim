@@ -549,7 +549,8 @@ The times stop on the unit's own settings, one a detent of its knob, and go no f
 (URX44V, the operator, 2026-10-03): Attack 0.092..80.00 ms over 227 stops, the same on GATE, COMP and
 DUCKER; GATE's Hold 0.02 ms..1.96 s over 214; GATE's Decay and COMP's Release 9.3..999.0 ms over the
 same 277; and DUCKER's Decay 1.3 ms..5.0 s over 122. A detent of the arrow keys or the wheel moves one
-stop, four with Shift, and a drag runs evenly over the stops.
+stop, four with Shift, and a drag runs evenly over the stops. A time that a browser save, a settings file
+or a scene holds off these stops comes back on the stop nearest it, and the next save holds that stop.
 
 The handles (G / T / R / A / D) are 32px in diameter (face `--handle-face`, a 3px `--handle-ring`
 rim), pulled in from the left and right ends of the panel by their radius. The handle touched takes the focus,

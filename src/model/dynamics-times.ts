@@ -2,6 +2,9 @@
 // a table of its own and stops at either end. Attack takes the same stops on all
 // three blocks, and GATE's Decay the same as COMP's Release.
 
+import type { ParamPath, ParamValue } from "../device/path";
+import { type Travel, stopsTravel } from "../ui/param-spec";
+
 /** Attack, in microseconds: 0.092 ms to 80 ms. */
 const ATTACK_US = [
   92, 95, 97, 100, 103, 107, 110, 113, 117, 120, 124, 128, 131, 135, 140, 144, 148, 153, 157, 162, 167, 172, 177, 183,
@@ -80,3 +83,25 @@ export const DYNAMICS_TIME_STOPS: Readonly<Record<DynamicsTime, readonly number[
   "ducker.attack": ATTACK_MS,
   "ducker.decay": inMs(DUCKER_DECAY_100US, 10),
 };
+
+/** Where a channel keeps one of these times: `ch.<strip>.<block>.<value>`. */
+const TIME_PATH = /^ch\.[^.]+\.((?:gate|comp|ducker)\.(?:attack|hold|decay|release))$/;
+
+const TIME_TRAVELS: Readonly<Record<string, Travel>> = Object.fromEntries(
+  Object.entries(DYNAMICS_TIME_STOPS).map(([time, stops]) => [time, stopsTravel(stops)]),
+);
+
+/**
+ * A saved state as it is put back, with each of GATE's, COMP's and DUCKER's
+ * times on the stop nearest the value it holds. A value off the stops comes
+ * back on one, and the next save holds that stop.
+ */
+export function onDynamicsTimeStops(state: Record<ParamPath, ParamValue>): Record<ParamPath, ParamValue> {
+  const out = { ...state };
+  for (const [path, value] of Object.entries(state)) {
+    const time = TIME_PATH.exec(path)?.[1];
+    const travel = time === undefined ? undefined : TIME_TRAVELS[time];
+    if (travel && typeof value === "number") out[path] = travel.step(value, 0);
+  }
+  return out;
+}
