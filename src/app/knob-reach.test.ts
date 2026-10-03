@@ -127,8 +127,8 @@ describe("every knob-bound parameter is reachable on the glass", () => {
       await flush();
       return store.num(path, NaN);
     };
-    // The values as they ship. Hold's and Attack's stand between their own steps, so a press that writes them as they
-    // stand still moves them.
+    // The values as they ship, each of which a pixel of a drag moves, so a press that turned them inside the slop
+    // would show.
     const controls = [
       { route: { id: "ch.eq", strip: "ch1" }, find: ".eq-grip[aria-label='LOW band']", path: "ch.ch1.eq.low.freq", along: [1, 0], from: 125 },
       { route: { id: "ch.eq", strip: "ch1" }, find: ".eq-grip[aria-label='LOW MID band']", path: "ch.ch1.eq.lowMid.freq", along: [1, 0], from: 1000 },

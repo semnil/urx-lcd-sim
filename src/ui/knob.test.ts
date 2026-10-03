@@ -233,7 +233,7 @@ describe("the rotary graphic", () => {
   });
 });
 
-describe("the detents of a time", () => {
+describe("the stops of a time", () => {
   const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
   /** A URX44V's screens, and the values the screen drawn last hands to the readout bar. */
@@ -252,84 +252,112 @@ describe("the detents of a time", () => {
     return { shell, store, bound };
   };
 
-  it("reads a new time on every detent of GATE's, COMP's and DUCKER's times, from one end to the other and back", async () => {
-    const { shell, store, bound } = await mount();
-    const screens: [string, string[]][] = [
-      ["ch.gate", ["Attack", "Hold", "Decay"]],
-      ["ch.comp", ["Attack", "Release"]],
-      ["ch.ducker", ["Attack", "Decay"]],
-    ];
-    const repeats: string[] = [];
-    const ends: string[] = [];
-    const detents: string[] = [];
-    const shifted: string[] = [];
-    for (const [id, labels] of screens) {
-      shell.ctx.nav.push({ id, strip: "ch1" });
-      await flush();
-      for (const label of labels) {
-        const spec = bound.find((s) => s.label === label);
-        if (!spec) throw new Error(`${id} binds no ${label}`);
-        // The value box where the screen has one, and the readout bar's division where it has not.
-        const control = shell.root.querySelector<HTMLElement>(`[role="spinbutton"][aria-label="${label}"], .knob-strip [role="slider"][aria-label="${label}"]`);
-        const value = (): number => store.num(spec.path, spec.fallback);
-        const press = (key: string, shiftKey = false): void => {
-          control?.dispatchEvent(new KeyboardEvent("keydown", { key, shiftKey, bubbles: true, cancelable: true }));
-        };
-        for (const [from, key, to] of [[spec.min, "ArrowUp", spec.max], [spec.max, "ArrowDown", spec.min]] as const) {
-          await store.set(spec.path, from);
-          let reading = formatValue(spec, value());
-          for (let n = 0; value() !== to && n < 5000; n++) {
-            press(key);
-            const next = formatValue(spec, value());
-            if (next === reading) repeats.push(`${id} ${label} ${key} at ${value()}`);
-            reading = next;
-          }
-          ends.push(`${id} ${label} ${key} ${reading}`);
-        }
-        // One detent either side of a second.
-        for (const from of [500, 1500].filter((v) => v < spec.max)) {
-          await store.set(spec.path, from);
-          press("ArrowUp");
-          detents.push(`${id} ${label} ${from} -> ${value()}`);
-        }
-        for (const from of [50, 1500].filter((v) => v < spec.max)) {
-          await store.set(spec.path, from);
-          press("ArrowUp", true);
-          shifted.push(`${id} ${label} ${from} -> ${value()}`);
-        }
+  /**
+   * GATE's, COMP's and DUCKER's times as the unit turns them one detent at a time from one end to the other
+   * (URX44V, the operator, 2026-10-03): how many stops each has, its two ends and the sum of its stops, counted
+   * in the unit its table is whole in (microseconds for Attack, hundredths of a millisecond for Hold, tenths for
+   * the rest), so that a stop read otherwise changes the sum. `reads` is what the bottom and the top read. The
+   * value each ships at is one of its stops.
+   */
+  const TIMES = [
+    { route: { id: "ch.gate", strip: "ch1" }, label: "Attack", per: 1000, count: 227, ends: [92, 80000], sum: 2707666, reads: ["0.09ms", "80.00ms"] },
+    { route: { id: "ch.gate", strip: "ch1" }, label: "Hold", per: 100, count: 214, ends: [2, 196000], sum: 4532608, reads: ["0.0ms", "2.0s"] },
+    { route: { id: "ch.gate", strip: "ch1" }, label: "Decay", per: 10, count: 277, ends: [93, 9990], sum: 590007, reads: ["9.30ms", "999.0ms"] },
+    { route: { id: "ch.comp", strip: "ch1" }, label: "Attack", per: 1000, count: 227, ends: [92, 80000], sum: 2707666, reads: ["0.09ms", "80.00ms"] },
+    { route: { id: "ch.comp", strip: "ch1" }, label: "Release", per: 10, count: 277, ends: [93, 9990], sum: 590007, reads: ["9.30ms", "999.0ms"] },
+    { route: { id: "ch.ducker", strip: "ch_5_6" }, label: "Attack", per: 1000, count: 227, ends: [92, 80000], sum: 2707666, reads: ["0.09ms", "80.00ms"] },
+    { route: { id: "ch.ducker", strip: "ch_5_6" }, label: "Decay", per: 10, count: 122, ends: [13, 50000], sum: 742257, reads: ["1.3ms", "5.0s"] },
+  ] as const;
+
+  /** The control on the screen that turns `label`, and a press of a key on it. */
+  const control = (shell: Shell, store: DeviceStore, spec: NumericSpec) => {
+    // The value box where the screen has one, and the readout bar's division where it has not.
+    const node = shell.root.querySelector<HTMLElement>(
+      `[role="spinbutton"][aria-label="${spec.label}"], .knob-strip [role="slider"][aria-label="${spec.label}"]`,
+    );
+    if (!node) throw new Error(`no control for ${spec.label}`);
+    const value = (): number => store.num(spec.path, spec.fallback);
+    const press = (key: string, shiftKey = false): number => {
+      node.dispatchEvent(new KeyboardEvent("keydown", { key, shiftKey, bubbles: true, cancelable: true }));
+      return value();
+    };
+    /** Every value from the bottom up, one detent at a time, until a detent leaves the value where it stands. */
+    const walk = (key: "ArrowUp" | "ArrowDown"): number[] => {
+      const seen = [value()];
+      for (let n = 0; n < 5000; n++) {
+        if (press(key) === seen.at(-1)) break;
+        seen.push(value());
       }
+      return seen;
+    };
+    return { value, press, walk };
+  };
+
+  it("turns each of GATE's, COMP's and DUCKER's times one stop a detent through the unit's stops, and stops at either end", async () => {
+    const { shell, store, bound } = await mount();
+    const walked: unknown[] = [];
+    for (const t of TIMES) {
+      shell.ctx.nav.push(t.route);
+      await flush();
+      const spec = bound.find((s) => s.label === t.label);
+      if (!spec) throw new Error(`${t.route.id} binds no ${t.label}`);
+      const { value, press, walk } = control(shell, store, spec);
+      const shipped = value();
+      press("Home");
+      const up = walk("ArrowUp");
+      const top = formatValue(spec, up.at(-1) ?? Number.NaN);
+      const down = walk("ArrowDown");
+      const counted = up.map((v) => Math.round(v * t.per));
+      walked.push({
+        time: `${t.route.id} ${t.label}`,
+        count: counted.length,
+        ends: [counted[0], counted.at(-1)],
+        sum: counted.reduce((a, b) => a + b, 0),
+        rising: counted.every((v, i) => i === 0 || v > (counted[i - 1] ?? v)),
+        back: JSON.stringify(down) === JSON.stringify([...up].reverse()),
+        reads: [formatValue(spec, down.at(-1) ?? Number.NaN), top],
+        shipsOnAStop: up.includes(shipped),
+      });
       shell.ctx.nav.back();
       await flush();
     }
-    expect({ count: repeats.length, first: repeats.slice(0, 3) }, "a detent that leaves the reading as it was").toEqual({ count: 0, first: [] });
-    expect(ends, "and every walk reaches the far end").toEqual([
-      "ch.gate Attack ArrowUp 80.00ms", "ch.gate Attack ArrowDown 0.09ms",
-      "ch.gate Hold ArrowUp 2.0s", "ch.gate Hold ArrowDown 0.0ms",
-      "ch.gate Decay ArrowUp 999.0ms", "ch.gate Decay ArrowDown 9.30ms",
-      "ch.comp Attack ArrowUp 80.00ms", "ch.comp Attack ArrowDown 0.09ms",
-      "ch.comp Release ArrowUp 999.0ms", "ch.comp Release ArrowDown 9.30ms",
-      "ch.ducker Attack ArrowUp 80.00ms", "ch.ducker Attack ArrowDown 0.09ms",
-      "ch.ducker Decay ArrowUp 5.0s", "ch.ducker Decay ArrowDown 1.3ms",
-    ]);
-    expect(detents, "a millisecond below a second, and the tenth of a second the reading prints from it").toEqual([
-      "ch.gate Hold 500 -> 501", "ch.gate Hold 1500 -> 1600",
-      "ch.gate Decay 500 -> 501",
-      "ch.comp Release 500 -> 501",
-      "ch.ducker Decay 500 -> 501", "ch.ducker Decay 1500 -> 1600",
-    ]);
-    expect(shifted, "Shift: four of those stops on a time past a second, the time's own fast step on the rest").toEqual([
-      "ch.gate Attack 50 -> 51",
-      "ch.gate Hold 50 -> 54", "ch.gate Hold 1500 -> 1900",
-      "ch.gate Decay 50 -> 60",
-      "ch.comp Attack 50 -> 51",
-      "ch.comp Release 50 -> 60",
-      "ch.ducker Attack 50 -> 51",
-      "ch.ducker Decay 50 -> 54", "ch.ducker Decay 1500 -> 1900",
-    ]);
+    expect(walked, "up from the bottom stop by stop to the top, a detent past it, and back down the same stops").toEqual(
+      TIMES.map((t) => ({ time: `${t.route.id} ${t.label}`, count: t.count, ends: t.ends, sum: t.sum, rising: true, back: true, reads: t.reads, shipsOnAStop: true })),
+    );
     shell.destroy();
   });
 
-  it("runs a drag over a time past a second evenly in milliseconds, onto the same stops", async () => {
+  it("turns each time four of its stops a detent with Shift, and stops at either end", async () => {
+    const { shell, store, bound } = await mount();
+    const shifted: unknown[] = [];
+    for (const t of TIMES) {
+      shell.ctx.nav.push(t.route);
+      await flush();
+      const spec = bound.find((s) => s.label === t.label);
+      if (!spec) throw new Error(`${t.route.id} binds no ${t.label}`);
+      const { press, walk } = control(shell, store, spec);
+      press("Home");
+      const stops = walk("ArrowUp");
+      const last = stops.length - 1;
+      const from = async (i: number, key: string): Promise<number> => {
+        await store.set(spec.path, stops[i] ?? Number.NaN);
+        return stops.indexOf(press(key, true));
+      };
+      shifted.push({
+        time: `${t.route.id} ${t.label}`,
+        up: [await from(0, "ArrowUp"), await from(last - 2, "ArrowUp")],
+        down: [await from(last, "ArrowDown"), await from(2, "ArrowDown")],
+      });
+      shell.ctx.nav.back();
+      await flush();
+    }
+    expect(shifted, "four stops from either end, and to the end from two stops short of it").toEqual(
+      TIMES.map((t) => ({ time: `${t.route.id} ${t.label}`, up: [4, t.count - 1], down: [t.count - 5, 0] })),
+    );
+    shell.destroy();
+  });
+
+  it("runs a drag over a time's stops evenly, counted from 4px off the press", async () => {
     const { shell, store } = await mount();
     const drag = async (selector: string, dx: number, dy: number): Promise<void> => {
       const node = shell.root.querySelector(selector);
@@ -339,24 +367,25 @@ describe("the detents of a time", () => {
       window.dispatchEvent(new MouseEvent("pointerup", { clientX: 100 + dx, clientY: 100 + dy, bubbles: true }));
       await flush();
     };
-    // DUCKER's D grip runs 1.3 ms..5 s in 192px across, counted from 4px off the press.
-    shell.ctx.nav.push({ id: "ch.ducker", strip: "ch1" });
+    // DUCKER's D grip runs its 122 stops in 192px across: 1.0s is the 100th, 4px past the slop is
+    // 4/192 of the 121 steps between the ends (2.5, so 3 stops), 20px is 12.6 stops, and 192px the whole way.
+    shell.ctx.nav.push({ id: "ch.ducker", strip: "ch_5_6" });
     await flush();
-    const decay = (): number => store.num("ch.ch1.ducker.decay", Number.NaN);
+    const decay = (): number => store.num("ch.ch_5_6.ducker.decay", Number.NaN);
     const moved: number[] = [];
-    for (const dx of [4 + 4, 4 + 40, -4 - 4]) {
-      await store.set("ch.ch1.ducker.decay", 1000);
+    for (const [from, dx] of [[1000, 4 + 4], [1000, 4 + 20], [1000, -4 - 4], [1.3, 4 + 192], [1.3, 4 + 191]] as const) {
+      await store.set("ch.ch_5_6.ducker.decay", from);
       await flush();
       await drag('[aria-label^="D handle"]', dx, 0);
       moved.push(decay());
     }
-    expect(moved, "4px and 40px up, and 4px down below a second").toEqual([1100, 2000, 896]);
-    // GATE's Hold box runs 0.02 ms..1.96 s in 192px up, counted from 4px off the press.
+    expect(moved, "4px and 20px up and 4px down from 1.0s, and 192px and 191px up from the bottom").toEqual([1300, 2600, 850, 5000, 4800]);
+    // GATE's Hold box runs its 214 stops in 192px up: 15.30 ms is the 102nd, and 10px is 11.1 stops.
     shell.ctx.nav.replace({ id: "ch.gate", strip: "ch1" });
-    await store.set("ch.ch1.gate.hold", 1500);
+    await store.set("ch.ch1.gate.hold", 15.3);
     await flush();
     await drag('[role="spinbutton"][aria-label="Hold"]', 0, -4 - 10);
-    expect(store.num("ch.ch1.gate.hold", Number.NaN)).toBe(1600);
+    expect(store.num("ch.ch1.gate.hold", Number.NaN)).toBe(23.6);
     shell.destroy();
   });
 });

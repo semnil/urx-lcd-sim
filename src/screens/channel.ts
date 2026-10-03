@@ -8,6 +8,7 @@ import type { DeviceStore, WriteRule } from "../device/store";
 import { clamp } from "../device/store";
 import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, GATE_DEFAULTS, compEqBankDefaults, faderShipped, sendShipsOn, ssmcsBankDefaults } from "../model/defaults";
 import { COMP_KNEE_WIDTH, compResponse, grBarShare, levelBarShare } from "../model/dynamics";
+import { DYNAMICS_TIME_STOPS, type DynamicsTime } from "../model/dynamics-times";
 import { EQ_SHAPES, eqBandOn, eqBandShape, fourBandResponse } from "../model/channel-eq";
 import type { Strip } from "../model/types";
 import { findStrip, sendsTo } from "../model/types";
@@ -16,7 +17,7 @@ import { el, makeTappable, setPressed } from "../ui/dom";
 import { inkOn } from "../ui/color";
 import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
-import { compRatioSpec, dbSpec, faderSpec, freqSpec, intSpec, logFreqSpec, msSpec, panSpec } from "../ui/param-spec";
+import { compRatioSpec, dbSpec, faderSpec, freqSpec, intSpec, logFreqSpec, msSpec, panSpec, stoppedMsSpec } from "../ui/param-spec";
 import { attachDrag, attachSpin, followFocus, knobControl, markFocus, meter, panSlider, pickerSheet, pulldown, setAriaValue, sideTab, toggle, unbuilt, valueBox } from "../ui/widgets";
 import { type GrSpec, type LampState, blockReduction, inputMeterId, markBlockLamps, markClipSafe, markLevelBar, markReduction, meterLevels, showBlockLamps, simulatedInput, simulatedLevel } from "./meters";
 import { type Tap, compSpec, duckerSources, duckerSpec, gateSpec, stripTap, tapId } from "./signal-flow";
@@ -340,6 +341,9 @@ const clampFraction = (v: number): number => Math.min(1, Math.max(0, v));
 const gateThreshold = (b: string): NumericSpec => dbSpec(`${b}.gate.threshold`, "Threshold", -72, 0, GATE_DEFAULTS.threshold, 1, 0);
 const compThreshold = (b: string): NumericSpec => dbSpec(`${b}.comp.threshold`, "Threshold", COMP_THRESHOLD_MIN, 0, COMP_DEFAULTS.threshold, 1, 0);
 const duckerThreshold = (b: string): NumericSpec => dbSpec(`${b}.ducker.threshold`, "Threshold", -60, 0, -40, 1, 0);
+/** One of GATE's, COMP's and DUCKER's times, on its own stops, read to `digits` places under 100 ms. */
+const dynTime = (b: string, time: DynamicsTime, label: string, fallback: number, digits?: number): NumericSpec =>
+  stoppedMsSpec(`${b}.${time}`, label, DYNAMICS_TIME_STOPS[time], fallback, digits);
 const delayTime = (b: string): NumericSpec => ({ ...msSpec(`${b}.delay.ms`, "ms", 1, 1000, 1), step: 0.01, unit: "", boxUnit: "", sweep: DELAY_SWEEP_DEG });
 /** How deep [1-knob] works COMP or EQ, in percent. */
 const oneKnobDepth = (path: string): NumericSpec => intSpec(path, "1-knob", 0, 100, 0, "%");
@@ -1115,9 +1119,9 @@ export const gateScreen: ScreenDef = {
     const b = `ch.${strip.id}`;
     const threshold = gateThreshold(b);
     const range = dbSpec(`${b}.gate.range`, "Range", -73, 0, GATE_DEFAULTS.range, 1, 0);
-    const attack = msSpec(`${b}.gate.attack`, "Attack", 0.092, 80, GATE_DEFAULTS.attack);
-    const hold = msSpec(`${b}.gate.hold`, "Hold", 0.02, 1960, GATE_DEFAULTS.hold, 1, 1);
-    const decay = msSpec(`${b}.gate.decay`, "Decay", 9.3, 999, GATE_DEFAULTS.decay, 1);
+    const attack = dynTime(b, "gate.attack", "Attack", GATE_DEFAULTS.attack);
+    const hold = dynTime(b, "gate.hold", "Hold", GATE_DEFAULTS.hold, 1);
+    const decay = dynTime(b, "gate.decay", "Decay", GATE_DEFAULTS.decay);
     ctx.setKnobs([threshold, range, attack, hold, decay]);
     const on = ctx.store.bool(`${b}.gate.on`, false);
     const t = ctx.store.num(threshold.path, threshold.fallback);
@@ -1177,8 +1181,8 @@ export const compScreen: ScreenDef = {
     // division reads it and does not turn it.
     const autoMakeup = ctx.store.bool(`${b}.comp.autoMakeup`, false);
     const gain = { ...dbSpec(`${b}.comp.gain`, "Gain", 0, 18, COMP_DEFAULTS.gain, 0.5, 1), ...(autoMakeup ? { locked: true } : {}) };
-    const attack = msSpec(`${b}.comp.attack`, "Attack", 0.092, 80, COMP_DEFAULTS.attack);
-    const release = msSpec(`${b}.comp.release`, "Release", 9.3, 999, COMP_DEFAULTS.release, 1);
+    const attack = dynTime(b, "comp.attack", "Attack", COMP_DEFAULTS.attack);
+    const release = dynTime(b, "comp.release", "Release", COMP_DEFAULTS.release);
     // Five parameters over four divisions: the bar carries a step to the rest.
     ctx.setKnobs([threshold, ratio, gain, attack, release]);
 
@@ -1264,8 +1268,8 @@ export const duckerScreen: ScreenDef = {
     const b = `ch.${strip.id}`;
     const threshold = duckerThreshold(b);
     const range = dbSpec(`${b}.ducker.range`, "Range", -70, 0, -24, 1, 0);
-    const attack = msSpec(`${b}.ducker.attack`, "Attack", 0.092, 80, 20.17);
-    const decay = msSpec(`${b}.ducker.decay`, "Decay", 1.3, 5000, 1000, 1, 1);
+    const attack = dynTime(b, "ducker.attack", "Attack", 20.17);
+    const decay = dynTime(b, "ducker.decay", "Decay", 1000, 1);
     ctx.setKnobs([range, attack, decay, threshold]);
     const on = ctx.store.bool(`${b}.ducker.on`, false);
     const rangeDb = ctx.store.num(range.path, range.fallback);

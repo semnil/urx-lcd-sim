@@ -336,8 +336,7 @@ export function scaleSpec(path: ParamPath, label: string, fallback: number): Num
 /**
  * A time in milliseconds. A control whose range runs past a second prints the
  * long end of it in seconds, so the unit is part of what the value prints and
- * the box carries the same short form the unit uses, and its detents step
- * through `secondsTravel`'s stops.
+ * the box carries the same short form the unit uses.
  */
 export function msSpec(
   path: ParamPath,
@@ -362,34 +361,18 @@ export function msSpec(
       long(v) ? (v / MS_IN_SECOND).toFixed(1) : v >= 100 ? v.toFixed(1) : v.toFixed(digits),
     unit: (v) => (long(v) ? "s" : "ms"),
     boxUnit: (v) => (long(v) ? "s" : "m"),
-    ...(seconds ? { travel: secondsTravel(min, max, step) } : {}),
   };
 }
 
 const MS_IN_SECOND = 1000;
 
-/** How far apart a time's stops stand from a second up: the tenth of a second it prints there. */
-const SECONDS_STOP_MS = 100;
-
 /**
- * The stops of a time that runs past a second: `step` apart below a second and
- * SECONDS_STOP_MS apart from it, both ends among them. A drag runs evenly in
- * milliseconds and lands on the stop nearest the pointer.
+ * A time in milliseconds that stops on `stops`, in rising order, from the first
+ * to the last: a detent moves one stop and stops at either end, and a drag runs
+ * evenly over the stops.
  */
-function secondsTravel(min: number, max: number, step: number): Travel {
-  const stops = [min];
-  const add = (v: number): void => {
-    if (v > (stops.at(-1) ?? min) && v < max) stops.push(v);
-  };
-  for (let i = Math.floor(min / step) + 1; i * step < MS_IN_SECOND; i++) add(round(i * step, 6));
-  for (let v = MS_IN_SECOND; v < max; v += SECONDS_STOP_MS) add(v);
-  stops.push(max);
-  const table = stopsTravel(stops);
-  return {
-    position: (v) => clamp01((v - min) / (max - min)),
-    valueAt: (p) => table.step(min + clamp01(p) * (max - min), 0),
-    step: table.step,
-  };
+export function stoppedMsSpec(path: ParamPath, label: string, stops: readonly number[], fallback: number, digits = 2): NumericSpec {
+  return { ...msSpec(path, label, stops[0] ?? 0, stops.at(-1) ?? 0, fallback, undefined, digits), travel: stopsTravel(stops) };
 }
 
 /** The ratios a compressor stops on from 4.00:1 to the top of its travel, the last one ∞. */

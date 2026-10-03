@@ -205,8 +205,7 @@ above 0 (`+14` / `0` / `-8`; the readout bar shows `+14dB`). Faders keep two dec
 Dynamics threshold and range are integer dB (`-33dB` / `-20dB`, p099-1 / p103-1), and makeup gain
 has one decimal place (`18.0dB`). A time is spelled differently for the same value: `34.58m` in the
 panel's value box and `34.58ms` on the readout bar (p099-1 / p103-1). A time that can go past one
-second switches to seconds from 1000 ms (`4.8s`, p114-1), and from there a detent of the arrow keys
-and the wheel is the 0.1 s its reading prints. No space goes before the unit. Frequency
+second switches to seconds from 1000 ms (`4.8s`, p114-1). No space goes before the unit. Frequency
 has one decimal place and switches to kHz from 1 kHz, and a value box that has a caption shows no
 unit (`80.0` and `80.0Hz`, p100-1).
 
@@ -545,6 +544,12 @@ On a stereo-linked pair, what each block's detector hears differs by block (conf
 The settings panels (x250..418 / 36px high / 8px apart) stack up from the bottom of the screen. The
 bottom one is level with the foot of the curve panel: DUCKER has one (Threshold), COMP two (Attack /
 Release), GATE three (Attack / Hold / Decay). Value boxes are 52x22, 7px in from the right edge.
+
+The times stop on the unit's own settings, one a detent of its knob, and go no further at either end
+(URX44V, the operator, 2026-10-03): Attack 0.092..80.00 ms over 227 stops, the same on GATE, COMP and
+DUCKER; GATE's Hold 0.02 ms..1.96 s over 214; GATE's Decay and COMP's Release 9.3..999.0 ms over the
+same 277; and DUCKER's Decay 1.3 ms..5.0 s over 122. A detent of the arrow keys or the wheel moves one
+stop, four with Shift, and a drag runs evenly over the stops.
 
 The handles (G / T / R / A / D) are 32px in diameter (face `--handle-face`, a 3px `--handle-ring`
 rim), pulled in from the left and right ends of the panel by their radius. The handle touched takes the focus,
