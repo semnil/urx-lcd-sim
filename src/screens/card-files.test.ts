@@ -641,12 +641,14 @@ describe("what the card's own actions do to it", () => {
     expect(names(shell)).toEqual(["SUB.urxf", "c.urxf", "mix.urxf"]);
   });
 
-  it("compares the name a [Rename] gives, its extension on, with the folder's files and folders, and not the name typed with a folder's", async () => {
+  it("compares the name a [Rename] gives, its extension on, with the folder's files and folders, and the name typed with its files' alone", async () => {
     const folder = (name: string): CardEntry => ({ name, kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" });
     const shell = await mount({ id: "microsd.saveload" }, [
       folder("Qz"),
       folder("fold.urxf"),
+      folder("zz.urxf"),
       { name: "b.urxf", kind: "data", seconds: 0, tracks: 0, stamp: "", dir: "/" },
+      { name: "mix.urxf", kind: "data", seconds: 0, tracks: 0, stamp: "", dir: "/" },
       { name: "take.wav", kind: "take", seconds: 10, tracks: 2, stamp: "", dir: "/" },
     ]);
     const store = shell.ctx.store;
@@ -667,11 +669,14 @@ describe("what the card's own actions do to it", () => {
       return [said, field];
     };
     expect(await rename("b.urxf", "Fold"), "onto the folder fold.urxf in other case: said, and [OK] back on the sheet as it was typed").toEqual(["File already exists.", "Fold"]);
+    expect(await rename("b.urxf", "mix.urxf"), "typed as the file mix.urxf is named").toEqual(["File already exists.", "mix.urxf"]);
     expect(readCard(store), "nothing renamed").toEqual(before);
 
     expect(await rename("b.urxf", "qz"), "beside the folder Qz").toEqual([null, null]);
     expect(await rename("qz.urxf", "take"), "beside the take take.wav").toEqual([null, null]);
-    expect(names(shell)).toEqual(["fold.urxf", "Qz", "take.urxf", "take.wav"]);
+    expect(names(shell)).toEqual(["fold.urxf", "Qz", "zz.urxf", "mix.urxf", "take.urxf", "take.wav"]);
+    expect(await rename("take.urxf", "zz.urxf"), "typed as the folder zz.urxf is named").toEqual([null, null]);
+    expect(names(shell), "the extension on whatever is typed").toEqual(["fold.urxf", "Qz", "zz.urxf", "mix.urxf", "take.wav", "zz.urxf.urxf"]);
   });
 
   it("renames a file onto its own name in other case", async () => {

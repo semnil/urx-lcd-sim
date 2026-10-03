@@ -1672,7 +1672,9 @@ entry's in case alone is refused the same way (a file's name on SAVE/LOAD, URX44
 2026-10-04). The name is
 compared as it will stand, its extension on: a settings file renamed `qz` beside the folder `Qz` becomes `qz.urxf`, one
 renamed `take` beside `take.wav` becomes `take.urxf`, and one renamed `Fold` beside the folder `fold.urxf` is refused
-(URX44V, the operator, 2026-10-04). A file renamed onto its own name in other case takes it (a settings
+(URX44V, the operator, 2026-10-04). The extension goes on whatever is typed, so `new.urxf` typed becomes `new.urxf.urxf`,
+and so does `zz.urxf` typed beside the folder `zz.urxf`; a name typed as a file of the folder is named is refused as well,
+`mix.urxf` typed beside `mix.urxf` (URX44V, the operator, 2026-10-04). A file renamed onto its own name in other case takes it (a settings
 file, URX44V, the operator, 2026-10-03). [New folder] under a name the folder already carries, a folder's or a file's, spelt the same or
 in other case, brings up `Directory already exists.` with the i mark and [OK] alone and makes nothing, and [OK] goes
 back to the name sheet, as the unit does (a file's name spelt the same and in other case, and a folder's in other case,
