@@ -1696,7 +1696,8 @@ At the end of the file playback lets the file go, as [■] does: the triangle le
 button and the microSD top's [Save/Load] and [Tools] come back in reach, as the unit does (URX44V, the operator,
 2026-10-03), as do the microSD top's card-eject button and [USB Storage Mode] (2026-10-04). The Play tab shows what it
 showed before the file played, the counter and the bar gone, and the cursor stays where it stood: on the unit, standing
-on the file that played, it stayed there, after a visit to the microSD top as well (2026-10-04).
+on the file that played, it stayed there, after a visit to the microSD top as well, and taken to a folder while the file
+played, it stayed on the folder (2026-10-04).
 
 ## The SCENE LIST list
 

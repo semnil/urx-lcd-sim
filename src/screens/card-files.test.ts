@@ -341,16 +341,17 @@ describe("playing a file back", () => {
     vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
     try {
       const shell = await mount({ id: "microsd.recorder" }, [
+        { name: "f", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" },
         { name: "long.wav", kind: "take", seconds: 30, tracks: 2, stamp: "", dir: "/" },
         { name: "short.wav", kind: "take", seconds: 2, tracks: 2, stamp: "", dir: "/" },
       ]);
       const store = shell.ctx.store;
-      await store.set("sd.selectedFile", 1);
+      await store.set("sd.selectedFile", 2);
       const stop = startRecorderClock(store, shell.root, 50);
-      startPlayback(store, 1, Date.now() - 1_000);
+      startPlayback(store, 2, Date.now() - 1_000);
       vi.advanceTimersByTime(60);
       expect(store.bool("sd.playing", false), "a second in, still playing").toBe(true);
-      startPlayback(store, 1, Date.now() - 5_000);
+      startPlayback(store, 2, Date.now() - 5_000);
       vi.advanceTimersByTime(60);
       expect(
         [store.bool("sd.playing", true), playedSeconds(store), store.num("sd.playingFile", -1)],
@@ -367,7 +368,18 @@ describe("playing a file back", () => {
       ]);
       shell.ctx.nav.push({ id: "microsd.recorder" });
       await flush();
-      expect(store.num("sd.selectedFile", -1), "the cursor on the file that played, after a visit to the top").toBe(1);
+      expect(store.num("sd.selectedFile", -1), "the cursor on the file that played, after a visit to the top").toBe(2);
+
+      // Played again, with the cursor taken to the folder by a touch while the file plays.
+      await store.set("ui.sdTab", "Play");
+      startPlayback(store, 2, Date.now() - 1_000);
+      await flush();
+      shell.root.querySelectorAll(".sd-list .list-row")[0]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flush();
+      expect([store.num("sd.selectedFile", -1), store.str("sd.path", "/"), store.bool("sd.playing", false)], "the folder under the cursor, shut, the file playing").toEqual([0, "/", true]);
+      startPlayback(store, 2, Date.now() - 5_000);
+      vi.advanceTimersByTime(60);
+      expect([store.num("sd.playingFile", -1), store.num("sd.selectedFile", -1)], "past its end: the file let go, the cursor on the folder").toEqual([-1, 0]);
       stop();
     } finally {
       vi.useRealTimers();
