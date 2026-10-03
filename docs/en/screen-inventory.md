@@ -367,6 +367,13 @@ physical knobs here, so a cell holding a value is itself the knob (drag, wheel, 
 cell turns nothing. USER DEFINED KNOBS mode is the same: a cell with an assignment turns that parameter,
 and a `---` cell turns nothing. 1-knob does not stop USER DEFINED KNOBS mode: on every screen, with 1-knob
 on or off, a cell with an assignment turns that parameter, as on the unit.
+The unit's knob turns EQ's, COMP's and SSMCS's gains 1.0 dB a detent, and turns finer while it is pushed
+in as it turns, 0.1 dB a detent (URX44V, the operator, 2026-10-03: a detent on CH 1's four EQ bands,
+STEREO's EQ LOW, CH 1's COMP and CH 2's SSMCS SC, Low, Mid, High and Out Gain; pushed in on CH 1's EQ LOW
+and COMP and CH 2's SSMCS Low and Out Gain). Here a detent turns EQ's, COMP's and SSMCS's gains 1.0 dB and
+a detent with Shift 0.1 dB, from a cell, a value box, an EQ grip or a plot handle, and a drag stops on the
+tenths. The channel view's knobs do not push in (URX44V, the operator, 2026-10-03), and the channel view's
+values turn the same detent with Shift as without it.
 
 There are four cells, so when a screen passes five or more parameters they are shown four at a time,
 and `‹` / `›` appears at the end of the label band on the side where more follow (COMP in p099-1).
@@ -956,7 +963,7 @@ frame the EQ screen uses, and the bands are the three L, M and H. LOW and HIGH a
 bell. Dragging a handle moves its frequency across the graph and its gain up it (c under the SSMCS EQ screen in
 the user guide).
 
-The ranges: Comp Drive 0.00..10.00 in steps of 0.05, Morphing 0..120, Out Gain ±18.0 dB in 0.1,
+The ranges: Comp Drive 0.00..10.00 in steps of 0.05, Morphing 0..120, Out Gain ±18.0 dB in 0.1 (1.0 a detent),
 Ratio 1.00:1..INF:1 (sixty stops of 0.05 from 1.00:1 to 4.00:1; from there 4.00..4.90 in 0.1, 5.00..6.80 in 0.2, 7.00..9.50 in 0.5,
 10.0..20.0 in 1 and 22.0..38.0 in 2, then 40.0, 45.0, 50.0, 55.0, 60.0, 65.0, 70.0, 80.0, 90.0, 100, 150, 200, 300,
 500 and INF; every stop URX44V, the operator, 2026-09-22 and 23; read to three figures: two places under 10, one under

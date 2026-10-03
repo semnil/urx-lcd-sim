@@ -25,7 +25,7 @@ import { type SsmcsBand, ssmcsBand, ssmcsEqResponse } from "../model/channel-eq"
 import { el, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
-import { compRatioSpec, dbSpec, freqSpec, round, steps, stopsTravel } from "../ui/param-spec";
+import { compRatioSpec, fineGainSpec, freqSpec, round, steps, stopsTravel } from "../ui/param-spec";
 import { attachDrag, knobControl, markFocus, meter, pickerGrid, pickerSheet, pulldown, toggle, valueBox } from "../ui/widgets";
 import {
   NS,
@@ -55,8 +55,6 @@ import type { ScreenBody, ScreenDef } from "./types";
 const DRIVE_STOPS = steps(201, (i) => round(i / 20, 2));
 /** The Sweet Spot Data's own scale: one stop per point between its five settings. */
 const MORPHING_STOPS = steps(121, (i) => i);
-/** Every gain the strip sets — a band's, the side chain's and the strip's own output. */
-const GAIN_STOPS = steps(361, (i) => round(-18 + i / 10, 1));
 /** The bell's width, from wide open to its narrowest. */
 const Q_STOPS = steps(61, (i) => round(0.5 * 32 ** (i / 60), 2));
 /** A twelfth of an octave a stop, 20 Hz to 20 kHz. */
@@ -149,10 +147,8 @@ const morphingSpec = (b: string): NumericSpec =>
     (v) => String(Math.round(v)),
   );
 
-const gainSpec = (path: string, label: string, fallback: number): NumericSpec => ({
-  ...dbSpec(path, label, -18, 18, fallback, 0.1, 1),
-  travel: stopsTravel(GAIN_STOPS),
-});
+/** Every gain the strip sets — a band's, the side chain's and the strip's own output. */
+const gainSpec = (path: string, label: string, fallback: number): NumericSpec => fineGainSpec(path, label, -18, 18, fallback);
 
 const qSpec = (path: string, label: string, fallback: number): NumericSpec =>
   spec(

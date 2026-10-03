@@ -502,6 +502,128 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     expect([comp.store.num("ch.ch1.insFx.gain", NaN), control(comp.shell, "Gain").getAttribute("aria-valuenow")], "three down").toEqual([-0.3, "-0.3"]);
   });
 
+  /**
+   * The gains the unit's knob turns 1 dB a detent, and 0.1 dB a detent while it is pushed in as it turns (URX44V, the
+   * operator, 2026-10-03): each EQ band's on a channel, a MIX bus and STEREO, COMP's, and SSMCS's side chain's, bands'
+   * and output's. `setup` puts the screen on the value.
+   */
+  const FINE_GAINS: { route: Route; setup: [string, string][]; label: string; path: string; range: [number, number] }[] = [
+    ...["ch1", "bus.mix1", "bus.stereo"].flatMap((strip) =>
+      [["low", "LOW"], ["lowMid", "L-MID"], ["highMid", "H-MID"], ["high", "HIGH"]].map(([key, box]) => ({
+        route: { id: "ch.eq", strip },
+        setup: [["ui.eqBand", key ?? ""]] as [string, string][],
+        label: `${box} Gain`,
+        path: `ch.${strip}.eq.${key}.gain`,
+        range: [-18, 18] as [number, number],
+      })),
+    ),
+    { route: { id: "ch.comp", strip: "ch1" }, setup: [], label: "Gain", path: "ch.ch1.comp.gain", range: [0, 18] },
+    { route: { id: "ch.ssmcs.sc", strip: "ch1" }, setup: [["ch.ch1.compEqOrder", "SSMCS"]], label: "SC-Gain", path: "ch.ch1.ssmcs.sc.gain", range: [-18, 18] },
+    ...[["low", "Low"], ["mid", "Mid"], ["high", "High"]].map(([key, label]) => ({
+      route: { id: "ch.ssmcs.eq", strip: "ch1" },
+      setup: [["ch.ch1.compEqOrder", "SSMCS"], ["ui.ssmcsBand", key ?? ""]] as [string, string][],
+      label: `${label} Gain`,
+      path: `ch.ch1.ssmcs.eq.${key}.gain`,
+      range: [-18, 18] as [number, number],
+    })),
+    { route: { id: "ch.ssmcs", strip: "ch1" }, setup: [["ch.ch1.compEqOrder", "SSMCS"]], label: "Out Gain", path: "ch.ch1.ssmcs.outGain", range: [-18, 18] },
+  ];
+
+  /** The screen `gain` is set on, and the first control on it that names the gain. */
+  async function onGain(gain: (typeof FINE_GAINS)[number]): Promise<{ shell: Shell; store: DeviceStore; node: () => HTMLElement }> {
+    const { shell, store } = await mount();
+    for (const [path, value] of gain.setup) await store.set(path, value);
+    await open(shell, gain.route);
+    const node = (): HTMLElement => {
+      const found = turnables(shell.root).find((n) => n.getAttribute("aria-label") === gain.label);
+      if (!found) throw new Error(`${gain.route.id} draws no ${gain.label}`);
+      return found;
+    };
+    return { shell, store, node };
+  }
+
+  it("turns EQ's, COMP's and SSMCS's gains 1 dB a detent and 0.1 dB with Shift, as the unit's knob turns them and turns them pushed in", async () => {
+    const turned: unknown[] = [];
+    for (const g of FINE_GAINS) {
+      const { shell, store, node } = await onGain(g);
+      const value = (): number => store.num(g.path, NaN);
+      const key = async (k: string, shiftKey = false): Promise<number> => {
+        node().dispatchEvent(new KeyboardEvent("keydown", { key: k, shiftKey, bubbles: true, cancelable: true }));
+        await flush();
+        return value();
+      };
+      const wheel = async (deltaY: number, shiftKey = false): Promise<number> => {
+        node().dispatchEvent(new WheelEvent("wheel", { deltaY, shiftKey, bubbles: true, cancelable: true }));
+        await flush();
+        return value();
+      };
+      const from = async (v: number): Promise<void> => {
+        await store.set(g.path, v);
+        await flush();
+      };
+      const [min, max] = g.range;
+      // A gain between two whole dB, as an earlier version stopped EQ and COMP on 0.5 dB and SSMCS on 0.1 dB, keeps its
+      // tenths.
+      await from(0.5);
+      const keys = [await key("ArrowUp"), await key("ArrowUp", true), await key("ArrowDown", true), await key("ArrowDown")];
+      await from(0.3);
+      const wheels = [await wheel(-100, true), await wheel(-100), await wheel(100, true), await wheel(100)];
+      await from(max - 0.5);
+      const top = [await key("ArrowUp"), await key("ArrowUp", true)];
+      await from(min + 0.5);
+      const bottom = [await key("ArrowDown"), await key("ArrowDown", true)];
+      turned.push({ gain: g.path, keys, wheels, top, bottom });
+      shell.destroy();
+    }
+    expect(turned, "a detent up, one with Shift up and down, and one down; the wheel the same way; and none past either end").toEqual(
+      FINE_GAINS.map((g) => ({ gain: g.path, keys: [1.5, 1.6, 1.5, 0.5], wheels: [0.4, 1.4, 1.3, 0.3], top: [g.range[1], g.range[1]], bottom: [g.range[0], g.range[0]] })),
+    );
+  });
+
+  it("reaches every gain the unit's knob does, by a detent, a detent with Shift and a drag", async () => {
+    const reached: unknown[] = [];
+    for (const g of FINE_GAINS.filter((x) => ["ch.ch1.eq.low.gain", "ch.ch1.comp.gain", "ch.ch1.ssmcs.outGain"].includes(x.path))) {
+      const { shell, store, node } = await onGain(g);
+      const value = (): number => store.num(g.path, NaN);
+      const control = node();
+      const press = (key: string, shiftKey = false): number => {
+        control.dispatchEvent(new KeyboardEvent("keydown", { key, shiftKey, bubbles: true, cancelable: true }));
+        return value();
+      };
+      /** Every value from where it stands, one detent at a time, until a detent leaves the value where it is. */
+      const walk = (key: string, shiftKey: boolean): number[] => {
+        const seen = [value()];
+        for (let n = 0; n < 1000; n++) {
+          if (press(key, shiftKey) === seen.at(-1)) break;
+          seen.push(value());
+        }
+        return seen;
+      };
+      press("Home");
+      const fine = walk("ArrowUp", true);
+      const whole = walk("ArrowDown", false);
+      // 10 px past the slop is 10/192 of the range.
+      await store.set(g.path, 0);
+      await flush();
+      node().dispatchEvent(new MouseEvent("pointerdown", { clientY: 200, bubbles: true }));
+      window.dispatchEvent(new MouseEvent("pointermove", { clientY: 186 }));
+      window.dispatchEvent(new MouseEvent("pointerup", {}));
+      await flush();
+      reached.push({
+        gain: g.path,
+        fine: [fine.length, fine[0], fine.at(-1), fine.every((v, i) => i === 0 || Number((v - (fine[i - 1] ?? v)).toFixed(6)) === 0.1)],
+        whole: [whole.length, whole[0], whole.at(-1), whole.every(Number.isInteger)],
+        dragged: value(),
+      });
+      shell.destroy();
+    }
+    expect(reached, "every tenth of a dB by Shift, every whole dB without it, and a drag on the tenths").toEqual([
+      { gain: "ch.ch1.eq.low.gain", fine: [361, -18, 18, true], whole: [37, 18, -18, true], dragged: 1.9 },
+      { gain: "ch.ch1.comp.gain", fine: [181, 0, 18, true], whole: [19, 18, 0, true], dragged: 0.9 },
+      { gain: "ch.ch1.ssmcs.outGain", fine: [361, -18, 18, true], whole: [37, 18, -18, true], dragged: 1.9 },
+    ]);
+  });
+
   it("turns the user-defined knobs whether 1-knob is on or off, while 1-knob keeps the screen's focus", async () => {
     const screens = [
       { name: "CH 1's EQ", route: { id: "ch.eq", strip: "ch1" }, oneKnob: "ch.ch1.eq.oneKnob.on", setup: [] },
@@ -841,22 +963,28 @@ describe("every knob-bound parameter is reachable on the glass", () => {
 
   // FX 2 ships Mono Delay, whose delay turns 5 ms a detent, and STREAMING's channel view turns its DELAY block's
   // time: the channel view's knobs do not push in (URX44V, the operator, 2026-10-03).
-  it.each([...STRIPS, "fx2", "bus.stream"])("turns a value a detent with Shift as without it (%s)", async (strip) => {
+  it.each([...STRIPS, "fx2", "bus.stream"])("turns a value a detent with Shift as without it, and a gain the knob turns finer pushed in by a finer one (%s)", async (strip) => {
     // The DELAY screen's cells turn their time by a step of their own with Shift.
     const ownShift = (move: string): boolean => move.startsWith("ch.delay ");
+    // EQ's, COMP's and SSMCS's gains, which Shift turns 0.1 dB where a detent turns 1 dB.
+    const finer = (move: string): boolean => /\.(eq\.\w+|comp|ssmcs\.sc)\.gain |\.ssmcs\.outGain /.test(move);
     const registry = buildRegistry();
     const differ: string[] = [];
+    const same: string[] = [];
     let turned = 0;
     for (const id of registry.ids()) {
       const plain = await detents(id, strip, false);
       const shifted = await detents(id, strip, true);
       turned += plain.filter((m) => !m.endsWith(": nothing")).length;
       plain.forEach((m, i) => {
-        if (m !== shifted[i] && !ownShift(m)) differ.push(`${m} | with Shift ${shifted[i] ?? "no control"}`);
+        if (finer(m)) {
+          if (m === shifted[i]) same.push(m);
+        } else if (m !== shifted[i] && !ownShift(m)) differ.push(`${m} | with Shift ${shifted[i] ?? "no control"}`);
       });
     }
     expect(turned, "the sweep turned values").toBeGreaterThan(30);
     expect(differ).toEqual([]);
+    expect(same, "a gain that Shift turns as without it").toEqual([]);
   });
 
   it("reads a ratio of INF out as the top of its travel in numbers, and names it INF", async () => {

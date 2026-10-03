@@ -166,8 +166,9 @@ down on is the one it is let go on (`makeTappable`). Value boxes are `role="spin
 and HOME's level readouts are `role="slider"`; both move by drag, wheel or arrow keys (`attachSpin`
 takes drag, wheel and arrow keys in one place). A drag moves the value not at all over its first 4px and
 covers the whole range by 196px from where it is pressed (1/5 of that with Shift), and the wheel and arrow
-keys move one detent (with Shift, the value's `fastStep` where it has one, and the same detent where it has
-none); Home and End take the value to
+keys move one detent (with Shift, the finer `fastStep` of a value the unit's knob turns finer while it is
+pushed in as it turns, such as EQ's, COMP's and SSMCS's gains, and the same detent on any other value); Home
+and End take the value to
 either end of its range. These keys held with Alt, Cmd or Ctrl are left to the browser. Dialogs have a
 focus trap and cancel on Escape. Meter animation stops under `prefers-reduced-motion`.
 

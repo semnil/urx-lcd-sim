@@ -17,7 +17,7 @@ import { el, makeTappable, setPressed } from "../ui/dom";
 import { inkOn } from "../ui/color";
 import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
-import { compRatioSpec, dbSpec, faderSpec, freqSpec, intSpec, logFreqSpec, msSpec, panSpec, stoppedMsSpec } from "../ui/param-spec";
+import { compRatioSpec, dbSpec, faderSpec, fineGainSpec, freqSpec, intSpec, logFreqSpec, msSpec, panSpec, stoppedMsSpec } from "../ui/param-spec";
 import { attachDrag, attachSpin, followFocus, knobControl, markFocus, meter, panSlider, pickerSheet, pulldown, setAriaValue, sideTab, toggle, unbuilt, valueBox } from "../ui/widgets";
 import { type GrSpec, type LampState, blockReduction, inputMeterId, markBlockLamps, markClipSafe, markLevelBar, markReduction, meterLevels, showBlockLamps, simulatedInput, simulatedLevel } from "./meters";
 import { type Tap, compSpec, duckerSources, duckerSpec, gateSpec, stripTap, tapId } from "./signal-flow";
@@ -1180,7 +1180,7 @@ export const compScreen: ScreenDef = {
     // The unit works the makeup gain out itself while Auto Makeup is on, so the
     // division reads it and does not turn it.
     const autoMakeup = ctx.store.bool(`${b}.comp.autoMakeup`, false);
-    const gain = { ...dbSpec(`${b}.comp.gain`, "Gain", 0, 18, COMP_DEFAULTS.gain, 0.5, 1), ...(autoMakeup ? { locked: true } : {}) };
+    const gain = { ...fineGainSpec(`${b}.comp.gain`, "Gain", 0, 18, COMP_DEFAULTS.gain), ...(autoMakeup ? { locked: true } : {}) };
     const attack = dynTime(b, "comp.attack", "Attack", COMP_DEFAULTS.attack);
     const release = dynTime(b, "comp.release", "Release", COMP_DEFAULTS.release);
     // Five parameters over four divisions: the bar carries a step to the rest.
@@ -1640,7 +1640,7 @@ function eqBandSpecs(base: string, band: (typeof EQ_BANDS)[number]): NumericSpec
   return [
     { ...intSpec(`${base}.eq.${band.key}.q`, `${band.box} Q`, 0.5, 16, 0.71), format: (v: number) => v.toFixed(2), step: 0.1 },
     logFreqSpec(`${base}.eq.${band.key}.freq`, `${band.box} Freq.`, EQ_HZ_MIN, EQ_HZ_MAX, 1000),
-    { ...dbSpec(`${base}.eq.${band.key}.gain`, `${band.box} Gain`, -18, 18, 0, 0.5), format: (v: number) => v.toFixed(1) },
+    { ...fineGainSpec(`${base}.eq.${band.key}.gain`, `${band.box} Gain`, -18, 18, 0), format: (v: number) => v.toFixed(1) },
   ];
 }
 

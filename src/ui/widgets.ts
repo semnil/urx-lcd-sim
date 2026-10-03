@@ -554,9 +554,13 @@ function putValue(ctx: AppContext, spec: NumericSpec, v: number): void {
   void ctx.store.set(spec.path, clamp(v, spec.min, spec.max));
 }
 
-/** `v` on the nearest of `spec`'s steps, where a drag, the wheel and the keys all leave a value. */
+/**
+ * `v` on the nearest of `spec`'s steps, the finer of `step` and `fastStep`, where a drag, the wheel and the keys all
+ * leave a value.
+ */
 function onStep(spec: NumericSpec, v: number): number {
-  return Number((Math.round(v / spec.step) * spec.step).toFixed(6));
+  const step = Math.min(spec.step, spec.fastStep ?? spec.step);
+  return Number((Math.round(v / step) * step).toFixed(6));
 }
 
 /**

@@ -15,7 +15,10 @@ export interface NumericSpec {
   max: number;
   /** Value change for one encoder detent. */
   step: number;
-  /** The step a detent moves while Shift is held. A value without one moves the same step with Shift as without it. */
+  /**
+   * The step a detent moves while Shift is held, where the unit's knob turns the value finer while it is pushed in
+   * as it turns. A value without one moves the same step with Shift as without it.
+   */
   fastStep?: number;
   fallback: number;
   format(value: number): string;
@@ -240,6 +243,14 @@ export function dbSpec(
 /** The head amp of an input channel: whole dB, and the unit prints the sign. Its mark follows `marks`. */
 export function gainSpec(path: ParamPath, label: string, min: number, max: number, fallback: number, marks: readonly Mark[]): NumericSpec {
   return { ...dbSpec(path, label, min, max, fallback, 1), format: formatGain, markAt: markedDial(marks) };
+}
+
+/**
+ * A gain the unit's knob turns 1 dB a detent, and 0.1 dB a detent while it is pushed in as it turns: EQ's, COMP's
+ * and SSMCS's. Shift turns the finer step, and the value stands on the tenths.
+ */
+export function fineGainSpec(path: ParamPath, label: string, min: number, max: number, fallback: number): NumericSpec {
+  return { ...dbSpec(path, label, min, max, fallback, 1, 1), fastStep: 0.1 };
 }
 
 /**
