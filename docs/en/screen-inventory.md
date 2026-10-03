@@ -1578,7 +1578,8 @@ that face too, as the unit does, and does not open the SAMPLING FREQUENCY screen
 While playback holds a file, playing or paused, the microSD icon on the HOME and channel view toolbars carries a
 triangle of `--transport-play` pointing right where recording mode puts its dot (d under "Toolbar" in the user guide;
 paused as well as playing, URX44V, the operator, 2026-10-03). The triangle stands on the dot's rows and is as tall, 14px
-(y22..35), and 10px wide 3px in from the dot's left (x367..376). It goes once [■] lets the file go.
+(y22..35), and 10px wide 3px in from the dot's left (x367..376). It goes once the file is let go, by [■] or at the
+end of the file ("What is on the card").
 
 TOOLS carries the card-eject button on its toolbar as well (p087-1). [Format microSD] on the Format tab opens the
 same keyboard screen the title entry uses, under the title `Volume Label`, with the card's volume label in the
@@ -1609,7 +1610,7 @@ the plain face with its mark greyed, as [↑] does, and a touch on it does nothi
 folder on the Play tab only brings the cursor to it and does not open it, [↑] on the path field takes the face of a
 button that cannot be used and does nothing when pressed (playing and paused, URX44V, the operator, 2026-10-03), and
 the Record and Edit tabs take the face of a tab that cannot be used and do nothing when pressed, as the unit does. [■]
-lets the file go, and they come back.
+lets the file go, as the end of the file does, and they come back.
 
 While playback holds a file, playing or paused, the card-eject button cannot be used (a dimmed face in p081-1, the
 plain face in p083-1; paused on RECORDER's Play tab as well, URX44V, the operator, 2026-10-03). On the microSD top,
@@ -1684,7 +1685,9 @@ cursor. A settings file carries every value but the screen's own state (`ui.`) a
 the file holds nothing under comes back empty.
 
 A playback runs against the take's length, writing the counter and the bar in place once a second.
-At the end of the file the counter goes back to the start and stops there, the file still held.
+At the end of the file playback lets the file go, as [■] does: the triangle leaves the microSD icon, and the card-eject
+button and the microSD top's [Save/Load] and [Tools] come back in reach, as the unit does (URX44V, the operator,
+2026-10-03).
 
 ## The SCENE LIST list
 

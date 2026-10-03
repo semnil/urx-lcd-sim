@@ -146,19 +146,12 @@ export function pausePlayback(store: DeviceStore, now = Date.now()): void {
   void store.set("sd.playing", false);
 }
 
-/** The end of the file: the counter goes back to the start, the file still held. */
-export function rewindPlayback(store: DeviceStore): void {
-  void store.set("sd.playing", false);
-  void store.set("sd.playSeconds", 0);
-  void store.set("sd.playSince", 0);
-}
-
 /** A change of the unit's sampling frequency lets go of the file playback holds. */
 export function releaseOnRateChange(store: DeviceStore, before: number, after: number): void {
   if (before !== after) stopPlayback(store);
 }
 
-/** [■] on the file playback holds: it lets the file go and the counter clears. */
+/** [■] on the file playback holds, or the file played to its end: it lets the file go and the counter clears. */
 export function stopPlayback(store: DeviceStore): void {
   void store.set("sd.playing", false);
   void store.set("sd.playingFile", -1);
@@ -170,7 +163,7 @@ export function stopPlayback(store: DeviceStore): void {
  * Keep the counters on the page at the running time of the take and of the file
  * playing, in place rather than by repainting the screen once a second. The
  * take recording stops, saying nothing, at the moment it fills the room the
- * card has, and the file playing stops at its end.
+ * card has, and the file playing stops and is let go at its end.
  */
 export function startRecorderClock(store: DeviceStore, root: HTMLElement, intervalMs = 100): () => void {
   const id = window.setInterval(() => {
@@ -184,9 +177,8 @@ export function startRecorderClock(store: DeviceStore, root: HTMLElement, interv
     write("[data-rec-clock]", formatClock(takeSeconds(store)));
 
     const length = readCard(store)[store.num("sd.playingFile", -1)]?.seconds ?? 0;
-    // At the end of the file the counter goes back to the start, and the file
-    // playback holds stays held.
-    if (store.bool("sd.playing", false) && playedSeconds(store) >= length) rewindPlayback(store);
+    // At the end of the file playback lets the file go, as [■] does.
+    if (store.bool("sd.playing", false) && playedSeconds(store) >= length) stopPlayback(store);
     const played = Math.min(playedSeconds(store), length);
     write("[data-play-clock]", holdsFile(store) ? formatClock(played) : "");
     const share = length > 0 ? Math.min(1, played / length) : 0;

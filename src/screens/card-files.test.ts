@@ -337,7 +337,7 @@ describe("playing a file back", () => {
     expect(times.map(([p]) => store.num(p, 0)), "each on its nearest stop, and the SSMCS strip's Attack as the file holds it").toEqual([16, 34.58, 1000, 4.124]);
   });
 
-  it("stops at the end of the file", async () => {
+  it("stops at the end of the file and lets it go", async () => {
     vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
     try {
       const shell = await mount({ id: "microsd.recorder" }, [
@@ -352,8 +352,8 @@ describe("playing a file back", () => {
       vi.advanceTimersByTime(60);
       expect(
         [store.bool("sd.playing", true), playedSeconds(store), store.num("sd.playingFile", -1)],
-        "past its end: stopped at the start of the file, still holding it",
-      ).toEqual([false, 0, 0]);
+        "past its end: stopped, the counter cleared, the file let go",
+      ).toEqual([false, 0, -1]);
       stop();
     } finally {
       vi.useRealTimers();

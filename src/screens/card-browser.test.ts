@@ -13,7 +13,7 @@ import { filePath, formatFree, freeBytes, readCard, writeCard } from "../model/c
 import { levelBarShare } from "../model/dynamics";
 import { SILENT_DB } from "../model/signal";
 import { digitalGainPath } from "../model/source-gain";
-import { pausePlayback, startPlayback, stopPlayback } from "./recording";
+import { pausePlayback, startPlayback, startRecorderClock, stopPlayback } from "./recording";
 
 // RECORDER's Play and Edit tabs and both SAVE/LOAD tabs show what is on the
 // card, as rows of the same list the SCENE screen uses.
@@ -640,6 +640,56 @@ describe("the microSD card browser", () => {
     menu("Save/Load")?.click();
     await flush();
     expect(shell.ctx.nav.current.id, "Save/Load opens once more").toBe("microsd.saveload");
+  });
+
+  it("lets go of the file playback holds once it has played to its end, as [■] does: the triangle leaves the microSD icon, and the card-eject button and the microSD top's Save/Load and Tools come back in reach", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    const shell = await mount({ id: "microsd" });
+    const stop = startRecorderClock(shell.ctx.store, shell.root, 50);
+    try {
+      const store = shell.ctx.store;
+      const press = async (label: string): Promise<void> => {
+        [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === label)?.click();
+        await flush();
+      };
+      const shut = (node: HTMLElement | null | undefined): [boolean | undefined, string | null | undefined] => [node?.classList.contains("is-disabled"), node?.getAttribute("aria-disabled")];
+      const menu = (name: string): HTMLElement | undefined => [...shell.root.querySelectorAll<HTMLElement>(".menu-btn")].find((b) => b.textContent === name);
+      // The eject button on RECORDER's toolbar, Save/Load and Tools on the
+      // microSD top, and the microSD icon on HOME's toolbar, back on RECORDER after.
+      const reach = async (): Promise<unknown[]> => {
+        const eject = shut(shell.root.querySelector<HTMLElement>(".toolbar .sd-eject"));
+        shell.ctx.nav.back();
+        await flush();
+        const top = [shut(menu("Save/Load")), shut(menu("Tools"))];
+        shell.ctx.nav.home();
+        await flush();
+        const icon = shell.root.querySelector<HTMLElement>('.toolbar-icons .icon-btn[aria-label^="microSD"]');
+        const seen = [store.num("sd.playingFile", -1), eject, ...top, icon?.getAttribute("aria-label"), icon?.querySelector(".play-mark") != null];
+        shell.ctx.nav.openTop({ id: "microsd" });
+        shell.ctx.nav.push({ id: "microsd.recorder" });
+        await flush();
+        return seen;
+      };
+
+      shell.ctx.nav.push({ id: "microsd.recorder" });
+      await pickTab(shell, "ui.sdTab", "Play");
+      rows(shell).find((r) => cellsOf(r)[1] === "20251020_112323.wav")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flush();
+      await press("Play/Pause");
+      vi.advanceTimersByTime(60);
+      await flush();
+      expect(await reach(), "the control: ten seconds of file, playing").toEqual([1, [true, "true"], [true, "true"], [true, "true"], "microSD, playing", true]);
+
+      // The file has run past its ten seconds.
+      await store.set("sd.playSince", Date.now() - 11_000);
+      vi.advanceTimersByTime(60);
+      await flush();
+      expect([store.bool("sd.playing", true), store.num("sd.playSeconds", -1)], "stopped, the counter cleared").toEqual([false, 0]);
+      expect(await reach(), "played to its end").toEqual([-1, [false, null], [false, null], [false, null], "microSD", false]);
+    } finally {
+      stop();
+      vi.useRealTimers();
+    }
   });
 
   it("marks a file of four tracks or more by its count on Edit and leaves it off Play, the speaker marking the file played or paused and the audio mark any other", async () => {
