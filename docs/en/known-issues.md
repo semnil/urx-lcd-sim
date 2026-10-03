@@ -82,11 +82,12 @@ is built is in [screen-inventory.md](screen-inventory.md).
 
 What the unit lacks, this simulator lacks as well.
 
-- **Summer time.** The unit's clock shows the standard time of the [Time Zone] city all year and does
+- **Summer time, and the 12-hour clock on SAVE/LOAD's list.**
+  The unit's clock shows the standard time of the [Time Zone] city all year and does
   not switch to summer time (21:15 in Tokyo reads 12:15 in London in September, confirmed on the
   unit). The simulator shows the same standard time, so while summer time is in force it reads an
   hour off the clock of a computer in a zone that keeps summer time.
-- **The 12-hour clock on SAVE/LOAD's list.** The user guide's "Date/Time menu" says of the [Display Format] Time
+  The user guide's "Date/Time menu" says of the [Display Format] Time
   button "Selects the display format for the time.", but the unit's SAVE/LOAD `Date/Time` column gives the time on
   the 24-hour clock with Time set to 12h, while its date follows the Date format. The simulator gives that column's
   time on the 24-hour clock as well.
