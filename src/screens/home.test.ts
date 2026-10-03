@@ -1318,7 +1318,8 @@ describe("a processing block on the channel view", () => {
       [4686, 4586],
     ]);
     expect(shell.root.querySelector(".cv-delay-value")?.textContent).toBe("45.86");
-    // A time set off 0.02 ms lands on the 0.02 ms nearest its reading plus 1.00 ms, a half going up.
+    // A time set off 0.02 ms lands on 0.02 ms by Math.round on its reading plus 1.00 ms, × 50:
+    // 46.87 ms × 50 is 2343.5, and the time goes to 46.88 ms.
     expect(await turn(4587, "ArrowUp", 1), "onto 0.02 ms").toEqual([4688]);
     expect([...(await turn(99912, "ArrowUp", 1)), ...(await turn(178, "ArrowDown", 1))], "stopped at either end").toEqual([100000, 100]);
     // The channel view's knobs do not push in, and Shift turns the same detent.
