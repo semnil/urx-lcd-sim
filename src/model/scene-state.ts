@@ -10,6 +10,7 @@
 import type { DeviceStore } from "../device/store";
 import type { ParamPath, ParamValue } from "../device/path";
 import { fromJson } from "../device/value-json";
+import { withEverySourceGain } from "./source-gain";
 
 /** The subtrees a scene is taken from. */
 const MIXER = ["ch", "source"];
@@ -59,6 +60,17 @@ export function withEverySceneCleared(store: DeviceStore, state: Record<ParamPat
     const part = SCENE_MEMORY.exec(path)?.[1];
     if (part && !(path in out)) out[path] = part === "protect" ? 0 : "";
   }
+  return out;
+}
+
+/**
+ * A saved state as a recall or a settings file load puts it back: a source's
+ * digital gain and a BALANCE, a strip's or a send's, that the store holds and
+ * the state names none for come back at 0, the centre for a BALANCE.
+ */
+export function asPutBack(store: DeviceStore, state: Record<ParamPath, ParamValue>): Record<ParamPath, ParamValue> {
+  const out = withEverySourceGain(store, state);
+  for (const path of store.pathsUnder("ch")) if (path.endsWith(".balance") && !(path in out)) out[path] = 0;
   return out;
 }
 

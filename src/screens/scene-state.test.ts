@@ -12,6 +12,7 @@ import { applySettings, captureSettings } from "../model/settings-file";
 import { recallScene, storeScene } from "./scene";
 import { setSignalType } from "./stereo-link";
 import { LEVEL_MIN_DB } from "../ui/param-spec";
+import { toJson } from "../device/value-json";
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -309,6 +310,34 @@ describe("storing and recalling a scene", () => {
       older.map(([p]) => s.num(p, 0)),
       "each on its nearest stop, and the SSMCS strip's Attack as the scene holds it",
     ).toEqual([20.17, 150.2, 218, 20.17, 1000, 4.124]);
+  });
+
+  it("brings a BALANCE an older scene or settings file does not name back to the centre, and puts back one it names", async () => {
+    // A scene or a settings file stored before FX 1-2, MIX 1-2 and STEREO shipped a BALANCE names none for them.
+    const shell = await mount();
+    const s = shell.ctx.store;
+    const absent = ["ch.fx1.balance", "ch.fx2.balance", "ch.bus.mix1.balance", "ch.bus.mix2.balance", "ch.bus.stereo.balance"];
+    const read = (): number[] => [...absent, "ch.ch_5_6.balance"].map((p) => s.num(p, 99));
+    await s.set("ch.ch_5_6.balance", 9);
+    const scene = captureScene(s);
+    const file = captureSettings(s);
+    for (const p of absent) {
+      delete scene[p];
+      delete file[p];
+    }
+    expect(absent.map((p) => s.has(p)), "the unit holds each").toEqual(absent.map(() => true));
+
+    await s.set("scene.Standard.1.title", "older");
+    await s.set("scene.Standard.1.state", toJson(scene));
+    await s.set("ch.ch_5_6.balance", 0);
+    for (const p of absent) await s.set(p, 5);
+    await recallScene(shell.ctx, 1);
+    expect(read(), "an older scene").toEqual([0, 0, 0, 0, 0, 9]);
+
+    await s.set("ch.ch_5_6.balance", 0);
+    for (const p of absent) await s.set(p, 7);
+    await applySettings(s, file);
+    expect(read(), "an older settings file").toEqual([0, 0, 0, 0, 0, 9]);
   });
 
   it("stores the mixer when a number is named for the first time", async () => {

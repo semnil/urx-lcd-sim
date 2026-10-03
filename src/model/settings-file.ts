@@ -8,8 +8,7 @@
 import type { ParamPath, ParamValue } from "../device/path";
 import type { DeviceStore } from "../device/store";
 import { isClockPath } from "./clock";
-import { withEverySceneCleared } from "./scene-state";
-import { withEverySourceGain } from "./source-gain";
+import { asPutBack, withEverySceneCleared } from "./scene-state";
 
 /** What stays behind when a settings file is written. */
 const NOT_SAVED = ["ui.", "sd.", "pair."];
@@ -36,11 +35,12 @@ export function captureSettings(store: DeviceStore): Record<string, ParamValue> 
 /**
  * Put a settings file back on the unit, one value after another, announcing what
  * changed once it is all back. A source whose digital gain the file does not name
- * comes back at 0 dB, and a scene number the file does not name comes back empty.
+ * comes back at 0 dB, a BALANCE it does not name at the centre, and a scene number
+ * it does not name comes back empty.
  */
 export async function applySettings(store: DeviceStore, state: Record<string, ParamValue>): Promise<void> {
   await store.batch(async () => {
-    for (const [path, value] of Object.entries(withEverySceneCleared(store, withEverySourceGain(store, state)))) {
+    for (const [path, value] of Object.entries(withEverySceneCleared(store, asPutBack(store, state)))) {
       if (!inSettingsFile(path)) continue;
       await store.restore(path, value);
     }
