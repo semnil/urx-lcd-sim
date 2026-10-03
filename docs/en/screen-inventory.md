@@ -1457,8 +1457,9 @@ and the format lists' values at 12.5px, and stands the `Date` / `Time` headings 
 them (p064-1). The [Time Zone] box stands a pixel right of the [Date/Time] box (x145..366 and x144..365 in p064-1).
 
 The clock keeps a moment that runs with the computer's clock and shows it in the time zone [Time Zone] is set to,
-so a new zone moves the date and time on the button; a unit as it ships is on Tokyo. A zone keeps its standard
-time all year, with no summer time, as the unit does ([known-issues.md](known-issues.md)). [OK] on the
+so a new zone moves the date and time on the button; a unit as it ships is on Tokyo. A city keeps one time ahead of
+or behind UTC, the same all year and in every year, with no summer time, as the unit does
+([known-issues.md](known-issues.md)). [OK] on the
 [Date/Time] dialog sets the clock to the start of the minute the dialog holds, in that zone, and it runs on from
 there. The dialog's Day stops at the last day of the month its Year and Month hold (28 in February 2026), and a
 Day past it comes down to that day as the Year or Month turns (both confirmed on the unit). The dialog's Year runs

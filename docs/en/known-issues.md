@@ -91,11 +91,13 @@ is built is in [screen-inventory.md](screen-inventory.md).
 
 What the unit lacks, this simulator lacks as well.
 
-- **Summer time, and the 12-hour clock on SAVE/LOAD's list.**
-  The unit's clock shows the standard time of the [Time Zone] city all year and does
-  not switch to summer time (21:15 in Tokyo reads 12:15 in London in September, confirmed on the
-  unit). The simulator shows the same standard time, so while summer time is in force it reads an
-  hour off the clock of a computer in a zone that keeps summer time.
+- **Summer time, or another time in another year, and the 12-hour clock on SAVE/LOAD's list.**
+  The unit's clock keeps each [Time Zone] city at one time
+  ahead of or behind UTC, the same all year and in every year, and does not switch to summer time (21:15 in
+  Tokyo reads 12:15 in London in September, confirmed on the unit). Samoa reads 13 hours ahead of UTC in 2011,
+  when it kept 11 hours behind, as in 2012, and Volgograd 3 hours ahead in 2019, when it kept 4 (URX44V, the
+  operator, 2026-10-03). The simulator does the same, giving each city the standard time it keeps in 2026, so
+  while summer time is in force it reads an hour off the clock of a computer in a zone that keeps summer time.
   The user guide's "Date/Time menu" says of the [Display Format] Time
   button "Selects the display format for the time.", but the unit's SAVE/LOAD `Date/Time` column gives the time on
   the 24-hour clock with Time set to 12h, while its date follows the Date format. The simulator gives that column's

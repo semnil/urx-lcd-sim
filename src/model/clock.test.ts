@@ -3,8 +3,9 @@ import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { startDateTimeClock } from "../screens/date-time";
 import { el } from "../ui/dom";
-import { clockParts, setClock } from "./clock";
+import { CLOCK_OFFSET, clockParts, setClock } from "./clock";
 import { factoryState } from "./defaults";
+import { TIME_ZONE_CITIES } from "./time-zone";
 import { unitById } from "./units";
 
 // The unit's clock runs with the computer's, moved by however far it was set apart.
@@ -55,30 +56,54 @@ describe("the unit's clock", () => {
     expect(clockParts(store, at + 90_000)).toEqual({ year: 2030, month: 1, day: 2, hour: 3, minute: 5, second: 30 });
   });
 
-  it("reads back the first minute of a year it is set to, where the city's time differs from the year before", async () => {
+  it("keeps one time for a city in every year, as the unit does", async () => {
+    const store = await unit();
+    // Each is a time set in the DATE/TIME dialog, and the moment the unit took it for (URX44V, 2026-10-03).
+    const seen = [
+      ["Samoa", { year: 2011, month: 7, day: 1, hour: 12, minute: 0 }, Date.UTC(2011, 5, 30, 23, 0)],
+      ["Samoa", { year: 2012, month: 7, day: 1, hour: 12, minute: 0 }, Date.UTC(2012, 5, 30, 23, 0)],
+      ["Volgograd", { year: 2019, month: 7, day: 1, hour: 12, minute: 0 }, Date.UTC(2019, 6, 1, 9, 0)],
+      ["Tokyo", { year: 2099, month: 12, day: 31, hour: 23, minute: 59 }, Date.UTC(2099, 11, 31, 14, 59)],
+    ] as const;
+    for (const [city, time, utc] of seen) {
+      await store.set("setup.dateTime.timeZone", city);
+      await setClock(store, time, 0);
+      expect(new Date(store.num(CLOCK_OFFSET, 0)).toISOString(), `${city} ${time.year}`).toBe(new Date(utc).toISOString());
+    }
+  });
+
+  it("reads back the first and the last minute of every year from 2000 to 2099 it is set to, in every city", async () => {
     const store = await unit();
     const missed: string[] = [];
-    const years = (from: number, to: number): number[] => Array.from({ length: to - from + 1 }, (_, i) => from + i);
-    for (const [city, list] of [["Casablanca", years(2000, 2099)], ["Almaty", [2024]], ["Astana", [2024]], ["Tokyo", [2024]]] as const) {
+    for (const city of TIME_ZONE_CITIES) {
       await store.set("setup.dateTime.timeZone", city);
-      for (const year of list) {
-        await setClock(store, { year, month: 1, day: 1, hour: 0, minute: 0 }, 0);
-        const read = clockParts(store, 0);
-        if (read.year !== year || read.month !== 1 || read.day !== 1 || read.hour !== 0 || read.minute !== 0) missed.push(`${city} ${year}`);
+      for (let year = 2000; year <= 2099; year++) {
+        for (const time of [
+          { year, month: 1, day: 1, hour: 0, minute: 0 },
+          { year, month: 12, day: 31, hour: 23, minute: 59 },
+        ]) {
+          await setClock(store, time, 0);
+          const read = clockParts(store, 0);
+          if (read.year !== year || read.month !== time.month || read.day !== time.day || read.hour !== time.hour || read.minute !== time.minute) {
+            missed.push(`${city} ${year}-${time.month}-${time.day} ${time.hour}:${time.minute}`);
+          }
+        }
       }
     }
     expect(missed).toEqual([]);
   });
 
-  it("runs on a minute a minute across the turn of every year in Casablanca", async () => {
+  it("runs on a minute a minute across the turn of every year, in every city", async () => {
     const store = await unit();
-    await store.set("setup.dateTime.timeZone", "Casablanca");
     const jumps: string[] = [];
-    for (let year = 2001; year <= 2099; year++) {
-      const before = clockParts(store, Date.UTC(year, 0, 1) - 60_000);
-      const after = clockParts(store, Date.UTC(year, 0, 1));
-      const minutes = (p: typeof before): number => Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute) / 60_000;
-      if (minutes(after) - minutes(before) !== 1) jumps.push(`${year}`);
+    for (const city of TIME_ZONE_CITIES) {
+      await store.set("setup.dateTime.timeZone", city);
+      for (let year = 2001; year <= 2099; year++) {
+        const before = clockParts(store, Date.UTC(year, 0, 1) - 60_000);
+        const after = clockParts(store, Date.UTC(year, 0, 1));
+        const minutes = (p: typeof before): number => Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute) / 60_000;
+        if (minutes(after) - minutes(before) !== 1) jumps.push(`${city} ${year}`);
+      }
     }
     expect(jumps).toEqual([]);
   });
