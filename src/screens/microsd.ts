@@ -363,14 +363,19 @@ function deleteSelected(ctx: AppContext): void {
   );
 }
 
-/** Whether the folder `dir` carries an entry named `name`, other than the one at row `except`. */
-function folderCarries(entries: readonly CardEntry[], dir: string, name: string, except = -1): boolean {
-  return entries.some((e, i) => i !== except && e.dir === dir && e.name === name);
+/**
+ * Whether the folder `dir` carries an entry named `name`, other than the one at
+ * row `except`. Two names are one where `same` takes them for one, and where it
+ * is not given, where they are spelt the same, case included.
+ */
+function folderCarries(entries: readonly CardEntry[], dir: string, name: string, except = -1, same = (a: string, b: string): boolean => a === b): boolean {
+  return entries.some((e, i) => i !== except && e.dir === dir && same(e.name, name));
 }
 
 /**
  * Give the selected entry another name, keeping what it holds. A name another
- * entry of its folder carries is refused, and the sheet stays as typed.
+ * entry of its folder carries, a file's or a folder's, in any case, is refused,
+ * and the sheet stays as typed.
  */
 function renameSelected(ctx: AppContext): void {
   const row = cursorRow(ctx);
@@ -388,7 +393,7 @@ function renameSelected(ctx: AppContext): void {
       ctx,
       entries.map((e, i) => (i === row ? { ...e, name } : e)),
     );
-  }, { suffix, max: NAME_MAX - suffix.length, refuse: (name) => (folderCarries(entries, entry.dir, name, row) ? NAME_TAKEN : undefined) });
+  }, { suffix, max: NAME_MAX - suffix.length, refuse: (name) => (folderCarries(entries, entry.dir, name, row, sameName) ? NAME_TAKEN : undefined) });
 }
 
 /**

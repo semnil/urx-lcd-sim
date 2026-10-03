@@ -1437,7 +1437,8 @@ microSD Card Slot: WAV 24-bit)、設定ファイルは 50,668 バイト (設定�
 Edit タブの [Delete] は `Delete the selected file?` を尋ねてから消し、[Rename] と [New folder] は
 SCENE の題と同じ入力シートをカードのキーボードで開く (「題の入力シート」)。[Rename] で同じフォルダーにある名前を打って [OK] を押すと、実機と同じく
 i の印と [OK] だけのダイアログ `File already exists.` を出し、改名せずに [OK] で打ったままの入力シートへ戻る
-(SAVE/LOAD と RECORDER の Edit タブとも同じ)。[New folder] で同じフォルダーにある名前 (フォルダーでもファイルでも) を
+(SAVE/LOAD と RECORDER の Edit タブとも同じ)。名前は大文字小文字を区別せずに比べ、ほかの項目の名前と大文字小文字だけが
+違う名前も同じく受け付けない (SAVE/LOAD で URX44V、2026-10-03 操作者確認)。[New folder] で同じフォルダーにある名前 (フォルダーでもファイルでも) を
 打って [OK] を押すと、実機と同じく何も出さずに入力シートを閉じて Edit タブへ戻り、何も作らない。TOOLS の [Format] はカードを空にする。SAVE/LOAD の [Save] は
 選んだ設定ファイルへ今の設定を書き、[Save as] は入力した名前に `.urxf` を付けて書き、[Load] は
 選んだ設定ファイルを本体へ戻す。既にあるファイルへ書くときと、[Save as] の名前が開いているフォルダーの中のフォルダーと
