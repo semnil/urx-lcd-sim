@@ -194,4 +194,59 @@ describe("a pressed control", () => {
     down(second);
     expect([banded.classList.contains("is-pressed"), second.classList.contains("is-pressed"), second.style.getPropertyValue("--press")]).toEqual([false, true, "4px"]);
   });
+
+  it("keeps each finger's control down until that finger is let go", () => {
+    const { banded, root } = mount();
+    const second = document.createElement("button");
+    second.style.boxShadow = "inset 0 -4px 0 rgb(0, 0, 0)";
+    root.appendChild(second);
+    const finger = (type: string, node: EventTarget, pointerId: number): void => {
+      node.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId, pointerType: "touch" }));
+    };
+    const sunk = (): boolean[] => [banded, second].map((b) => b.classList.contains("is-pressed"));
+
+    finger("pointerdown", banded, 1);
+    finger("pointerdown", second, 2);
+    expect(sunk(), "a second finger on another control").toEqual([true, true]);
+    finger("pointerup", window, 2);
+    expect(sunk(), "the second finger let go").toEqual([true, false]);
+
+    // Two fingers on one control: it sinks once, and rises when the last of them is let go.
+    finger("pointerdown", banded, 3);
+    expect(banded.style.translate, "sunk once").toBe("2px calc(-1px + 3px)");
+    finger("pointercancel", window, 1);
+    expect(sunk(), "the first finger cancelled").toEqual([true, false]);
+    finger("pointerup", window, 3);
+    expect([...sunk(), banded.style.translate], "both let go").toEqual([false, false, ""]);
+  });
+
+  it("leaves the control the key holds down while a pointer presses another and lets go", () => {
+    const { banded, root } = mount();
+    const second = document.createElement("button");
+    second.style.boxShadow = "inset 0 -4px 0 rgb(0, 0, 0)";
+    root.appendChild(second);
+    banded.focus();
+    banded.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    second.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 1, pointerType: "mouse" }));
+    const pressing = [banded.classList.contains("is-pressed"), second.classList.contains("is-pressed")];
+    window.dispatchEvent(new PointerEvent("pointerup", { pointerId: 1, pointerType: "mouse" }));
+    const released = [banded.classList.contains("is-pressed"), second.classList.contains("is-pressed")];
+    window.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter" }));
+    expect({ pressing, released, keyUp: banded.classList.contains("is-pressed") }).toEqual({
+      pressing: [true, true],
+      released: [true, false],
+      keyUp: false,
+    });
+  });
+
+  it("lets every control rise when the window loses the focus", () => {
+    const { banded, root } = mount();
+    const second = document.createElement("button");
+    second.style.boxShadow = "inset 0 -4px 0 rgb(0, 0, 0)";
+    root.appendChild(second);
+    banded.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 1, pointerType: "touch" }));
+    second.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 2, pointerType: "touch" }));
+    window.dispatchEvent(new Event("blur"));
+    expect([banded.classList.contains("is-pressed"), second.classList.contains("is-pressed")]).toEqual([false, false]);
+  });
 });
