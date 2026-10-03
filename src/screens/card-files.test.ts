@@ -1000,6 +1000,27 @@ describe("what the card's own actions do to it", () => {
     expect(store.num("ch.ch1.level", 0), "the settings the file was saved with").toBe(-10);
   });
 
+  it("brings back the bank USER DEFINED KNOBS stood on when the file was saved", async () => {
+    // As on the unit: saved on bank 2, switched to bank 1, loaded, back on bank 2 (URX44V, 2026-10-03).
+    const shell = await mount({ id: "microsd.saveload" }, card);
+    const store = shell.ctx.store;
+    await store.set("setup.udk.bank", 2);
+    await store.set("ch.ch1.level", -10);
+    await flush();
+    action(shell, "Save as")?.click();
+    await flush();
+    await typeTitle(shell, "mine");
+
+    await store.set("setup.udk.bank", 1);
+    await store.set("ch.ch1.level", 0);
+    await store.set("sd.selectedFile", 1);
+    await flush();
+    action(shell, "Load")?.click();
+    await flush();
+    expect(store.num("ch.ch1.level", 0), "the settings the file was saved with").toBe(-10);
+    expect(store.num("setup.udk.bank", 0), "the bank the file was saved on").toBe(2);
+  });
+
   it("keeps what a settings file holds when it is renamed", async () => {
     const shell = await mount({ id: "microsd.saveload" }, card);
     const store = shell.ctx.store;

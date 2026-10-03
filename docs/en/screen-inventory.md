@@ -1689,9 +1689,10 @@ that is open in case alone asks nothing and writes over that file, which keeps i
 that differs from a folder's in case alone asks nothing and writes nothing. [Save] and [Load] stand out of reach until a settings file is under the
 cursor. A settings file carries every value but the screen's own state (`ui.`, the tabs OUTPUT PATCH
 and PERIPHERAL stand on, and SCENE LIST's Standard / Simple tab and cursor) and the card itself
-(`sd.`), so a load leaves the tabs and the cursor where they stand. A source the file holds no D.Gain
-for comes back to 0 dB when it is loaded, and a scene number
-the file holds nothing under comes back empty.
+(`sd.`), so a load leaves the tabs and the cursor where they stand. The bank USER DEFINED KNOBS
+stands on is in the file, and a load brings back the bank the file was saved on, as on the unit
+(URX44V, the operator, 2026-10-03). A source the file holds no D.Gain for comes back to 0 dB when it
+is loaded, and a scene number the file holds nothing under comes back empty.
 
 A playback runs against the take's length, writing the counter and the bar in place once a second.
 At the end of the file playback lets the file go, as [■] does: the triangle leaves the microSD icon, and RECORDER's card-eject
