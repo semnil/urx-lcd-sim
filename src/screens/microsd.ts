@@ -134,7 +134,11 @@ interface BrowserOptions {
   fileNote?: (entry: CardEntry, row: number) => string | undefined;
   /** Which entries the list shows; a row keeps its entry's place on the card. */
   listed?: (entry: CardEntry, row: number) => boolean;
-  /** Whether a folder under the cursor opens on the next touch; where it does not, a touch only brings the cursor to it. */
+  /**
+   * Whether the browser moves to another folder: a folder under the cursor opens
+   * on the next touch, and [↑] climbs out of the one that is open. Where it does
+   * not, a touch on a folder only brings the cursor to it, and [↑] is out of reach.
+   */
   opens?: boolean;
 }
 
@@ -147,6 +151,7 @@ function cardBrowser(ctx: AppContext, opts: BrowserOptions): HTMLElement {
   const entries = cardEntries(ctx);
   const selected = ctx.store.num("sd.selectedFile", 0);
   const path = cardPath(ctx);
+  const climbs = opens && path !== CARD_ROOT;
   const rows = entries
     .map((entry, i) => ({
       key: String(i),
@@ -178,15 +183,15 @@ function cardBrowser(ctx: AppContext, opts: BrowserOptions): HTMLElement {
       el("div", {
         class: "sd-path",
         children: [
-          // Nothing to climb out of until a folder is opened.
+          // Nothing to climb out of until a folder is opened, and out of reach where the browser keeps to the folder that is open.
           markShut(
             el("button", {
               class: "btn sd-up",
               attrs: { "aria-label": "Up one level" },
-              onTap: path === CARD_ROOT ? () => undefined : () => openPath(ctx, parentPath(path)),
+              onTap: climbs ? () => openPath(ctx, parentPath(path)) : () => undefined,
               children: [Icons.upFolder()],
             }),
-            path === CARD_ROOT,
+            !climbs,
           ),
           el("div", { class: "sd-path-field", children: [el("span", { text: path })] }),
         ],
@@ -650,7 +655,7 @@ export const recorderScreen: ScreenDef = {
         fileIcon: recFileIcon(playingRow),
         fileNote: (_, row) => (row === playingRow ? (playing ? "playing" : "paused") : undefined),
         listed: tab === "Play" ? playList : (entry: CardEntry) => recorderLists(ctx, entry),
-        // While playback holds a file, a folder takes the cursor and stays shut.
+        // While playback holds a file, a folder takes the cursor and stays shut, and [↑] is out of reach.
         opens: !held,
       });
       browser.appendChild(outMeter(ctx));

@@ -1606,8 +1606,10 @@ paused. Their line keeps its height while they do not show, so the bar stays whe
 2026-09-22). The button left of the bar (three lines and a ▶) carries a white mark while a file is held, and a touch on
 it brings the cursor to that file (f under Play in the user guide's "RECORDER menu"). With no file held it stays on
 the plain face with its mark greyed, as [↑] does, and a touch on it does nothing. While a file is held, a touch on a
-folder on the Play tab only brings the cursor to it and does not open it, and the Record and Edit tabs take the face
-of a tab that cannot be used and do nothing when pressed, as the unit does. [■] lets the file go, and both come back.
+folder on the Play tab only brings the cursor to it and does not open it, [↑] on the path field takes the face of a
+button that cannot be used and does nothing when pressed (playing and paused, URX44V, the operator, 2026-10-03), and
+the Record and Edit tabs take the face of a tab that cannot be used and do nothing when pressed, as the unit does. [■]
+lets the file go, and they come back.
 
 While playback holds a file, playing or paused, the card-eject button cannot be used (a dimmed face in p081-1, the
 plain face in p083-1; paused on RECORDER's Play tab as well, URX44V, the operator, 2026-10-03). On the microSD top,
@@ -1653,7 +1655,7 @@ card being pulled out (see [known-issues.md](known-issues.md)).
 
 The first touch on a folder brings the cursor to it, and a touch on the folder the cursor stands on
 opens it (not on RECORDER's Play tab while a file is held, "RECORDER"); the list then carries what is in it (the guide's "File list" under the RECORDER menu).
-[↑] climbs one level and stands out of reach at the root. The path field shows where the browser
+[↑] climbs one level and stands out of reach at the root, and on RECORDER while a file is held ("RECORDER"). The path field shows where the browser
 stands from the root, and a path too long for it is shown from its end (the same section's "Folder
 name display"). A new folder and a [Save as] settings file are made in the folder that is open.
 

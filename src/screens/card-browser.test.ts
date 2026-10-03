@@ -957,6 +957,37 @@ describe("the microSD card browser", () => {
     expect(store.str("ui.sdTab", ""), "let go: Record opens").toBe("Record");
   });
 
+  it("puts Play's [↑] out of reach while playback holds a file, playing or paused, and brings it back once [■] lets the file go", async () => {
+    const shell = await mount({ id: "microsd.recorder" }, [entry("Recordings", "folder"), entry("inside.wav", "take", 96, 2, "/Recordings/")]);
+    const store = shell.ctx.store;
+    await store.set("sd.path", "/Recordings/");
+    await store.set("sd.selectedFile", 1);
+    await pickTab(shell, "ui.sdTab", "Play");
+    const press = async (cls: string): Promise<void> => {
+      shell.root.querySelector<HTMLElement>(`.sd-actions > .${cls}`)?.click();
+      await flush();
+    };
+    // The face [↑] wears, and the folder open once it is touched.
+    const climb = async (): Promise<[boolean, string | null, string]> => {
+      const up = shell.root.querySelector<HTMLElement>(".sd-up");
+      const face: [boolean, string | null] = [up?.classList.contains("is-disabled") === true, up?.getAttribute("aria-disabled") ?? null];
+      up?.click();
+      await flush();
+      return [...face, store.str("sd.path", "/")];
+    };
+
+    await press("rec-pause");
+    expect([store.num("sd.playingFile", -1), store.bool("sd.playing", false)], "playing").toEqual([1, true]);
+    expect(await climb(), "playing: shut, the folder staying open").toEqual([true, "true", "/Recordings/"]);
+    await press("rec-pause");
+    expect([store.num("sd.playingFile", -1), store.bool("sd.playing", false)], "paused").toEqual([1, false]);
+    expect(await climb(), "paused: shut, the folder staying open").toEqual([true, "true", "/Recordings/"]);
+
+    await press("rec-stop");
+    expect(store.num("sd.playingFile", -1), "let go").toBe(-1);
+    expect(await climb(), "let go: [↑] climbs out").toEqual([false, null, "/"]);
+  });
+
   it("brings the cursor to the file playback holds, playing or paused, and fills the bar by that file's length", async () => {
     const shell = await mount({ id: "microsd.recorder" });
     await pickTab(shell, "ui.sdTab", "Play");
