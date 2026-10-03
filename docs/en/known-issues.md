@@ -88,7 +88,10 @@ is built is in [screen-inventory.md](screen-inventory.md).
   ahead of UTC in 2011, when it kept 11 hours behind, as in 2012, and Volgograd 3 hours ahead in 2019, when it
   kept 4 (URX44V, the operator, 2026-10-03). This simulator gives each city the standard time it keeps in
   2026, so while summer time is in force it reads an hour off the clock of a computer in a zone that keeps
-  summer time. Past midnight at the end of 31 December 2099, the unit's DATE / TIME screen keeps its date at
+  summer time. Of those times, Tokyo's, London's, Samoa's and Volgograd's are confirmed on the unit and the
+  other cities' are not, so where another city's standard time changed between 2010 and 2026, the unit may
+  keep a different time for it.
+  Past midnight at the end of 31 December 2099, the unit's DATE / TIME screen keeps its date at
   31 December 2099 while the time runs on, and its [Date/Time] dialog opens on 1 January 2100. Shortly into
   1 January 2000, a [Time Zone] further west makes the screen read 1 January 2001 for a while, and then
   31 December 2000. This simulator reads the year the clock has run into on the screen and in the dialog
