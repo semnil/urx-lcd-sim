@@ -302,6 +302,11 @@ describe("[Reset the unit]", () => {
     expect(button("Reset"), "the question is up").toBeDefined();
   }
 
+  it("asks whether to drop everything and start again", async () => {
+    await asking();
+    expect(resetBox().querySelector(".chrome-reset-ask")?.textContent).toBe("Drop everything and start again?");
+  });
+
   it("leaves the unit alone when the second click of a double click lands on [Reset]", async () => {
     await asking();
     click(button("Reset"), 2);

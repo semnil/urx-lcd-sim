@@ -146,7 +146,7 @@ async function boot(modelId: ModelId, mount: HTMLElement, card: Record<string, P
             el("span", {
               class: "chrome-reset-panel",
               children: [
-                el("span", { class: "chrome-reset-ask", text: "Drop all but the card and start again?" }),
+                el("span", { class: "chrome-reset-ask", text: "Drop everything and start again?" }),
                 el("button", { class: "chrome-button is-danger", text: "Reset", onTap: (ev) => {
                   if (ev instanceof MouseEvent && (ev.detail > 1 || performance.now() - askedAt < RESET_HOLD_MS)) return;
                   const card = cardInSlot(store);
