@@ -4583,6 +4583,9 @@ describe("what the dedicated channel screens draw", () => {
       ["frame", 4584, "ArrowUp", "30D", [5266]],
       ["frame", 5266, "ArrowDown", "30D", [4600]],
       ["frame", 100000, "ArrowUp", "25", [100000]],
+      // frame stops at the smallest reading whose time is 1.00 ms or more, 0.03
+      // frame (1.20 ms) at 25 frames a second.
+      ["frame", 120, "ArrowDown", "25", [120]],
       ["frame", 400, "ArrowUp", "24", [1250, 2084, 2916]],
     ];
     const seen: [string, number, string, string, number[]][] = [];
@@ -4634,6 +4637,9 @@ describe("what the dedicated channel screens draw", () => {
       ...cells.map((c): [string, number, "ArrowUp" | "ArrowDown", string, number[]] => [c, 100000, "ArrowUp", "30", [100000]]),
       ["meter", 99990, "ArrowUp", "25", [100000]],
       ["frame", 100000, "ArrowUp", "25", [100000]],
+      // frame stops at 0.03 frame (1.20 ms) at 25 frames a second, the smallest
+      // reading whose time is 1.00 ms or more.
+      ["frame", 140, "ArrowDown", "25", [120, 120]],
     ];
     const seen: [string, number, string, string, number[]][] = [];
     for (const [cell, from, key, rate, want] of runs) {

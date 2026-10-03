@@ -1446,12 +1446,23 @@ const FOOT_M = 0.3048;
 interface DelayScale {
   of(ms: number): number;
   ms(value: number): number;
+  /** The lowest and the highest reading a turn stops at, where the cell has them. */
+  ends?: readonly [number, number];
 }
 
 const MS_SCALE: DelayScale = { of: (ms) => ms, ms: (v) => v };
 const METER_SCALE: DelayScale = { of: (ms) => (ms / 1000) * SOUND_M_PER_S, ms: (v) => (v / SOUND_M_PER_S) * 1000 };
 const FEET_SCALE: DelayScale = { of: (ms) => ((ms / 1000) * SOUND_M_PER_S) / FOOT_M, ms: (v) => ((v * FOOT_M) / SOUND_M_PER_S) * 1000 };
-const frameScale = (fps: number): DelayScale => ({ of: (ms) => (ms / 1000) * fps, ms: (v) => (v / fps) * 1000 });
+
+/**
+ * frame at `fps`. A turn stops at the smallest and the largest reading on two
+ * places whose time lies in 1.00..1000.00 ms: 0.03 frame (1.20 ms) and 25.00
+ * at 25 frames a second.
+ */
+function frameScale(fps: number): DelayScale {
+  const hundredths = Math.round(fps * 100);
+  return { of: (ms) => (ms / 1000) * fps, ms: (v) => (v / fps) * 1000, ends: [Math.ceil(hundredths / 1000) / 100, hundredths / 100] };
+}
 
 /**
  * How the DELAY screen names one time in four units: its scale at a frame rate,
@@ -1476,11 +1487,12 @@ const onDelayGridMs = (ms: number): number => Number((Math.round(ms / DELAY_GRID
 
 /**
  * A delay cell's turn of `by` ms: the cell's reading moves by as much of its own
- * unit, rounded to its places, and the time that reading names lands on 0.02 ms
- * by Math.round on the time × 50.
+ * unit, rounded to its places and held to the cell's ends, and the time that
+ * reading names lands on 0.02 ms by Math.round on the time × 50.
  */
 function delayTurn(scale: DelayScale, per: number, digits: number): (ms: number, by: number) => number {
-  return (ms, by) => Math.round(scale.ms(delayRound(delayRound(scale.of(ms), digits) + by * per, digits)) * 50) / 50;
+  const [lowest, highest] = scale.ends ?? [-Infinity, Infinity];
+  return (ms, by) => Math.round(scale.ms(clamp(delayRound(delayRound(scale.of(ms), digits) + by * per, digits), lowest, highest)) * 50) / 50;
 }
 
 /**
