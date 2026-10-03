@@ -337,6 +337,14 @@ two ends are the same purple as the bar's face, and take a larger font size beca
 small for its em. On a screen with more than four parameters, the page step is a solid 8x12 chevron
 (x408..415 / y258..269 in p103-1).
 
+USER DEFINED KNOBS mode goes off on HOME's SETUP, microSD and MONITOR icons, its scene name box and its
+channel-bank button, and when SAVE/LOAD or TOOLS gives way to microSD's `Not inserted microSD card` screen
+once the card is taken out. Every other move keeps it on: the back arrow, the HOME icon, a channel's ‹ ›,
+a touch on the screen that opens another (a strip on HOME to its channel view, a block to its screen),
+tabs, page steps, sheets and lists (URX44V, confirmed by the operator on 2026-10-03). The shell switches it
+off in one place (`src/app/shell.ts`), and `src/screens/home.test.ts` holds the moves that switch it off and
+one of each kind that keeps it on.
+
 ## Names of on/off buttons
 
 A button that switches on and off keeps its weight whichever way it is set; the face color alone shows

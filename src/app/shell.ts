@@ -115,10 +115,13 @@ export class Shell {
     });
     this.root = this.lcd;
 
-    nav.onChange((_route, change) => {
+    nav.onChange((route, change) => {
       this.moves.push(change);
       focus.release();
       this.knobPage = 0;
+      // USER DEFINED KNOBS mode goes off on every jump to a top-level screen and
+      // on the way into the channel-bank list; every other move keeps it.
+      if (change === "openTop" || (change === "push" && route.id === "bank-select")) void store.set("ui.userDefinedKnobs", false);
       // A list or a dialog belongs to the screen that opened it.
       this.closeOverlays();
       this.scheduleRepaint();

@@ -342,13 +342,18 @@ describe("the channel-bank list", () => {
     expect(shell.ctx.nav.current.id).toBe("home");
     expect(shownStrips(shell)).toEqual(before);
 
-    // USER DEFINED KNOBS mode draws its bar under the same dark: its knobs and its page step answer nothing either.
+    // USER DEFINED KNOBS mode goes off as the list opens. Nothing on the glass switches it on under the
+    // list, so the setting is written here: its bar lies under the same dark, and its knobs and its page
+    // step answer nothing either.
     await shell.ctx.store.set("ui.userDefinedKnobs", true);
     await flush();
     const bar = (): string[] =>
       [...(shell.root.querySelector(".knob-strip")?.querySelectorAll(INTERACTIVE) ?? [])].map((n) => `${accessibleName(n)} ${n.hasAttribute("inert")}`);
     expect(bar(), "on HOME the bar answers").toEqual(["Phones 1 Level false", "Phones 2 Level false", "User defined knobs page 2 false"]);
     await openList(shell);
+    expect(bar(), "the list opens with the mode off").toEqual([]);
+    await shell.ctx.store.set("ui.userDefinedKnobs", true);
+    await flush();
     expect(bar(), "under the dark it does not").toEqual(["Phones 1 Level true", "Phones 2 Level true", "User defined knobs page 2 true"]);
     expect(bankButton(shell)?.hasAttribute("inert"), "the control that opened the list stays live").toBe(false);
   });
@@ -435,9 +440,11 @@ describe("the channel-bank list", () => {
 
   it("closes on a touch on the knob bar under its dark, as on the rest of the dark", async () => {
     const shell = await mount();
+    // The list opens with USER DEFINED KNOBS mode off, and nothing on the glass switches it on under the
+    // list, so the setting is written here.
+    await openList(shell);
     await shell.ctx.store.set("ui.userDefinedKnobs", true);
     await flush();
-    await openList(shell);
     const empty = [...shell.root.querySelectorAll(".knob-strip .knob-cell")].find((c) => c.textContent === "---");
     empty?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await flush();
@@ -2571,6 +2578,153 @@ describe("the USER DEFINED KNOBS bar", () => {
     await udk(shell);
     expect(cells(shell)[0]).toEqual({ value: "-4.00", label: "Monitor 1" });
     expect(cells(shell)[1]).toEqual({ value: "---", label: "" });
+  });
+});
+
+describe("the moves USER DEFINED KNOBS mode goes off on", () => {
+  /** The mode as the glass shows it: the setting, and how many of the bar's cells are drawn in its colours. */
+  const mode = (shell: Shell): [boolean, number] => [
+    shell.ctx.store.bool("ui.userDefinedKnobs", false),
+    shell.root.querySelectorAll(".knob-strip .knob-cell.is-udk").length,
+  ];
+  const ON: [boolean, number] = [true, 4];
+  const OFF: [boolean, number] = [false, 0];
+  const where = (shell: Shell): string => `${shell.ctx.nav.current.id}${shell.ctx.nav.current.strip ? ` ${shell.ctx.nav.current.strip}` : ""}`;
+
+  async function tap(shell: Shell, selector: string, label?: string): Promise<void> {
+    const node = [...shell.root.querySelectorAll<HTMLElement>(selector)].find((n) => label === undefined || accessibleName(n) === label);
+    if (!node) throw new Error(`nothing at ${selector} ${label ?? ""}`);
+    node.click();
+    await flush();
+  }
+
+  /** The screens under the one the mode is switched on at, opened with it off. */
+  async function onAt(routes: { id: string; strip?: string }[] = [], setUp?: (shell: Shell) => Promise<void>): Promise<Shell> {
+    const shell = await mount();
+    await setUp?.(shell);
+    for (const route of routes) shell.ctx.nav.push(route);
+    await flush();
+    await tap(shell, ".udk-toggle");
+    expect(mode(shell), "the toggle switches it on").toEqual(ON);
+    return shell;
+  }
+
+  for (const icon of ["SETUP", "microSD", "MONITOR"]) {
+    it(`goes off on HOME's ${icon} icon`, async () => {
+      const shell = await onAt();
+      await tap(shell, ".toolbar .icon-btn", icon);
+      expect([where(shell), ...mode(shell)]).toEqual([icon.toLowerCase(), ...OFF]);
+    });
+  }
+
+  it("goes off on HOME's scene name box", async () => {
+    const shell = await onAt();
+    await tap(shell, ".scene-box");
+    expect([where(shell), ...mode(shell)]).toEqual(["scene", ...OFF]);
+  });
+
+  it("goes off on HOME's channel-bank button as it opens the bank list", async () => {
+    const shell = await onAt();
+    await tap(shell, ".bank-btn");
+    expect([where(shell), ...mode(shell)]).toEqual(["bank-select", ...OFF]);
+  });
+
+  for (const [name, id] of [
+    ["SAVE/LOAD", "microsd.saveload"],
+    ["TOOLS", "microsd.tools"],
+  ] as const) {
+    it(`goes off as ${name} gives way to microSD once the card is taken out, which shows no toggle`, async () => {
+      const shell = await onAt([{ id: "microsd" }, { id }]);
+      await tap(shell, ".sd-eject");
+      await tap(shell, ".dialog-actions .btn", "OK");
+      expect([where(shell), shell.root.querySelector(".sd-no-card")?.textContent, shell.root.querySelector(".udk-toggle"), ...mode(shell)]).toEqual([
+        "microsd",
+        "Not inserted microSD card",
+        null,
+        ...OFF,
+      ]);
+    });
+  }
+
+  it("stays on from a strip on HOME to its channel view, and from a block there to its screen", async () => {
+    const shell = await onAt();
+    for (let i = 0; i < 2 && shell.ctx.nav.current.id === "home"; i++) await tap(shell, '[aria-label="CH 1 settings"]');
+    expect([where(shell), ...mode(shell)], "the strip").toEqual(["channel-view ch1", ...ON]);
+    // The first touch takes the knob, the second opens the screen.
+    await tap(shell, ".cv-block-comp");
+    await tap(shell, ".cv-block-comp");
+    expect([where(shell), ...mode(shell)], "the block").toEqual(["ch.comp ch1", ...ON]);
+  });
+
+  it("stays on through the back arrow and through HOME", async () => {
+    const screens = [
+      { id: "channel-view", strip: "ch1" },
+      { id: "ch.comp", strip: "ch1" },
+    ];
+    const back = await onAt(screens);
+    await tap(back, ".toolbar .icon-btn", "Back");
+    expect([where(back), ...mode(back)], "the back arrow").toEqual(["channel-view ch1", ...ON]);
+    const home = await onAt(screens);
+    await tap(home, ".toolbar .icon-btn", "HOME");
+    expect([where(home), ...mode(home)], "HOME").toEqual(["home", ...ON]);
+  });
+
+  it("stays on through a channel's ‹ › and the SSMCS screens' page steps", async () => {
+    const arrows = await onAt([{ id: "channel-view", strip: "ch1" }]);
+    await tap(arrows, ".ch-arrow", "Next channel");
+    expect([where(arrows), ...mode(arrows)], "›").toEqual(["channel-view ch2", ...ON]);
+    await tap(arrows, ".ch-arrow", "Previous channel");
+    expect([where(arrows), ...mode(arrows)], "‹").toEqual(["channel-view ch1", ...ON]);
+
+    const pages = await onAt(
+      [
+        { id: "channel-view", strip: "ch1" },
+        { id: "ch.ssmcs", strip: "ch1" },
+      ],
+      (shell) => shell.ctx.store.set("ch.ch1.compEqOrder", "SSMCS"),
+    );
+    await tap(pages, ".ssmcs-page-next");
+    expect([where(pages), ...mode(pages)], "a page step").toEqual(["ch.ssmcs.comp ch1", ...ON]);
+  });
+
+  it("stays on through a screen's tabs", async () => {
+    const shell = await onAt([{ id: "microsd" }, { id: "microsd.saveload" }]);
+    await tap(shell, ".side-tab", "Edit");
+    expect([where(shell), shell.ctx.store.str("ui.sdSaveTab", ""), ...mode(shell)]).toEqual(["microsd.saveload", "Edit", ...ON]);
+  });
+
+  it("stays on under a picker sheet and once it closes, picked or left", async () => {
+    const shell = await onAt([
+      { id: "channel-view", strip: "ch1" },
+      { id: "ch.input", strip: "ch1" },
+    ]);
+    await tap(shell, ".input-source-btn");
+    expect([shell.root.querySelector(".source-sheet") !== null, ...mode(shell)], "the sheet up").toEqual([true, ...ON]);
+    await tap(shell, ".source-sheet .source-back");
+    expect([shell.root.querySelector(".source-sheet") !== null, ...mode(shell)], "left").toEqual([false, ...ON]);
+    await tap(shell, ".input-source-btn");
+    await tap(shell, ".source-sheet .source-btn");
+    expect([shell.root.querySelector(".source-sheet") !== null, where(shell), ...mode(shell)], "picked").toEqual([false, "ch.input ch1", ...ON]);
+  });
+
+  it("stays on under a pulldown's list and once it closes on a pick", async () => {
+    const shell = await onAt([{ id: "setup" }, { id: "setup.datetime" }]);
+    await tap(shell, ".pulldown", "Date: MM/DD/YYYY (3 options)");
+    expect([shell.root.querySelector(".dropdown-sheet") !== null, ...mode(shell)], "the list up").toEqual([true, ...ON]);
+    await tap(shell, ".dropdown-option", "DD/MM/YYYY");
+    expect([shell.root.querySelector(".dropdown-sheet") !== null, shell.ctx.store.str("setup.dateTime.dateFormat", ""), ...mode(shell)], "picked").toEqual([
+      false,
+      "DD/MM/YYYY",
+      ...ON,
+    ]);
+  });
+
+  it("stays on under the Sends destination sheet and once it closes", async () => {
+    const shell = await onAt();
+    await tap(shell, ".sends-btn");
+    expect([where(shell), ...mode(shell)], "the sheet up").toEqual(["sends-select", ...ON]);
+    await tap(shell, ".sends-btn");
+    expect([where(shell), ...mode(shell)], "closed").toEqual(["home", ...ON]);
   });
 });
 
