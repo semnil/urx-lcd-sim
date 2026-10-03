@@ -371,9 +371,9 @@ The unit's knob turns EQ's, COMP's and SSMCS's gains 1.0 dB a detent, and turns 
 in as it turns, 0.1 dB a detent (URX44V, the operator, 2026-10-03: a detent on CH 1's four EQ bands,
 STEREO's EQ LOW, CH 1's COMP and CH 2's SSMCS SC, Low, Mid, High and Out Gain; pushed in on CH 1's EQ LOW
 and COMP and CH 2's SSMCS Low and Out Gain). Here a detent turns EQ's, COMP's and SSMCS's gains 1.0 dB and
-a detent with Shift 0.1 dB, from a cell, a value box, an EQ grip or a plot handle, and a drag stops on the
-tenths. The channel view's knobs do not push in (URX44V, the operator, 2026-10-03), and the channel view's
-values turn the same detent with Shift as without it.
+a detent with Shift 0.1 dB, from a cell, a value box or COMP's G handle, and a drag, an EQ grip's included,
+stops on the tenths. The channel view's knobs do not push in (URX44V, the operator, 2026-10-03), and the
+channel view's values turn the same detent with Shift as without it.
 
 There are four cells, so when a screen passes five or more parameters they are shown four at a time,
 and `‹` / `›` appears at the end of the label band on the side where more follow (COMP in p099-1).

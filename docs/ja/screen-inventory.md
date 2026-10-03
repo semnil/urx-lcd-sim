@@ -334,8 +334,8 @@ OSCILLATOR の [ON] は出力の沈んだパネルに x350..389 / y99..138 で�
 実機のつまみは EQ・COMP・SSMCS のゲインを 1 目盛りで 1.0 dB 動かし、押し込みながら回すと刻みが細かくなって
 1 目盛りで 0.1 dB 動かす (URX44V、2026-10-03 操作者確認。1 目盛りは CH 1 の EQ の 4 バンド・STEREO の EQ の LOW・
 CH 1 の COMP・CH 2 の SSMCS の SC / Low / Mid / High / Out Gain、押し込みながらは CH 1 の EQ の LOW と COMP・
-CH 2 の SSMCS の Low と Out Gain で確認)。ここでは EQ・COMP・SSMCS のゲインを、区画・値ボックス・EQ のつまみ・
-グラフのハンドルから、1 段で 1.0 dB、Shift を押しながらの 1 段で 0.1 dB 回し、ドラッグは 0.1 dB 刻みに止まる。
+CH 2 の SSMCS の Low と Out Gain で確認)。ここでは EQ・COMP・SSMCS のゲインを、区画・値ボックス・COMP の
+グラフの G のハンドルから、1 段で 1.0 dB、Shift を押しながらの 1 段で 0.1 dB 回し、ドラッグ (EQ のつまみを含む) は 0.1 dB 刻みに止まる。
 チャンネルビューのつまみは押し込めず (URX44V、2026-10-03 操作者確認)、チャンネルビューの値は Shift を押しながらでも
 同じ 1 段で動く。
 
