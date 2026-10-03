@@ -338,8 +338,10 @@ small for its em. On a screen with more than four parameters, the page step is a
 (x408..415 / y258..269 in p103-1).
 
 USER DEFINED KNOBS mode goes off on HOME's SETUP, microSD and MONITOR icons, its scene name box and its
-channel-bank button, and when SAVE/LOAD or TOOLS gives way to microSD's `Not inserted microSD card` screen
-once the card is taken out. Every other move keeps it on: the back arrow, the HOME icon, a channel's ‹ ›,
+channel-bank button, on the back arrow onto SETUP, microSD or MONITOR, which carry no toggle, and when
+SAVE/LOAD, TOOLS or RECORDER gives way to microSD's `Not inserted microSD card` screen once the card is
+taken out. The mode itself goes off: the screen it was switched on at opens again without the bar. Every
+other move keeps it on: the back arrow onto a screen that carries the toggle, the HOME icon, a channel's ‹ ›,
 a touch on the screen that opens another (a strip on HOME to its channel view, a block to its screen),
 tabs, page steps, sheets and lists. Sheets and lists lie over the bar, which stays drawn under them and
 shows again once they close, and on an ordinary screen the bar lies over the screen's bottom edge,

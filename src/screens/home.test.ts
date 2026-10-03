@@ -2629,9 +2629,28 @@ describe("the moves USER DEFINED KNOBS mode goes off on", () => {
     expect([where(shell), ...mode(shell)]).toEqual(["bank-select", ...OFF]);
   });
 
+  for (const [top, name, under] of [
+    ["setup", "SETUP > USER DEFINED KNOBS", "setup.udk"],
+    ["microsd", "SAVE/LOAD", "microsd.saveload"],
+    ["microsd", "RECORDER", "microsd.recorder"],
+    ["microsd", "TOOLS", "microsd.tools"],
+    ["monitor", "MONITOR > Monitor", "monitor.level"],
+  ] as const) {
+    it(`goes off on the back arrow from ${name} onto ${top}, which shows no toggle, and stays off on the way back in`, async () => {
+      const shell = await onAt([{ id: top }, { id: under }]);
+      await tap(shell, ".toolbar .icon-btn", "Back");
+      expect([where(shell), shell.root.querySelector(".udk-toggle"), ...mode(shell)], "the bar is gone").toEqual([top, null, ...OFF]);
+      // The mode itself is off, not the bar hidden: the screen the toggle was on opens without it.
+      shell.ctx.nav.push({ id: under });
+      await flush();
+      expect([where(shell), shell.root.querySelector(".udk-toggle") !== null, ...mode(shell)], "opened again").toEqual([under, true, ...OFF]);
+    });
+  }
+
   for (const [name, id] of [
     ["SAVE/LOAD", "microsd.saveload"],
     ["TOOLS", "microsd.tools"],
+    ["RECORDER", "microsd.recorder"],
   ] as const) {
     it(`goes off as ${name} gives way to microSD once the card is taken out, which shows no toggle`, async () => {
       const shell = await onAt([{ id: "microsd" }, { id }]);
@@ -2667,6 +2686,19 @@ describe("the moves USER DEFINED KNOBS mode goes off on", () => {
     const home = await onAt(screens);
     await tap(home, ".toolbar .icon-btn", "HOME");
     expect([where(home), ...mode(home)], "HOME").toEqual(["home", ...ON]);
+  });
+
+  it("stays on as a sheet's [Cancel] steps back onto a screen that carries the toggle, SCENE a top-level one among them", async () => {
+    for (const [at, sheet] of [
+      [[{ id: "scene" }], "scene.title"],
+      [[{ id: "setup" }, { id: "setup.datetime" }], "setup.datetime.zone"],
+    ] as const) {
+      const shell = await onAt([...at]);
+      shell.ctx.nav.push({ id: sheet });
+      await flush();
+      await tap(shell, ".pick-dialog-cancel");
+      expect([where(shell), ...mode(shell)], sheet).toEqual([at.at(-1)?.id, ...ON]);
+    }
   });
 
   it("stays on through a channel's ‹ › and the SSMCS screens' page steps", async () => {

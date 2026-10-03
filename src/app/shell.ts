@@ -119,9 +119,14 @@ export class Shell {
       this.moves.push(change);
       focus.release();
       this.knobPage = 0;
-      // USER DEFINED KNOBS mode goes off on every jump to a top-level screen and
-      // on the way into the channel-bank list; every other move keeps it.
-      if (change === "openTop" || (change === "push" && route.id === "bank-select")) void store.set("ui.userDefinedKnobs", false);
+      // USER DEFINED KNOBS mode goes off on every jump to a top-level screen, on a
+      // step back onto a screen drawn without its toggle, and on the way into the
+      // channel-bank list; every other move keeps it.
+      const off =
+        change === "openTop" ||
+        (change === "back" && this.registry.get(route.id)?.knobToggle === false) ||
+        (change === "push" && route.id === "bank-select");
+      if (off) void store.set("ui.userDefinedKnobs", false);
       // A list or a dialog belongs to the screen that opened it.
       this.closeOverlays();
       this.scheduleRepaint();
