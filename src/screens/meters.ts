@@ -14,7 +14,7 @@ import { DETECTOR_OFFSET, type DetectorKind, METER_FALL_DB_PER_S, SIGNAL_LAMP_DB
 import { SILENT_DB } from "../model/signal";
 import type { Strip } from "../model/types";
 import { GATE_DEFAULTS } from "../model/defaults";
-import { CLIP_DB, type GrSpec, type Tap, clipSafe, flowCtx, flowLanes, flowLevels, heardOn, pairMembers, readingMoment, reductionAt, tapId } from "./signal-flow";
+import { CLIP_DB, type GrSpec, METER_TICK_MS, type Tap, clipSafe, flowCtx, flowLanes, flowLevels, heardOn, pairMembers, readingMoment, reductionAt, tapId } from "./signal-flow";
 
 export { CUE_METER, type GrSpec, clipSafe, oscillatorLevel, pairMeterId, tapId } from "./signal-flow";
 
@@ -261,7 +261,7 @@ export function readGrSpec(node: HTMLElement): GrSpec | null {
  * tag, and whether each Clip Safe switch marked by `markClipSafe` is holding the
  * gain down.
  */
-export function startMeterTicker(store: DeviceStore, root: HTMLElement, intervalMs = 100): () => void {
+export function startMeterTicker(store: DeviceStore, root: HTMLElement, intervalMs = METER_TICK_MS): () => void {
   const showClipSafes = (): void => {
     for (const node of root.querySelectorAll<HTMLElement>("[data-clip-safe]")) {
       showClipSafe(node, clipSafe(store, Number(node.dataset["clipSafe"])).engaged);

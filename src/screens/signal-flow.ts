@@ -154,6 +154,9 @@ const CLIP_SAFE_HOLD_MS = 5000;
 /** The longest a STREAMING DELAY holds its signal back. */
 export const DELAY_MAX_MS = 1000;
 
+/** How often the meter ticker reads the meters. */
+export const METER_TICK_MS = 100;
+
 /** What the connector numbered `n` puts out before Clip Safe: its signal, raised by its A.Gain. */
 function jackRaw(store: DeviceStore, n: number, at: number): number {
   return MIC_LINE_SIGNAL_DB + store.num(jackParam(n, "gain"), -8) + wander(monoStripId(n), 0, at);
@@ -161,11 +164,12 @@ function jackRaw(store: DeviceStore, n: number, at: number): number {
 
 /**
  * What each connector's Clip Safe has heard, per store: the moment of its last
- * clip, the latest moment read, and each reading that changed how far it held the
- * signal down, with the reading before it, as far back as a reading after the
- * longest DELAY looks.
+ * clip, the latest moment read, each moment read with how far it held the signal
+ * down then, and each stretch it held the signal down, from the clip that began it
+ * to CLIP_SAFE_HOLD_MS after the last clip in it, as far back as a reading after
+ * the longest DELAY looks.
  */
-const clipSafeStates = new WeakMap<DeviceStore, Map<number, { last: number; latest: number; held: { at: number; before: number; reduction: number }[] }>>();
+const clipSafeStates = new WeakMap<DeviceStore, Map<number, { last: number; latest: number; readings: { at: number; reduction: number }[]; holds: { from: number; to: number }[] }>>();
 
 /**
  * Clip Safe on the connector numbered `n` at `at`: whether it is engaged, and by
@@ -174,9 +178,10 @@ const clipSafeStates = new WeakMap<DeviceStore, Map<number, { last: number; late
  * and after it the signal is held CLIP_SAFE_REDUCTION_DB down until
  * CLIP_SAFE_HOLD_MS after the last clip, engaged for as long. A reading of a
  * moment before the latest one read, up to DELAY_MAX_MS back, hears no clip of
- * its own and finds the signal held down as far as the reading nearest that
- * moment did. The A.Gain setting stays where it is. Switched off, it forgets what
- * it heard.
+ * its own: within half a METER_TICK_MS of a moment read, it finds the signal held
+ * down as far as the nearest of those readings did, and further from any, as far
+ * as Clip Safe was holding it down at that moment. The A.Gain setting stays where
+ * it is. Switched off, it forgets what it heard.
  */
 export function clipSafe(store: DeviceStore, n: number, at = readingMoment()): { engaged: boolean; reduction: number } {
   let states = clipSafeStates.get(store);
@@ -186,19 +191,23 @@ export function clipSafe(store: DeviceStore, n: number, at = readingMoment()): {
     return { engaged: false, reduction: 0 };
   }
   let state = states.get(n);
-  if (!state) states.set(n, (state = { last: -Infinity, latest: -Infinity, held: [] }));
-  const { last, held } = state;
+  if (!state) states.set(n, (state = { last: -Infinity, latest: -Infinity, readings: [], holds: [] }));
+  const { last, readings, holds } = state;
   if (at < state.latest) {
-    const next = held.findIndex((h) => h.at > at);
-    const inForce = next < 0 ? held.at(-1) : held[next - 1];
-    const after = next < 0 ? undefined : held[next];
-    const nearest = after && at - after.before > after.at - at ? after : inForce;
-    return { engaged: at >= last && at - last <= CLIP_SAFE_HOLD_MS, reduction: nearest?.reduction ?? 0 };
+    const near = readings.filter((r) => Math.abs(r.at - at) <= METER_TICK_MS / 2).sort((a, b) => Math.abs(a.at - at) - Math.abs(b.at - at))[0];
+    const held = holds.some((h) => h.from < at && at <= h.to) ? CLIP_SAFE_REDUCTION_DB : 0;
+    return { engaged: holds.some((h) => h.from <= at && at <= h.to), reduction: near ? near.reduction : held };
   }
   const reduction = at > last && at - last <= CLIP_SAFE_HOLD_MS ? CLIP_SAFE_REDUCTION_DB : 0;
   const clip = jackRaw(store, n, at) - reduction >= CLIP_DB ? Math.max(last, at) : last;
-  if (held.at(-1)?.reduction !== reduction) held.push({ at, before: state.latest, reduction });
-  while ((held[1]?.at ?? Infinity) <= at - DELAY_MAX_MS) held.shift();
+  if (clip !== last) {
+    const hold = holds.at(-1);
+    if (hold && clip <= hold.to) hold.to = clip + CLIP_SAFE_HOLD_MS;
+    else holds.push({ from: clip, to: clip + CLIP_SAFE_HOLD_MS });
+  }
+  if (at > state.latest) readings.push({ at, reduction });
+  while ((readings[0]?.at ?? Infinity) < at - DELAY_MAX_MS - METER_TICK_MS / 2) readings.shift();
+  while ((holds[0]?.to ?? Infinity) < at - DELAY_MAX_MS) holds.shift();
   state.last = clip;
   state.latest = at;
   return { engaged: at >= clip && at - clip <= CLIP_SAFE_HOLD_MS, reduction };

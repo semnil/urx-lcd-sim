@@ -722,6 +722,42 @@ describe("the streaming bus", () => {
     expect(fed.filter(inside).length, "the stereo bus clips each time Clip Safe lets go").toBeGreaterThanOrEqual(5);
     expect(shown.filter(inside).map((t) => fed.find((f) => Math.abs(f - t) < 50))).toEqual(fed.filter(inside));
   });
+
+  it("reads its DELAY back as Clip Safe held it then after a pause in the readings, on its LEVEL meter, DELAY's OUT and the cue bus alike", async () => {
+    const setUp = async (): Promise<DeviceStore> => {
+      const store = await unit();
+      await only(store, "ch1");
+      await store.set("ch.ch1.gain", 60);
+      await store.set("ch.ch1.clipSafe", true);
+      await store.set("ch.bus.stream.delay.on", true);
+      await store.set("ch.bus.stream.delay.ms", 1000);
+      await store.set("ch.bus.stream.cue", true);
+      return store;
+    };
+    // Each moment the stereo bus is read, then STREAMING's three meters.
+    const streaming = (store: DeviceStore, t: number): number[][] => {
+      read(store, tapId("bus.stereo", "post"), t);
+      return [read(store, "bus.stream", t), read(store, tapId("bus.stream", "post"), t), read(store, CUE_METER, t)];
+    };
+    // A clip at AT, then a pause past Clip Safe's 5 s hold; a clip at AT, then a pause inside it.
+    for (const { before, after } of [
+      { before: [AT, AT + 100], after: AT + 5_100 },
+      { before: [AT], after: AT + 1_500 },
+    ]) {
+      const steady = await setUp();
+      const stereo: number[][] = [];
+      for (let t = AT; t < after; t += 100) {
+        stereo.push(read(steady, tapId("bus.stereo", "post"), t));
+        streaming(steady, t);
+      }
+      const then = stereo[(after - 1000 - AT) / 100];
+      expect(Math.max(...(then ?? [])), `${after - AT} ms: held down a second before`).toBeLessThan(0);
+      expect(streaming(steady, after), `${after - AT} ms, read every 100 ms`).toEqual([then, then, then]);
+      const paused = await setUp();
+      for (const t of before) streaming(paused, t);
+      expect(streaming(paused, after), `${after - AT} ms, read after a pause`).toEqual([then, then, then]);
+    }
+  });
 });
 
 describe("a bar's fall", () => {
