@@ -397,13 +397,19 @@ function renameSelected(ctx: AppContext): void {
 }
 
 /**
- * Put a folder on the card under the name that is typed. A name the folder that
- * is open already carries, a folder's or a file's, makes nothing and says nothing.
+ * Put a folder on the card under the name that is typed, the sheet going back to
+ * the Edit tab. A name the folder that is open already carries, a folder's or a
+ * file's, makes nothing: spelt the same, it says nothing, and in other case,
+ * `Directory already exists.` comes up over the Edit tab with [OK] alone.
  */
 function newFolder(ctx: AppContext): void {
   nameOnCard(ctx, "", (name) => {
     const entries = cardEntries(ctx);
     if (folderCarries(entries, cardPath(ctx), name)) return;
+    if (folderCarries(entries, cardPath(ctx), name, -1, sameName)) {
+      ctx.overlay(dialog({ message: DIRECTORY_TAKEN, okOnly: true, onOk: () => undefined }));
+      return;
+    }
     updateCard(ctx, [...entries, { name, kind: "folder", seconds: 0, tracks: 0, dir: cardPath(ctx) }]);
   }, { max: NAME_MAX });
 }
@@ -481,6 +487,9 @@ const REPLACE_ASK = "File already exists. Replace it?";
 
 /** What the unit says when an entry is renamed onto a name its folder already carries. */
 const NAME_TAKEN = "File already exists.";
+
+/** What the unit says when a folder is made under a name the folder that is open carries in other case. */
+const DIRECTORY_TAKEN = "Directory already exists.";
 
 /** What the unit calls a settings file. */
 const SETTINGS_SUFFIX = ".urxf";

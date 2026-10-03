@@ -680,6 +680,34 @@ describe("what the card's own actions do to it", () => {
     expect(readCard(store).filter((e) => e.kind === "folder").map((e) => `${e.dir}${e.name}`), "a name another folder carries").toEqual(["/Recordings", "/Takes", "/Recordings/Recordings"]);
   });
 
+  it("makes no folder under a name the folder carries in other case, a folder's or a file's, saying `Directory already exists.` over the Edit tab", async () => {
+    const shell = await mount({ id: "microsd.saveload" }, [...card, { name: "mix.urxf", kind: "data", seconds: 0, tracks: 0, stamp: "", dir: "/" }]);
+    const store = shell.ctx.store;
+    await store.set("ui.sdSaveTab", "Edit");
+    await flush();
+    const before = readCard(store);
+    for (const name of ["RECORDINGS", "Take.WAV", "MIX.urxf"]) {
+      action(shell, "New folder")?.click();
+      await flush();
+      await typeTitle(shell, name);
+      expect([shell.ctx.nav.current.id, store.str("ui.sdSaveTab", ""), shell.root.querySelector(".dialog-text")?.textContent ?? null], `${name}: said over the Edit tab`).toEqual([
+        "microsd.saveload",
+        "Edit",
+        "Directory already exists.",
+      ]);
+      expect(shell.root.querySelector(".dialog:not(.is-caution) .dialog-mark svg"), `${name}: under the information mark`).not.toBeNull();
+      expect([...shell.root.querySelectorAll(".dialog-actions .btn")].map((b) => b.textContent), `${name}: [OK] alone`).toEqual(["OK"]);
+      expect(readCard(store), `${name}: nothing made`).toEqual(before);
+      await okDialog(shell);
+      expect([shell.root.querySelector(".dialog-overlay"), shell.ctx.nav.current.id, readCard(store)], `${name}: [OK] takes the dialog down, making nothing`).toEqual([null, "microsd.saveload", before]);
+    }
+
+    action(shell, "New folder")?.click();
+    await flush();
+    await typeTitle(shell, "Takes");
+    expect([shell.root.querySelector(".dialog-text")?.textContent ?? null, names(shell)], "the control: a name the folder does not carry").toEqual([null, ["Recordings", "Takes", "mix.urxf", "take.wav"]]);
+  });
+
   it("puts what is made next into the folder that is open", async () => {
     const shell = await mount({ id: "microsd.saveload" }, card);
     const store = shell.ctx.store;
