@@ -670,6 +670,7 @@ describe("what the card's own actions do to it", () => {
     };
     expect(await rename("b.urxf", "Fold"), "onto the folder fold.urxf in other case: said, and [OK] back on the sheet as it was typed").toEqual(["File already exists.", "Fold"]);
     expect(await rename("b.urxf", "mix.urxf"), "typed as the file mix.urxf is named").toEqual(["File already exists.", "mix.urxf"]);
+    expect(await rename("b.urxf", "MIX.urxf"), "and in other case").toEqual(["File already exists.", "MIX.urxf"]);
     expect(readCard(store), "nothing renamed").toEqual(before);
 
     expect(await rename("b.urxf", "qz"), "beside the folder Qz").toEqual([null, null]);
