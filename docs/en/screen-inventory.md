@@ -1665,11 +1665,10 @@ entry sheet"). [Rename] onto a name the folder
 already carries brings up `File already exists.` with the i mark and [OK] alone, as the unit does,
 and renames nothing: [OK] goes back to the sheet as it was typed (on SAVE/LOAD's and RECORDER's
 Edit tabs alike). Names are compared without regard to case, so a name that differs from another
-entry's in case alone is refused the same way (a file's name on SAVE/LOAD, URX44V, the operator, 2026-10-03). [New folder] under a name the folder already carries, a folder's or a file's, closes the
-sheet and goes back to the Edit tab, making nothing. Under the name spelt the same, case included, it says
-nothing, as the unit does. Under a name that differs in case alone, `Directory already exists.` comes up with the i
-mark and [OK] alone, as the unit does (a file's name, URX44V, the operator, 2026-10-03); this simulator puts it over the Edit
-tab. TOOLS' [Format] leaves the card
+entry's in case alone is refused the same way (a file's name on SAVE/LOAD, URX44V, the operator, 2026-10-03). [New folder] under a name the folder already carries, a folder's or a file's, spelt the same or
+in other case, brings up `Directory already exists.` with the i mark and [OK] alone and makes nothing, and [OK] goes
+back to the name sheet, as the unit does (a file's name spelt the same and in other case, and a folder's in other case,
+URX44V, the operator, 2026-10-03). The sheet holds the name as it was typed, as it does after [Rename]. TOOLS' [Format] leaves the card
 with nothing on it. On SAVE/LOAD, [Save] writes the unit's settings over the selected settings file,
 [Save as] writes them under the name that is typed with `.urxf` after it, and [Load] puts a file
 back on the unit. Writing over a file that is already there, or a [Save as] under the name of a folder in the folder
