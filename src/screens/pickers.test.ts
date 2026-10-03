@@ -301,14 +301,15 @@ describe("the DATE / TIME popup buttons", () => {
     expect(formats()).toEqual(["YYYY/MM/DD", "12h"]);
     expect(boxes().map((b) => b.querySelector(".pulldown-value")?.textContent)).toEqual(["YYYY/MM/DD", "12h"]);
 
-    // The year, month and day apart, and the hours either side of where the 12-hour clock turns over.
+    // The year, month and day apart, and the hours either side of where the 12-hour clock turns over:
+    // the unit reads the hour 0 and the hour 12 as 00.
     const read: string[] = [];
     for (const hour of [0, 11, 12, 13]) {
       await setClock(shell.ctx.store, { year: 2020, month: 3, day: 4, hour, minute: 5 });
       await flush();
       read.push(reading(shell));
     }
-    expect(read).toEqual(["2020 / 03 / 04 12 : 05 AM", "2020 / 03 / 04 11 : 05 AM", "2020 / 03 / 04 12 : 05 PM", "2020 / 03 / 04 01 : 05 PM"]);
+    expect(read).toEqual(["2020 / 03 / 04 00 : 05 AM", "2020 / 03 / 04 11 : 05 AM", "2020 / 03 / 04 00 : 05 PM", "2020 / 03 / 04 01 : 05 PM"]);
   });
 
   it("reads the clock in the time zone the unit is set to", async () => {
