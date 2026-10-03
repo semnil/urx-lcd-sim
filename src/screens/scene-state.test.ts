@@ -257,6 +257,28 @@ describe("storing and recalling a scene", () => {
     expect([s.num("source.usb-daw-1-2.digitalGain", 99), s.num("source.usb-main-a.digitalGain", 99)]).toEqual([0, 6]);
   });
 
+  it("puts a GATE, COMP or DUCKER time an older scene holds off its stops on the stop nearest it", async () => {
+    // CH 1 and CH 5/6 as an earlier version left them a detent up from where they ship, by that version's steps.
+    const shell = await mount();
+    const s = shell.ctx.store;
+    const older: [string, number][] = [
+      ["ch.ch1.gate.attack", 20.27],
+      ["ch.ch1.gate.decay", 151.2],
+      ["ch.ch1.comp.release", 219],
+      ["ch.ch_5_6.ducker.attack", 20.27],
+      ["ch.ch_5_6.ducker.decay", 1001],
+      ["ch.ch1.ssmcs.comp.attack", 4.124],
+    ];
+    for (const [p, v] of older) await s.set(p, v);
+    await s.set("scene.Standard.1.title", "older");
+    await storeScene(shell.ctx, "Standard", 1);
+    await recallScene(shell.ctx, 1);
+    expect(
+      older.map(([p]) => s.num(p, 0)),
+      "each on its nearest stop, and the SSMCS strip's Attack as the scene holds it",
+    ).toEqual([20.17, 150.2, 218, 20.17, 1000, 4.124]);
+  });
+
   it("stores the mixer when a number is named for the first time", async () => {
     const shell = await mount();
     await shell.ctx.store.set("ch.ch3.level", -7);

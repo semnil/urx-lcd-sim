@@ -10,6 +10,7 @@
 import type { ParamPath, ParamValue } from "../device/path";
 import type { DeviceStore } from "../device/store";
 import { LEGACY_CLOCK } from "../model/clock";
+import { onDynamicsTimeStops } from "../model/dynamics-times";
 import { placeOfReading } from "../model/effects";
 import { dropTracksOverRate } from "../model/track-count";
 import type { UnitModel } from "../model/types";
@@ -71,10 +72,14 @@ export function readSaved(model: string): Record<string, ParamValue> | null {
   }
 }
 
-/** Put a stored unit back, one value after another. */
+/**
+ * Put a stored unit back, one value after another. A GATE, COMP or DUCKER time
+ * off its stops comes back on the stop nearest it.
+ */
 export async function restore(store: DeviceStore, model: UnitModel["id"]): Promise<void> {
-  const values = readSaved(model);
-  if (!values) return;
+  const saved = readSaved(model);
+  if (!saved) return;
+  const values = onDynamicsTimeStops(saved);
   for (const [path, value] of Object.entries(values)) {
     // A clock that stood still is not put back: the clock runs with the computer's.
     if (LEGACY_SAFE.test(path) || LEGACY_CLOCK.test(path)) continue;

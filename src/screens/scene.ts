@@ -4,6 +4,7 @@
 import type { AppContext } from "../app/context";
 import { applyScene, captureScene, readScene } from "../model/scene-state";
 import { shippedScene } from "../model/scene-presets";
+import { onDynamicsTimeStops } from "../model/dynamics-times";
 import { withEverySourceGain } from "../model/source-gain";
 import { dropInsertsOverRate } from "./insert-fx";
 import { followRecall, pairStates } from "./stereo-link";
@@ -78,13 +79,14 @@ function statePath(bank: string, no: number): string {
  * Put a scene's mixer on the unit and mark it as the one recalled. The factory
  * scenes — 00 and the presets — hold the mixers the unit ships with, which
  * nothing stores over, so they are put back from those rather than from a stored
- * copy. A source whose digital gain the scene does not name comes back to 0 dB.
+ * copy. A source whose digital gain the scene does not name comes back to 0 dB,
+ * and a GATE, COMP or DUCKER time it holds off its stops on the stop nearest it.
  */
 export async function recallScene(ctx: AppContext, no: number): Promise<void> {
   const bank = storedBank(ctx, no);
   const state = bank ? readScene(ctx.store, statePath(bank, no)) : isFactoryLocked(no) ? shippedScene(ctx.model, isPreset(no) ? no - PRESET_BASE : 0) : undefined;
   const pairs = pairStates(ctx);
-  if (state) await applyScene(ctx.store, withEverySourceGain(ctx.store, state));
+  if (state) await applyScene(ctx.store, onDynamicsTimeStops(withEverySourceGain(ctx.store, state)));
   followRecall(ctx, pairs);
   // A scene stored while Pan Link left each send's own placing where it was, or
   // kept Pan Link on over a FIXED bus, comes back as the unit would hold it.

@@ -15,7 +15,10 @@ export interface NumericSpec {
   max: number;
   /** Value change for one encoder detent. */
   step: number;
-  /** Coarser step while the knob is turned quickly. */
+  /**
+   * The step a detent moves while Shift is held, where the unit's knob turns the value finer while it is pushed in
+   * as it turns. A value without one moves the same step with Shift as without it.
+   */
   fastStep?: number;
   fallback: number;
   format(value: number): string;
@@ -25,8 +28,8 @@ export interface NumericSpec {
   /** Unit suffix a value box shows, where the box prints a shorter one. */
   boxUnit?: string | ((value: number) => string);
   /**
-   * A control whose travel is not linear in its value. Absent means the travel
-   * runs evenly over [min, max].
+   * A control whose travel is not linear in its value, or whose detents stop on
+   * a table of its own. Absent means the travel runs evenly over [min, max].
    */
   travel?: Travel;
   /**
@@ -43,6 +46,8 @@ export interface NumericSpec {
   centred?: boolean;
   /** A value the unit is holding itself: the control shows it and does not turn it. */
   locked?: boolean;
+  /** A value turned from off the screen, as a USER DEFINED KNOB turns its own: a screen's pinned focus does not hold it still. */
+  pinFree?: boolean;
 }
 
 /** How a control's value maps onto its travel, 0 at the start and 1 at the end. */
@@ -229,7 +234,6 @@ export function dbSpec(
     min,
     max,
     step,
-    fastStep: step * 5,
     fallback,
     format: (v) => formatDb(v, digits),
     unit: "dB",
@@ -238,7 +242,15 @@ export function dbSpec(
 
 /** The head amp of an input channel: whole dB, and the unit prints the sign. Its mark follows `marks`. */
 export function gainSpec(path: ParamPath, label: string, min: number, max: number, fallback: number, marks: readonly Mark[]): NumericSpec {
-  return { ...dbSpec(path, label, min, max, fallback, 1), format: formatGain, fastStep: 5, markAt: markedDial(marks) };
+  return { ...dbSpec(path, label, min, max, fallback, 1), format: formatGain, markAt: markedDial(marks) };
+}
+
+/**
+ * A gain the unit's knob turns 1 dB a detent, and 0.1 dB a detent while it is pushed in as it turns: EQ's, COMP's
+ * and SSMCS's. Shift turns the finer step, and the value stands on the tenths.
+ */
+export function fineGainSpec(path: ParamPath, label: string, min: number, max: number, fallback: number): NumericSpec {
+  return { ...dbSpec(path, label, min, max, fallback, 1, 1), fastStep: 0.1 };
 }
 
 /**
@@ -251,7 +263,7 @@ export function faderSpec(path: ParamPath, label: string, fallback = 0): Numeric
 }
 
 export function panSpec(path: ParamPath, label = "PAN"): NumericSpec {
-  return { path, label, min: -63, max: 63, step: 1, fastStep: 4, fallback: 0, format: formatPan, centred: true };
+  return { path, label, min: -63, max: 63, step: 1, fallback: 0, format: formatPan, centred: true };
 }
 
 /**
@@ -263,9 +275,14 @@ export function logFreqSpec(path: ParamPath, label: string, min: number, max: nu
   const span = Math.log(max / min);
   const position = (v: number): number => clamp01(Math.log(Math.max(v, min) / min) / span);
   const valueAt = (p: number): number => Math.round(min * Math.exp(span * clamp01(p)));
+  // A detent whose share of the travel rounds back to the same hertz moves one hertz its way.
+  const step = (v: number, detents: number): number => {
+    const next = valueAt(position(v) + detents / 1000);
+    return next === v ? Math.min(max, Math.max(min, v + Math.sign(detents))) : next;
+  };
   return {
     ...freqSpec(path, label, min, max, fallback),
-    travel: { position, valueAt, step: (v, detents) => valueAt(position(v) + detents / 1000) },
+    travel: { position, valueAt, step },
   };
 }
 
@@ -277,7 +294,7 @@ export function freqSpec(
   fallback: number,
   step = 1,
 ): NumericSpec {
-  return { path, label, min, max, step, fastStep: step === 1 ? 10 : step, fallback, format: formatHz, unit: hzUnit };
+  return { path, label, min, max, step, fallback, format: formatHz, unit: hzUnit };
 }
 
 /**
@@ -320,7 +337,6 @@ export function scaleSpec(path: ParamPath, label: string, fallback: number): Num
     min: 0,
     max: 10,
     step: 0.1,
-    fastStep: 1,
     fallback,
     format: (v) => v.toFixed(1),
   };
@@ -348,7 +364,6 @@ export function msSpec(
     min,
     max,
     step,
-    fastStep: step * 10,
     fallback,
     format: (v) =>
       long(v) ? (v / MS_IN_SECOND).toFixed(1) : v >= 100 ? v.toFixed(1) : v.toFixed(digits),
@@ -358,6 +373,15 @@ export function msSpec(
 }
 
 const MS_IN_SECOND = 1000;
+
+/**
+ * A time in milliseconds that stops on `stops`, in rising order, from the first
+ * to the last: a detent moves one stop and stops at either end, and a drag runs
+ * evenly over the stops.
+ */
+export function stoppedMsSpec(path: ParamPath, label: string, stops: readonly number[], fallback: number, digits = 2): NumericSpec {
+  return { ...msSpec(path, label, stops[0] ?? 0, stops.at(-1) ?? 0, fallback, undefined, digits), travel: stopsTravel(stops) };
+}
 
 /** The ratios a compressor stops on from 4.00:1 to the top of its travel, the last one ∞. */
 const RATIO_TOP = [
@@ -387,7 +411,6 @@ export function compRatioSpec(path: ParamPath, fallback: number, threeFigures: b
     min: 1,
     max: Number.POSITIVE_INFINITY,
     step: 0.1,
-    fastStep: 1,
     fallback,
     travel: stopsTravel(RATIO_STOPS),
     format: (v) =>

@@ -97,7 +97,8 @@ names a pair the current frequency cannot hold drops it, as a change of frequenc
 stored as parts that stood still is not put back: the clock runs with the computer's. A guitar
 amp's Type or Amp Type stored by its name comes back at the place on its knob that reads that name,
 and a name the amp does not have is not put back. A state stored while Pan Link left each send's own placing where
-it was, or kept Pan Link on over a FIXED bus, comes back with Pan Link where the unit's screen leaves it.
+it was, or kept Pan Link on over a FIXED bus, comes back with Pan Link where the unit's screen leaves it. A GATE,
+COMP or DUCKER time stored off its stops comes back on the stop nearest it.
 
 What is on the card, the scene memories and the settings files are values in the same mirror, and
 they are kept with it. The browser's storage, the scene memories and the settings files are written as JSON, which has
@@ -151,7 +152,10 @@ it. The scaling is one transform because an outer `zoom` over an inner `transfor
 the parts drawn pixel by pixel by one screen pixel at some scales.
 
 Dragging a value looks only at the difference in the pointer's movement on the page, so the same
-physical distance moves the value by the same amount at any scale.
+physical distance moves the value by the same amount at any scale. Dragging a list or its
+scrollbar's thumb divides the pointer's movement by the scale the glass is drawn at, turning it into
+the glass's own pixels, so the list and the thumb move as far on the screen as the pointer at any
+scale.
 
 ## Accessibility
 
@@ -160,9 +164,13 @@ targets can be reached with Tab and activated with Enter / Space, save the rotar
 below. As a finger acts when it leaves the glass, a key acts when it is let go, and only where the control it went
 down on is the one it is let go on (`makeTappable`). Value boxes are `role="spinbutton"`
 and HOME's level readouts are `role="slider"`; both move by drag, wheel or arrow keys (`attachSpin`
-takes drag, wheel and arrow keys in one place). A 192px drag covers the whole range (1/5 of that with Shift),
-and the wheel and arrow keys move one detent (`fastStep` with Shift). Dialogs have a focus trap and
-cancel on Escape. Meter animation stops under `prefers-reduced-motion`.
+takes drag, wheel and arrow keys in one place). A drag moves the value not at all over its first 4px and
+covers the whole range by 196px from where it is pressed (1/5 of that with Shift), and the wheel and arrow
+keys move one detent (with Shift, the finer `fastStep` of a value the unit's knob turns finer while it is
+pushed in as it turns, such as EQ's, COMP's and SSMCS's gains, and the same detent on any other value); Home
+and End take the value to
+either end of its range. These keys held with Alt, Cmd or Ctrl are left to the browser. Dialogs have a
+focus trap and cancel on Escape. Meter animation stops under `prefers-reduced-motion`.
 
 Where the keys stand is drawn by the simulator, in a layer over the glass (`src/ui/focus-ring.ts`). No control draws a
 ring of its own, so neither a neighbour nor a parent box can cover it. The ring stands outside the box of the control
@@ -188,7 +196,8 @@ of the same face do, and nothing goes in while an IME is composing (`isComposing
 
 `Escape` does the same as the back arrow. A screen that shows no back arrow in its toolbar is left
 with the same key. While a dialog is open, cancelling the dialog takes precedence, and while a text
-input has focus (IME composition included) the input receives the key.
+input has focus (IME composition included) the input receives the key. Held down, the key acts once, as
+the back arrow held down does: a press that cancels a dialog leaves the screen behind it where it is.
 
 On-screen controls keep the unit's dimensions (26px-high buttons on the 4.3-inch panel, and so on).
 The desktop GUI minimum touch target of 36x36 is met by the default `--scale` of 2 combined with a

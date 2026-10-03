@@ -619,6 +619,37 @@ describe("the screen an effect is set on", () => {
     expect(framed(), "the page stepped to frames its own first value").toBe("HPF");
   });
 
+  it("starts the readout bar from its first page on every page stepped to and every effect taken, the framed value on it", async () => {
+    // Each case turns the bar on before the screen moves; the bar then reads what a page opened afresh reads.
+    const reads = (shell: Shell, what: string, labels: string[]): void => {
+      expect(knobLabels(shell), what).toEqual(labels);
+      expect(labels, `${what}: the framed value is on the bar`).toContain(shell.ctx.focus.spec?.label);
+    };
+
+    const hall = await mount([{ id: "channel-view", strip: "fx1" }, { id: "ch.effect", strip: "fx1" }]);
+    await click(hall, ".knob-page-next");
+    await click(hall, ".efx-page-next");
+    await click(hall, ".efx-page-prev");
+    reads(hall, "Rev-X Hall, back on its first page", ["Rev.Time", "Ini.Delay", "Decay", "Room Size"]);
+
+    const delay = await mount([{ id: "channel-view", strip: "fx2" }, { id: "ch.effect", strip: "fx2" }]);
+    await click(delay, ".knob-page-next");
+    await click(delay, ".efx-page-next");
+    await click(delay, ".efx-page-prev");
+    reads(delay, "Mono Delay, back on its first page", ["Delay", "FB.Gain", "Hi.Ratio", ""]);
+
+    const mbc = await openParams("bus.stereo", "M.B.Comp");
+    await click(mbc, ".knob-page-next");
+    await click(mbc, ".efx-page-next");
+    reads(mbc, "M.B.Comp, its Low band", ["Threshold", "Ratio", "Attack", "Release"]);
+
+    const amp = await openParams("ch1", "Compander-H");
+    await click(amp, ".knob-page-next");
+    await click(amp, ".insfx-effect");
+    await pick(amp, "Clean");
+    reads(amp, "Clean, taken over Compander-H", ["Treble", "Middle", "Bass", "Presence"]);
+  });
+
   it("reads every value in the knob division under its own panel, on every page of every effect", async () => {
     // The readout bar keeps each value under the panel it reads (URX44V, 2026-09-22):
     // a row at a time, the lower row first, and a row with nothing to turn takes

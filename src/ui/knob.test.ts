@@ -12,6 +12,7 @@ import {
   type NumericSpec,
   dbSpec,
   faderSpec,
+  formatValue,
   gainSpec,
   logFreqSpec,
   markedDial,
@@ -19,6 +20,12 @@ import {
   scaleSpec,
 } from "./param-spec";
 import type { AppContext } from "../app/context";
+import { Shell } from "../app/shell";
+import { DeviceStore } from "../device/store";
+import { SimTransport } from "../device/sim-transport";
+import { factoryState } from "../model/defaults";
+import { unitById } from "../model/units";
+import { buildRegistry } from "../screens";
 import { fractionOf, knobControl, knobGraphic } from "./widgets";
 
 /** Where the mark ends up on the clock face: 0 is 12 o'clock, 90 is 3 o'clock. */
@@ -188,9 +195,197 @@ describe("the rotary graphic", () => {
     expect(travel.valueAt(0.5)).toBeLessThan(650);
   });
 
+  it("moves a frequency control on every detent, the bottom decade included", () => {
+    const travel = logFreqSpec("ch.ch1.eq.low.freq", "Freq.", 20, 20000, 1000).travel;
+    if (!travel) throw new Error("a frequency control declares its travel");
+
+    // A thousandth of three decades is under half a hertz below 73 Hz.
+    const stuck: string[] = [];
+    for (let v = 20; v <= 72; v++) if (!(travel.step(v, 1) > v)) stuck.push(`${v} up`);
+    for (let v = 21; v <= 72; v++) if (!(travel.step(v, -1) < v)) stuck.push(`${v} down`);
+    expect(stuck).toEqual([]);
+    expect([travel.step(20, -1), travel.step(20000, 1)], "the ends hold").toEqual([20, 20000]);
+    expect([travel.step(1000, 1), travel.step(1000, -1)], "higher up a detent stays a thousandth of the travel").toEqual([1007, 993]);
+
+    // Detent by detent from one end to the other and back, every reading new.
+    const walk = (from: number, dir: 1 | -1): { end: number; repeats: number; detents: number } => {
+      let v = from;
+      let repeats = 0;
+      let detents = 0;
+      while (detents < 5000 && v !== (dir > 0 ? 20000 : 20)) {
+        const next = travel.step(v, dir);
+        if (next === v) repeats += 1;
+        v = next;
+        detents += 1;
+      }
+      return { end: v, repeats, detents };
+    };
+    const up = walk(20, 1);
+    const down = walk(20000, -1);
+    expect([up.end, up.repeats, down.end, down.repeats]).toEqual([20000, 0, 20, 0]);
+    expect(up.detents, "and it takes fewer detents than hertz").toBeLessThan(1500);
+  });
+
   it("leaves a control that is not a fader on its own linear travel", () => {
     // PAN runs -63..63, so centre is halfway round however the fader is scaled.
     const { fill, track } = arcLengths(knobGraphic(fractionOf(panSpec("ch.ch1.pan"), 0)));
     expect(fill / track).toBeCloseTo(0.5, 6);
+  });
+});
+
+describe("the stops of a time", () => {
+  const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+
+  /** A URX44V's screens, and the values the screen drawn last hands to the readout bar. */
+  const mount = async (): Promise<{ shell: Shell; store: DeviceStore; bound: NumericSpec[] }> => {
+    const model = unitById("URX44V");
+    const store = new DeviceStore();
+    await store.attach(new SimTransport(factoryState(model)));
+    const shell = new Shell(buildRegistry(), store, model);
+    const bound: NumericSpec[] = [];
+    const inner = shell.ctx.setKnobs;
+    shell.ctx.setKnobs = (specs): void => {
+      bound.length = 0;
+      for (const s of specs) if (s && "path" in s) bound.push(s);
+      inner(specs);
+    };
+    return { shell, store, bound };
+  };
+
+  /**
+   * GATE's, COMP's and DUCKER's times as the unit turns them one detent at a time from one end to the other
+   * (URX44V, the operator, 2026-10-03): how many stops each has, its two ends and the sum of its stops, counted
+   * in the unit its table is whole in (microseconds for Attack, hundredths of a millisecond for Hold, tenths for
+   * the rest), so that a stop read otherwise changes the sum. `reads` is what the bottom and the top read. The
+   * value each ships at is one of its stops.
+   */
+  const TIMES = [
+    { route: { id: "ch.gate", strip: "ch1" }, label: "Attack", per: 1000, count: 227, ends: [92, 80000], sum: 2707666, reads: ["0.09ms", "80.00ms"] },
+    { route: { id: "ch.gate", strip: "ch1" }, label: "Hold", per: 100, count: 214, ends: [2, 196000], sum: 4532608, reads: ["0.0ms", "2.0s"] },
+    { route: { id: "ch.gate", strip: "ch1" }, label: "Decay", per: 10, count: 277, ends: [93, 9990], sum: 590007, reads: ["9.30ms", "999.0ms"] },
+    { route: { id: "ch.comp", strip: "ch1" }, label: "Attack", per: 1000, count: 227, ends: [92, 80000], sum: 2707666, reads: ["0.09ms", "80.00ms"] },
+    { route: { id: "ch.comp", strip: "ch1" }, label: "Release", per: 10, count: 277, ends: [93, 9990], sum: 590007, reads: ["9.30ms", "999.0ms"] },
+    { route: { id: "ch.ducker", strip: "ch_5_6" }, label: "Attack", per: 1000, count: 227, ends: [92, 80000], sum: 2707666, reads: ["0.09ms", "80.00ms"] },
+    { route: { id: "ch.ducker", strip: "ch_5_6" }, label: "Decay", per: 10, count: 122, ends: [13, 50000], sum: 742257, reads: ["1.3ms", "5.0s"] },
+  ] as const;
+
+  /** The control on the screen that turns `label`, and a press of a key on it. */
+  const control = (shell: Shell, store: DeviceStore, spec: NumericSpec) => {
+    // The value box where the screen has one, and the readout bar's division where it has not.
+    const node = shell.root.querySelector<HTMLElement>(
+      `[role="spinbutton"][aria-label="${spec.label}"], .knob-strip [role="slider"][aria-label="${spec.label}"]`,
+    );
+    if (!node) throw new Error(`no control for ${spec.label}`);
+    const value = (): number => store.num(spec.path, spec.fallback);
+    const press = (key: string, shiftKey = false): number => {
+      node.dispatchEvent(new KeyboardEvent("keydown", { key, shiftKey, bubbles: true, cancelable: true }));
+      return value();
+    };
+    /** Every value from the bottom up, one detent at a time, until a detent leaves the value where it stands. */
+    const walk = (key: "ArrowUp" | "ArrowDown"): number[] => {
+      const seen = [value()];
+      for (let n = 0; n < 5000; n++) {
+        if (press(key) === seen.at(-1)) break;
+        seen.push(value());
+      }
+      return seen;
+    };
+    return { value, press, walk };
+  };
+
+  it("turns each of GATE's, COMP's and DUCKER's times one stop a detent through the unit's stops, and stops at either end", async () => {
+    const { shell, store, bound } = await mount();
+    const walked: unknown[] = [];
+    for (const t of TIMES) {
+      shell.ctx.nav.push(t.route);
+      await flush();
+      const spec = bound.find((s) => s.label === t.label);
+      if (!spec) throw new Error(`${t.route.id} binds no ${t.label}`);
+      const { value, press, walk } = control(shell, store, spec);
+      const shipped = value();
+      press("Home");
+      const up = walk("ArrowUp");
+      const top = formatValue(spec, up.at(-1) ?? Number.NaN);
+      const down = walk("ArrowDown");
+      const counted = up.map((v) => Math.round(v * t.per));
+      walked.push({
+        time: `${t.route.id} ${t.label}`,
+        count: counted.length,
+        ends: [counted[0], counted.at(-1)],
+        sum: counted.reduce((a, b) => a + b, 0),
+        rising: counted.every((v, i) => i === 0 || v > (counted[i - 1] ?? v)),
+        back: JSON.stringify(down) === JSON.stringify([...up].reverse()),
+        reads: [formatValue(spec, down.at(-1) ?? Number.NaN), top],
+        shipsOnAStop: up.includes(shipped),
+      });
+      shell.ctx.nav.back();
+      await flush();
+    }
+    expect(walked, "up from the bottom stop by stop to the top, a detent past it, and back down the same stops").toEqual(
+      TIMES.map((t) => ({ time: `${t.route.id} ${t.label}`, count: t.count, ends: t.ends, sum: t.sum, rising: true, back: true, reads: t.reads, shipsOnAStop: true })),
+    );
+    shell.destroy();
+  });
+
+  it("turns each time one stop a detent with Shift, as without it, and stops at either end", async () => {
+    const { shell, store, bound } = await mount();
+    const shifted: unknown[] = [];
+    for (const t of TIMES) {
+      shell.ctx.nav.push(t.route);
+      await flush();
+      const spec = bound.find((s) => s.label === t.label);
+      if (!spec) throw new Error(`${t.route.id} binds no ${t.label}`);
+      const { press, walk } = control(shell, store, spec);
+      press("Home");
+      const stops = walk("ArrowUp");
+      const last = stops.length - 1;
+      const from = async (i: number, key: string): Promise<number> => {
+        await store.set(spec.path, stops[i] ?? Number.NaN);
+        return stops.indexOf(press(key, true));
+      };
+      shifted.push({
+        time: `${t.route.id} ${t.label}`,
+        up: [await from(0, "ArrowUp"), await from(last - 1, "ArrowUp"), await from(last, "ArrowUp")],
+        down: [await from(last, "ArrowDown"), await from(1, "ArrowDown"), await from(0, "ArrowDown")],
+      });
+      shell.ctx.nav.back();
+      await flush();
+    }
+    expect(shifted, "a stop in from either end, onto the end from the stop next to it, and none past it").toEqual(
+      TIMES.map((t) => ({ time: `${t.route.id} ${t.label}`, up: [1, t.count - 1, t.count - 1], down: [t.count - 2, 0, 0] })),
+    );
+    shell.destroy();
+  });
+
+  it("runs a drag over a time's stops evenly, counted from 4px off the press", async () => {
+    const { shell, store } = await mount();
+    const drag = async (selector: string, dx: number, dy: number): Promise<void> => {
+      const node = shell.root.querySelector(selector);
+      expect(node, selector).not.toBeNull();
+      node?.dispatchEvent(new MouseEvent("pointerdown", { clientX: 100, clientY: 100, bubbles: true }));
+      window.dispatchEvent(new MouseEvent("pointermove", { clientX: 100 + dx, clientY: 100 + dy, bubbles: true }));
+      window.dispatchEvent(new MouseEvent("pointerup", { clientX: 100 + dx, clientY: 100 + dy, bubbles: true }));
+      await flush();
+    };
+    // DUCKER's D grip runs its 122 stops in 192px across: 1.0s is the 100th, 4px past the slop is
+    // 4/192 of the 121 steps between the ends (2.5, so 3 stops), 20px is 12.6 stops, and 192px the whole way.
+    shell.ctx.nav.push({ id: "ch.ducker", strip: "ch_5_6" });
+    await flush();
+    const decay = (): number => store.num("ch.ch_5_6.ducker.decay", Number.NaN);
+    const moved: number[] = [];
+    for (const [from, dx] of [[1000, 4 + 4], [1000, 4 + 20], [1000, -4 - 4], [1.3, 4 + 192], [1.3, 4 + 191]] as const) {
+      await store.set("ch.ch_5_6.ducker.decay", from);
+      await flush();
+      await drag('[aria-label^="D handle"]', dx, 0);
+      moved.push(decay());
+    }
+    expect(moved, "4px and 20px up and 4px down from 1.0s, and 192px and 191px up from the bottom").toEqual([1300, 2600, 850, 5000, 4800]);
+    // GATE's Hold box runs its 214 stops in 192px up: 15.30 ms is the 102nd, and 10px is 11.1 stops.
+    shell.ctx.nav.replace({ id: "ch.gate", strip: "ch1" });
+    await store.set("ch.ch1.gate.hold", 15.3);
+    await flush();
+    await drag('[role="spinbutton"][aria-label="Hold"]', 0, -4 - 10);
+    expect(store.num("ch.ch1.gate.hold", Number.NaN)).toBe(23.6);
+    shell.destroy();
   });
 });

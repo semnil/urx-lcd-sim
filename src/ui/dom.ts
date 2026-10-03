@@ -41,6 +41,17 @@ export function el<K extends keyof HTMLElementTagNameMap>(
 /** Anything that answers a pointer for itself. */
 export const INTERACTIVE = "button, [role='button'], [role='slider'], [role='spinbutton']";
 
+/** Whether `ev` comes from a control inside `node`, which answers it for itself. */
+export function fromInnerControl(ev: Event, node: Element): boolean {
+  const inner = (ev.target as HTMLElement).closest(INTERACTIVE);
+  return inner !== null && inner !== node;
+}
+
+/** How many page pixels each of the glass's own pixels is drawn across. */
+export function drawnScale(glass: HTMLElement): number {
+  return glass.getBoundingClientRect().width / glass.offsetWidth || 1;
+}
+
 /**
  * Turn any element into an activatable control. The unit's screen is a touch
  * panel with no keyboard, but the simulator runs in a browser, so every touch
@@ -52,8 +63,7 @@ export function makeTappable(node: HTMLElement, handler: (ev: Event) => void): v
   node.addEventListener("click", (ev) => {
     // A control inside a tappable area owns its own clicks: without this, a
     // button or a value box would also fire whatever the area does.
-    const inner = (ev.target as HTMLElement).closest(INTERACTIVE);
-    if (inner && inner !== node) return;
+    if (fromInnerControl(ev, node)) return;
     handler(ev);
   });
   // A key acts where a finger would: the control answers when the key is let go,

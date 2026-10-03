@@ -234,6 +234,28 @@ describe("playing a file back", () => {
     expect(store.num("ch.ch1.ssmcs.comp.ratio", 0)).toBe(Number.POSITIVE_INFINITY);
   });
 
+  it("puts a GATE, COMP or DUCKER time an older settings file holds off its stops on the stop nearest it", async () => {
+    // A file saved by an earlier version, with the times a detent up from where they ship by that version's steps.
+    const shell = await mount({ id: "microsd.saveload" }, [{ name: "Recordings", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" }]);
+    const store = shell.ctx.store;
+    const times: [string, number][] = [
+      ["ch.ch1.gate.hold", 16.3],
+      ["ch.ch1.comp.attack", 34.68],
+      ["ch.ch_5_6.ducker.decay", 1001],
+      ["ch.ch1.ssmcs.comp.attack", 4.124],
+    ];
+    for (const [p, v] of times) await store.set(p, v);
+    action(shell, "Save as")?.click();
+    await flush();
+    await typeTitle(shell, "older");
+    await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === "older.urxf"));
+    await flush();
+    action(shell, "Load")?.click();
+    await flush();
+    await flush();
+    expect(times.map(([p]) => store.num(p, 0)), "each on its nearest stop, and the SSMCS strip's Attack as the file holds it").toEqual([16, 34.58, 1000, 4.124]);
+  });
+
   it("stops at the end of the file", async () => {
     vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
     try {

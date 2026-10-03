@@ -133,6 +133,46 @@ describe("Escape", () => {
     }
   });
 
+  it("steps back once for a key held down, whatever its first press closed", async () => {
+    const shell = await mount();
+    document.body.appendChild(shell.root);
+    const at = (): string => `${shell.ctx.nav.current.id} (depth ${shell.ctx.nav.depth})`;
+    /** Escape as the browser sends it, at the focus of the moment; whether the page took it. */
+    const key = async (repeat: boolean): Promise<boolean> => {
+      const ev = new KeyboardEvent("keydown", { key: "Escape", repeat, bubbles: true, cancelable: true });
+      (document.activeElement ?? document.body).dispatchEvent(ev);
+      await flush();
+      return ev.defaultPrevented;
+    };
+    try {
+      // The first press cancels the dialog, and the repeats leave the screen behind it.
+      shell.ctx.nav.push({ id: "setup" });
+      shell.ctx.nav.push({ id: "setup.patch" });
+      await flush();
+      shell.root.querySelector<HTMLElement>(".patch-default")?.click();
+      await flush();
+      expect(shell.root.querySelector('[role="dialog"]'), "[Default] asks first").not.toBeNull();
+      await key(false);
+      expect([shell.root.querySelector('[role="dialog"]'), at()]).toEqual([null, "setup.patch (depth 3)"]);
+      for (let i = 0; i < 2; i++) expect(await key(true), "the repeat is the page's").toBe(true);
+      expect(at(), "after the dialog").toBe("setup.patch (depth 3)");
+
+      // With nothing over the screen, the first press goes back one screen and the repeats nothing.
+      shell.ctx.nav.home();
+      shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+      shell.ctx.nav.push({ id: "ch.comp", strip: "ch1" });
+      await flush();
+      for (let i = 0; i < 2; i++) await key(true);
+      expect(at(), "repeats alone").toBe("ch.comp (depth 3)");
+      await key(false);
+      expect(at(), "a fresh press").toBe("channel-view (depth 2)");
+      await key(true);
+      expect(at(), "and its repeat").toBe("channel-view (depth 2)");
+    } finally {
+      shell.root.remove();
+    }
+  });
+
   it("belongs to a field being typed into", async () => {
     const shell = await mount();
     document.body.appendChild(shell.root);
@@ -188,6 +228,59 @@ describe("what a screen gives back", () => {
     await flush();
     expect(shell.root.contains(node), "the overlay is off the glass").toBe(false);
     expect(closed, "and whatever it was holding is given up with it").toBe(1);
+  });
+
+  it("lets go of a value being dragged when the screen changes under it", async () => {
+    const shell = await mount();
+    const store = shell.ctx.store;
+    const nav = shell.ctx.nav;
+    const brightness = (): number => store.num("setup.brightness", NaN);
+    const turning = (): boolean => document.documentElement.classList.contains("is-turning");
+    const at = (type: string, y: number): MouseEvent => new MouseEvent(type, { bubbles: true, clientY: y });
+    const box = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".single-param .value-box");
+    const subscribe = nav.onChange.bind(nav);
+    let following = 0;
+    nav.onChange = (listener) => {
+      following++;
+      const off = subscribe(listener);
+      return () => {
+        following--;
+        return off();
+      };
+    };
+    const open = async (): Promise<void> => {
+      await store.set("setup.brightness", 10);
+      nav.openTop({ id: "setup" });
+      nav.push({ id: "setup.brightness" });
+      await flush();
+    };
+    const press = async (): Promise<void> => {
+      box()?.dispatchEvent(at("pointerdown", 300));
+      window.dispatchEvent(at("pointermove", 320));
+      await flush();
+    };
+
+    // A drag that stays on its screen turns the value, and lets the screen go once it is let go.
+    await open();
+    const before = following;
+    await press();
+    expect(brightness(), "a drag on its own screen").toBe(9);
+    window.dispatchEvent(at("pointerup", 320));
+    expect([turning(), following], "let go").toEqual([false, before]);
+
+    // Escape, or a second finger on HOME, takes the screen away and the drag with it.
+    for (const leave of [() => escape(), async () => shell.root.querySelector<HTMLElement>('[aria-label="HOME"]')?.click()]) {
+      await open();
+      await press();
+      await leave();
+      await flush();
+      expect(nav.current.id === "setup.brightness", "the screen went").toBe(false);
+      expect([turning(), following], "the drag went with it").toEqual([false, before]);
+      window.dispatchEvent(at("pointermove", 480));
+      await flush();
+      expect(brightness(), "the pointer moving on").toBe(9);
+      window.dispatchEvent(at("pointerup", 480));
+    }
   });
 
   it("gives the key back when the screen under an open list goes away", async () => {

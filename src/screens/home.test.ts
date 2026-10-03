@@ -519,6 +519,28 @@ describe("a strip on the bank", () => {
     }
   });
 
+  it("takes its level to the top of the fader by End and off by Home", async () => {
+    const shell = await mount();
+    const level = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".strip-level");
+    const press = (key: string): boolean => {
+      const ev = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+      level()?.dispatchEvent(ev);
+      return ev.defaultPrevented;
+    };
+    expect(level()?.getAttribute("aria-label")).toBe("CH 1 LEVEL");
+
+    expect(press("End"), "End is the slider's own key").toBe(true);
+    await flush();
+    expect([shell.ctx.store.num("ch.ch1.level", Number.NaN), level()?.getAttribute("aria-valuenow")]).toEqual([10, "10"]);
+
+    expect(press("Home"), "and so is Home").toBe(true);
+    await flush();
+    expect([shell.ctx.store.num("ch.ch1.level", Number.NaN), level()?.querySelector(".strip-level-value")?.textContent]).toEqual([
+      -96.5,
+      "-∞",
+    ]);
+  });
+
   it("fills the row to four whatever the bank holds", async () => {
     const shell = await mount();
     const slots = (): number => shell.root.querySelectorAll(".home-main > .strip").length;
@@ -711,6 +733,131 @@ describe("the channel-bank marks", () => {
     // mono channels fewer, so its inputs fall into two banks.
     expect(marks(await mount("URX44V"))).toBe(3);
     expect(marks(await mount("URX22"))).toBe(2);
+  });
+});
+
+describe("a swipe across HOME's main area", () => {
+  const send = (node: Element | null, type: string, x: number, y = 100): void => {
+    node?.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y }));
+  };
+  const finger = (node: Element | null, type: string, pointerId: number, x: number, y = 100): void => {
+    node?.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId, pointerType: "touch", clientX: x, clientY: y }));
+  };
+  /**
+   * A shell on the page, so what reaches the window reaches it as it does in the browser, laid out as the glass
+   * draws it: the toolbar above y 50, the side rail right of x 422, and the main area under and beside them.
+   */
+  async function onPage(id: "URX44V" | "URX22"): Promise<Shell> {
+    const shell = await mount(id);
+    document.body.append(shell.root);
+    document.elementFromPoint = (x: number, y: number): Element | null =>
+      shell.root.querySelector(y < 50 ? ".toolbar" : x >= 422 ? ".side" : ".main");
+    return shell;
+  }
+  const leave = (shell: Shell): void => {
+    shell.destroy();
+    shell.root.remove();
+    Reflect.deleteProperty(document, "elementFromPoint");
+  };
+  const bank = (shell: Shell): number => shell.ctx.store.num("ui.bank", 0);
+  const main = (shell: Shell): Element | null => shell.root.querySelector(".main");
+
+  it("steps the bank for a swipe that starts and ends on the main area", async () => {
+    for (const id of ["URX44V", "URX22"] as const) {
+      const shell = await onPage(id);
+      send(main(shell), "pointerdown", 300);
+      send(main(shell), "pointerup", 200);
+      await flush();
+      expect(bank(shell), id).toBe(1);
+      leave(shell);
+    }
+  });
+
+  it("lets a swipe that ends off the main area go, so a later press steps no bank", async () => {
+    for (const id of ["URX44V", "URX22"] as const) {
+      for (const ending of ["on the toolbar", "on the side rail", "cancelled"] as const) {
+        const shell = await onPage(id);
+        send(main(shell), "pointerdown", 300);
+        if (ending === "on the toolbar") send(shell.root.querySelector(".toolbar"), "pointerup", 200, 20);
+        if (ending === "on the side rail") send(shell.root.querySelector(".side"), "pointerup", 450);
+        if (ending === "cancelled") send(main(shell), "pointercancel", 200);
+        // A press that starts on the toolbar and is let go over the main area.
+        send(shell.root.querySelector(".toolbar"), "pointerdown", 100);
+        send(main(shell), "pointerup", 100);
+        await flush();
+        expect(bank(shell), `${id}, ${ending}`).toBe(0);
+
+        // A tap on CH 1's [ON] works [ON] alone.
+        const on = shell.root.querySelector(".main .strip .btn-on");
+        send(on, "pointerdown", 100);
+        send(on, "pointerup", 100);
+        send(on, "click", 100);
+        await flush();
+        expect(bank(shell), `${id}, ${ending}: [ON] steps no bank`).toBe(0);
+        expect(shell.ctx.store.bool("ch.ch1.on", true), `${id}, ${ending}: [ON] turns CH 1 off`).toBe(false);
+        leave(shell);
+      }
+    }
+  });
+
+  it("steps no bank on a tap on a control after a press whose end never reached the page", async () => {
+    const shell = await onPage("URX44V");
+    send(main(shell), "pointerdown", 300);
+    const on = shell.root.querySelector(".main .strip .btn-on");
+    send(on, "pointerdown", 100);
+    send(on, "pointerup", 100);
+    send(on, "click", 100);
+    await flush();
+    expect(bank(shell)).toBe(0);
+    expect(shell.ctx.store.bool("ch.ch1.on", true)).toBe(false);
+    leave(shell);
+  });
+
+  it("reads where a finger is let go, though its release reaches the main area it pressed", async () => {
+    const shell = await onPage("URX44V");
+    for (const [x, y, where] of [
+      [450, 100, "on the side rail"],
+      [200, 20, "on the toolbar"],
+    ] as const) {
+      finger(main(shell), "pointerdown", 1, 300);
+      finger(main(shell), "pointerup", 1, x, y);
+      await flush();
+      expect(bank(shell), where).toBe(0);
+    }
+    finger(main(shell), "pointerdown", 1, 300);
+    finger(main(shell), "pointerup", 1, 200);
+    await flush();
+    expect(bank(shell), "on the main area").toBe(1);
+    leave(shell);
+  });
+
+  it("leaves a swipe to the finger that started it", async () => {
+    const shell = await onPage("URX44V");
+    finger(main(shell), "pointerdown", 1, 300);
+    // A second finger's swipe on the main area steps nothing while the first is down.
+    finger(main(shell), "pointerdown", 2, 300);
+    finger(main(shell), "pointerup", 2, 150);
+    await flush();
+    expect(bank(shell), "the second finger's swipe").toBe(0);
+    // Nor does a second finger's press on a control end the first finger's swipe.
+    const on = shell.root.querySelector(".main .strip .btn-on");
+    finger(on, "pointerdown", 3, 100);
+    finger(on, "pointerup", 3, 100);
+    finger(main(shell), "pointerup", 1, 200);
+    await flush();
+    expect(bank(shell), "the first finger's swipe").toBe(1);
+    leave(shell);
+  });
+
+  it("lets a swipe go with the shell that took it", async () => {
+    const shell = await onPage("URX44V");
+    finger(main(shell), "pointerdown", 1, 300);
+    leave(shell);
+    document.elementFromPoint = (): Element | null => main(shell);
+    window.dispatchEvent(new PointerEvent("pointerup", { pointerId: 1, pointerType: "touch", clientX: 200, clientY: 100 }));
+    await flush();
+    Reflect.deleteProperty(document, "elementFromPoint");
+    expect(bank(shell)).toBe(0);
   });
 });
 
@@ -940,6 +1087,35 @@ describe("a processing block on the channel view", () => {
     shell.root.querySelector<HTMLElement>(".cv-block .cv-block-value")?.click();
     await flush();
     expect(shell.ctx.nav.current.id).toBe("ch.gate");
+  });
+
+  it("leaves the arrow keys on the block's switch to the switch, and turns the threshold by the block's own", async () => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    await flush();
+    const store = shell.ctx.store;
+    const arrow = (node: Element | null, key: string): boolean => {
+      const ev = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+      node?.dispatchEvent(ev);
+      return ev.defaultPrevented;
+    };
+    for (const block of ["gate", "comp"] as const) {
+      const path = `ch.ch1.${block}.threshold`;
+      const before = store.num(path, Number.NaN);
+      for (const key of ["ArrowUp", "ArrowDown"]) {
+        const switched = shell.root.querySelector(`.cv-block-${block} .badge-switch`);
+        expect(switched, `${block} has a switch`).not.toBeNull();
+        expect(arrow(switched, key), `${block} switch, ${key}: the page keeps the key`).toBe(false);
+        await flush();
+        expect(store.num(path, Number.NaN), `${block} switch, ${key}: the threshold stays`).toBe(before);
+        expect(shell.root.querySelector(".cv-block .is-focused"), `${block} switch, ${key}: no block takes the focus`).toBeNull();
+      }
+    }
+
+    const gate = store.num("ch.ch1.gate.threshold", Number.NaN);
+    expect(arrow(shell.root.querySelector(".cv-block-gate"), "ArrowUp"), "the block takes its own key").toBe(true);
+    await flush();
+    expect(store.num("ch.ch1.gate.threshold", Number.NaN)).toBe(gate + 1);
   });
 });
 
@@ -2276,6 +2452,54 @@ describe("CH SETTING: what a channel is tapped at and what colour it carries", (
     // carrying the word the store keeps.
     const rail = shell.root.querySelector<HTMLElement>(".strip")?.style.getPropertyValue("--rail");
     expect(rail, "and its rail carries nothing").toBe("");
+  });
+
+  it("writes a name left in the field once the press that takes the focus has its click, and one the keys commit at once", async () => {
+    const shell = await setting("ch1");
+    document.body.appendChild(shell.root);
+    try {
+      const name = (): string => shell.ctx.store.str("ch.ch1.name", "");
+      const field = (): HTMLInputElement | null => shell.root.querySelector<HTMLInputElement>(".chs-name");
+      const reopen = async (): Promise<void> => {
+        shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+        shell.ctx.nav.push({ id: "ch.setting", strip: "ch1" });
+        await flush();
+      };
+      const fire = (node: EventTarget | null | undefined, type: string): void => {
+        node?.dispatchEvent(new MouseEvent(type, { bubbles: true }));
+      };
+      // A mouse takes the focus as its button goes down; a finger at the mouse press
+      // that follows its lift. The field commits what it holds there.
+      for (const [by, typed] of [["mouse", "Gtr"], ["finger", "Vox"]] as const) {
+        const before = name();
+        const home = shell.root.querySelector<HTMLElement>('.icon-btn[aria-label="HOME"]');
+        expect([field(), home].includes(null), "the Name field and the toolbar's HOME").toBe(false);
+        field()?.focus();
+        (field() as HTMLInputElement).value = typed;
+        fire(home, "pointerdown");
+        if (by === "finger") {
+          fire(home, "pointerup");
+          await flush();
+        }
+        fire(home, "mousedown");
+        field()?.dispatchEvent(new Event("change", { bubbles: true }));
+        if (by === "mouse") fire(home, "pointerup");
+        fire(home, "mouseup");
+        for (let i = 0; i < 10; i++) await Promise.resolve();
+        expect([name(), home?.isConnected], `${by}: the pressed control is still on the glass for its click`).toEqual([before, true]);
+        home?.click();
+        await flush();
+        expect([shell.ctx.nav.current.id, name()], `${by}: the press goes home, and the name is kept`).toEqual(["home", typed]);
+        await reopen();
+      }
+
+      // Enter, or Tab out of the field, commits with no press under way.
+      (field() as HTMLInputElement).value = "Bass";
+      field()?.dispatchEvent(new Event("change", { bubbles: true }));
+      expect(name(), "the keys' commit is written at once").toBe("Bass");
+    } finally {
+      shell.root.remove();
+    }
   });
 
   it("closes the palette on the way out without changing the colour", async () => {
@@ -3624,6 +3848,25 @@ describe("the grips on a dedicated screen's graph", () => {
     expect(await moved(ducker, '[aria-label^="R handle"]', 0, -20, ["ch.ch1.ducker.range"]), "DUCKER R up").toEqual([1]);
     expect(await moved(ducker, '[aria-label^="A handle"]', 40, 0, ["ch.ch1.ducker.attack"]), "DUCKER A right").toEqual([1]);
     expect(await moved(ducker, '[aria-label^="D handle"]', 40, 0, ["ch.ch1.ducker.decay"]), "DUCKER D right").toEqual([1]);
+  });
+
+  it("takes a grip's value to either end of its range by Home and End", async () => {
+    const comp = await open("ch.comp");
+    const grip = (): Element | null => comp.root.querySelector('[aria-label^="T handle"]');
+    const press = (key: string): boolean => {
+      const ev = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+      grip()?.dispatchEvent(ev);
+      return ev.defaultPrevented;
+    };
+    const threshold = (): number => comp.ctx.store.num("ch.ch1.comp.threshold", Number.NaN);
+    expect(threshold()).toBe(-18);
+
+    expect(press("Home")).toBe(true);
+    await flush();
+    expect([threshold(), grip()?.getAttribute("aria-valuenow")]).toEqual([-54, "-54"]);
+    expect(press("End")).toBe(true);
+    await flush();
+    expect([threshold(), grip()?.getAttribute("aria-valuenow")]).toEqual([0, "0"]);
   });
 
   it("leaves COMP's grips still while 1-knob holds the values, and G while Auto Makeup holds the gain", async () => {
