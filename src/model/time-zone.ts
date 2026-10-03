@@ -1,7 +1,7 @@
 // The cities the unit names its time zones by, in its own order, and the time each keeps.
 //
-// A few cities between the ends of the list are not confirmed against a unit. Each city keeps one
-// offset from UTC in every year, with no summer time.
+// The cities and their order between the ends of the list are not all confirmed against a unit.
+// Each city keeps one offset from UTC in every year, with no summer time.
 
 /** Each city the [Time Zone] dialog lists, with how far its time stands ahead of UTC, in minutes. */
 const ZONES: readonly (readonly [string, number])[] = [
