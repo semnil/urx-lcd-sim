@@ -1663,7 +1663,8 @@ name display"). A new folder and a [Save as] settings file are made in the folde
 
 On the Edit tab, [Delete] asks `Delete the selected file?` before it takes the entry off, and
 [Rename] and [New folder] open the same sheet SCENE's title opens, on the card's keyboard ("The title
-entry sheet"). [Rename] onto a name the folder
+entry sheet"). [Delete] and [Rename] take a file alone and stand out of reach with a folder under the cursor, as on
+the unit, whose LCD has no way to delete or rename a folder (URX44V, the operator, 2026-10-04). [Rename] onto a name the folder
 already carries brings up `File already exists.` with the i mark and [OK] alone, as the unit does,
 and renames nothing: [OK] goes back to the sheet as it was typed (on SAVE/LOAD's and RECORDER's
 Edit tabs alike). Names are compared without regard to case, so a name that differs from another
@@ -1675,7 +1676,8 @@ renamed `take` beside `take.wav` becomes `take.urxf`, and one renamed `Fold` bes
 file, URX44V, the operator, 2026-10-03). [New folder] under a name the folder already carries, a folder's or a file's, spelt the same or
 in other case, brings up `Directory already exists.` with the i mark and [OK] alone and makes nothing, and [OK] goes
 back to the name sheet, as the unit does (a file's name spelt the same and in other case, and a folder's in other case,
-URX44V, the operator, 2026-10-03). The sheet holds the name as it was typed, as it does after [Rename]. TOOLS' [Format] leaves the card
+URX44V, the operator, 2026-10-03; a folder's spelt the same, 2026-10-04). The sheet holds the name as it was typed, as it does
+after [Rename], as on the unit (URX44V, the operator, 2026-10-04). TOOLS' [Format] leaves the card
 with nothing on it. On SAVE/LOAD, [Save] writes the unit's settings over the selected settings file,
 [Save as] writes them under the name that is typed with `.urxf` after it, and [Load] puts a file
 back on the unit. Writing over a file that is already there, or a [Save as] under the name of a folder in the folder
@@ -1688,9 +1690,11 @@ cursor. A settings file carries every value but the screen's own state (`ui.`) a
 the file holds nothing under comes back empty.
 
 A playback runs against the take's length, writing the counter and the bar in place once a second.
-At the end of the file playback lets the file go, as [■] does: the triangle leaves the microSD icon, and the card-eject
+At the end of the file playback lets the file go, as [■] does: the triangle leaves the microSD icon, and RECORDER's card-eject
 button and the microSD top's [Save/Load] and [Tools] come back in reach, as the unit does (URX44V, the operator,
-2026-10-03).
+2026-10-03), as do the microSD top's card-eject button and [USB Storage Mode] (2026-10-04). The Play tab shows what it
+showed before the file played, the counter and the bar gone, and the cursor stays on the row of the file that played,
+after a visit to the microSD top as well (2026-10-04).
 
 ## The SCENE LIST list
 

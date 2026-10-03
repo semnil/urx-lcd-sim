@@ -341,19 +341,33 @@ describe("playing a file back", () => {
     vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
     try {
       const shell = await mount({ id: "microsd.recorder" }, [
+        { name: "long.wav", kind: "take", seconds: 30, tracks: 2, stamp: "", dir: "/" },
         { name: "short.wav", kind: "take", seconds: 2, tracks: 2, stamp: "", dir: "/" },
       ]);
       const store = shell.ctx.store;
+      await store.set("sd.selectedFile", 1);
       const stop = startRecorderClock(store, shell.root, 50);
-      startPlayback(store, 0, Date.now() - 1_000);
+      startPlayback(store, 1, Date.now() - 1_000);
       vi.advanceTimersByTime(60);
       expect(store.bool("sd.playing", false), "a second in, still playing").toBe(true);
-      startPlayback(store, 0, Date.now() - 5_000);
+      startPlayback(store, 1, Date.now() - 5_000);
       vi.advanceTimersByTime(60);
       expect(
         [store.bool("sd.playing", true), playedSeconds(store), store.num("sd.playingFile", -1)],
         "past its end: stopped, the counter cleared, the file let go",
       ).toEqual([false, 0, -1]);
+      shell.ctx.nav.openTop({ id: "microsd" });
+      await flush();
+      expect(
+        [".sd-eject", ".usb-storage"].map((sel) => [shell.root.querySelector(sel)?.classList.contains("is-disabled"), shell.root.querySelector(sel)?.getAttribute("aria-disabled")]),
+        "the microSD top's eject button and USB Storage Mode in reach",
+      ).toEqual([
+        [false, null],
+        [false, null],
+      ]);
+      shell.ctx.nav.push({ id: "microsd.recorder" });
+      await flush();
+      expect(store.num("sd.selectedFile", -1), "the cursor on the file that played, after a visit to the top").toBe(1);
       stop();
     } finally {
       vi.useRealTimers();
