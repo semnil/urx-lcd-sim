@@ -1433,8 +1433,8 @@ const DUCK_FALL = [0.162, 0.318] as const;
 const DUCK_HOLD = 0.546;
 const DUCK_RISE = [0.899, 1] as const;
 
-/** Sound covers 343.6 m a second, and a foot is 0.3048 m. */
-const SOUND_M_PER_MS = 343.6 / 1000;
+/** Sound covers 343.59 m a second, and a foot is 0.3048 m. */
+const SOUND_M_PER_MS = 343.59 / 1000;
 const FOOT_M = 0.3048;
 
 /**

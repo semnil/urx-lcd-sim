@@ -4474,11 +4474,10 @@ describe("what the dedicated channel screens draw", () => {
       [100000, "30", ["1000.00", "30.00", "343.6", "1127.3"]],
       [400, "24", ["4.00", "0.10", "1.4", "4.5"]],
       [2916, "24", ["29.16", "0.70", "10.0", "32.9"]],
-      // 0.025 and 0.125 frame, 42.95 m and 42.95 ft stand on a half of the last place.
+      // 0.025 and 0.125 frame and 572.65 ft stand on a half of the last place.
       [100, "25", ["1.00", "0.03", "0.3", "1.1"]],
       [500, "25", ["5.00", "0.13", "1.7", "5.6"]],
-      [12500, "30", ["125.00", "3.75", "43.0", "140.9"]],
-      [3810, "30", ["38.10", "1.14", "13.1", "43.0"]],
+      [50800, "30", ["508.00", "15.24", "174.5", "572.7"]],
     ];
     const seen: [number, string, (string | null)[]][] = [];
     for (const [raw, rate] of readings) {
@@ -4517,6 +4516,7 @@ describe("what the dedicated channel screens draw", () => {
       ["ms", 99800, "ArrowDown", "30", [99700, 99600, 99500]],
       ["frame", 99500, "ArrowUp", "30", [100000]],
       ["meter", 99800, "ArrowUp", "30", [100000]],
+      ["meter", 100000, "ArrowDown", "30", [99712]],
       ["ms", 99712, "ArrowUp", "30", [99812, 99912, 100000]],
       // At the bottom a detent past 1.00 ms stops there.
       ["frame", 300, "ArrowDown", "30", [100]],
@@ -4559,8 +4559,8 @@ describe("what the dedicated channel screens draw", () => {
       return went;
     };
     // 10 ms, 2 frames, 10 m and 50 ft from 24.00 ms (0.72 frame, 8.2 m, 27.1 ft).
-    expect(await shifted(24, "ArrowUp")).toEqual([3400, 9066, 5296, 6840]);
-    expect(await shifted(500, "ArrowDown")).toEqual([49000, 43334, 47090, 45560]);
+    expect(await shifted(24, "ArrowUp")).toEqual([3400, 9066, 5298, 6840]);
+    expect(await shifted(500, "ArrowDown")).toEqual([49000, 43334, 47092, 45562]);
     expect(await shifted(24, "ArrowDown")).toEqual([1400, 100, 100, 100]);
     expect(await shifted(995, "ArrowUp")).toEqual([100000, 100000, 100000, 100000]);
   });
