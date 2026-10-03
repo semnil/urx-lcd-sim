@@ -90,29 +90,30 @@ export function followFocus(ctx: AppContext, node: Element, apply: () => void): 
 
 /**
  * Follow the pointer that pressed in `start` on the window until it is let go or
- * cancelled, calling `move` on each of its moves and `end` at the end. Other
- * pointers are not heard, and a mouse that moves with no button held has been let
- * go where the page did not hear it. The returned function ends it early.
+ * cancelled, calling `move` on each of its moves and `end` at the end with the
+ * event that ended it. Other pointers are not heard, and a mouse that moves with
+ * no button held has been let go where the page did not hear it. The returned
+ * function ends it early, with no event.
  */
-function followPointer(start: PointerEvent, move: (m: PointerEvent) => void, end: () => void): () => void {
+function followPointer(start: PointerEvent, move: (m: PointerEvent) => void, end: (last?: PointerEvent) => void): () => void {
   const onMove = (m: PointerEvent): void => {
     if (m.pointerId !== start.pointerId) return;
-    if (m.pointerType === "mouse" && m.buttons === 0) stop();
+    if (m.pointerType === "mouse" && m.buttons === 0) stop(m);
     else move(m);
   };
   const onUp = (u: PointerEvent): void => {
-    if (u.pointerId === start.pointerId) stop();
+    if (u.pointerId === start.pointerId) stop(u);
   };
-  const stop = (): void => {
+  const stop = (last?: PointerEvent): void => {
     window.removeEventListener("pointermove", onMove);
     window.removeEventListener("pointerup", onUp);
     window.removeEventListener("pointercancel", onUp);
-    end();
+    end(last);
   };
   window.addEventListener("pointermove", onMove);
   window.addEventListener("pointerup", onUp);
   window.addEventListener("pointercancel", onUp);
-  return stop;
+  return () => stop();
 }
 
 /**
@@ -120,7 +121,7 @@ function followPointer(start: PointerEvent, move: (m: PointerEvent) => void, end
  * pointer is let go or cancelled. A gesture holds the keys it is taken with, and
  * a press by another pointer on any key held meanwhile takes nothing.
  */
-class PointerHolds<K> {
+export class PointerHolds<K> {
   private readonly held = new Map<K, { pointerId: number; stop: () => void }>();
 
   /**
@@ -136,11 +137,11 @@ class PointerHolds<K> {
   }
 
   /** Follow `start`'s pointer as `followPointer` does, holding `keys` until it ends. Returns what ends it early. */
-  follow(start: PointerEvent, keys: readonly K[], move: (m: PointerEvent) => void, end: () => void): () => void {
+  follow(start: PointerEvent, keys: readonly K[], move: (m: PointerEvent) => void, end: (last?: PointerEvent) => void): () => void {
     const held = { pointerId: start.pointerId, stop: (): void => undefined };
-    held.stop = followPointer(start, move, () => {
+    held.stop = followPointer(start, move, (last) => {
       for (const k of keys) if (this.held.get(k) === held) this.held.delete(k);
-      end();
+      end(last);
     });
     for (const k of keys) this.held.set(k, held);
     return held.stop;

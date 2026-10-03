@@ -671,18 +671,27 @@ describe("the channel-bank marks", () => {
 });
 
 describe("a swipe across HOME's main area", () => {
-  const send = (node: Element | null, type: string, x: number): void => {
-    node?.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: 100 }));
+  const send = (node: Element | null, type: string, x: number, y = 100): void => {
+    node?.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y }));
   };
-  /** A shell on the page, so what reaches the window reaches it as it does in the browser. */
+  const finger = (node: Element | null, type: string, pointerId: number, x: number, y = 100): void => {
+    node?.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId, pointerType: "touch", clientX: x, clientY: y }));
+  };
+  /**
+   * A shell on the page, so what reaches the window reaches it as it does in the browser, laid out as the glass
+   * draws it: the toolbar above y 50, the side rail right of x 422, and the main area under and beside them.
+   */
   async function onPage(id: "URX44V" | "URX22"): Promise<Shell> {
     const shell = await mount(id);
     document.body.append(shell.root);
+    document.elementFromPoint = (x: number, y: number): Element | null =>
+      shell.root.querySelector(y < 50 ? ".toolbar" : x >= 422 ? ".side" : ".main");
     return shell;
   }
   const leave = (shell: Shell): void => {
     shell.destroy();
     shell.root.remove();
+    Reflect.deleteProperty(document, "elementFromPoint");
   };
   const bank = (shell: Shell): number => shell.ctx.store.num("ui.bank", 0);
   const main = (shell: Shell): Element | null => shell.root.querySelector(".main");
@@ -703,9 +712,9 @@ describe("a swipe across HOME's main area", () => {
       for (const ending of ["on the toolbar", "on the side rail", "cancelled"] as const) {
         const shell = await onPage(id);
         send(main(shell), "pointerdown", 300);
-        if (ending === "on the toolbar") send(shell.root.querySelector(".toolbar"), "pointerup", 300);
-        if (ending === "on the side rail") send(shell.root.querySelector(".side"), "pointerup", 300);
-        if (ending === "cancelled") send(main(shell), "pointercancel", 300);
+        if (ending === "on the toolbar") send(shell.root.querySelector(".toolbar"), "pointerup", 200, 20);
+        if (ending === "on the side rail") send(shell.root.querySelector(".side"), "pointerup", 450);
+        if (ending === "cancelled") send(main(shell), "pointercancel", 200);
         // A press that starts on the toolbar and is let go over the main area.
         send(shell.root.querySelector(".toolbar"), "pointerdown", 100);
         send(main(shell), "pointerup", 100);
@@ -736,6 +745,53 @@ describe("a swipe across HOME's main area", () => {
     expect(bank(shell)).toBe(0);
     expect(shell.ctx.store.bool("ch.ch1.on", true)).toBe(false);
     leave(shell);
+  });
+
+  it("reads where a finger is let go, though its release reaches the main area it pressed", async () => {
+    const shell = await onPage("URX44V");
+    for (const [x, y, where] of [
+      [450, 100, "on the side rail"],
+      [200, 20, "on the toolbar"],
+    ] as const) {
+      finger(main(shell), "pointerdown", 1, 300);
+      finger(main(shell), "pointerup", 1, x, y);
+      await flush();
+      expect(bank(shell), where).toBe(0);
+    }
+    finger(main(shell), "pointerdown", 1, 300);
+    finger(main(shell), "pointerup", 1, 200);
+    await flush();
+    expect(bank(shell), "on the main area").toBe(1);
+    leave(shell);
+  });
+
+  it("leaves a swipe to the finger that started it", async () => {
+    const shell = await onPage("URX44V");
+    finger(main(shell), "pointerdown", 1, 300);
+    // A second finger's swipe on the main area steps nothing while the first is down.
+    finger(main(shell), "pointerdown", 2, 300);
+    finger(main(shell), "pointerup", 2, 150);
+    await flush();
+    expect(bank(shell), "the second finger's swipe").toBe(0);
+    // Nor does a second finger's press on a control end the first finger's swipe.
+    const on = shell.root.querySelector(".main .strip .btn-on");
+    finger(on, "pointerdown", 3, 100);
+    finger(on, "pointerup", 3, 100);
+    finger(main(shell), "pointerup", 1, 200);
+    await flush();
+    expect(bank(shell), "the first finger's swipe").toBe(1);
+    leave(shell);
+  });
+
+  it("lets a swipe go with the shell that took it", async () => {
+    const shell = await onPage("URX44V");
+    finger(main(shell), "pointerdown", 1, 300);
+    leave(shell);
+    document.elementFromPoint = (): Element | null => main(shell);
+    window.dispatchEvent(new PointerEvent("pointerup", { pointerId: 1, pointerType: "touch", clientX: 200, clientY: 100 }));
+    await flush();
+    Reflect.deleteProperty(document, "elementFromPoint");
+    expect(bank(shell)).toBe(0);
   });
 });
 

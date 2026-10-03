@@ -11,7 +11,7 @@ import { FocusController } from "../ui/focus";
 import { Icons } from "../ui/icons";
 import { attachFocusRing } from "../ui/focus-ring";
 import { attachPress } from "../ui/press";
-import { attachSpin, setAriaValue } from "../ui/widgets";
+import { PointerHolds, attachSpin, setAriaValue } from "../ui/widgets";
 import type { NumericSpec } from "../ui/param-spec";
 import { BRIGHTNESS_MAX, formatValue } from "../ui/param-spec";
 import type { ScreenBody, ScreenRegistry } from "../screens/types";
@@ -495,27 +495,24 @@ export class Shell {
     };
     takeTouch();
     this.ctx.nav.onChange(takeTouch);
-    // A swipe is a press on the main area, off any control, let go on the main
-    // area; a press let go anywhere else, or cancelled, steps nothing.
-    let startX: number | null = null;
+    // A swipe is a press on the main area, off any control, let go over the main
+    // area; a press let go anywhere else, or cancelled, steps nothing. Where it is
+    // let go is where the pointer stands, not where its release is sent: a finger's
+    // release is sent to the element it pressed on. A second finger neither takes
+    // the swipe nor ends it.
+    const holds = new PointerHolds<HTMLElement>();
+    let stop = (): void => undefined;
     this.mainNode.addEventListener("pointerdown", (ev) => {
-      startX = (ev.target as HTMLElement).closest(INTERACTIVE) ? null : ev.clientX;
+      if (!holds.take(ev, [this.mainNode]) || (ev.target as HTMLElement).closest(INTERACTIVE)) return;
+      const startX = ev.clientX;
+      stop = holds.follow(ev, [this.mainNode], () => undefined, (last) => {
+        if (last?.type !== "pointerup" || !swipes()) return;
+        const dx = last.clientX - startX;
+        const over = document.elementFromPoint(last.clientX, last.clientY);
+        if (Math.abs(dx) < 40 || over === null || !this.mainNode.contains(over)) return;
+        stepBank(this.ctx, dx < 0 ? 1 : -1);
+      });
     });
-    this.mainNode.addEventListener("pointerup", (ev) => {
-      if (startX === null) return;
-      const dx = ev.clientX - startX;
-      startX = null;
-      if (!swipes() || Math.abs(dx) < 40) return;
-      stepBank(this.ctx, dx < 0 ? 1 : -1);
-    });
-    const forget = (): void => {
-      startX = null;
-    };
-    window.addEventListener("pointerup", forget);
-    window.addEventListener("pointercancel", forget);
-    return () => {
-      window.removeEventListener("pointerup", forget);
-      window.removeEventListener("pointercancel", forget);
-    };
+    return () => stop();
   }
 }
