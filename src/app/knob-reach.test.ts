@@ -1142,7 +1142,8 @@ describe("every knob-bound parameter is reachable on the glass", () => {
   // time: the knob on that DELAY block does not push in (URX44V, the operator, 2026-10-03).
   it.each([...STRIPS, "fx2", "bus.stream"])("turns a value a detent with Shift as without it, and a gain the knob turns finer pushed in by a finer one (%s)", async (strip) => {
     // The DELAY screen's cells turn their time by a step of their own with Shift.
-    const ownShift = (move: string): boolean => move.startsWith("ch.delay ");
+    // STREAMING's channel view turns its DELAY block ten detents with Shift.
+    const ownShift = (move: string): boolean => move.startsWith("ch.delay ") || move.startsWith("channel-view (bus.stream) ");
     // EQ's, COMP's and SSMCS's gains, which Shift turns 0.1 dB where a detent turns 1 dB.
     const finer = (move: string): boolean => /\.(eq\.\w+|comp|ssmcs\.sc)\.gain |\.ssmcs\.outGain /.test(move);
     const registry = buildRegistry();

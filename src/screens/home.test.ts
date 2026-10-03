@@ -1291,6 +1291,46 @@ describe("a processing block on the channel view", () => {
     await flush();
     expect(store.num("ch.ch1.gate.threshold", Number.NaN)).toBe(gate + 1);
   });
+
+  it("turns DELAY's time as the DELAY screen's ms cell does, as the unit's detents went", async () => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "channel-view", strip: "bus.stream" });
+    await flush();
+    const ms = (): number => Math.round(shell.ctx.store.num("ch.bus.stream.delay.ms", 0) * 100);
+    // The time in hundredths of a ms after each detent on the block.
+    const turn = async (from: number, key: string, detents: number, shiftKey = false): Promise<number[]> => {
+      await shell.ctx.store.set("ch.bus.stream.delay.ms", from / 100);
+      await flush();
+      const went: number[] = [];
+      for (let n = 0; n < detents; n++) {
+        shell.root.querySelector<HTMLElement>(".cv-block-delay")?.dispatchEvent(new KeyboardEvent("keydown", { key, shiftKey, bubbles: true }));
+        await flush();
+        went.push(ms());
+      }
+      return went;
+    };
+    const seen = [
+      [...(await turn(100, "ArrowUp", 3)), ...(await turn(400, "ArrowDown", 3))],
+      [...(await turn(4586, "ArrowUp", 1)), ...(await turn(4686, "ArrowDown", 1))],
+    ];
+    expect(seen, "1.00 ms a detent, the hundredths kept").toEqual([
+      [200, 300, 400, 300, 200, 100],
+      [4686, 4586],
+    ]);
+    expect(shell.root.querySelector(".cv-delay-value")?.textContent).toBe("45.86");
+    // A time set off 0.02 ms lands on the 0.02 ms nearest its reading plus 1.00 ms, a half going up.
+    expect(await turn(4587, "ArrowUp", 1), "onto 0.02 ms").toEqual([4688]);
+    expect([...(await turn(99912, "ArrowUp", 1)), ...(await turn(178, "ArrowDown", 1))], "stopped at either end").toEqual([100000, 100]);
+    expect([...(await turn(100, "ArrowUp", 1, true)), ...(await turn(2400, "ArrowDown", 1, true))], "ten detents' worth with Shift").toEqual([1100, 1400]);
+    expect([...(await turn(99500, "ArrowUp", 1, true)), ...(await turn(500, "ArrowDown", 1, true))], "and the ends with Shift").toEqual([100000, 100]);
+
+    // The wheel turns the block by the same detent.
+    await shell.ctx.store.set("ch.bus.stream.delay.ms", 45.86);
+    await flush();
+    shell.root.querySelector<HTMLElement>(".cv-block-delay")?.dispatchEvent(new WheelEvent("wheel", { deltaY: -1, bubbles: true, cancelable: true }));
+    await flush();
+    expect(ms(), "a wheel detent").toBe(4686);
+  });
 });
 
 describe("what a channel view's blocks draw", () => {

@@ -389,7 +389,7 @@ const duckerThreshold = (b: string): NumericSpec => dbSpec(`${b}.ducker.threshol
 /** One of GATE's, COMP's and DUCKER's times, on its own stops, read to `digits` places under 100 ms. */
 const dynTime = (b: string, time: DynamicsTime, label: string, fallback: number, digits?: number): NumericSpec =>
   stoppedMsSpec(`${b}.${time}`, label, DYNAMICS_TIME_STOPS[time], fallback, digits);
-const delayTime = (b: string): NumericSpec => ({ ...msSpec(`${b}.delay.ms`, "ms", 1, DELAY_MAX_MS, 1), step: 0.01, unit: "", boxUnit: "", sweep: DELAY_SWEEP_DEG });
+const delayTime = (b: string): NumericSpec => ({ ...msSpec(`${b}.delay.ms`, "ms", 1, DELAY_MAX_MS, 1), ...delayDetents(DELAY_UNITS[0], 1), unit: "", boxUnit: "", sweep: DELAY_SWEEP_DEG });
 /** How deep [1-knob] works COMP or EQ, in percent. */
 const oneKnobDepth = (path: string): NumericSpec => intSpec(path, "1-knob", 0, 100, 0, "%");
 
@@ -1467,6 +1467,14 @@ function delayTurn(per: number, digits: number): (ms: number, by: number) => num
 }
 
 /**
+ * How a delay cell in `u`, `per` of it to a millisecond, turns the time: a detent
+ * moves the cell's reading by the unit's step, and Shift by ten steps.
+ */
+function delayDetents(u: (typeof DELAY_UNITS)[number], per: number): Pick<NumericSpec, "step" | "fastStep" | "turn"> {
+  return { step: u.step / per, fastStep: (u.step * 10) / per, turn: delayTurn(per, u.digits) };
+}
+
+/**
  * A saved state as it is put back, with a delay time on the 0.02 ms nearest the
  * value it holds. The next save holds that time.
  */
@@ -1526,9 +1534,7 @@ export const delayScreen: ScreenDef = {
         label: u.label,
         // Each cell is framed on its own, though the four turn one time.
         focusKey: `${b}.delay.${u.label}`,
-        step: u.step / per,
-        fastStep: (u.step * 10) / per,
-        turn: delayTurn(per, u.digits),
+        ...delayDetents(u, per),
         format: (v: number) => delayReading(v * per, u.digits),
       };
     });
