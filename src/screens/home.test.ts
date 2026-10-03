@@ -4566,6 +4566,14 @@ describe("what the dedicated channel screens draw", () => {
       ["feet", 100, "ArrowUp", "30", [542]],
       ["feet", 542, "ArrowDown", "30", [100]],
       ["meter", 378, "ArrowDown", "30", [100]],
+      // frame counts 0.2 frame at the rate it reads in, a drop-frame rate by the number in its name.
+      ["frame", 1200, "ArrowUp", "24", [2042]],
+      ["frame", 2042, "ArrowUp", "25", [2840, 3640]],
+      ["frame", 3640, "ArrowUp", "29.97", [4304, 4972]],
+      ["frame", 4972, "ArrowUp", "29.97D", [5638, 6306]],
+      ["frame", 6306, "ArrowUp", "60", [6634, 6966]],
+      ["frame", 6966, "ArrowUp", "120", [7134, 7300]],
+      ["ms", 376, "ArrowDown", "25", [276, 176, 100]],
       ["frame", 400, "ArrowUp", "24", [1250, 2084, 2916]],
     ];
     const seen: [string, number, string, string, number[]][] = [];
