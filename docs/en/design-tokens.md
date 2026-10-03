@@ -1,8 +1,9 @@
 # Where the design tokens came from
 
-The colors in `src/style/tokens.css` were sampled pixel by pixel from the 480x272 screen captures
-embedded in the user guide (English, revision D0). None was matched by eye. A value of the simulator's
-own, which no figure shows, says so in its row or in "Outside the screen".
+Except where a row says no figure shows it, the colors in `src/style/tokens.css` were sampled pixel by
+pixel from the 480x272 screen captures embedded in the user guide (English, revision D0). None was
+matched by eye. A value of the simulator's own, which no figure shows, says so in its row or in
+"Outside the screen".
 
 ## How the values were sampled
 
@@ -100,11 +101,11 @@ PY
 | `--handle-arrow` | `#ce0484` | The triangles on both sides of the way a handle holding the focus moves (x141..147 / y93..100 in p103-1) |
 | `--graph-fill` | `#424529` | The fill under the COMP curve (p099-1) |
 | `--graph-line` | `#ada24a` | The COMP curve itself (p099-1) |
-| `--mbc-gr-open` | `#e6e6e6` | M.B.Comp: the 1px frame round the reduction bar of the band whose page is open |
-| `--mbc-mid-line` | `#29b5d6` | M.B.Comp's Mid band: its fill on the first page, and the curve on its own page |
-| `--mbc-mid-fill` | `#23444c` | The area under the Mid band's curve on its own page |
-| `--mbc-high-line` | `#8c4ade` | M.B.Comp's High band: its fill on the first page, and the curve on its own page |
-| `--mbc-high-fill` | `#3b2a4e` | The area under the High band's curve on its own page |
+| `--mbc-gr-open` | `#e6e6e6` | M.B.Comp: the 1px frame round the reduction bar of the band whose page is open. No figure shows it |
+| `--mbc-mid-line` | `#29b5d6` | M.B.Comp's Mid band: its fill on the first page, and the curve on its own page. No figure shows it |
+| `--mbc-mid-fill` | `#23444c` | The area under the Mid band's curve on its own page. No figure shows it |
+| `--mbc-high-line` | `#8c4ade` | M.B.Comp's High band: its fill on the first page, and the curve on its own page. No figure shows it |
+| `--mbc-high-fill` | `#3b2a4e` | The area under the High band's curve on its own page. No figure shows it |
 | `--eq-fill` | `#314529` | The fill under the EQ curve (p106-1) |
 | `--eq-line` | `#6baa4a` | The curve on the EQ screen (x60 / y160 in p106-1) |
 | `--eq-thumb-line` | `#7bba63` | The lower row of the curve in a channel view's EQ block (y106 in p098-1) |
