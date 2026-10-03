@@ -3642,3 +3642,42 @@ describe("a list of choices over the screen", () => {
     ).toBeUndefined();
   });
 });
+
+describe("what lies over the USER DEFINED KNOBS bar", () => {
+  const rules = styleRules(CSS);
+  /** The rule that lays a full-glass sheet (the title entry, the knob assignment, DATE / TIME's) out on the main area. */
+  const sheetAt = rules.findIndex((r) => r.selectors.some((s) => s.endsWith(".main:has(> .pick-dialog)")));
+  const sheet = rules[sheetAt];
+  const sheetSelector = sheet?.selectors.find((s) => s.endsWith(".main:has(> .pick-dialog)")) ?? "";
+  /** How many classes a selector names, :has() counting what it holds; none of these names an id, a tag or an attribute. */
+  const classes = (selector: string): number => (selector.match(/\.[\w-]+/g) ?? []).length;
+
+  it("lays every sheet, list and dialog over it", () => {
+    const bar = Number(declarations(CSS, ".lcd.is-udk .knob-strip")["z-index"]);
+    expect(bar, "the bar lies over the screen").toBeGreaterThan(0);
+    const layers: [string, string | undefined][] = [
+      ["a full-glass sheet", sheet?.body["z-index"]],
+      ["a sheet over a darkened screen", declarations(CSS, ".lcd.is-dimmed .main")["z-index"]],
+      ["a picker sheet", declarations(CSS, ".source-overlay")["z-index"]],
+      ["a pulldown's list", declarations(CSS, ".dropdown-sheet")["z-index"]],
+      ["a dialog", declarations(CSS, ".dialog-overlay")["z-index"]],
+    ];
+    expect(layers.filter(([, z]) => !(Number(z) > bar)).map(([name, z]) => `${name} ${z}`)).toEqual([]);
+  });
+
+  it("keeps a full-glass sheet on its own insets with either bar up", () => {
+    // Every rule that moves the main area's edges for a state of the glass gives way to the sheet's:
+    // it names as many classes or fewer and stands earlier in the sheet.
+    const edges = ["top", "right", "bottom", "left"];
+    expect(edges.map((e) => sheet?.body[e])).toEqual(["4px", "4px", "4px", "4px"]);
+    const rivals = rules.flatMap((r, at) =>
+      r.selectors.filter((s) => /^\.lcd(\.[\w-]+)+ \.main$/.test(s) && edges.some((e) => e in r.body)).map((s) => ({ s, at })),
+    );
+    expect(rivals.map(({ s }) => s), "the bars and the side rail move the main area's edges").toEqual(
+      expect.arrayContaining([".lcd.has-knobs .main", ".lcd.is-udk .main", ".lcd.has-side .main"]),
+    );
+    expect(
+      rivals.filter(({ s, at }) => classes(s) > classes(sheetSelector) || (classes(s) === classes(sheetSelector) && at > sheetAt)).map(({ s }) => s),
+    ).toEqual([]);
+  });
+});

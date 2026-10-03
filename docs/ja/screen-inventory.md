@@ -308,9 +308,12 @@ A = Brightness Screen・D = Oscillator Level、バンク 3 が A = Monitor 1 Lev
 USER DEFINED KNOBS モードは、HOME の SETUP・microSD・MONITOR のアイコン、シーンの名前の箱、チャンネルバンクの
 ボタンで切れ、SAVE/LOAD・TOOLS でカードを抜いて microSD の `Not inserted microSD card` の画面へ移るときも切れる。
 それ以外の移動では入のまま残る: 戻る矢印、HOME のアイコン、チャンネルの ‹ ›、画面の中のタップで開く画面
-(HOME のストリップからチャンネルビュー、ブロックからその画面)、タブ、ページ送り、シート、選択肢
-(URX44V、2026-10-03 操作者確認)。切るのはシェルの 1 か所 (`src/app/shell.ts`) で、`src/screens/home.test.ts` が
-切る移動と、残す移動の種類ごとに 1 つを固定している。
+(HOME のストリップからチャンネルビュー、ブロックからその画面)、タブ、ページ送り、シート、選択肢。
+シート・選択肢はバーの上に重なり、バーはその裏に描かれたまま残って、閉じると見える。普通の画面では
+バーが画面の下端に重なり、SAVE/LOAD の [Save as] や SCENE LIST の [Store] も隠れる (URX44V、2026-10-03 操作者確認)。
+ダイアログも同じくバーの上に重なる。
+モードを切るのはシェルの 1 か所 (`src/app/shell.ts`) で、`src/screens/home.test.ts` が切る移動と、残す移動の
+種類ごとに 1 つを固定し、バーの上に何が重なるかは `src/style/columns.test.ts` が固定している。
 
 ## 入切ボタンの名前
 

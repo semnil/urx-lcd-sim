@@ -2338,12 +2338,15 @@
 /* --- USER DEFINED KNOBS: picking what a knob is on ----------------------- */
 
 /* The dialog takes the whole glass rather than standing on a screen, so the
- * main area is what carries it, inset by the margin the sheet starts at. */
-.main:has(> .pick-dialog) {
+ * main area is what carries it, inset by the margin the sheet starts at. It
+ * lies over the USER DEFINED KNOBS bar, which stays drawn under it, and keeps
+ * those insets with either bar up. */
+.lcd .main:has(> .pick-dialog) {
   left: 4px;
   right: 4px;
   top: 4px;
   bottom: 4px;
+  z-index: 2;
   overflow: visible;
   background: var(--dialog-sheet);
   border-radius: var(--radius-lg);

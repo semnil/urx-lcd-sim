@@ -341,9 +341,13 @@ USER DEFINED KNOBS mode goes off on HOME's SETUP, microSD and MONITOR icons, its
 channel-bank button, and when SAVE/LOAD or TOOLS gives way to microSD's `Not inserted microSD card` screen
 once the card is taken out. Every other move keeps it on: the back arrow, the HOME icon, a channel's ‹ ›,
 a touch on the screen that opens another (a strip on HOME to its channel view, a block to its screen),
-tabs, page steps, sheets and lists (URX44V, confirmed by the operator on 2026-10-03). The shell switches it
-off in one place (`src/app/shell.ts`), and `src/screens/home.test.ts` holds the moves that switch it off and
-one of each kind that keeps it on.
+tabs, page steps, sheets and lists. Sheets and lists lie over the bar, which stays drawn under them and
+shows again once they close, and on an ordinary screen the bar lies over the screen's bottom edge,
+SAVE/LOAD's [Save as] and SCENE LIST's [Store] included (URX44V, confirmed by the operator on 2026-10-03).
+Dialogs lie over the bar the same way.
+The shell switches the mode off in one place (`src/app/shell.ts`), and `src/screens/home.test.ts` holds the
+moves that switch it off and one of each kind that keeps it on; `src/style/columns.test.ts` holds what lies
+over the bar.
 
 ## Names of on/off buttons
 
