@@ -563,7 +563,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
       };
       const [min, max] = g.range;
       // A gain between two whole dB, as an earlier version stopped EQ and COMP on 0.5 dB and SSMCS on 0.1 dB, keeps its
-      // tenths.
+      // tenths, as a detent of the unit's knob keeps them.
       await from(0.5);
       const keys = [await key("ArrowUp"), await key("ArrowUp", true), await key("ArrowDown", true), await key("ArrowDown")];
       await from(0.3);
