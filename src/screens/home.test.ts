@@ -395,49 +395,61 @@ describe("the channel-bank list", () => {
     expect(shell.ctx.nav.current.id, "SETUP has a back arrow, so its background is inert").toBe("setup");
   });
 
-  it("keeps a sheet with no exits of its own open under a touch on the knob bar, assigned or not", async () => {
-    const shell = await mount();
-    document.body.appendChild(shell.root);
-    try {
+  it("closes a sheet with no exits of its own under a touch on the knob bar, as the unit closes TIME ZONE", async () => {
+    // On the unit a touch on the bar showing dark at the edge of DATE / TIME's TIME ZONE closes the sheet.
+    // Under the sheet the bar's knobs and page step are out of reach, and a browser's hit test passes a
+    // touch on one of them on to the bar itself; jsdom's does not, so here such a touch lands on the bar.
+    const open = async (): Promise<Shell> => {
+      const shell = await mount();
       await shell.ctx.store.set("ui.userDefinedKnobs", true);
-      shell.ctx.nav.push({ id: "scene" });
-      shell.ctx.nav.push({ id: "scene.title" });
+      shell.ctx.nav.push({ id: "setup" });
+      shell.ctx.nav.push({ id: "setup.datetime" });
       await flush();
-      for (const key of "abc") {
-        const field = shell.root.querySelector<HTMLElement>(".title-field");
-        field?.focus();
-        field?.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
-        await flush();
-      }
-      const typed = (): string | null | undefined => shell.root.querySelector(".title-text")?.textContent;
-      const cells = [...shell.root.querySelectorAll<HTMLElement>(".knob-strip .knob-cell")];
-      expect(cells.map((c) => c.getAttribute("aria-label") ?? c.textContent), "two assigned knobs and two with nothing on them").toEqual([
-        "Phones 1 Level",
-        "Phones 2 Level",
-        "---",
-        "---",
-      ]);
-      const seen: (string | null | undefined)[] = [];
-      for (const cell of cells) {
-        cell.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-        await flush();
-        seen.push(`${shell.ctx.nav.current.id} ${typed()}`);
-      }
-      expect(seen, "the knobs are not bare screen").toEqual(Array(4).fill("scene.title abc"));
+      openTimeZone(shell.ctx);
+      await flush();
+      return shell;
+    };
+    /** A press going down on `from` and let go where its click lands on `node`. */
+    const touch = (node: Element | null | undefined, from: Element | null | undefined = node): void => {
+      from?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+      node?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    };
+    const shown = await open();
+    const cells = [...shown.root.querySelectorAll(".knob-strip .knob-cell")].map((c) => accessibleName(c));
+    expect([shown.ctx.nav.current.id, shown.root.classList.contains("is-udk"), cells], "TIME ZONE over the bar").toEqual([
+      "setup.datetime.zone",
+      true,
+      ["Phones 1 Level", "Phones 2 Level", "---", "---"],
+    ]);
 
-      // A drag from a knob let go over the sheet: the click lands on what holds both.
-      cells[3]?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
-      shell.root.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    const places: Record<string, (shell: Shell) => Element | null | undefined> = {
+      "the bare toolbar": (s) => s.root.querySelector(".toolbar"),
+      "the bar where a knob or the page step is out of reach": (s) => s.root.querySelector(".knob-strip"),
+      "a `---` knob": (s) => [...s.root.querySelectorAll(".knob-strip .knob-cell")].find((c) => c.textContent === "---"),
+      "the page number": (s) => s.root.querySelector(".knob-strip .knob-bank"),
+    };
+    const after: Record<string, string> = {};
+    for (const [place, find] of Object.entries(places)) {
+      const shell = await open();
+      const node = find(shell);
+      touch(node);
       await flush();
-      expect(`${shell.ctx.nav.current.id} ${typed()}`, "a drag that starts on a knob is no tap on the bare screen").toBe("scene.title abc");
-
-      // The bare screen around the sheet still closes it.
-      shell.root.querySelector(".toolbar")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      await flush();
-      expect(shell.ctx.nav.current.id).toBe("scene");
-    } finally {
-      shell.root.remove();
+      after[place] = node ? shell.ctx.nav.current.id : "absent";
     }
+    expect(after).toEqual(Object.fromEntries(Object.keys(places).map((place) => [place, "setup.datetime"])));
+
+    // A press that goes down on the bar is the bare screen's, and one that goes down on the sheet is the
+    // sheet's, wherever it is let go: over the other, its click lands on the glass that holds both.
+    const fromBar = await open();
+    touch(fromBar.root, fromBar.root.querySelector(".knob-strip"));
+    const fromSheet = await open();
+    touch(fromSheet.root, fromSheet.root.querySelector(".pick-dialog"));
+    await flush();
+    expect([fromBar.ctx.nav.current.id, fromSheet.ctx.nav.current.id]).toEqual(["setup.datetime", "setup.datetime.zone"]);
+    // The press is spent on that click: a touch on the bare toolbar after it closes the sheet.
+    fromSheet.root.querySelector(".toolbar")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+    expect(fromSheet.ctx.nav.current.id).toBe("setup.datetime");
   });
 
   it("closes on a touch on the knob bar under its dark, as on the rest of the dark", async () => {
@@ -2867,6 +2879,41 @@ describe("the USER DEFINED KNOBS bar under a sheet, a list or a dialog", () => {
       await cover.close(shell);
       expect([shell.ctx.nav.current.id, reach(shell), dark(shell)], "closed").toEqual([cover.under.at(-1)?.id ?? "home", BAR.map((n) => `${n} live`), undefined]);
       expect(await turns(shell), "a key, the wheel and a drag turn Phones 1 again").toEqual([true, true, true]);
+    });
+  }
+
+  /**
+   * Where a touch on the bare screen around each sheet the shell draws leaves the glass. The full-glass
+   * sheets close; the Sends sheet keeps HOME's toolbar icons as its ways out, and stays up. The picker
+   * sheets, the lists and the dialogs are layers over the whole glass, the bar's place included.
+   */
+  const BARE: Record<string, string> = {
+    "TIME ZONE": "setup.datetime",
+    "[Date/Time]": "setup.datetime",
+    "a scene's title sheet": "scene",
+    "[Save as]'s name sheet": "microsd.saveload",
+    "the knob assignment": "setup.udk",
+    "the Sends destination sheet": "sends-select",
+  };
+  for (const cover of COVERS.filter((c) => c.name in BARE)) {
+    it(`takes a touch on the bar under ${cover.name} as one on the bare screen around it`, async () => {
+      // A browser's hit test passes a touch on a knob or the page step out of reach on to the bar itself.
+      const places = [".toolbar", ".knob-strip", ".knob-strip .knob-cell:not([role])"];
+      const after: string[] = [];
+      for (const place of places) {
+        const shell = await mount();
+        for (const route of cover.under) shell.ctx.nav.push(route);
+        await flush();
+        await tap(shell, ".udk-toggle");
+        await cover.open(shell);
+        await flush();
+        const node = shell.root.querySelector(place);
+        node?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+        node?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        await flush();
+        after.push(`${place} ${node ? shell.ctx.nav.current.id : "absent"}`);
+      }
+      expect(after).toEqual(places.map((place) => `${place} ${BARE[cover.name]}`));
     });
   }
 });

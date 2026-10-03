@@ -518,15 +518,13 @@ export class Shell {
   /**
    * A tap on the bare screen leaves a screen the shell draws no exits for. The
    * screen's own area, every control and whatever is laid over the screen keep
-   * their taps, and so does the knob bar, save under the dark a screen lays over
-   * the rest of the glass. A press that went down on one of them is no tap on
-   * the bare screen wherever it is let go.
+   * their taps. The knob bar is bare screen around its controls, and the whole
+   * of it is under a sheet that holds its controls out of reach. A press that
+   * went down on one of them is no tap on the bare screen wherever it is let go.
    */
   private attachBackdrop(): void {
-    const keeps = (target: EventTarget | null): boolean => {
-      const dims = this.registry.get(this.ctx.nav.current.id)?.dimsBehind === true;
-      return (target as HTMLElement).closest(`${INTERACTIVE}, .main, [data-overlay]${dims ? "" : ", .knob-strip"}`) !== null;
-    };
+    const keeps = (target: EventTarget | null): boolean =>
+      (target as HTMLElement).closest(`${INTERACTIVE}, .main, [data-overlay]`) !== null;
     let pressKept = false;
     this.lcd.addEventListener(
       "pointerdown",
