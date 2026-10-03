@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Stop a swipe on HOME's main area at the INPUT side's first and last bank, as the unit does: a swipe past the last bank went round to the first, and one before the first to the last.
 - Read the hours 0 and 12 as `00` on DATE / TIME's 12-hour clock, as the unit does: `00 : 05 AM` and `00 : 05 PM` where they read `12 : 05 AM` and `12 : 05 PM`.
 - Turn EQ's, COMP's and SSMCS's gains 1.0 dB a detent of the arrow keys, the wheel or a readout bar cell, and 0.1 dB a detent with Shift, as the unit's knob turns them 1.0 dB a detent and 0.1 dB while it is pushed in as it turns. A detent turned EQ's and COMP's gains 0.5 dB and SSMCS's 0.1 dB, and one with Shift 2.5 dB and 0.4 dB. A gain keeps its tenths, so one that an earlier version left at 0.5 dB stays there and goes to 1.5 dB a detent up, and a drag stops on the tenths, where EQ's and COMP's stopped on the halves.
 - Turn a value with Shift held by the same detent as without it, EQ's, COMP's and SSMCS's gains aside. Shift took a larger step: 3.2 dB from 0 dB on HOME's level, where a detent takes 0.4 dB, 5 dB on A.Gain and GATE's Threshold, 4 on PAN, 1.0 on a PHONES level, and four stops on a value that stops on a table of its own, such as COMP's Ratio and SSMCS's frequencies.

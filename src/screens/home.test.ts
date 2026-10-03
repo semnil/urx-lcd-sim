@@ -699,15 +699,22 @@ describe("the bank a sideways swipe on HOME steps to", () => {
       expect(at(shell), "a short move").toEqual(["input", 0]);
     }));
 
-  it("goes round within the INPUT side, from its last bank to its first and back", async () => {
+  it("stays on the INPUT side's last bank for a swipe past it and on its first for one before it, and steps back from either", async () => {
     for (const [id, last] of [["URX44V", 2], ["URX22", 1]] as const) {
       await onPage(id, async (shell) => {
         await shell.ctx.store.set("ui.bank", last);
         await flush();
         await swipe(shell, 300, 200);
-        expect(at(shell), `${id}: past the last bank to the first`).toEqual(["input", 0]);
+        expect(at(shell), `${id}: past the last bank`).toEqual(["input", last]);
         await swipe(shell, 200, 300);
-        expect(at(shell), `${id}: before the first bank to the last`).toEqual(["input", last]);
+        expect(at(shell), `${id}: back a bank from the last`).toEqual(["input", last - 1]);
+
+        await shell.ctx.store.set("ui.bank", 0);
+        await flush();
+        await swipe(shell, 200, 300);
+        expect(at(shell), `${id}: before the first bank`).toEqual(["input", 0]);
+        await swipe(shell, 300, 200);
+        expect(at(shell), `${id}: on a bank from the first`).toEqual(["input", 1]);
       });
     }
   });

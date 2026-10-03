@@ -46,11 +46,11 @@ export function setBank(ctx: AppContext, bank: number): void {
 
 /**
  * Step banks. Swiping left/right in the main area moves within one side only —
- * the guide is explicit that a swipe cannot cross from input to output.
+ * the guide is explicit that a swipe cannot cross from input to output — and
+ * stops at the side's first and last bank.
  */
 export function stepBank(ctx: AppContext, delta: number): void {
-  const total = bankTotal(ctx);
-  setBank(ctx, (currentBank(ctx) + delta + total) % total);
+  setBank(ctx, currentBank(ctx) + delta);
 }
 
 /** How each kind of strip is named where a bank is listed by its contents. */
