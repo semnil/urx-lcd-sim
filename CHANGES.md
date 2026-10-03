@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Leave a value as it is under a press that moves less than 4 px, by mouse or by finger, and count a drag from 4 px off where it went down. A press that moved a pixel wrote the value: 1 px sideways on GATE's Hold took the 15.3 ms it ships at to 15 ms, and 1 px along an EQ grip took LOW's Freq. from 125 Hz to 130 Hz. A drag covers a value's whole range by 196 px from the press, where it took 192 px.
 - Let the USER DEFINED KNOBS cells turn what they are assigned whether 1-knob is on or off, as on the unit, where COMP's and EQ's 1-knob held them still.
 - Turn GATE's Hold and DUCKER's Decay by 0.1 s a detent of the arrow keys or the wheel from one second up, the step their reading prints there, and land a drag past a second on the same steps. A detent moved them 1 ms throughout: DUCKER's Decay took 50 detents from its shipped `1.0s` to `1.1s`, and the reading stood still for up to 100 detents. Below a second a detent still moves 1 ms. With Shift a detent moves four of these steps, 4 ms below a second and 0.4 s from it, where it moved 10 ms throughout.
 - Start the readout bar from its first page when an effect's screen steps to another of its pages or takes another effect, as when the screen opens, so the value the page frames is on the bar. The bar stayed on the page its `›` had turned to: after `›`, Rev-X Hall stepped to its second page and back read Diffusion / Hi.Ratio / Lo.Ratio / Lo.Freq. with Rev.Time framed, and Clean taken over Compander-H read Volume / Distortion / Blend / Output with Treble framed.

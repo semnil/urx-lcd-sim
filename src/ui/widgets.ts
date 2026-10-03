@@ -472,7 +472,7 @@ export function pickerGrid(rows: (HTMLElement | null)[][]): HTMLElement {
 /** Set on the page while a value is being dragged. */
 const TURNING = "is-turning";
 
-/** Pointer travel that covers a control's whole range, in pixels. */
+/** Pointer travel past the slop that covers a control's whole range, in pixels. */
 const DRAG_FULL_RANGE_PX = 192;
 
 /** How much of the range a drag covers while Shift is held. */
@@ -480,7 +480,8 @@ const DRAG_FINE = 0.2;
 
 /**
  * Make `node` turn `spec`. A drag along `drag`'s axis (up the screen by default)
- * runs the whole range in DRAG_FULL_RANGE_PX, or a fifth of it with Shift held;
+ * counts from DRAG_SLOP_PX off the press and runs the whole range in
+ * DRAG_FULL_RANGE_PX from there, or a fifth of it with Shift held;
  * the wheel and the arrow keys move one detent, or with Shift `fastStep`, or four
  * stops on a control with a `travel`, and Home and End go to either end; a key
  * held with Alt, Cmd or Ctrl is left to the browser. `onEngage` runs
@@ -559,8 +560,9 @@ function onStep(spec: NumericSpec, v: number): number {
 }
 
 /**
- * Make a drag of `node` along one axis turn `spec`, the whole range in
- * DRAG_FULL_RANGE_PX or a fifth of it with Shift held. A grip that sets two
+ * Make a drag of `node` along one axis turn `spec`, counted from DRAG_SLOP_PX
+ * off the press: the whole range in DRAG_FULL_RANGE_PX from there, or a fifth of
+ * it with Shift held. A press that moves less turns nothing. A grip that sets two
  * values takes one of these for each axis.
  */
 export function attachDrag(ctx: AppContext, node: HTMLElement, spec: NumericSpec, onEngage: (() => void) | undefined, drag: DragAxis): void {
@@ -585,7 +587,16 @@ export function attachDrag(ctx: AppContext, node: HTMLElement, spec: NumericSpec
     let anchorAt = along(ev);
     let anchorValue = ctx.store.num(spec.path, spec.fallback);
     let fine = ev.shiftKey;
+    let dragged = false;
     const move = (m: PointerEvent): void => {
+      // A pointer within DRAG_SLOP_PX of the press along the axis is a tap and
+      // turns nothing; a drag counts from the edge of the slop it passed.
+      if (!dragged) {
+        const moved = along(m) - anchorAt;
+        if (Math.abs(moved) < DRAG_SLOP_PX) return;
+        dragged = true;
+        anchorAt += Math.sign(moved) * DRAG_SLOP_PX;
+      }
       // Taking Shift up or down mid-drag re-anchors, so the value does not jump
       // to where the coarse gesture would have put it.
       if (m.shiftKey !== fine) {
@@ -597,6 +608,12 @@ export function attachDrag(ctx: AppContext, node: HTMLElement, spec: NumericSpec
       // has to follow the pointer rather than the dB.
       const travel = spec.travel;
       const reach = ((anchorAt - along(m)) / DRAG_FULL_RANGE_PX) * (fine ? DRAG_FINE : 1);
+      // At the anchor the value goes back to the one it was anchored at, on its
+      // steps or not, and a value that reads that already is left unwritten.
+      if (reach === 0) {
+        if (ctx.store.num(spec.path, spec.fallback) !== anchorValue) put(anchorValue);
+        return;
+      }
       if (travel) {
         put(travel.valueAt(clamp(travel.position(anchorValue) + reach, 0, 1)));
         return;

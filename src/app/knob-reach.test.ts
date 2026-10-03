@@ -6,6 +6,7 @@ import { unitById } from "../model/units";
 import { UDK_BANKS, UDK_KNOBS, UDK_UNASSIGNED, udkAssignment, udkPath } from "../model/udk";
 import { buildRegistry } from "../screens";
 import type { NumericSpec } from "../ui/param-spec";
+import { snapshot } from "./persist";
 import { Shell } from "./shell";
 import type { Route } from "./navigator";
 
@@ -109,6 +110,74 @@ describe("every knob-bound parameter is reachable on the glass", () => {
 
     // A drag that dies with the first repaint moves one step; this one moves eight.
     expect(store.num("ch.ch1.level", 0) - before).toBeGreaterThan(1);
+  });
+
+  it("leaves a value as it is under a press that moves less than 4 px, and counts a drag from 4 px off the press", async () => {
+    const { shell, store } = await mount();
+    await open(shell, { id: "channel-view", strip: "ch1" });
+    const pe = (type: string, x: number, y: number): MouseEvent =>
+      new MouseEvent(type, { clientX: x, clientY: y, bubbles: true, cancelable: true });
+    /** The value at `path` after a press at (200, 150) on `find`, moved by each of `moves` in turn and let go. */
+    const gesture = async (find: string, path: string, moves: [number, number][]): Promise<number> => {
+      const node = shell.root.querySelector(find);
+      if (!node) throw new Error(`no ${find}`);
+      node.dispatchEvent(pe("pointerdown", 200, 150));
+      for (const [dx, dy] of moves) window.dispatchEvent(pe("pointermove", 200 + dx, 150 + dy));
+      window.dispatchEvent(pe("pointerup", 200, 150));
+      await flush();
+      return store.num(path, NaN);
+    };
+    // The values as they ship. Hold's and Attack's stand between their own steps, so a press that writes them as they
+    // stand still moves them.
+    const controls = [
+      { route: { id: "ch.eq", strip: "ch1" }, find: ".eq-grip[aria-label='LOW band']", path: "ch.ch1.eq.low.freq", along: [1, 0], from: 125 },
+      { route: { id: "ch.eq", strip: "ch1" }, find: ".eq-grip[aria-label='LOW MID band']", path: "ch.ch1.eq.lowMid.freq", along: [1, 0], from: 1000 },
+      { route: { id: "ch.gate", strip: "ch1" }, find: ".value-box[aria-label='Hold']", path: "ch.ch1.gate.hold", along: [0, -1], from: 15.3 },
+      { route: { id: "ch.gate", strip: "ch1" }, find: ".value-box[aria-label='Attack']", path: "ch.ch1.gate.attack", along: [0, -1], from: 20.17 },
+    ] as const;
+    for (const c of controls) {
+      await open(shell, c.route);
+      const [ax, ay] = c.along;
+      const taps: Record<string, [number, number][]> = {
+        "still": [[0, 0]],
+        "1 px along": [[ax, ay]],
+        "1 px across": [[ay, ax]],
+        "3 px along and back": [[ax * 3, ay * 3], [-ax * 3, -ay * 3]],
+        "4 px along": [[ax * 4, ay * 4]],
+      };
+      for (const [name, moves] of Object.entries(taps)) {
+        await store.set(c.path, c.from);
+        expect(await gesture(c.find, c.path, moves), `${c.path} ${name}`).toBe(c.from);
+      }
+      // 4 px is a drag: back at the press, it has turned the value 4 px the other way from the edge it passed.
+      await store.set(c.path, c.from);
+      expect(await gesture(c.find, c.path, [[ax * 4, ay * 4], [0, 0]]), `${c.path} 4 px along and back`).not.toBe(c.from);
+
+      // A drag of 30 px counts the 26 px past the slop, wherever the pointer passed it.
+      await store.set(c.path, c.from);
+      const once = await gesture(c.find, c.path, [[ax * 30, ay * 30]]);
+      await store.set(c.path, c.from);
+      const fromTheEdge = await gesture(c.find, c.path, [[ax * 4, ay * 4], [ax * 30, ay * 30]]);
+      await store.set(c.path, c.from);
+      const byTens = await gesture(c.find, c.path, [[ax * 10, ay * 10], [ax * 20, ay * 20], [ax * 30, ay * 30]]);
+      expect(once, `${c.path} 30 px`).not.toBe(c.from);
+      expect([fromTheEdge, byTens], `${c.path} 30 px passing the slop at 4 px and at 10 px`).toEqual([once, once]);
+      // A drag let back to the edge of the slop puts the value back where it stood.
+      await store.set(c.path, c.from);
+      expect(await gesture(c.find, c.path, [[ax * 30, ay * 30], [ax * 4, ay * 4]]), `${c.path} 30 px and back to 4 px`).toBe(c.from);
+    }
+    // The 30 px drags count 26 px: LOW's Freq. from 125 Hz runs 26/192 of its three decades.
+    await open(shell, { id: "ch.eq", strip: "ch1" });
+    await store.set("ch.ch1.eq.low.freq", 125);
+    expect(await gesture(".eq-grip[aria-label='LOW band']", "ch.ch1.eq.low.freq", [[30, 0]])).toBe(319);
+
+    // A press of 4 px, to the edge of the slop and no further, leaves the unit as the browser stores it, a value
+    // the unit has not been given included.
+    await open(shell, { id: "ch.ducker", strip: "ch1" });
+    expect(store.has("ch.ch1.ducker.decay"), "DUCKER's Decay as it ships").toBe(false);
+    const stored = snapshot(store);
+    await gesture("[aria-label^='D handle']", "ch.ch1.ducker.decay", [[4, 0]]);
+    expect([store.has("ch.ch1.ducker.decay"), snapshot(store)]).toEqual([false, stored]);
   });
 
   it("turns a value from the rotary beside its box, not only from the box", async () => {
@@ -383,13 +452,16 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     expect([osc.store.num("osc.level", NaN), control(osc.shell, "Level").textContent], "50 down from 0 dB").toEqual([-10, "-10.0"]);
     await roll(osc.shell, "Level", -100, 50);
     expect([osc.store.num("osc.level", NaN), control(osc.shell, "Level").textContent], "and 50 back up on the wheel").toEqual([0, "0.00"]);
-    // A drag of 9 px from -14 dB covers 4.5 dB of the range and takes the nearest step.
+    // A drag counts nothing for the first 4 px from the press. 9 px from -14 dB counts the 5 px past them,
+    // 2.5 dB of the range, and takes the nearest step.
     await osc.store.set("osc.level", -14);
     await flush();
     control(osc.shell, "Level").dispatchEvent(new MouseEvent("pointerdown", { clientY: 200, bubbles: true }));
+    window.dispatchEvent(new MouseEvent("pointermove", { clientY: 204 }));
+    expect(osc.store.num("osc.level", NaN), "a drag of 4 px").toBe(-14);
     window.dispatchEvent(new MouseEvent("pointermove", { clientY: 209 }));
     window.dispatchEvent(new MouseEvent("pointerup", {}));
-    expect(osc.store.num("osc.level", NaN), "a drag").toBe(-18.4);
+    expect(osc.store.num("osc.level", NaN), "a drag of 9 px").toBe(-16.4);
 
     // Compander-H's Gain moves 0.1 dB a detent from 0 dB.
     const comp = await mount();

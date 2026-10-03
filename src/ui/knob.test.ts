@@ -339,23 +339,23 @@ describe("the detents of a time", () => {
       window.dispatchEvent(new MouseEvent("pointerup", { clientX: 100 + dx, clientY: 100 + dy, bubbles: true }));
       await flush();
     };
-    // DUCKER's D grip runs 1.3 ms..5 s in 192px across.
+    // DUCKER's D grip runs 1.3 ms..5 s in 192px across, counted from 4px off the press.
     shell.ctx.nav.push({ id: "ch.ducker", strip: "ch1" });
     await flush();
     const decay = (): number => store.num("ch.ch1.ducker.decay", Number.NaN);
     const moved: number[] = [];
-    for (const dx of [4, 40, -4]) {
+    for (const dx of [4 + 4, 4 + 40, -4 - 4]) {
       await store.set("ch.ch1.ducker.decay", 1000);
       await flush();
       await drag('[aria-label^="D handle"]', dx, 0);
       moved.push(decay());
     }
     expect(moved, "4px and 40px up, and 4px down below a second").toEqual([1100, 2000, 896]);
-    // GATE's Hold box runs 0.02 ms..1.96 s in 192px up.
+    // GATE's Hold box runs 0.02 ms..1.96 s in 192px up, counted from 4px off the press.
     shell.ctx.nav.replace({ id: "ch.gate", strip: "ch1" });
     await store.set("ch.ch1.gate.hold", 1500);
     await flush();
-    await drag('[role="spinbutton"][aria-label="Hold"]', 0, -10);
+    await drag('[role="spinbutton"][aria-label="Hold"]', 0, -4 - 10);
     expect(store.num("ch.ch1.gate.hold", Number.NaN)).toBe(1600);
     shell.destroy();
   });

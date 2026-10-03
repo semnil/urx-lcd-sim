@@ -163,8 +163,9 @@ targets can be reached with Tab and activated with Enter / Space, save the rotar
 below. As a finger acts when it leaves the glass, a key acts when it is let go, and only where the control it went
 down on is the one it is let go on (`makeTappable`). Value boxes are `role="spinbutton"`
 and HOME's level readouts are `role="slider"`; both move by drag, wheel or arrow keys (`attachSpin`
-takes drag, wheel and arrow keys in one place). A 192px drag covers the whole range (1/5 of that with Shift),
-and the wheel and arrow keys move one detent (`fastStep` with Shift, or four steps of the value's `travel`
+takes drag, wheel and arrow keys in one place). A drag moves the value not at all over its first 4px and
+covers the whole range by 196px from where it is pressed (1/5 of that with Shift), and the wheel and arrow
+keys move one detent (`fastStep` with Shift, or four steps of the value's `travel`
 where it has one); Home and End take the value to
 either end of its range. These keys held with Alt, Cmd or Ctrl are left to the browser. Dialogs have a
 focus trap and cancel on Escape. Meter animation stops under `prefers-reduced-motion`.
