@@ -4798,7 +4798,7 @@ describe("screens laid out from the guide's figures", () => {
     expect(shell.root.querySelector("[data-overlay]") !== null, "stopped, a source opens its list").toBe(true);
   });
 
-  it("marks the microSD icon with the play triangle while playback holds a file, playing or paused, and with nothing once [■] lets it go", async () => {
+  it("marks the microSD icon with the play triangle while playback holds a file, playing or paused, the same triangle in the same place, and with nothing once [■] lets it go", async () => {
     const shell = await mount();
     const sdIcon = (): HTMLElement | null => shell.root.querySelector<HTMLElement>('.toolbar-icons .icon-btn[aria-label^="microSD"]');
     const mark = (): [string | null | undefined, boolean, boolean] => [
@@ -4806,6 +4806,12 @@ describe("screens laid out from the guide's figures", () => {
       sdIcon()?.querySelector(".play-mark") != null,
       sdIcon()?.querySelector(".rec-dot") != null,
     ];
+    // The icon as it is drawn, its name aside.
+    const drawn = (): string | undefined => {
+      const icon = sdIcon()?.cloneNode(true) as HTMLElement | undefined;
+      icon?.removeAttribute("aria-label");
+      return icon?.outerHTML;
+    };
     const press = async (label: string): Promise<void> => {
       [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === label)?.click();
       await flush();
@@ -4831,6 +4837,7 @@ describe("screens laid out from the guide's figures", () => {
     await press("Play/Pause");
     await home();
     expect([shell.ctx.store.bool("sd.playing", false), mark()], "a file playing").toEqual([true, ["microSD, playing", true, false]]);
+    const playing = drawn();
     shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
     await flush();
     expect([shell.ctx.nav.current.id, mark()], "on the channel view's toolbar as well").toEqual(["channel-view", ["microSD, playing", true, false]]);
@@ -4839,6 +4846,7 @@ describe("screens laid out from the guide's figures", () => {
     await press("Play/Pause");
     await home();
     expect([shell.ctx.store.bool("sd.playing", false), shell.ctx.store.num("sd.playingFile", -1), mark()], "paused").toEqual([false, 0, ["microSD, paused", true, false]]);
+    expect(drawn(), "paused, drawn as it is playing").toBe(playing);
     await recorder();
     await press("Play/Pause");
     await press("Stop");

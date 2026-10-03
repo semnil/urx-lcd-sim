@@ -3457,6 +3457,13 @@ describe("the marks on the control holding the focus", () => {
     expect(declarations(CSS, ".icon-btn.has-play-mark")["position"]).toBe("relative");
   });
 
+  it("draws the play triangle by those two rules alone, a file paused as a file playing", () => {
+    const naming = ["tokens.css", "app.css", "lcd.css"].flatMap((file) =>
+      styleRules(readStyle(file)).flatMap((rule) => rule.selectors.filter((s) => s.includes("play-mark")).map((s) => `${file} ${s}`)),
+    );
+    expect(naming).toEqual(["lcd.css .icon-btn.has-play-mark", "lcd.css .play-mark"]);
+  });
+
   it("greys Simple Mode, which cannot be chosen", () => {
     const card = declarations(CSS, ".mode-card.is-disabled");
     expect([card["background"], card["color"], card["pointer-events"]]).toEqual(["var(--surface-disabled)", "var(--menu-text-disabled)", "none"]);

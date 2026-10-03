@@ -1577,7 +1577,7 @@ that face too, as the unit does, and does not open the SAMPLING FREQUENCY screen
 
 While playback holds a file, playing or paused, the microSD icon on the HOME and channel view toolbars carries a
 triangle of `--transport-play` pointing right where recording mode puts its dot (d under "Toolbar" in the user guide;
-paused as well as playing, URX44V, the operator, 2026-10-03). The triangle stands on the dot's rows and is as tall, 14px
+paused as well as playing, in the same shape and place, URX44V, the operator, 2026-10-03). The triangle stands on the dot's rows and is as tall, 14px
 (y22..35), and 10px wide 3px in from the dot's left (x367..376). It goes once the file is let go, by [■] or at the
 end of the file ("What is on the card").
 
