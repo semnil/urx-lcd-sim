@@ -627,19 +627,19 @@ describe("what the card's own actions do to it", () => {
     expect(names(shell)).toEqual(["SUB.urxf", "c.urxf", "mix.urxf"]);
   });
 
-  it("renames nothing onto a name typed as a folder of the folder carries it, in any case, the extension aside", async () => {
-    const data = (name: string): CardEntry => ({ name, kind: "data", seconds: 0, tracks: 0, stamp: "", dir: "/" });
+  it("compares the name a [Rename] gives, its extension on, with the folder's files and folders, and not the name typed with a folder's", async () => {
+    const folder = (name: string): CardEntry => ({ name, kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" });
     const shell = await mount({ id: "microsd.saveload" }, [
-      { name: "Fold", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" },
-      { name: "Inner", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/Fold/" },
-      data("b.urxf"),
-      data("mix.urxf"),
+      folder("Qz"),
+      folder("fold.urxf"),
+      { name: "b.urxf", kind: "data", seconds: 0, tracks: 0, stamp: "", dir: "/" },
+      { name: "take.wav", kind: "take", seconds: 10, tracks: 2, stamp: "", dir: "/" },
     ]);
     const store = shell.ctx.store;
     await store.set("ui.sdSaveTab", "Edit");
     const before = readCard(store);
-    const rename = async (title: string): Promise<[string | null, string | null | undefined]> => {
-      await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === "b.urxf"));
+    const rename = async (from: string, title: string): Promise<[string | null, string | null | undefined]> => {
+      await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === from));
       await flush();
       action(shell, "Rename")?.click();
       await flush();
@@ -652,13 +652,12 @@ describe("what the card's own actions do to it", () => {
       await flush();
       return [said, field];
     };
-    for (const title of ["fold", "Fold"]) {
-      expect(await rename(title), `${title}: said, and [OK] back on the sheet as it was typed`).toEqual(["File already exists.", title]);
-      expect(readCard(store), `${title}: nothing renamed`).toEqual(before);
-    }
+    expect(await rename("b.urxf", "Fold"), "onto the folder fold.urxf in other case: said, and [OK] back on the sheet as it was typed").toEqual(["File already exists.", "Fold"]);
+    expect(readCard(store), "nothing renamed").toEqual(before);
 
-    expect(await rename("inner"), "the control: a name a folder elsewhere carries").toEqual([null, null]);
-    expect(names(shell)).toEqual(["Fold", "inner.urxf", "mix.urxf", "Inner"]);
+    expect(await rename("b.urxf", "qz"), "beside the folder Qz").toEqual([null, null]);
+    expect(await rename("qz.urxf", "take"), "beside the take take.wav").toEqual([null, null]);
+    expect(names(shell)).toEqual(["fold.urxf", "Qz", "take.urxf", "take.wav"]);
   });
 
   it("renames a file onto its own name in other case", async () => {

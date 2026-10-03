@@ -1666,9 +1666,11 @@ entry sheet"). [Rename] onto a name the folder
 already carries brings up `File already exists.` with the i mark and [OK] alone, as the unit does,
 and renames nothing: [OK] goes back to the sheet as it was typed (on SAVE/LOAD's and RECORDER's
 Edit tabs alike). Names are compared without regard to case, so a name that differs from another
-entry's in case alone is refused the same way (a file's name on SAVE/LOAD, URX44V, the operator, 2026-10-03). So is a name typed
-that a folder of the folder carries, in any case, before the extension goes on (a settings file renamed `fold` beside
-the folder `Fold`, URX44V, the operator, 2026-10-03). A file renamed onto its own name in other case takes it (a settings
+entry's in case alone is refused the same way (a file's name on SAVE/LOAD, URX44V, the operator, 2026-10-03; a take's,
+2026-10-04). The name is
+compared as it will stand, its extension on: a settings file renamed `qz` beside the folder `Qz` becomes `qz.urxf`, one
+renamed `take` beside `take.wav` becomes `take.urxf`, and one renamed `Fold` beside the folder `fold.urxf` is refused
+(URX44V, the operator, 2026-10-04). A file renamed onto its own name in other case takes it (a settings
 file, URX44V, the operator, 2026-10-03). [New folder] under a name the folder already carries, a folder's or a file's, spelt the same or
 in other case, brings up `Directory already exists.` with the i mark and [OK] alone and makes nothing, and [OK] goes
 back to the name sheet, as the unit does (a file's name spelt the same and in other case, and a folder's in other case,

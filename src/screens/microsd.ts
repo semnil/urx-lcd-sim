@@ -380,8 +380,7 @@ function folderCarries(entries: readonly CardEntry[], dir: string, name: string,
 /**
  * Give the selected entry another name, keeping what it holds. A name another
  * entry of its folder carries, a file's or a folder's, in any case, is refused,
- * as is a name typed, before its extension, that a folder of its folder carries
- * in any case, and the sheet stays as typed.
+ * and the sheet stays as typed.
  */
 function renameSelected(ctx: AppContext): void {
   const row = cursorRow(ctx);
@@ -389,10 +388,6 @@ function renameSelected(ctx: AppContext): void {
   const entry = entries[row];
   if (!entry) return;
   const suffix = suffixOf(entry);
-  const taken = (name: string): boolean => {
-    const typed = name.slice(0, name.length - suffix.length);
-    return folderCarries(entries, entry.dir, name, row, sameName) || entries.some((e) => e.kind === "folder" && e.dir === entry.dir && sameName(e.name, typed));
-  };
   nameOnCard(ctx, entry.name, (name) => {
     const held = ctx.store.str(filePath(entry), "");
     if (held) {
@@ -403,7 +398,7 @@ function renameSelected(ctx: AppContext): void {
       ctx,
       entries.map((e, i) => (i === row ? { ...e, name } : e)),
     );
-  }, { suffix, max: NAME_MAX - suffix.length, refuse: (name) => (taken(name) ? NAME_TAKEN : undefined) });
+  }, { suffix, max: NAME_MAX - suffix.length, refuse: (name) => (folderCarries(entries, entry.dir, name, row, sameName) ? NAME_TAKEN : undefined) });
 }
 
 /**
