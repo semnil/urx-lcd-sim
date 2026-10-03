@@ -649,41 +649,58 @@ describe("the bank a sideways swipe on HOME steps to", () => {
   };
   const at = (shell: Shell): [string, number] => [shell.ctx.store.str("ui.bankSide", "input"), shell.ctx.store.num("ui.bank", 0)];
   const first = (shell: Shell): string | null | undefined => shell.root.querySelector(".strip-id")?.textContent;
+  /**
+   * Run `body` on a shell on the page, so a pointer let go reaches the window as it does in the browser,
+   * with the pointer standing over the shell's main area wherever it is let go.
+   */
+  const onPage = async (id: "URX44V" | "URX22", body: (shell: Shell) => Promise<void>): Promise<void> => {
+    const shell = await mount(id);
+    document.body.append(shell.root);
+    document.elementFromPoint = (): Element | null => shell.root.querySelector(".main");
+    try {
+      await body(shell);
+    } finally {
+      shell.destroy();
+      shell.root.remove();
+      Reflect.deleteProperty(document, "elementFromPoint");
+    }
+  };
 
-  it("steps to the next bank for a swipe to the left and back for one to the right, and stays for a short move", async () => {
-    const shell = await mount();
-    expect([at(shell), first(shell)]).toEqual([["input", 0], "CH 1"]);
-    await swipe(shell, 300, 200);
-    expect([at(shell), first(shell)], "to the left").toEqual([["input", 1], "CH 5/6"]);
-    await swipe(shell, 200, 300);
-    expect([at(shell), first(shell)], "to the right").toEqual([["input", 0], "CH 1"]);
-    await swipe(shell, 300, 280);
-    expect(at(shell), "a short move").toEqual(["input", 0]);
-  });
+  it("steps to the next bank for a swipe to the left and back for one to the right, and stays for a short move", () =>
+    onPage("URX44V", async (shell) => {
+      expect([at(shell), first(shell)]).toEqual([["input", 0], "CH 1"]);
+      await swipe(shell, 300, 200);
+      expect([at(shell), first(shell)], "to the left").toEqual([["input", 1], "CH 5/6"]);
+      await swipe(shell, 200, 300);
+      expect([at(shell), first(shell)], "to the right").toEqual([["input", 0], "CH 1"]);
+      await swipe(shell, 300, 280);
+      expect(at(shell), "a short move").toEqual(["input", 0]);
+    }));
 
   it("goes round within the INPUT side, from its last bank to its first and back", async () => {
     for (const [id, last] of [["URX44V", 2], ["URX22", 1]] as const) {
-      const shell = await mount(id);
-      await shell.ctx.store.set("ui.bank", last);
-      await flush();
-      await swipe(shell, 300, 200);
-      expect(at(shell), `${id}: past the last bank to the first`).toEqual(["input", 0]);
-      await swipe(shell, 200, 300);
-      expect(at(shell), `${id}: before the first bank to the last`).toEqual(["input", last]);
+      await onPage(id, async (shell) => {
+        await shell.ctx.store.set("ui.bank", last);
+        await flush();
+        await swipe(shell, 300, 200);
+        expect(at(shell), `${id}: past the last bank to the first`).toEqual(["input", 0]);
+        await swipe(shell, 200, 300);
+        expect(at(shell), `${id}: before the first bank to the last`).toEqual(["input", last]);
+      });
     }
   });
 
-  it("steps no bank on a screen other than HOME", async () => {
-    const shell = await mount();
-    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
-    await flush();
-    await swipe(shell, 300, 200);
-    expect(at(shell), "on a channel view").toEqual(["input", 0]);
-    shell.ctx.nav.openTop({ id: "setup" });
-    await flush();
-    await swipe(shell, 300, 200);
-    expect(at(shell), "on SETUP").toEqual(["input", 0]);
-  });
+  it("steps no bank on a screen other than HOME", () =>
+    onPage("URX44V", async (shell) => {
+      shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+      await flush();
+      await swipe(shell, 300, 200);
+      expect(at(shell), "on a channel view").toEqual(["input", 0]);
+      shell.ctx.nav.openTop({ id: "setup" });
+      await flush();
+      await swipe(shell, 300, 200);
+      expect(at(shell), "on SETUP").toEqual(["input", 0]);
+    }));
 });
 
 describe("the channel-bank marks", () => {
