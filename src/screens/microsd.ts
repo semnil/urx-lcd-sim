@@ -46,8 +46,9 @@ export const microsdScreen: ScreenDef = {
     }
     const open = (id: string) => () => ctx.nav.push({ id });
     // While USB Storage Mode is on the three entries are out of reach and no
-    // card-eject button is drawn. In recording mode, Recorder alone stays in
-    // reach and carries the record dot.
+    // card-eject button is drawn. In recording mode and while playback holds a
+    // file, playing or paused, Recorder alone stays in reach; in recording mode
+    // it carries the record dot.
     const usbOn = ctx.store.bool("sd.usbStorage", false);
     const taking = recordMode(ctx.store);
     const held = holdsFile(ctx.store);
@@ -61,7 +62,7 @@ export const microsdScreen: ScreenDef = {
     }
     return {
       main: menuGrid(
-        [recorder, entry("Save/Load", open("microsd.saveload"), !usbOn && !taking), entry("Tools", open("microsd.tools"), !usbOn && !taking)],
+        [recorder, entry("Save/Load", open("microsd.saveload"), !usbOn && !taking && !held), entry("Tools", open("microsd.tools"), !usbOn && !taking && !held)],
         SD_MENU,
       ),
       headerLeft: (() => {

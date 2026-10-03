@@ -591,6 +591,57 @@ describe("the microSD card browser", () => {
     await out(armed, "recording mode");
   });
 
+  it("puts Save/Load and Tools on the microSD top out of reach while playback holds a file, playing or paused, until [■] lets it go", async () => {
+    const shell = await mount({ id: "microsd" });
+    const store = shell.ctx.store;
+    const press = async (label: string): Promise<void> => {
+      [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === label)?.click();
+      await flush();
+    };
+    const menu = (name: string): HTMLElement | undefined => [...shell.root.querySelectorAll<HTMLElement>(".menu-btn")].find((b) => b.textContent === name);
+    const reach = (): [string, boolean | undefined, string | null | undefined][] =>
+      ["Recorder", "Save/Load", "Tools"].map((name) => [name, menu(name)?.classList.contains("is-disabled"), menu(name)?.getAttribute("aria-disabled")]);
+    const top = async (): Promise<void> => {
+      shell.ctx.nav.back();
+      await flush();
+      expect(shell.ctx.nav.current.id).toBe("microsd");
+    };
+
+    shell.ctx.nav.push({ id: "microsd.recorder" });
+    await pickTab(shell, "ui.sdTab", "Play");
+    rows(shell).find((r) => cellsOf(r)[1] === "20251020_112323.wav")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+    for (const [why, playing] of [["playing", true], ["paused", false]] as const) {
+      await press("Play/Pause");
+      expect([store.bool("sd.playing", !playing), store.num("sd.playingFile", -1)], why).toEqual([playing, 1]);
+      await top();
+      expect(reach(), why).toEqual([
+        ["Recorder", false, null],
+        ["Save/Load", true, "true"],
+        ["Tools", true, "true"],
+      ]);
+      for (const name of ["Save/Load", "Tools"]) {
+        menu(name)?.click();
+        await flush();
+        expect(shell.ctx.nav.current.id, `${why}: ${name} opens nothing`).toBe("microsd");
+      }
+      menu("Recorder")?.click();
+      await flush();
+      expect(shell.ctx.nav.current.id, `${why}: Recorder still opens`).toBe("microsd.recorder");
+    }
+
+    await press("Stop");
+    await top();
+    expect(reach(), "back in reach once [■] lets the file go").toEqual([
+      ["Recorder", false, null],
+      ["Save/Load", false, null],
+      ["Tools", false, null],
+    ]);
+    menu("Save/Load")?.click();
+    await flush();
+    expect(shell.ctx.nav.current.id, "Save/Load opens once more").toBe("microsd.saveload");
+  });
+
   it("marks a file of four tracks or more by its count on Edit and leaves it off Play, the speaker marking the file played or paused and the audio mark any other", async () => {
     const shell = await mount({ id: "microsd.recorder" }, [
       entry("new sound", "folder"),

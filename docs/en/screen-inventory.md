@@ -1611,15 +1611,15 @@ of a tab that cannot be used and do nothing when pressed, as the unit does. [■
 
 While playback holds a file, playing or paused, the card-eject button cannot be used (a dimmed face in p081-1, the
 plain face in p083-1; paused on RECORDER's Play tab as well, URX44V, the operator, 2026-10-03). On the microSD top,
-while a file is held, playing or paused, [USB Storage Mode] and the eject button take the face of a button that cannot
-be used and do nothing when pressed, as the unit does. The
+while a file is held, playing or paused, everything but [Recorder] ([Save/Load], [Tools], [USB Storage Mode] and the
+eject button) takes the face of a button that cannot be used and does nothing when pressed, as the unit does
+([Save/Load] and [Tools] URX44V, the operator, 2026-10-03). The
 Play tab lists folders and the files that play, and leaves a file of four tracks or more off; its marks are a folder,
 a file that plays, and the file playing or paused (a speaker). The Edit tab lists a file of four tracks or more as well, marked
 `4tr` to `16tr` (List icons under Play and Edit in the user guide's "RECORDER menu"). Neither tab lists a file recorded
 at another sampling frequency than the unit is running (the NOTE under Play in the user guide; on a URX44V a 48 kHz
 take was on neither tab at 44.1 kHz and back at 48 kHz, the operator, 2026-09-22). Changing the frequency lets go of
-a paused file too (checked on SETUP's Sampling Frequency the same day); a settings file that brings another frequency
-does the same here. SAVE/LOAD marks a file with a
+a paused file too (checked on SETUP's Sampling Frequency the same day). SAVE/LOAD marks a file with a
 page, its corner folded down, carrying two lines (p084-1).
 
 ## What is on the card
