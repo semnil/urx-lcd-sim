@@ -97,13 +97,17 @@ export class BridgeTransport implements DeviceTransport {
     }
   }
 
-  /** Resolves with what the unit holds after the write: the value as encoded for it, or the string written. */
-  async write(path: ParamPath, value: ParamValue): Promise<ParamValue> {
+  /**
+   * Resolves with what the unit holds after the write: the value as encoded for
+   * it, or the string written. The write goes out calling `onSent`.
+   */
+  async write(path: ParamPath, value: ParamValue, onSent?: () => void): Promise<ParamValue> {
     if (this.closed) throw new Error("transport closed");
     const b = this.bindings.forPath(path);
     if (!b) throw new UnboundPathError(path);
     if (b.isString) {
       const sentStr = {};
+      onSent?.();
       this.inFlight.set(b.addr, sentStr);
       await this.bridge.setStr(b.addr, String(value));
       // The echo goes out only while neither a notify for the address nor a
@@ -114,6 +118,7 @@ export class BridgeTransport implements DeviceTransport {
     const raw = b.codec.encode(value);
     if (!Number.isFinite(raw)) throw new Error(`"${path}" does not encode ${String(value)} to a number`);
     const sent = { raw };
+    onSent?.();
     this.inFlight.set(b.addr, sent);
     await this.bridge.set(b.addr, raw);
     const held = b.codec.decode(raw);

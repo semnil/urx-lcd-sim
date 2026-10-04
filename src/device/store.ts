@@ -10,7 +10,10 @@
 // (`echo: true`) and a change made on the device (`echo: false`) alike; the
 // latter is the path a scene recall, or somebody turning a knob on the unit
 // itself, reaches the screen by. It relies on the transport to send no echo for
-// a write that a later write has overtaken.
+// a write that a later write has overtaken. A notify that comes while a write
+// to its path has yet to go out to the device is older than that write: it is
+// what the device holds should that write and every later one be refused, and
+// the screen keeps the write's value.
 
 import type { ParamPath, ParamValue } from "./path";
 import { inSubtree } from "./path";
@@ -34,8 +37,9 @@ export function combineWriteRules(...rules: WriteRule[]): WriteRule {
  * holds after it: where the refused write was still the newest to its path and
  * still on screen, the value the device holds as the store last heard of it —
  * announced in a notify, or reported by the transport for a write the device
- * took with nothing announced after that write was sent — and otherwise the
- * value a later write or the device put there.
+ * took with nothing announced after that write was sent and no later write's
+ * answer before it — and otherwise the value a later write or the device put
+ * there.
  */
 export interface WriteFailure {
   path: ParamPath;
@@ -48,16 +52,22 @@ export interface WriteFailure {
 interface Awaited {
   /** The number of the newest write to the path. */
   newest: number;
+  /** The number of the newest write to the path that has gone out to the device. */
+  sent: number;
   /** How many of its writes are awaiting an answer. */
   open: number;
   /**
    * The value the device holds for the path as the store last heard of it:
    * announced in a notify, or reported by the transport for a write the device
-   * took with nothing announced after that write was sent. Undefined where it
-   * held none.
+   * took with nothing announced after that write was sent and no later write's
+   * answer before it. Undefined where it held none.
    */
   held: ParamValue | undefined;
-  /** The number of the newest write sent when the device last announced a value for the path. */
+  /**
+   * The number of the newest write `held` is known to follow: the newest write
+   * that had gone out to the device when it last announced a value for the
+   * path, or the write whose answer `held` was taken from.
+   */
   heard: number;
 }
 
@@ -126,12 +136,16 @@ export class DeviceStore {
     for (const n of announced) this.adopt(n);
   }
 
-  /** Take a notify as what the device holds, and mirror it where it differs. */
+  /**
+   * Take a notify as what the device holds, and mirror it where it differs,
+   * unless a write to its path has yet to go out to the device.
+   */
   private adopt(n: Notify): void {
     const awaited = this.awaiting.get(n.path);
     if (awaited) {
       awaited.held = n.value;
-      awaited.heard = this.writes;
+      awaited.heard = awaited.sent;
+      if (awaited.sent < awaited.newest) return;
     }
     const current = this.mirror.get(n.path);
     if (current === n.value) return;
@@ -228,7 +242,7 @@ export class DeviceStore {
 
     const t = this.transport;
     if (!t) return Promise.resolve();
-    const awaited = this.awaiting.get(path) ?? { newest: 0, open: 0, held: previous, heard: 0 };
+    const awaited = this.awaiting.get(path) ?? { newest: 0, sent: 0, open: 0, held: previous, heard: 0 };
     const n = ++this.writes;
     awaited.newest = n;
     awaited.open++;
@@ -236,12 +250,18 @@ export class DeviceStore {
     const settle = (): void => {
       if (--awaited.open === 0 && this.awaiting.get(path) === awaited) this.awaiting.delete(path);
     };
-    return t.write(path, value).then(
+    const sent = (): void => {
+      awaited.sent = n;
+    };
+    return t.write(path, value, sent).then(
       (held) => {
         // What the transport reports the device holding after the write is
         // taken as what it holds, unless the device announced a value after the
-        // write was sent.
-        if (awaited.heard < n) awaited.held = held;
+        // write was sent or a later write's answer came first.
+        if (awaited.heard < n) {
+          awaited.held = held;
+          awaited.heard = n;
+        }
         settle();
       },
       (error: unknown) => {

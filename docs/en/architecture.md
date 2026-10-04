@@ -56,8 +56,8 @@ the unit is asynchronous, which is why the values are held twice.
   and sends the write to the transport. If a refused write is the newest write to its path and still
   on screen, the mirror goes back to the value the unit holds as the store last heard of it: the
   value the unit announced in a notify, or, for a write the unit took with nothing announced after
-  the write was sent, the value the transport reports the unit holding (`BridgeTransport` reports
-  it as encoded for the unit). Where a later write, or a notify from the unit since, has changed
+  the write was sent and no later write's answer before it, the value the transport reports the
+  unit holding (`BridgeTransport` reports it as encoded for the unit). Where a later write, or a notify from the unit since, has changed
   the value, that value stays. Either way `onWriteFailure` is notified. The screen never keeps
   showing a value the unit did not accept.
 - **The writes one edit carries with it** — `DeviceStore` holds a single write rule, handed to it by
@@ -76,11 +76,14 @@ the unit is asynchronous, which is why the values are held twice.
   back they bring Pan Link to where the unit's screen leaves it.
 - **Changes on the device side** — arrive as notifies from the transport. Scene recall, turning a
   knob on the unit, and Auto Gain completing all take this path. A notify with `echo: false` is
-  always taken.
+  taken, unless a write to its path has yet to go out to the unit. The transport reports each
+  write as it goes out, and a notify that comes before that is older than the write: the screen
+  keeps the write's value, and the notify's value is what the mirror goes back to if that write and
+  every later one are refused.
 - **Echoes** — the transport marks a notify that is a write of our own coming back with
   `echo: true`. Sending no echo for an older write that a later write has overtaken is the
   transport's responsibility (`BridgeTransport` for a unit); `DeviceStore` does not tell echoes
-  apart and takes every notify that differs from the mirror.
+  apart and takes every notify that differs from the mirror, under the rule above.
 
 Change notifications are batched per microtask and fire once (`markChanged` → `flush`).
 

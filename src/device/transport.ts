@@ -24,7 +24,7 @@ export interface Notify {
    * True when this notify is the transport echoing a write we issued. A
    * transport sends no echo for a write that a later write has overtaken; the
    * store does not tell echoes apart and takes every notify that differs from
-   * its mirror.
+   * its mirror, unless a write to the path has yet to go out to the device.
    */
   echo: boolean;
 }
@@ -39,9 +39,11 @@ export interface DeviceTransport {
    * Push one edit to the device. Resolves when the device has accepted it,
    * with the value the device holds for the path after it. Rejects rather than
    * resolving on a partial write: the caller reverts the local mirror instead
-   * of leaving the screen showing a value the unit never took.
+   * of leaving the screen showing a value the unit never took. `onSent` is
+   * called as the write goes out to the device, before it settles: a notify
+   * that comes before that is older than the write.
    */
-  write(path: ParamPath, value: ParamValue): Promise<ParamValue>;
+  write(path: ParamPath, value: ParamValue, onSent?: () => void): Promise<ParamValue>;
 
   /** Register for device-originated changes. Returns an unsubscribe function. */
   onNotify(listener: (n: Notify) => void): () => void;

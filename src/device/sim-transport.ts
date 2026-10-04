@@ -23,8 +23,9 @@ export class SimTransport implements DeviceTransport {
     return Promise.resolve(new Map(this.values));
   }
 
-  write(path: ParamPath, value: ParamValue): Promise<ParamValue> {
+  write(path: ParamPath, value: ParamValue, onSent?: () => void): Promise<ParamValue> {
     if (this.closed) return Promise.reject(new Error("transport closed"));
+    onSent?.();
     this.values.set(path, value);
     this.emit({ path, value, echo: true });
     return Promise.resolve(value);
