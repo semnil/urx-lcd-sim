@@ -1,5 +1,8 @@
 # urx-lcd-sim
 
+[![CI](https://github.com/semnil/urx-lcd-sim/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/semnil/urx-lcd-sim/actions/workflows/ci.yml)
+[![テストカバレッジ](https://codecov.io/gh/semnil/urx-lcd-sim/branch/main/graph/badge.svg)](https://codecov.io/gh/semnil/urx-lcd-sim)
+
 YAMAHA URX シリーズ (URX22 / URX44 / URX44V) の 4.3 インチ LCD タッチスクリーンを、
 ブラウザ上で操作できる形にした**非公式**のシミュレーター。
 
@@ -44,6 +47,7 @@ pnpm dev
 | `pnpm dev` | 開発サーバー |
 | `pnpm build` | 型チェック + 本番ビルド |
 | `pnpm test` | ユニットテスト |
+| `pnpm test:coverage` | ユニットテスト + カバレッジレポート (`coverage/` に出力) |
 | `pnpm typecheck` | 型チェックのみ |
 
 外部ランタイム依存は無い。開発用の依存は `package.json` の `devDependencies` に記載したもの。
