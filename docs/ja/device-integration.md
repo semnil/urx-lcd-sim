@@ -48,6 +48,9 @@ export interface DeviceLink {
 
 1 つのアドレスへの書き込みは、`DeviceLink` が前の書き込みに応答してから次を送るので、出した順に
 実機へ届き、出した順に返る。link が応答しない書き込みがあると、同じアドレスへのそれ以降の書き込みはすべて待ったままになる。
+文字列のアドレスの notify で始める読み直しは、それより前に出したそのアドレスへの書き込みに応答があってから送り、
+書き込みは読み直しを待たない。文字列のアドレスへの書き込みは、そのアドレスのまだ応答の無い読み直しを捨て、
+実機が書き込みを拒否したときは読み直す。
 
 自分が書いた値がそのまま返ってきた notify は `echo: true` として区別する
 (`src/device/bridge-transport.test.ts` の「flags the notify that is our own write coming back」)。

@@ -272,6 +272,19 @@ async function nameTransport(initial: string): Promise<{ unit: ReturnType<typeof
   return { unit, transport };
 }
 
+/** A store on a `nameUnit` holding `initial` as ch.ch1.name, its snapshot read answered. */
+async function storeOnNameUnit(initial: string): Promise<{ store: DeviceStore; unit: ReturnType<typeof nameUnit> }> {
+  const unit = nameUnit(initial);
+  const bindings = new BindingTable();
+  bindings.bind("ch.ch1.name", { addr: "name-addr", codec: identityCodec, isString: true });
+  const store = new DeviceStore();
+  const attach = store.attach(new BridgeTransport(unit, bindings));
+  await tick();
+  unit.reads.shift()!();
+  await attach;
+  return { store, unit };
+}
+
 describe("BridgeTransport", () => {
   it("refuses a path with no validated address rather than guessing one", async () => {
     const bridge = fakeBridge();
@@ -589,6 +602,8 @@ describe("BridgeTransport", () => {
     await tick();
     answers[0]!();
     await write;
+    // The read the notify started goes out once the write is answered.
+    await tick();
 
     expect(seen).toEqual([["Drums", false]]);
   });
@@ -733,6 +748,78 @@ describe("BridgeTransport", () => {
       });
     }
   }
+
+  for (const read of ["before", "after"] as const) {
+    it(`sends a name written from the screen while the read a notify started awaits the unit, and keeps it over that read answered ${read} the write`, async () => {
+      const { store, unit } = await storeOnNameUnit("Vocal");
+      const shown: string[] = [];
+      store.onChange(() => shown.push(store.str("ch.ch1.name")));
+
+      unit.rename("Old");
+      const write = store.set("ch.ch1.name", "New");
+      await tick();
+      expect(unit.writes, "while the read awaits the unit").toHaveLength(1);
+      if (read === "before") unit.reads[0]!();
+      await tick();
+      unit.writes[0]!.take();
+      await write;
+      if (read === "after") unit.reads[0]!();
+      await tick();
+
+      expect({ unit: unit.name(), screen: store.str("ch.ch1.name"), shown }).toEqual({ unit: "New", screen: "New", shown: ["New"] });
+    });
+  }
+
+  it("reads a name again when the unit refuses a name written from the screen over the read a notify started", async () => {
+    const { store, unit } = await storeOnNameUnit("Vocal");
+
+    unit.rename("Old");
+    const write = store.set("ch.ch1.name", "New");
+    await tick();
+    unit.reads[0]!();
+    await tick();
+    unit.writes[0]!.refuse();
+    await write;
+    await tick();
+    unit.reads[1]?.();
+    await tick();
+
+    expect([unit.name(), store.str("ch.ch1.name")]).toEqual(["Old", "Old"]);
+  });
+
+  for (const renamed of ["before", "after"] as const) {
+    it(`shows the name the unit holds when it is renamed on the unit ${renamed} the unit takes a name written from the screen`, async () => {
+      const { store, unit } = await storeOnNameUnit("Vocal");
+
+      unit.rename("Old");
+      const write = store.set("ch.ch1.name", "New");
+      await tick();
+      unit.reads[0]!();
+      await tick();
+      if (renamed === "before") unit.rename("Panel");
+      unit.writes[0]!.take();
+      await write;
+      if (renamed === "after") unit.rename("Panel");
+      await tick();
+      unit.reads[1]!();
+      await tick();
+
+      expect(store.str("ch.ch1.name")).toBe(unit.name());
+    });
+  }
+
+  it("reads nothing for a notify waiting on a name written from the screen when the transport is closed", async () => {
+    const { unit, transport } = await nameTransport("Vocal");
+
+    const write = transport.write("ch.ch1.name", "New");
+    unit.rename("Panel");
+    transport.close();
+    unit.writes[0]!.take();
+    await write;
+    await tick();
+
+    expect(unit.reads).toHaveLength(0);
+  });
 
   it("calls onSent as each write goes out, once the write before it is answered", async () => {
     const unit = answeringUnit(100);

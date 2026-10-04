@@ -16,7 +16,8 @@
 //     further address, and no subscription is left open on the link.
 //
 // Writes to one address go to the link one at a time, each once the link has
-// answered the one before.
+// answered the one before, and a read a string address's notify starts goes
+// out once the link has answered the writes to the address issued before it.
 
 import type { ParamPath, ParamValue } from "./path";
 import type { DeviceTransport, Notify } from "./transport";
@@ -60,8 +61,8 @@ export class BridgeTransport implements DeviceTransport {
    */
   private readonly inFlight = new Map<string, { raw?: number }>();
   /** The newest read of each string address taken on its notify and not yet answered. */
-  private readonly strReads = new Map<string, Promise<string>>();
-  /** The last write queued on each address, which the next write to it waits for. */
+  private readonly strReads = new Map<string, object>();
+  /** The last write queued on each address, which the next write or read of it waits for. */
   private readonly lanes = new Map<string, Promise<void>>();
 
   constructor(
@@ -117,11 +118,19 @@ export class BridgeTransport implements DeviceTransport {
     if (b.isString) {
       const sentStr = {};
       this.newest.set(addr, sentStr);
-      await this.inTurn(addr, () => {
-        onSent?.();
-        this.inFlight.set(addr, sentStr);
-        return this.bridge.setStr(addr, String(value));
-      });
+      // A write drops the read of its address not yet answered, and reads the
+      // address again if the unit refuses it.
+      this.strReads.delete(addr);
+      try {
+        await this.inTurn(addr, () => {
+          onSent?.();
+          this.inFlight.set(addr, sentStr);
+          return this.bridge.setStr(addr, String(value));
+        });
+      } catch (error) {
+        this.readAgain(path, addr);
+        throw error;
+      }
       // The echo goes out only while the write is the newest to its address and
       // no notify for the address has come since it was sent.
       if (this.newest.get(addr) === sentStr && this.inFlight.get(addr) === sentStr) this.emit({ path, value, echo: true });
@@ -199,13 +208,15 @@ export class BridgeTransport implements DeviceTransport {
 
   /**
    * A notify carries no string, so a string address is read again on its
-   * notify and the string read goes out. A read that fails, or that a later
-   * read of the same address has overtaken, sends nothing.
+   * notify, once the writes to the address issued before it are answered, and
+   * the string read goes out. No write waits for the read. A read that fails,
+   * that a later read of the address or a write to it has overtaken, or that
+   * answers after close sends nothing.
    */
   private readAgain(path: ParamPath, addr: string): void {
-    const read = this.bridge.getStr(addr);
+    const read = {};
     this.strReads.set(addr, read);
-    read.then(
+    this.afterWrites(addr, () => this.bridge.getStr(addr)).then(
       (value) => {
         if (this.strReads.get(addr) !== read) return;
         this.strReads.delete(addr);
