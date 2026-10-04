@@ -29,7 +29,7 @@ import { inputSourceSheet, sourceBoxLabel } from "./input-source";
 import { NO_EFFECT, insertBase } from "./insert-fx";
 import { effectSettingsScreen, fxShutOut, insFxScreen, openEffectParams } from "./effect-params";
 import { ssmcsArea } from "./ssmcs";
-import { channelLabel, phasePath, selectStrip, selectedStripId, sendsTarget, stepChannel, stripColor, stripLane, stripLanes } from "./strip-state";
+import { channelLabel, eqShut, phasePath, selectStrip, selectedStripId, sendsTarget, stepChannel, stripColor, stripLane, stripLanes } from "./strip-state";
 import type { ScreenBody, ScreenDef } from "./types";
 
 /** What a channel screen shows when the route names no channel. */
@@ -37,14 +37,19 @@ export function noChannel(): ScreenBody {
   return { main: el("div", { class: "screen-missing", text: "No channel selected" }) };
 }
 
-/** The kind of strip each block with a screen of its own belongs to. */
+/** The kind of strip each block with a screen of its own belongs to, EQ aside. */
 const BLOCK_STRIPS = { GATE: "monoIn", COMP: "monoIn", SSMCS: "monoIn", DUCKER: "stIn", DELAY: "streaming" } satisfies Record<string, StripKind>;
 
+/** A block with a screen of its own. */
+type Block = keyof typeof BLOCK_STRIPS | "EQ";
+
 /**
- * Whether the strip carries the block. A mono channel carries COMP or SSMCS,
- * whichever its COMP / EQ type is.
+ * Whether the strip carries the block. A mono channel carries COMP and EQ or
+ * SSMCS, whichever its COMP / EQ type is; a stereo channel, a MIX bus and the
+ * stereo bus carry an EQ.
  */
-export function carriesBlock(ctx: AppContext, strip: Strip, block: keyof typeof BLOCK_STRIPS): boolean {
+export function carriesBlock(ctx: AppContext, strip: Strip, block: Block): boolean {
+  if (block === "EQ") return strip.kind === "monoIn" ? !runsSsmcs(ctx, strip) : strip.kind === "stIn" || strip.kind === "mix" || strip.kind === "stereo";
   if (strip.kind !== BLOCK_STRIPS[block]) return false;
   if (block === "COMP") return !runsSsmcs(ctx, strip);
   if (block === "SSMCS") return runsSsmcs(ctx, strip);
@@ -53,12 +58,13 @@ export function carriesBlock(ctx: AppContext, strip: Strip, block: keyof typeof 
 
 /**
  * What a block's screen shows on a strip the arrows step to that does not carry
- * the block: the channel's name in the toolbar, no title, a line saying so in the
- * middle, and nothing to operate.
+ * the block, or whose block the sampling frequency has put out of use (`atRate`):
+ * the channel's name in the toolbar, no title, a line saying so in the middle,
+ * and nothing to operate.
  */
-export function noBlock(ctx: AppContext, strip: Strip, route: Route, block: keyof typeof BLOCK_STRIPS): ScreenBody {
+export function noBlock(ctx: AppContext, strip: Strip, route: Route, block: Block, atRate = false): ScreenBody {
   return {
-    main: el("div", { class: "screen-missing", text: `This channel has no ${block} screen` }),
+    main: el("div", { class: "screen-missing", text: `This channel has no ${block} screen${atRate ? " at this sampling frequency" : ""}` }),
     headerLeft: channelSelector(ctx, strip, route, true),
   };
 }
@@ -585,8 +591,9 @@ export const channelViewScreen: ScreenDef = {
     } else if (strip.kind === "stIn") {
       const ducker = duckerThreshold(base);
       const duckerValue = readout(ducker);
+      // Above 96 kHz the EQ is out of use and its block gone; DUCKER keeps its place.
       blocks.push(
-        eqBlock(),
+        ...(eqShut(ctx, strip) ? [] : [eqBlock()]),
         block(ctx, "DUCKER", "ducker", `${base}.ducker.on`, false,
           el("div", { class: "cv-block-body", children: [duckerValue, duckerLamps(ctx, strip, base)] }),
           () => ctx.nav.push({ id: "ch.ducker", strip: strip.id }),
@@ -1632,6 +1639,8 @@ export const eqScreen: ScreenDef = {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
     if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
+    if (!carriesBlock(ctx, strip, "EQ")) return noBlock(ctx, strip, route, "EQ");
+    if (eqShut(ctx, strip)) return noBlock(ctx, strip, route, "EQ", true);
     const base = `ch.${strip.id}`;
     const bandKey = ctx.store.str("ui.eqBand", "low");
     const band = EQ_BANDS.find((b) => b.key === bandKey) ?? EQ_BANDS[0];

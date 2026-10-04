@@ -6,6 +6,12 @@
 import type { DeviceStore } from "../device/store";
 import { EQ_BAND_SHAPE_SHIPPED, SSMCS_DEFAULTS } from "./defaults";
 import { type EqBandResponse, biquadDb, eqResponse, peakingBiquad, shelfBiquad } from "./eq-response";
+import type { StripKind } from "./types";
+
+/** Whether the sampling frequency puts a strip's 4-band EQ out of use: a stereo channel's above 96 kHz. */
+export function eqOutOfUse(kind: StripKind, rate: number): boolean {
+  return kind === "stIn" && rate > 96000;
+}
 
 /** The 4-band EQ's bands, low to high. */
 export const EQ_BAND_KEYS = ["low", "lowMid", "highMid", "high"] as const;

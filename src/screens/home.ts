@@ -21,6 +21,7 @@ import {
   bankSide,
   currentBank,
   currentBankStrips,
+  eqShut,
   phasePath,
   selectStrip,
   selectedStripId,
@@ -122,7 +123,7 @@ function indicatorRows(ctx: AppContext, strip: Strip): HTMLElement {
   const bare = strip.kind === "fx";
   return el("div", {
     class: "ind-block",
-    children: [row(top, phantom), row([]), row([], bare || strip.kind === "streaming" ? [] : [eq]), row(bare ? [] : [last])],
+    children: [row(top, phantom), row([]), row([], bare || strip.kind === "streaming" || eqShut(ctx, strip) ? [] : [eq]), row(bare ? [] : [last])],
   });
 }
 

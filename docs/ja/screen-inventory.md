@@ -477,9 +477,14 @@ STEREO を `ST`、STREAMING を `STR` と書く。2 行目はストリップに�
 複製マークを付けるチャンネル・バスの詳細画面だけ。そこから下りた画面と CH SETTING では、触れても沈まず何も開かない。
 
 GATE はモノラルの入力、COMP は COMP / EQ のタイプが SSMCS でないモノラルの入力、SSMCS はそのタイプが SSMCS のモノラルの入力、
-DUCKER はステレオの入力、DELAY は STREAMING のブロック。そのブロックを持たないチャンネル (COMP の画面なら SSMCS にしたモノラルの
-チャンネルなど) へ送ると、これらの画面はツールバーにそのチャンネルの名前を出し、題を出さず、中央に `This channel has no GATE screen`
-(`COMP`・`DUCKER`・`DELAY`・`SSMCS` も同じ形) と出す。操作できるものは無く、値も書かない。
+DUCKER はステレオの入力、DELAY は STREAMING、EQ はタイプが SSMCS でないモノラルの入力・ステレオの入力・MIX バス・ステレオバスの
+ブロック。そのブロックを持たないチャンネル (COMP の画面なら SSMCS にしたモノラルのチャンネルなど) へ送ると、これらの画面はツールバーに
+そのチャンネルの名前を出し、題を出さず、中央に `This channel has no GATE screen` (`COMP`・`EQ`・`DUCKER`・`DELAY`・`SSMCS` も同じ形)
+と出す。操作できるものは無く、値も書かない (URX44V、2026-10-02 と 2026-10-04 操作者確認)。
+
+176.4 kHz と 192 kHz では、ステレオの入力の EQ は使えない。そのチャンネルビューは EQ のブロックを描かず (DUCKER は位置を変えない)、
+HOME のストリップは `EQ` の印を出さず、EQ の画面からそのチャンネルへ送ると同じ形で `This channel has no EQ screen at this sampling
+frequency` と出す (URX44V、2026-10-04 操作者確認)。EQ の設定は残り、周波数を下げるまで信号は EQ を通らない。
 
 画面名は折り返さない。
 

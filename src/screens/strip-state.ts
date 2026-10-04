@@ -7,6 +7,7 @@ import type { ParamPath } from "../device/path";
 import type { Strip, StripKind, StripSide } from "../model/types";
 import { allStrips, bankCount, bankStrips, findStrip } from "../model/types";
 import { CH_COLOR_OFF } from "../model/units";
+import { eqOutOfUse } from "../model/channel-eq";
 
 /**
  * The colour a strip is carrying: the one CH SETTING put on it, or the one it
@@ -211,3 +212,8 @@ export function sendsDestination(ctx: AppContext): Strip | undefined {
 }
 
 export { sendsTo } from "../model/types";
+
+/** Whether the sampling frequency has put the strip's 4-band EQ out of use. */
+export function eqShut(ctx: AppContext, strip: Strip): boolean {
+  return eqOutOfUse(strip.kind, ctx.store.num("setup.samplingFrequency", 48000));
+}

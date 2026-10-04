@@ -540,10 +540,16 @@ channel and bus detail screens, where it is the wide box with the copy mark. On 
 CH SETTING it neither sinks nor opens anything when touched.
 
 GATE belongs to the mono inputs, COMP to a mono input whose COMP / EQ type is not SSMCS and SSMCS to one whose type
-is, DUCKER to the stereo inputs and DELAY to STREAMING. Stepped to a channel that does not carry the block (a mono
-channel on SSMCS on the COMP screen, for one), these screens keep the channel's name in the toolbar, draw no title, and
-show `This channel has no GATE screen` (`COMP`, `DUCKER`, `DELAY` and `SSMCS` in the same form) in the middle, with
-nothing to operate and nothing written.
+is, DUCKER to the stereo inputs, DELAY to STREAMING, and EQ to a mono input whose type is not SSMCS, the stereo inputs,
+the MIX buses and the stereo bus. Stepped to a channel that does not carry the block (a mono channel on SSMCS on the
+COMP screen, for one), these screens keep the channel's name in the toolbar, draw no title, and show `This channel has
+no GATE screen` (`COMP`, `EQ`, `DUCKER`, `DELAY` and `SSMCS` in the same form) in the middle, with nothing to operate
+and nothing written (URX44V, the operator, 2026-10-02 and 2026-10-04).
+
+At 176.4 and 192 kHz the stereo inputs' EQ is out of use: their channel view draws no EQ block, DUCKER keeping its
+place, HOME's strip leaves its `EQ` mark out, and the EQ screen stepped to one of them shows `This channel has no EQ
+screen at this sampling frequency` in the same form (URX44V, the operator, 2026-10-04). The EQ keeps its settings, and
+the signal passes it untouched until the rate comes back down.
 
 The screen name does not wrap.
 

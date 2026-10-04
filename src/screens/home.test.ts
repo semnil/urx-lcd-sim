@@ -4809,7 +4809,8 @@ describe("what the dedicated channel screens draw", () => {
 
   it("says a channel stepped to without the block has no such screen, and leaves nothing on it to operate", async () => {
     // GATE is a mono input's, COMP a mono input's on COMP->EQ and SSMCS a mono
-    // input's on SSMCS, DUCKER a stereo input's, DELAY STREAMING's.
+    // input's on SSMCS, DUCKER a stereo input's, DELAY STREAMING's, and EQ a mono
+    // input's on COMP->EQ, a stereo input's, a MIX bus's and the stereo bus's.
     const onSsmcs = new Set(["ch2", "ch4"]);
     const mono = (s: Strip): boolean => s.kind === "monoIn";
     const ssmcs = (s: Strip): boolean => mono(s) && onSsmcs.has(s.id);
@@ -4822,6 +4823,7 @@ describe("what the dedicated channel screens draw", () => {
       ["ch.ssmcs.comp", "SSMCS", "ch2", ssmcs],
       ["ch.ssmcs.sc", "SSMCS", "ch2", ssmcs],
       ["ch.ssmcs.eq", "SSMCS", "ch2", ssmcs],
+      ["ch.eq", "EQ", "ch1", (s) => (mono(s) && !onSsmcs.has(s.id)) || ["stIn", "mix", "stereo"].includes(s.kind)],
     ];
     for (const [id, name, from, carries] of screens) {
       const shell = await mount();
@@ -4861,7 +4863,7 @@ describe("what the dedicated channel screens draw", () => {
         expect(controls.map((c) => c.className), `${at}: nothing to operate`).toEqual([]);
       }
       expect(landed.with > 0 && landed.without > 0, `${id} lands both ways`).toBe(true);
-      if (name === "COMP" || name === "SSMCS") {
+      if (name === "COMP" || name === "SSMCS" || name === "EQ") {
         expect(landed.monoWithout, `${id} lands on a mono channel of the other COMP / EQ type`).toBeGreaterThan(0);
       }
       expect(store.pathsUnder("ch").filter((p) => !mixer.has(p)), `${id}: no value written`).toEqual([]);
@@ -4946,6 +4948,44 @@ describe("what the dedicated channel screens draw", () => {
     [...shell.root.querySelectorAll<HTMLElement>(".ch-arrow")].at(-1)?.click();
     await flush();
     expect(shell.ctx.nav.current.strip).toBe("ch4");
+  });
+
+  it("puts a stereo channel's EQ out of use above 96 kHz on its channel view, on HOME and on the EQ screen", async () => {
+    const seen: Record<string, unknown> = {};
+    for (const rate of [96000, 176400, 192000]) {
+      const shell = await mount();
+      await shell.ctx.store.set("setup.samplingFrequency", rate);
+      await shell.ctx.store.set("ch.ch_5_6.eq.on", true);
+      // HOME's second bank holds CH 5/6.
+      await shell.ctx.store.set("ui.bank", 1);
+      await flush();
+      const strip = [...shell.root.querySelectorAll(".strip")].find((n) => n.querySelector(".strip-id")?.textContent === "CH 5/6");
+      if (!strip) throw new Error(`${rate}: no CH 5/6 strip on HOME`);
+      const badge = strip?.querySelector(".badge-eq")?.textContent ?? null;
+      shell.ctx.nav.push({ id: "channel-view", strip: "ch_5_6" });
+      await flush();
+      const blocks = [...shell.root.querySelectorAll(".cv-block")].map((n) => [...n.classList].find((c) => /^cv-block-/.test(c)));
+      shell.ctx.nav.home();
+      shell.ctx.nav.push({ id: "channel-view", strip: "ch4" });
+      shell.ctx.nav.push({ id: "ch.eq", strip: "ch4" });
+      await flush();
+      shell.root.querySelector<HTMLElement>('.ch-arrow[aria-label="Next channel"]')?.click();
+      await flush();
+      const screen = [
+        shell.ctx.nav.current.strip,
+        shell.root.querySelector(".toolbar .badge-title")?.textContent ?? null,
+        shell.root.querySelector(".main .screen-missing")?.textContent ?? null,
+        shell.root.querySelectorAll(".main button, .main [role], .knob-strip [role]").length,
+      ];
+      seen[rate] = { badge, blocks, screen };
+      shell.destroy();
+    }
+    expect(seen).toEqual({
+      96000: { badge: "EQ", blocks: ["cv-block-eq", "cv-block-ducker"], screen: ["ch_5_6", "EQ", null, seen[96000] && (seen[96000] as { screen: number[] }).screen[3]] },
+      176400: { badge: null, blocks: ["cv-block-ducker"], screen: ["ch_5_6", null, "This channel has no EQ screen at this sampling frequency", 0] },
+      192000: { badge: null, blocks: ["cv-block-ducker"], screen: ["ch_5_6", null, "This channel has no EQ screen at this sampling frequency", 0] },
+    });
+    expect((seen[96000] as { screen: number[] }).screen[3], "the EQ screen has controls at 96 kHz").toBeGreaterThan(0);
   });
 
   it("goes back to the channel view of the channel the arrows stepped to, and HOME keeps that channel selected", async () => {
