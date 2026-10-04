@@ -408,6 +408,8 @@ export interface PickDialogSpec {
   onOk: () => void;
   /** What stands under the title. */
   body: HTMLElement[];
+  /** Whether it hides the USER DEFINED KNOBS bar whole, leaving none of it in sight at its edge. */
+  coversBar?: boolean;
 }
 
 /**
@@ -417,7 +419,7 @@ export interface PickDialogSpec {
  */
 export function pickDialog(spec: PickDialogSpec): HTMLElement {
   return el("div", {
-    class: "pick-dialog",
+    class: spec.coversBar === true ? "pick-dialog covers-bar" : "pick-dialog",
     children: [
       button("Cancel", spec.onCancel, "pick-dialog-btn pick-dialog-cancel"),
       button("OK", spec.onOk, "pick-dialog-btn pick-dialog-ok"),

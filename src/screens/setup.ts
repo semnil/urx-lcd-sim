@@ -304,6 +304,7 @@ export const udkAssignScreen: ScreenDef = {
       main: pickDialog({
         title: "USER DEFINED KNOBS",
         sub: `Bank ${bank}, Knob ${knob}`,
+        coversBar: true,
         onCancel: () => ctx.nav.back(),
         onOk: () => {
           void ctx.store.set(udkPath(bank, knob), picked.value);

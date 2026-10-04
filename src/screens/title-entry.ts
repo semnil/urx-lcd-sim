@@ -259,7 +259,7 @@ export const titleEntryScreen: ScreenDef = {
 
     return {
       main: el("div", {
-        class: "pick-dialog title-entry",
+        class: "pick-dialog title-entry covers-bar",
         children: [
           head,
           button("Cancel", () => {

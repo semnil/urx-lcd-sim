@@ -2931,6 +2931,29 @@ describe("the USER DEFINED KNOBS bar under a sheet, a list or a dialog", () => {
     });
   }
 
+  it("hides the bar whole under the knob assignment and the title and name sheets, and leaves it in sight at the edge of [Date/Time] and TIME ZONE", async () => {
+    // On the unit the knob assignment and the Volume Label sheet cover the glass to their edges, while
+    // [Date/Time] and TIME ZONE leave the bar showing dark along their foot.
+    const hidden: Record<string, boolean> = {};
+    for (const cover of COVERS.filter((c) => c.darkBy === "the sheet's dark over the bar")) {
+      const shell = await mount();
+      for (const route of cover.under) shell.ctx.nav.push(route);
+      await flush();
+      await tap(shell, ".udk-toggle");
+      await cover.open(shell);
+      await flush();
+      hidden[cover.name] = shell.root.matches(":has(> .main > .pick-dialog.covers-bar)");
+    }
+    expect(hidden).toEqual({
+      "TIME ZONE": false,
+      "[Date/Time]": false,
+      "a scene's title sheet": true,
+      "[Save as]'s name sheet": true,
+      "the knob assignment": true,
+    });
+    expect(declarations(CSS, ".lcd:has(> .main > .pick-dialog.covers-bar) > .knob-strip")["visibility"]).toBe("hidden");
+  });
+
   it("closes the INPUT source sheet on a touch on the dark around its panel, and not on the panel", async () => {
     // On the unit a touch on the dark over the bar, or left of, right of or above the panel, takes the
     // sheet down and leaves USER DEFINED KNOBS mode on. A browser's hit test lands every one of them on

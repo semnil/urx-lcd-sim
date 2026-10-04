@@ -6031,6 +6031,12 @@
   pointer-events: none;
 }
 
+/* One that covers the bar whole leaves none of it in sight, and a touch at its
+ * edge lands on the bare glass. */
+.lcd:has(> .main > .pick-dialog.covers-bar) > .knob-strip {
+  visibility: hidden;
+}
+
 /* The overlays darken what lies under them through the filter the shell puts
  * in the LCD (src/ui/scrim.ts). A browser without backdrop-filter gets a plain
  * black wash instead. */
