@@ -1105,7 +1105,10 @@ is that reference and carries no tap: [PRE] goes from its cell, keeping its room
 stereo bus has no level and no placing of its own either: no Level goes on the knob, the pan slider and
 its value show the channel's own PAN (BAL), and turning the value box turns the channel's PAN (BAL). On a channel
 placed by its PAN the value is captioned `Pan` (CH 3's PAN at L20 shows `Pan` L20 in the STEREO cell, and
-one step of the box takes CH 3's PAN to L21; confirmed on a URX44V on 2026-09-28).
+one step of the box takes CH 3's PAN to L21; confirmed on a URX44V on 2026-09-28), and on a channel
+placed by its BAL `Bal`: a stereo channel, an FX channel and a pair linked on its balance (CH 5/6, FX1
+and CH 3 of CH 3/4 each show `Bal` C in the STEREO cell, and one step of the box takes the BAL to R1;
+confirmed on a URX44V on 2026-10-04).
 
 A cell is a column like a HOME strip, 98px wide and 181px high: under a 36px `--surface-raised` band
 naming the destination come [ON], [PRE], the send's own pan slider, and `Bal` with its value (measured
