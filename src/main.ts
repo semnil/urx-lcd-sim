@@ -22,6 +22,7 @@ import { startDateTimeClock } from "./screens/date-time";
 import { startMeterTicker } from "./screens/meters";
 import { startRecorderClock } from "./screens/recording";
 import { el } from "./ui/dom";
+import { Icons } from "./ui/icons";
 import { buildPanel } from "./ui/panel";
 
 const MODEL_IDS: ModelId[] = ["URX44V", "URX44", "URX22"];
@@ -85,24 +86,56 @@ async function boot(
   // A reset starts from the unit as it ships, and stores it with the card at once.
   if (how !== "reset") await restore(store, modelId);
   for (const [path, value] of Object.entries(card)) await store.restore(path, value);
-  // Stands under the chrome's controls while the browser refuses the unit, full
-  // or blocked, and goes once a write is taken again. Once another tab has
-  // stored the unit, it says so instead and stays until the unit starts again.
-  const unkept = el("p", { class: "chrome-unkept", text: UNKEPT_TEXT, attrs: { role: "status" } });
-  unkept.hidden = true;
+  // A banner over the top centre of the page while the browser refuses the unit,
+  // full or blocked, which goes once a write is taken again. Once another tab has
+  // stored the unit, it says so instead until the unit starts again. It lies over
+  // the page, so showing it moves nothing else. [×] or Escape closes it; the
+  // browser's refusal brings it back at the next write it refuses, the other tab
+  // at the next change to the unit.
+  const noticeText = el("p", { attrs: { role: "status" } });
+  const notice = el("div", {
+    class: "chrome-notice",
+    children: [
+      noticeText,
+      el("button", {
+        class: "chrome-button chrome-notice-close",
+        attrs: { type: "button", "aria-label": "Close" },
+        children: [Icons.close()],
+        onTap: () => closeNotice(),
+      }),
+    ],
+  });
+  notice.hidden = true;
+  let storedElsewhere = false;
+  const showNotice = (text: string): void => {
+    noticeText.textContent = text;
+    notice.hidden = false;
+  };
+  const closeNotice = (): void => {
+    const hadFocus = notice.contains(document.activeElement);
+    notice.hidden = true;
+    if (hadFocus) modelSelect.focus();
+  };
+  notice.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape" && !ev.isComposing) closeNotice();
+  });
   const saving = startSaving(
     store,
     modelId,
     undefined,
     (kept) => {
-      unkept.hidden = kept;
+      if (kept) notice.hidden = true;
+      else showNotice(UNKEPT_TEXT);
     },
     () => {
-      unkept.textContent = ELSEWHERE_TEXT;
-      unkept.hidden = false;
+      storedElsewhere = true;
+      showNotice(ELSEWHERE_TEXT);
     },
     how === "opened" ? { hold } : { hold, first: how === "reset" ? "unit" : "model" },
   );
+  const offNotice = store.onChange(() => {
+    if (storedElsewhere) showNotice(ELSEWHERE_TEXT);
+  });
   flushMounted = saving.flush;
 
   const shell = new Shell(buildRegistry(), store, model);
@@ -196,7 +229,7 @@ async function boot(
       children: [
         el("h1", { class: "chrome-title", text: "URX LCD Simulator" }),
         el("div", { class: "chrome-controls", children: [modelSelect, zoomSelect, resetBox, link] }),
-        unkept,
+        notice,
       ],
     }),
     panel,
@@ -230,6 +263,7 @@ async function boot(
   // does; leaving the page and picking another model store it first.
   disposeMounted = (): void => {
     saving.stop();
+    offNotice();
     stopMeters();
     stopClock();
     stopDateTime();

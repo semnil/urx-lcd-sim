@@ -432,35 +432,86 @@ describe("a page the browser brings back", () => {
   });
 });
 
-describe("a browser that does not take the unit", () => {
-  const notice = (): HTMLElement | null => document.querySelector<HTMLElement>("header.chrome .chrome-unkept");
+/** The banner over the top of the page that says the unit is not being kept. */
+const notice = (): HTMLElement | null => document.querySelector<HTMLElement>("header.chrome > .chrome-notice");
+const noticeClose = (): HTMLElement => notice()!.querySelector<HTMLElement>('button[aria-label="Close"]')!;
 
-  it("is told so in the chrome until a write is taken again", async () => {
+/** Make the browser refuse every write of the unit until the returned step is run. */
+function refuseWrites(): () => void {
+  const set = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+    throw new DOMException("storage is full", "QuotaExceededError");
+  });
+  return () => set.mockRestore();
+}
+
+/** Another tab storing a unit with CH 1 at -20, as this tab hears of it. */
+function storedElsewhere(): string {
+  const theirs = JSON.stringify({ version: 1, model: "URX44V", values: { "ch.ch1.level": -20 } });
+  window.localStorage.setItem(STATE_KEY, theirs);
+  window.dispatchEvent(new StorageEvent("storage", { key: STATE_KEY, newValue: theirs, storageArea: window.localStorage }));
+  return theirs;
+}
+
+describe("a browser that does not take the unit", () => {
+  it("is told so on a banner over the page until a write is taken again", async () => {
     await openPage();
     expect(notice()?.hidden, "there is nothing to tell").toBe(true);
-    const set = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
-      throw new DOMException("storage is full", "QuotaExceededError");
-    });
+    expect(notice()?.closest(".chrome-controls"), "the banner is not among the header's controls").toBeNull();
+    const allow = refuseWrites();
     try {
       await nudge();
       await until("the notice", () => notice()?.hidden === false);
-      expect(notice()?.getAttribute("role")).toBe("status");
+      expect(notice()?.querySelector("p")?.getAttribute("role")).toBe("status");
+      expect(notice()?.textContent).toMatch(/not keeping the unit/);
     } finally {
-      set.mockRestore();
+      allow();
     }
     await nudge();
     await until("the notice to go", () => notice()?.hidden === true);
   });
+
+  it("closes on [Close], and comes back at the next write the browser refuses", async () => {
+    await openPage();
+    const allow = refuseWrites();
+    try {
+      await nudge();
+      await until("the notice", () => notice()?.hidden === false);
+      noticeClose().click();
+      expect(notice()?.hidden, "closed").toBe(true);
+      await nudge();
+      await until("the notice again", () => notice()?.hidden === false);
+    } finally {
+      allow();
+    }
+  });
+
+  it("closes on Escape without stepping the screen back, and hands the focus to the model selector", async () => {
+    await openPage();
+    const screenId = (): string | undefined => document.querySelector<HTMLElement>(".toolbar")?.dataset["screen"];
+    const allow = refuseWrites();
+    try {
+      await nudge();
+      await until("the notice", () => notice()?.hidden === false);
+      document.querySelector<HTMLElement>('.toolbar [aria-label="SETUP"]')!.click();
+      await until("SETUP", () => screenId() === "setup");
+      noticeClose().focus();
+      noticeClose().dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+      expect(notice()?.hidden, "another key leaves it up").toBe(false);
+      noticeClose().dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      expect(notice()?.hidden, "closed").toBe(true);
+      await pause(200);
+      expect(screenId(), "the screen stays where it was").toBe("setup");
+      expect(document.activeElement, "the focus goes to the model selector").toBe(modelSelect());
+    } finally {
+      allow();
+    }
+  });
 });
 
 describe("a unit another tab stores", () => {
-  const notice = (): HTMLElement | null => document.querySelector<HTMLElement>("header.chrome .chrome-unkept");
-
   it("is left as that tab stored it, with the chrome saying so, until a reload", async () => {
     await openPage();
-    const theirs = JSON.stringify({ version: 1, model: "URX44V", values: { "ch.ch1.level": -20 } });
-    window.localStorage.setItem(STATE_KEY, theirs);
-    window.dispatchEvent(new StorageEvent("storage", { key: STATE_KEY, newValue: theirs, storageArea: window.localStorage }));
+    const theirs = storedElsewhere();
     await nudge();
     await pause(600);
     expect(window.localStorage.getItem(STATE_KEY), "what the other tab stored stays").toBe(theirs);
@@ -473,11 +524,21 @@ describe("a unit another tab stores", () => {
     expect(await nudgeLevel("URX44V"), "and stores again").not.toBe("-20");
   });
 
+  it("comes back on the banner at the next change once closed", async () => {
+    await openPage();
+    storedElsewhere();
+    await until("the notice", () => notice()?.hidden === false);
+    expect(notice()?.textContent, "as soon as it hears").toMatch(/another tab/i);
+    noticeClose().click();
+    expect(notice()?.hidden, "closed").toBe(true);
+    await nudge();
+    await until("the notice again", () => notice()?.hidden === false);
+    expect(notice()?.textContent).toMatch(/another tab/i);
+  });
+
   it("is stored by this tab again once [Reset the unit] starts it again", async () => {
     await openPage();
-    const theirs = JSON.stringify({ version: 1, model: "URX44V", values: { "ch.ch1.level": -20 } });
-    window.localStorage.setItem(STATE_KEY, theirs);
-    window.dispatchEvent(new StorageEvent("storage", { key: STATE_KEY, newValue: theirs, storageArea: window.localStorage }));
+    const theirs = storedElsewhere();
     await nudge();
     await pause(600);
     expect(window.localStorage.getItem(STATE_KEY), "this tab has stopped storing").toBe(theirs);

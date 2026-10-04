@@ -125,8 +125,10 @@ In the browser's storage, a settings file is written as its values rather than a
 mixer (`scene.*.state`) is written once under `shared` and named by its place wherever the unit or a settings file
 holds it. A stored unit without `shared` is read with its settings files and scene memories as they were written,
 and takes this shape the next time it is written. When the browser refuses a write (it is full, or stores nothing),
-it keeps the unit it last took; for as long as that lasts, a line under the controls outside the screen says the
-browser is not keeping the unit, and it goes once a write is taken again.
+it keeps the unit it last took; for as long as that lasts, a banner over the top centre of the page says the
+browser is not keeping the unit, and it goes once a write is taken again. The banner lies over the page, so it moves
+no other control and not the glass. [Close] (`×`) or Escape closes it, and the next write the browser refuses brings it
+back.
 
 One tab of the browser at a time writes the unit: the tab holding a Web Lock (`navigator.locks`) under the name
 `urx-lcd-sim.state`. A tab that starts while no tab holds the lock holds it from the start. Another tab takes it with
@@ -138,7 +140,8 @@ the tab holding the lock. A model picked is kept where the tab holds the lock or
 keeps its own model under `urx-lcd-sim.model`.
 
 A tab that finds another tab has stored or removed the unit, or taken the lock, stops writing, so as not to write over
-the other tab's unit, and says so on the same line. It writes again once it starts again, on a reload, a switch of
+the other tab's unit, and says so on the same banner, which, once closed, comes back at the next change to the unit.
+It writes again once it starts again, on a reload, a switch of
 model or [Reset the unit]. Where the browser has no Web Locks (outside a secure context, such as a page served over
 plain http from an address other than `localhost`), the look at the stored unit before each write is all that keeps
 two tabs apart.

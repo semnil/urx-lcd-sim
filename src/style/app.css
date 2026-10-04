@@ -133,14 +133,49 @@ body {
   background: var(--meter-green);
 }
 
-/* A line of its own across the header, under the controls, while the browser
- * does not take the unit. */
-.chrome-unkept {
-  flex-basis: 100%;
-  margin: 0;
-  color: #ff9ba0;
+/* A banner over the top centre of the window while the browser does not keep
+ * the unit or another tab stores it. It lies over the page, so showing it moves
+ * no other control and not the glass. */
+.chrome-notice {
+  position: fixed;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 4px 4px 4px 12px;
+  background: var(--frame);
+  color: var(--text);
+  border: 1px solid var(--meter-red);
+  border-radius: var(--radius-md);
   font-size: 12px;
-  text-align: right;
+  line-height: 16px;
+}
+
+.chrome-notice[hidden] {
+  display: none;
+}
+
+.chrome-notice p {
+  margin: 0;
+}
+
+.chrome-notice-close {
+  flex: none;
+  width: 36px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+}
+
+.chrome-notice-close svg {
+  display: block;
+  width: 14px;
+  height: 14px;
 }
 
 .chrome-foot {
