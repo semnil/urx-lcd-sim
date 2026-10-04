@@ -60,24 +60,27 @@ export function carriesBlock(ctx: AppContext, strip: Strip, block: Block): boole
  * What a block's screen shows on a strip the arrows step to that does not carry
  * the block, or whose block the sampling frequency has put out of use (`atRate`):
  * the channel's name in the toolbar, no title, a line saying so in the middle,
- * and nothing to operate.
+ * the knob readout strip with its cells empty, and nothing to operate.
  */
 export function noBlock(ctx: AppContext, strip: Strip, route: Route, block: Block, atRate = false): ScreenBody {
   return {
     main: el("div", { class: "screen-missing", text: `This channel has no ${block} screen${atRate ? " at this sampling frequency" : ""}` }),
     headerLeft: channelSelector(ctx, strip, route, true),
+    knobStrip: true,
   };
 }
 
 /**
  * What every channel screen shows on an FX channel the sampling frequency has
  * put out of reach: the channel's name in the toolbar, no title, a line saying
- * so in the middle, and nothing to operate.
+ * so in the middle, the knob readout strip with its cells empty, and nothing to
+ * operate.
  */
 export function notAvailable(ctx: AppContext, strip: Strip, route: Route, narrow = true): ScreenBody {
   return {
     main: el("div", { class: "screen-missing", text: "This channel is not available at this sampling frequency" }),
     headerLeft: channelSelector(ctx, strip, route, narrow),
+    knobStrip: true,
   };
 }
 

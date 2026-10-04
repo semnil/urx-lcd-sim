@@ -543,8 +543,9 @@ GATE belongs to the mono inputs, COMP to a mono input whose COMP / EQ type is no
 is, DUCKER to the stereo inputs, DELAY to STREAMING, and EQ to a mono input whose type is not SSMCS, the stereo inputs,
 the MIX buses and the stereo bus. Stepped to a channel that does not carry the block (a mono channel on SSMCS on the
 COMP screen, for one), these screens keep the channel's name in the toolbar, draw no title, and show `This channel has
-no GATE screen` (`COMP`, `EQ`, `DUCKER`, `DELAY` and `SSMCS` in the same form) in the middle, with nothing to operate
-and nothing written (URX44V, the operator, 2026-10-02 and 2026-10-04).
+no GATE screen` (`COMP`, `EQ`, `DUCKER`, `DELAY` and `SSMCS` in the same form) in the middle, with the knob readout bar
+at the foot, its cells empty, the USER DEFINED KNOBS button at the bottom right, nothing to operate and nothing written
+(URX44V, the operator, 2026-10-02 and 2026-10-04).
 
 At 176.4 and 192 kHz the stereo inputs' EQ is out of use: their channel view draws no EQ block, DUCKER keeping its
 place, HOME's strip leaves its `EQ` mark out, and the EQ screen stepped to one of them shows `This channel has no EQ
@@ -715,7 +716,8 @@ them. The strip's own face stays, and the rail along its foot is drawn dark grey
 channel's colour. The strip can still be selected, and touching it no longer opens the channel view.
 `‹` `›` still step onto FX 2 L and FX 2 R. There every channel screen, the channel view among them, keeps the
 channel's name in the toolbar, draws no title, and shows `This channel is not available at this sampling frequency` in
-the middle, with nothing to operate: the name opens nothing, and nothing is written.
+the middle, with the knob readout bar at the foot, its cells empty, and nothing to operate: the name opens nothing, and
+nothing is written (URX44V, the operator, 2026-10-04).
 
 The guide carries no figure of either, so **the arrangement is this project's own**. What the guide
 does fix is that the controls stand in the middle of the screen (the middle of p113-1 is what

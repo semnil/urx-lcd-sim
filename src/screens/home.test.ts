@@ -4861,6 +4861,10 @@ describe("what the dedicated channel screens draw", () => {
         expect([title, missing], at).toEqual([undefined, `This channel has no ${name} screen`]);
         const controls = [...shell.root.querySelectorAll<HTMLElement>(".main button, .main [role], .main [tabindex], .knob-strip [role]")];
         expect(controls.map((c) => c.className), `${at}: nothing to operate`).toEqual([]);
+        expect(
+          [shell.root.classList.contains("has-knobs"), shell.root.querySelectorAll(".knob-strip .knob-cell.is-empty").length, shell.root.querySelector(".udk-toggle") !== null],
+          `${at}: the readout bar at the foot with its cells empty, and the USER DEFINED KNOBS button`,
+        ).toEqual([true, 4, true]);
       }
       expect(landed.with > 0 && landed.without > 0, `${id} lands both ways`).toBe(true);
       if (name === "COMP" || name === "SSMCS" || name === "EQ") {
@@ -4904,6 +4908,10 @@ describe("what the dedicated channel screens draw", () => {
           const controls = [...shell.root.querySelectorAll<HTMLElement>(".main button, .main [role], .main [tabindex], .knob-strip [role]")];
           expect(controls.map((c) => c.className), `${at}: nothing to operate`).toEqual([]);
           expect(shell.root.querySelector(".toolbar .badge-title"), `${at}: no title`).toBeNull();
+          expect(
+            [shell.root.classList.contains("has-knobs"), shell.root.querySelectorAll(".knob-strip .knob-cell.is-empty").length, shell.root.querySelector(".udk-toggle") !== null],
+            `${at}: the readout bar at the foot with its cells empty, and the USER DEFINED KNOBS button`,
+          ).toEqual([true, 4, true]);
           const depth = shell.ctx.nav.depth;
           chip?.click();
           await flush();
@@ -4976,14 +4984,15 @@ describe("what the dedicated channel screens draw", () => {
         shell.root.querySelector(".toolbar .badge-title")?.textContent ?? null,
         shell.root.querySelector(".main .screen-missing")?.textContent ?? null,
         shell.root.querySelectorAll(".main button, .main [role], .knob-strip [role]").length,
+        shell.root.classList.contains("has-knobs"),
       ];
       seen[rate] = { badge, blocks, screen };
       shell.destroy();
     }
     expect(seen).toEqual({
-      96000: { badge: "EQ", blocks: ["cv-block-eq", "cv-block-ducker"], screen: ["ch_5_6", "EQ", null, seen[96000] && (seen[96000] as { screen: number[] }).screen[3]] },
-      176400: { badge: null, blocks: ["cv-block-ducker"], screen: ["ch_5_6", null, "This channel has no EQ screen at this sampling frequency", 0] },
-      192000: { badge: null, blocks: ["cv-block-ducker"], screen: ["ch_5_6", null, "This channel has no EQ screen at this sampling frequency", 0] },
+      96000: { badge: "EQ", blocks: ["cv-block-eq", "cv-block-ducker"], screen: ["ch_5_6", "EQ", null, seen[96000] && (seen[96000] as { screen: number[] }).screen[3], true] },
+      176400: { badge: null, blocks: ["cv-block-ducker"], screen: ["ch_5_6", null, "This channel has no EQ screen at this sampling frequency", 0, true] },
+      192000: { badge: null, blocks: ["cv-block-ducker"], screen: ["ch_5_6", null, "This channel has no EQ screen at this sampling frequency", 0, true] },
     });
     expect((seen[96000] as { screen: number[] }).screen[3], "the EQ screen has controls at 96 kHz").toBeGreaterThan(0);
   });
