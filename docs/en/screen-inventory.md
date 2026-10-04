@@ -2056,9 +2056,12 @@ selection button on the toolbar and swiping left or right in the main area, and 
 cannot move between the input and output banks.
 
 In the simulator, a press on HOME's main area off the parts that answer a touch (a strip's name, its
-indicator rows, [ON] / [CUE] and the level), let go 40px or more on the page to the left or right, moves
-one bank within the side on display, left to the next bank and right to the one before; from the last
-bank it goes round to the first, and from the first to the last.
+indicator rows, [ON] / [CUE] and the level), by a mouse, a finger or a pen, let go on the main area 40px
+or more of the page to the left or right of where it was pressed, moves one bank within the side on
+display, left to the next bank and right to the one before; from the last bank it goes round to the
+first, and from the first to the last. A press let go off the main area, or cancelled, moves none, and
+leaves nothing behind for the next press; a second finger pressed while the first is down neither starts
+a swipe nor ends the first finger's.
 
 | Side | Bank | Strips |
 | --- | --- | --- |
