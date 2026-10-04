@@ -90,9 +90,10 @@ Change notifications are batched per microtask and fire once (`markChanged` → 
 ## What survives a reload
 
 The store's mirror is written to the browser's IndexedDB as one record (database `urx-lcd-sim`, object store
-`unit`, key `state`) and read back when the simulator opens on the same model (`src/app/persist.ts`). A burst of
-changes is written once, 400 ms after the last of them; a stored unit of another model or another version is not
-read. Switching the model writes every change made up to it, a change made while a write was under way included,
+`unit`, key `state`) and read back when the simulator opens on the same model (`src/app/persist.ts`). On a change,
+the unit is written 400 ms later, together with the changes made in those 400 ms. A change within them does not
+put the write off, so while changes go on the unit is written once each 400 ms. A stored unit of another model or
+another version is not read. Switching the model writes every change made up to it, a change made while a write was under way included,
 before the picked model starts. Leaving the page cannot wait
 for a write, so a change still waiting is left in `localStorage` under `urx-lcd-sim.left.` and the tab's own name,
 and the next start takes it in on the terms below. A page the browser keeps and brings back on [Back] runs on as it
@@ -173,7 +174,7 @@ unit as it ships.
 
 ```mermaid
 flowchart LR
-  ST["DeviceStore"] -->|"on change, 400 ms after the last, where the record holds what the tab read"| DB["IndexedDB<br/>urx-lcd-sim / unit / state"]
+  ST["DeviceStore"] -->|"on change, 400 ms after the first, where the record holds what the tab read"| DB["IndexedDB<br/>urx-lcd-sim / unit / state"]
   DB -->|"opening on the same model"| ST
   ST -->|"leaving the page"| LEFT["localStorage<br/>urx-lcd-sim.left.*"]
   LEFT -->|"the next start, where the record holds what that tab read"| DB
