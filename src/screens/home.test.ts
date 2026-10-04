@@ -377,13 +377,27 @@ describe("the channel-bank list", () => {
     expect(shell.ctx.nav.current.id).toBe("home");
   });
 
-  it("leaves the [Sends] list's dimmed controls as they are", async () => {
-    // Only a sheet that draws no ways out of its own turns what it dims deaf.
-    const shell = await mount();
-    shell.root.querySelector<HTMLElement>(".sends-btn")?.click();
-    await flush();
-    expect(shell.ctx.nav.current.id).toBe("sends-select");
-    expect(shell.root.querySelectorAll("[inert]").length).toBe(0);
+  it("leaves what shows through the [Sends] list deaf to a touch, and closes it alone on a touch on the dark", async () => {
+    // On the unit, SETUP's icon and the STEREO meter under the dark each take the sheet down and nothing
+    // else, USER DEFINED KNOBS mode staying on. A browser's hit test passes a touch on a control out of
+    // reach on to what holds it; jsdom's does not, so here the touch lands on the toolbar and the rail.
+    const after: string[] = [];
+    for (const place of [".toolbar", ".side"]) {
+      const shell = await mount();
+      await shell.ctx.store.set("ui.userDefinedKnobs", true);
+      shell.root.querySelector<HTMLElement>(".sends-btn")?.click();
+      await flush();
+      const behind = [...shell.root.querySelectorAll(".toolbar button, .toolbar [role='button'], .side button, .side [role='button']")].filter(
+        (n) => !n.classList.contains("is-lit"),
+      );
+      expect(behind.length, "HOME's controls show through").toBeGreaterThan(0);
+      expect(behind.filter((n) => !n.hasAttribute("inert")).map((n) => n.className), "and none of them answers").toEqual([]);
+      expect(shell.root.querySelector(".sends-btn")?.hasAttribute("inert"), "the button that opened it stays live").toBe(false);
+      shell.root.querySelector(place)?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flush();
+      after.push(`${place} ${shell.ctx.nav.current.id} ${shell.ctx.store.bool("ui.userDefinedKnobs", false) ? "on" : "off"}`);
+    }
+    expect(after).toEqual([".toolbar home on", ".side home on"]);
   });
 
   it("leaves screens with their own exits alone when the bare screen is tapped", async () => {
@@ -2883,9 +2897,9 @@ describe("the USER DEFINED KNOBS bar under a sheet, a list or a dialog", () => {
   }
 
   /**
-   * Where a touch on the bare screen around each sheet the shell draws leaves the glass. The full-glass
-   * sheets close; the Sends sheet keeps HOME's toolbar icons as its ways out, and stays up. The picker
-   * sheets, the lists and the dialogs are layers over the whole glass, the bar's place included.
+   * Where a touch on the bare screen around each sheet the shell draws leaves the glass: every one of them
+   * closes. The picker sheets, the lists and the dialogs are layers over the whole glass, the bar's place
+   * included.
    */
   const BARE: Record<string, string> = {
     "TIME ZONE": "setup.datetime",
@@ -2893,7 +2907,7 @@ describe("the USER DEFINED KNOBS bar under a sheet, a list or a dialog", () => {
     "a scene's title sheet": "scene",
     "[Save as]'s name sheet": "microsd.saveload",
     "the knob assignment": "setup.udk",
-    "the Sends destination sheet": "sends-select",
+    "the Sends destination sheet": "home",
   };
   for (const cover of COVERS.filter((c) => c.name in BARE)) {
     it(`takes a touch on the bar under ${cover.name} as one on the bare screen around it`, async () => {

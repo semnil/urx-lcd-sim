@@ -1883,11 +1883,13 @@ export const sendToScreen: ScreenDef = {
 export const sendsSelectScreen: ScreenDef = {
   id: "sends-select",
   // A sheet over HOME's main area: the toolbar it covers stays HOME's, and
-  // goes dark with the rest of the screen under it.
+  // goes dark with the rest of the screen under it. It draws no ways out of
+  // its own, so a touch on what shows through closes it.
   toolbar: "home",
   bankButton: true,
   sideAtTop: true,
   dimsBehind: true,
+  shellExits: false,
   build(ctx): ScreenBody {
     const current = sendsTarget(ctx);
     const pick = (v: string): void => {
