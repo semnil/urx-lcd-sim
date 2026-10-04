@@ -172,10 +172,10 @@ describe("moving between the RECORDER tabs", () => {
     expect(shell.root.querySelector(".dialog-spinner"), "it waits on a ring").not.toBeNull();
     expect(shell.ctx.store.str("ui.sdTab", "Record"), "the tab has not moved yet").toBe("Record");
 
-    await vi.advanceTimersByTimeAsync(2999);
-    expect([shell.ctx.store.str("ui.sdTab", "Record"), dialogText(shell), lit(shell)], "at 2999 ms").toEqual(["Record", "Loading...", "Record"]);
+    await vi.advanceTimersByTimeAsync(1999);
+    expect([shell.ctx.store.str("ui.sdTab", "Record"), dialogText(shell), lit(shell)], "at 1999 ms").toEqual(["Record", "Loading...", "Record"]);
     await vi.advanceTimersByTimeAsync(1);
-    expect([shell.ctx.store.str("ui.sdTab", "Record"), dialogText(shell), lit(shell)], "at 3000 ms").toEqual(["Play", null, "Play"]);
+    expect([shell.ctx.store.str("ui.sdTab", "Record"), dialogText(shell), lit(shell)], "at 2000 ms").toEqual(["Play", null, "Play"]);
   });
 
   it("loads nothing when the tab already open is tapped", async () => {
