@@ -4958,6 +4958,25 @@ describe("what the dedicated channel screens draw", () => {
     expect(shell.ctx.nav.current.strip).toBe("ch4");
   });
 
+  it("leaves the pan slider and Bal off a send into an FX return, which is summed to one side", async () => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    await shell.ctx.store.set("ui.sendToGroup", "FX");
+    shell.ctx.nav.push({ id: "ch.sendto", strip: "ch1" });
+    await flush();
+    const cells = (): (string | null)[][] =>
+      [...shell.root.querySelectorAll(".sendto-cell")].map((cell) =>
+        [".sendto-title", ".btn-on", ".btn-pre", ".pan-slider", ".sendto-bal"].map((sel) => (cell.querySelector(sel) ? (cell.querySelector(sel)?.textContent ?? "") : null)),
+      );
+    expect(cells(), "FX 1-2").toEqual([
+      ["FX1", "ON", "PRE", null, null],
+      ["FX2", "ON", "PRE", null, null],
+    ]);
+    await shell.ctx.store.set("ui.sendToGroup", "MIX");
+    await flush();
+    expect(cells().map((c) => c[3] !== null && c[4] !== null), "MIX 1-2 keep theirs").toEqual([true, true]);
+  });
+
   it("puts a stereo channel's EQ out of use above 96 kHz on its channel view, on HOME and on the EQ screen", async () => {
     const seen: Record<string, unknown> = {};
     for (const rate of [96000, 176400, 192000]) {

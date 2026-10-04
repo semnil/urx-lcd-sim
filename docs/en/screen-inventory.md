@@ -1162,7 +1162,8 @@ confirmed on a URX44V on 2026-10-04).
 A cell is a column like a HOME strip, 98px wide and 181px high: under a 36px `--surface-raised` band
 naming the destination come [ON], [PRE], the send's own pan slider, and `Bal` with its value (measured
 on p116-1: ON y95, PRE y146, slider y197, value y207..228). The send level is not in the cell; the knob
-and its readout bar hold it.
+and its readout bar hold it. A send into FX 1 or FX 2 is summed to one side, so its cell has no pan slider
+and no `Bal` (URX44V, the operator, 2026-10-04).
 
 Tabs on the rail are 57px high and 3px apart for SEND TO, and 52px high and 7px apart for the menu
 screens (MONITOR, SCENE, OSCILLATOR, Software Integration). The SEND TO tabs and the menu tabs have a

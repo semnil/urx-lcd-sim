@@ -2041,8 +2041,10 @@ export const sendToScreen: ScreenDef = {
           const balSpec = panSpec(toStereo ? stripPosition(ctx, strip).path : sendPanPath(ctx, strip, t), `${t.label} ${placing}`);
           const balance = ctx.store.num(balSpec.path, 0);
           // A fixed bus takes the send at one level, so the unit offers neither
-          // the tap nor the placing. Both keep their place on the cell.
+          // the tap nor the placing, and an FX return takes the send summed to
+          // one side, so it offers no placing. Each keeps its place on the cell.
           const empty = (cls: string): HTMLElement => el("span", { class: `sendto-empty ${cls}` });
+          const noPlacing = busFixed || t.kind === "fx";
           return el("div", {
             class: "sendto-cell",
             children: [
@@ -2060,8 +2062,8 @@ export const sendToScreen: ScreenDef = {
                   noTap
                     ? empty("sendto-empty-pre")
                     : toggle("PRE", ctx.store.bool(prePath, false), () => void ctx.store.set(prePath, !ctx.store.bool(prePath, false)), "btn-switch btn-pre"),
-                  busFixed ? empty("sendto-empty-slider") : panSlider(balance),
-                  busFixed
+                  noPlacing ? empty("sendto-empty-slider") : panSlider(balance),
+                  noPlacing
                     ? empty("sendto-empty-bal")
                     : el("div", {
                         class: "sendto-bal",
