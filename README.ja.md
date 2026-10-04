@@ -46,7 +46,7 @@ pnpm dev
 | `pnpm test` | ユニットテスト |
 | `pnpm typecheck` | 型チェックのみ |
 
-外部ランタイム依存は無い。開発用の依存は TypeScript / Vite / Vitest だけ。
+外部ランタイム依存は無い。開発用の依存は `package.json` の `devDependencies` に記載したもの。
 
 ## ホスティング
 
@@ -100,7 +100,7 @@ push されたコミットから作った `dist/` だけを配信する。デプ
 保持している値。詳細は [design-tokens.md](docs/ja/design-tokens.md) を参照。
 
 `reference/` にはそのキャプチャを取り出したものが入るが、Yamaha の著作物のため git 管理外で、
-リポジトリにもビルド成果物にも含まれない。手元で再生成する場合:
+リポジトリにもビルド成果物にも含まれない。手元で再生成する場合 (poppler の `pdfimages` が要る):
 
 ```bash
 node scripts/extract-ug-screens.mjs --pdf <ユーザーガイドの PDF>

@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { Shell } from "../app/shell";
+import { factoryState } from "../model/defaults";
+import { unitById } from "../model/units";
+import { buildRegistry } from "../screens";
 import { BindingTable, boolCodec, identityCodec, scaledCodec } from "./binding";
 import { BridgeTransport, UnboundPathError, type DeviceLink } from "./bridge-transport";
-import { DeviceStore } from "./store";
+import { SimTransport } from "./sim-transport";
+import { DeviceStore, type WriteFailure } from "./store";
 import { applyScene } from "../model/scene-state";
 import { applySettings } from "../model/settings-file";
 
@@ -1259,5 +1264,97 @@ describe("scaledCodec", () => {
   it("carries a fixed-point value to the wire and back", () => {
     const codec = scaledCodec(100);
     expect([codec.encode(-6.5), codec.encode(-6.504), codec.decode(-650), codec.decode(codec.encode(12.25))]).toEqual([-650, -650, -6.5, 12.25]);
+  });
+});
+
+describe("a store moved onto a unit with only some paths bound", () => {
+  it("mirrors the bound paths alone, puts an edit to an unbound path back and writes a bound one", async () => {
+    const store = new DeviceStore();
+    await store.attach(
+      new SimTransport([
+        ["ch.ch1.level", 0],
+        ["ch.ch2.level", 0],
+        ["ch.ch2.name", "ch 2"],
+      ]),
+    );
+    const bridge = fakeBridge();
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.level", { addr: "level-addr", codec: scaledCodec(100) });
+    await store.attach(new BridgeTransport(bridge, bindings));
+    const failures: WriteFailure[] = [];
+    store.onWriteFailure((f) => failures.push(f));
+
+    expect(store.paths(), "the simulated values are gone from the mirror").toEqual(["ch.ch1.level"]);
+
+    await store.set("ch.ch2.level", -7);
+    expect(store.has("ch.ch2.level"), "an edit to an unbound path does not stay").toBe(false);
+    expect(
+      failures.map((f) => [f.path, f.error instanceof UnboundPathError]),
+      "and the refusal is reported",
+    ).toEqual([["ch.ch2.level", true]]);
+
+    await store.set("ch.ch1.level", -5);
+    expect(store.num("ch.ch1.level"), "an edit to a bound path stays").toBe(-5);
+    expect(bridge.writes, "and reaches the unit").toEqual([["level-addr", -500]]);
+  });
+
+  it("sends none of the writes the Shell's rule carries with an edit to an unbound path", async () => {
+    const model = unitById("URX44V");
+    const store = new DeviceStore();
+    await store.attach(new SimTransport(factoryState(model)));
+    const shell = new Shell(buildRegistry(), store, model);
+    const bridge = fakeBridge();
+    await bridge.set("gain3-addr", 7000);
+    await bridge.setStr("type1-addr", "STEREO");
+    await bridge.setStr("type2-addr", "STEREO");
+    bridge.writes.length = 0;
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch3.gain", { addr: "gain3-addr", codec: scaledCodec(100) });
+    bindings.bind("ch.ch1.signalType", { addr: "type1-addr", codec: identityCodec, isString: true });
+    bindings.bind("ch.ch2.signalType", { addr: "type2-addr", codec: identityCodec, isString: true });
+    bindings.bind("ch.ch2.level", { addr: "level2-addr", codec: scaledCodec(100) });
+    await store.attach(new BridgeTransport(bridge, bindings));
+    const failures: WriteFailure[] = [];
+    store.onWriteFailure((f) => failures.push(f));
+
+    // HI-Z on brings A.Gain at +70 dB down to +40 dB; a linked pair's level goes to both channels.
+    await store.set("ch.ch3.hiZ", true);
+    await store.set("ch.ch1.level", -10);
+    await tick();
+    expect(bridge.writes, "nothing reaches the unit").toEqual([]);
+    expect(store.num("ch.ch3.gain"), "A.Gain stays where the unit holds it").toBe(70);
+    expect(failures.map((f) => f.path), "the two refusals are reported").toEqual(["ch.ch3.hiZ", "ch.ch1.level"]);
+
+    bindings.bind("ch.ch3.hiZ", { addr: "hiz3-addr", codec: boolCodec });
+    bindings.bind("ch.ch1.level", { addr: "level1-addr", codec: scaledCodec(100) });
+    await store.set("ch.ch3.hiZ", true);
+    await store.set("ch.ch1.level", -10);
+    await tick();
+    expect(bridge.writes, "once bound, each edit reaches the unit with what it carries").toEqual([
+      ["gain3-addr", 4000],
+      ["hiz3-addr", 1],
+      ["level2-addr", -1000],
+      ["level1-addr", -1000],
+    ]);
+    shell.destroy();
+  });
+});
+
+describe("a store on a unit that renames a bound channel", () => {
+  it("shows the name the unit announces a change to", async () => {
+    const bridge = fakeBridge();
+    await bridge.setStr("name-addr", "Vox");
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.name", { addr: "name-addr", codec: identityCodec, isString: true });
+    const store = new DeviceStore();
+    await store.attach(new BridgeTransport(bridge, bindings));
+    expect(store.str("ch.ch1.name"), "the name read at attach").toBe("Vox");
+
+    // Renamed on the unit's own screen, which announces the address with a number.
+    await bridge.setStr("name-addr", "Guitar");
+    bridge.fire("name-addr", 1);
+    await tick();
+
+    expect(store.str("ch.ch1.name"), "the name the unit holds now").toBe("Guitar");
   });
 });

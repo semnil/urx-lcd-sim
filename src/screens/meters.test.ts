@@ -1,10 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { Shell } from "../app/shell";
 import { DeviceStore } from "../device/store";
 import { meter } from "../ui/widgets";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
+import { type UnitModel, allStrips, findStrip } from "../model/types";
 import { unitById } from "../model/units";
+import { buildRegistry } from "./index";
 import { clipSafe, inputMeterId, markClipSafe, meterLevels, oscillatorLevel, setMeterSource, startMeterTicker, tapId } from "./meters";
+import type { Tap } from "./signal-flow";
 
 // The ticker redraws the meters a screen already shows. What it writes has to
 // read the way the meter was first drawn.
@@ -378,5 +382,87 @@ describe("the ticker and Clip Safe", () => {
     expect([button.classList.contains("is-engaged"), button.getAttribute("aria-description")], "let go").toEqual([false, null]);
     expect(unlit(), "while the meters stay as they were drawn").toBe(drawn);
     stop();
+  });
+});
+
+// What a host's meter source is asked for, in the forms the device integration
+// guide lists for setMeterSource().
+
+describe("the ids a host's meter source is asked for", () => {
+  const TAPS: Record<Tap, true> = {
+    input: true,
+    preGate: true,
+    preComp: true,
+    sideChain: true,
+    preEq: true,
+    preIns: true,
+    preFader: true,
+    preDucker: true,
+    post: true,
+    sum: true,
+    effect: true,
+    cue: true,
+  };
+  /** The listed form `id` takes on `model`, or undefined for none. */
+  const form = (model: UnitModel, id: string): string | undefined => {
+    if (id === "cue" || id === "osc") return id;
+    if (/^monitor\.[1-9]\d*$/.test(id)) return "monitor.<n>";
+    const at = id.lastIndexOf("@");
+    if (!findStrip(model, at < 0 ? id : id.slice(0, at))) return undefined;
+    if (at < 0) return "<strip>";
+    return id.slice(at + 1) in TAPS ? "<strip>@<tap>" : undefined;
+  };
+  const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+  afterEach(() => {
+    setMeterSource(null);
+    vi.useRealTimers();
+    document.body.replaceChildren();
+  });
+
+  for (const id of ["URX22", "URX44", "URX44V"] as const) {
+    it(`are the listed forms alone on HOME and each strip's channel view of the ${id}`, async () => {
+      const model = unitById(id);
+      const asked = new Set<string>();
+      setMeterSource((meterId, channels) => {
+        asked.add(meterId);
+        return Array.from({ length: channels }, () => -6);
+      });
+      const store = new DeviceStore();
+      await store.attach(new SimTransport(factoryState(model)));
+      const shell = new Shell(buildRegistry(), store, model);
+      document.body.append(shell.root);
+      await flush();
+      vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+      const tick = (): void => {
+        const stop = startMeterTicker(store, shell.root, 50);
+        vi.advanceTimersByTime(120);
+        stop();
+      };
+      tick();
+      for (const strip of allStrips(model)) {
+        shell.ctx.nav.home();
+        shell.ctx.nav.push({ id: "channel-view", strip: strip.id });
+        await flush();
+        tick();
+      }
+      shell.destroy();
+      const forms = new Map([...asked].map((meterId) => [meterId, form(model, meterId)]));
+      expect([...forms].filter(([, f]) => f === undefined).map(([meterId]) => meterId), "ids in none of the listed forms").toEqual([]);
+      const seen = new Set(forms.values());
+      expect(seen.has("<strip>"), "control: a strip's own id is asked for").toBe(true);
+      expect(seen.has("<strip>@<tap>"), "control: a point on a strip is asked for").toBe(true);
+    });
+  }
+
+  it("read a bare strip id as what the strip puts out", async () => {
+    const model = unitById("URX44V");
+    const store = new DeviceStore();
+    await store.attach(new SimTransport(factoryState(model)));
+    // Each fader below unity, so what a strip puts out differs from what goes into its fader.
+    for (const strip of allStrips(model)) await store.set(`ch.${strip.id}.level`, -10);
+    const AT = 1_700_000_000_000;
+    const read = (id: string): number[] => meterLevels(store, id, 2, AT);
+    for (const strip of allStrips(model)) expect(read(strip.id), strip.id).toEqual(read(tapId(strip.id, "post")));
+    expect(read("ch1"), "control: CH 1 puts out other than what goes into its fader").not.toEqual(read(tapId("ch1", "preFader")));
   });
 });

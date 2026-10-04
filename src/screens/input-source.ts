@@ -115,12 +115,15 @@ export function inputSourceSheet(ctx: AppContext, strip: Strip): HTMLElement {
     label: `${title} input source`,
     scroll: { track: BAR_H, unit: ROW_H + ROW_GAP },
     build: (close) => {
-      // Selecting a source on one channel of a mono pair fixes its partner.
+      // Selecting a source on one channel of a mono pair fixes its partner, in
+      // one operation of the store.
       const pick = (label: string): void => {
         const value = label.replace("\n", " ");
-        void ctx.store.set(path, value);
-        const partner = linkPartner(ctx, strip);
-        if (partner) void ctx.store.set(`ch.${partner.id}.source`, value);
+        ctx.store.operation(() => {
+          void ctx.store.set(path, value);
+          const partner = linkPartner(ctx, strip);
+          if (partner) void ctx.store.set(`ch.${partner.id}.source`, value);
+        });
         close();
         ctx.repaint();
       };

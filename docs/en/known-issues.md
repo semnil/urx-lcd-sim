@@ -20,7 +20,7 @@ is built is in [screen-inventory.md](screen-inventory.md).
 | --- | --- | --- |
 | [AUTO] on the channel view's head amp | Drawn where the unit has it, and cannot be pressed | It runs the auto-gain routine rather than holding a setting, and there is nothing here to run |
 | [Auto Gain] on the INPUT screen | The same | The same |
-| Japanese and 简体中文 under LANGUAGE | Drawn as entries that cannot be chosen | The screens carry English text only |
+| Japanese and 簡体中文 under LANGUAGE | Drawn as entries that cannot be chosen | The screens carry English text only |
 | The effect drawings on EFFECT TYPE | Each button carries the effect's name alone | The drawings are hard to reproduce, so they are not drawn |
 
 ## What moves but does not do what the unit does

@@ -6578,7 +6578,7 @@
   width: 414px;
   height: 240px;
   /* The two corners on the ground turn a pixel wider than the two on the toolbar
-   * (p100-2, p059-2, p060-2). The way out draws the top right corner itself, so
+   * (p100-2, wide/p059-1, p060-2). The way out draws the top right corner itself, so
    * the panel does not round it away under it. */
   border-radius: 5px 5px 6px 6px;
   overflow: visible;

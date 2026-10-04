@@ -15,7 +15,8 @@ implementation of this one interface.
 
 `BridgeTransport` has no protocol of its own. It is used with an injected `DeviceLink` (two reads, two
 writes, one subscribe). Everything that talks to the unit is on the far side of this interface; the
-simulator side handles only address strings and integer values.
+simulator side handles only address strings and values that are integers or strings. A string
+parameter (a channel name, a scene title) is read and written with `getStr` / `setStr`.
 
 ```ts
 export interface DeviceLink {
@@ -71,7 +72,7 @@ sequenceDiagram
   App->>Store: attach(bridge)
   Store->>Bridge: snapshot()
   Bridge->>DevLink: subscribe(every bound address)
-  Bridge->>DevLink: get(addr) x bound count
+  Bridge->>DevLink: get(addr) or getStr(addr) x bound count
   DevLink->>Unit: read
   Unit-->>DevLink: value
   DevLink-->>Bridge: value
@@ -93,9 +94,11 @@ sequenceDiagram
    (`src/screens/meters.ts`). The function passed is given a strip's id and the point on the strip it
    reads, joined by `@` (`ch3@preFader`, `bus.mix1@post`, and so on; the points are `Tap` in
    `src/screens/signal-flow.ts`), and `monitor.<n>`, `cue`, `osc` and `playback` (what the card's
-   playback puts out, after microSD Playback's D.Gain), and returns levels in dB; a value that is not a
-   number reads as silence, and one over 0 dB, +Infinity included, as a clip at 0 dB. Until one is
-   passed, the simulator's internal synthetic signal is shown.
+   playback puts out, after microSD Playback's D.Gain). It is also given a strip's id alone, with no `@`
+   (`bus.stereo`, `ch1`, and so on): that is what the strip puts out, and it is answered with the same
+   value as `<strip>@post`. It returns levels in dB; a value that is not a number reads as silence, and one
+   over 0 dB, +Infinity included, as a clip at 0 dB. Until one is passed, the simulator's internal
+   synthetic signal is shown.
 
 The `chrome-link` indicator at the top of the screen (`src/ui/link-indicator.ts`) reads `store.kind`
 again on every change to the store, so the connection state shows as it is, also when the
@@ -107,7 +110,30 @@ reload" in [architecture.md](architecture.md)) is written to the unit. `restore(
 IndexedDB record that holds the simulator. The simulated unit stored there, its scenes, card and settings
 files included, stays as it was stored.
 
-## Running partly unbound
+## With only some paths bound
 
-A partial binding breaks nothing. Only bound paths are synchronized with the unit; the rest run as
-simulator-internal values on the `DeviceStore` mirror. Bindings can be added step by step.
+`store.attach()` replaces the mirror with the values `BridgeTransport.snapshot()` reads, so once attached
+the mirror holds the bound paths alone, but for the values the screens keep for themselves with no address,
+which stay as they were (below). An unbound path holds no value, and a read of it returns the
+caller's fallback. An edit to it is refused by `BridgeTransport` with `UnboundPathError`, and
+`DeviceStore` puts the mirror back and reports the refusal through `onWriteFailure` ("mirrors the bound
+paths alone, puts an edit to an unbound path back and writes a bound one" in
+`src/device/bridge-transport.test.ts`). An edit goes to the unit together with the writes the write rule
+adds to it ("The writes one edit carries with it" in [architecture.md](architecture.md)), and an operation a
+screen makes of one setting and the values that follow from it goes as one (`DeviceStore.operation()`): BUS
+Type, Signal Type, PAN/BAL, COMP / EQ, 1-knob EQ, an effect, an input source, the sampling frequency, Pitch
+Fix's keys and scale, SCENE's bank, storing and naming a scene, the recorder, playback and the card. Where
+`BridgeTransport.writable()` says one of their paths has no address, none of them is sent, the mirror goes
+back to what it held before, and the refusal of each such path is reported. Switching on an unbound HI-Z
+sends no A.Gain, and taking an unbound BUS Type or Signal Type sends none of the sends, pans or other values
+it brings with it ("sends none of the writes the Shell's rule carries with an edit to an unbound path" in
+the same file, and `src/screens/operations.test.ts`). A path with no address among those an operation writes
+keeps the whole operation back, also where the unit already holds the value it would write. A value the
+screens keep for their own showing holds nothing back (`src/screens/screen-only.ts`: anything under `ui.`,
+and the recorder's and playback's counters with the moments they count from):
+it goes with the rest, and where it has no address it stays on the screen and is not sent, an edit to it
+alone as well, so the recorder's and playback's counters run on a unit with their state bound and their
+clocks not, and a take paused before the attach counts on from where it stood. An operation
+that sets several values each on its own (a scene recall, a settings file Load, clearing every CUE, the
+oscillator's Clear All, the output patch's Default, All Input and All USB DAW) sends each value as an edit of
+its own.

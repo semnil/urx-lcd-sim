@@ -332,14 +332,17 @@ export const titleEntryScreen: ScreenDef = {
             }
             pendingRefuse = null;
             const path = ctx.store.str(`${DRAFT}.path`, "");
-            if (path) void ctx.store.set(path, named);
             const recall = ctx.store.num(`${DRAFT}.recall`, -1);
-            // Naming a number that holds nothing is the first half of storing to
-            // it: the mixer goes in with the name.
-            if (recall >= 0 && path.startsWith("scene.") && path.endsWith(".title")) {
-              void ctx.store.set(path.replace(/\.title$/, ".state"), toJson(captureScene(ctx.store)));
-            }
-            if (recall >= 0) void ctx.store.set("scene.current", recall);
+            // The name, the mixer and the number recalled are one operation of the store.
+            ctx.store.operation(() => {
+              if (path) void ctx.store.set(path, named);
+              // Naming a number that holds nothing is the first half of storing to
+              // it: the mixer goes in with the name.
+              if (recall >= 0 && path.startsWith("scene.") && path.endsWith(".title")) {
+                void ctx.store.set(path.replace(/\.title$/, ".state"), toJson(captureScene(ctx.store)));
+              }
+              if (recall >= 0) void ctx.store.set("scene.current", recall);
+            });
             const handOver = pendingOk;
             pendingOk = null;
             ctx.nav.back();

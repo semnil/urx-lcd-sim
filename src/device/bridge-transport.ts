@@ -105,6 +105,11 @@ export class BridgeTransport implements DeviceTransport {
     }
   }
 
+  /** Only a path with a validated address is writable. */
+  writable(path: ParamPath): boolean {
+    return this.bindings.forPath(path) !== undefined;
+  }
+
   /**
    * Resolves with what the unit holds after the write: the value as encoded for
    * it, or the string written. The write goes out, calling `onSent`, once the

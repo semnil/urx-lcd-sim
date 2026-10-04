@@ -93,6 +93,29 @@ describe("DeviceStore", () => {
     expect([...changed].sort()).toEqual(["a", "b"]);
   });
 
+  it("keeps the screens' own values the transport it moves onto cannot write, and takes the rest from its snapshot", async () => {
+    const store = new DeviceStore();
+    store.setScreenOnly((path) => path.startsWith("ui."));
+    await store.attach(new SimTransport([["ui.menu", "Edit"], ["ui.tab", "Play"], ["ui.read", "old"], ["a", 1]]));
+    const changed: ParamPath[] = [];
+    store.onChange((paths) => changed.push(...paths));
+    // The new transport writes ui.tab and none of the others, and its snapshot holds ui.read.
+    const unit: DeviceTransport = {
+      kind: "bridge",
+      snapshot: () => Promise.resolve(new Map<ParamPath, ParamValue>([["ui.read", "new"]])),
+      writable: (path) => path === "ui.tab",
+      write: (_path, value) => Promise.resolve(value),
+      onNotify: () => () => undefined,
+      close: () => {},
+    };
+
+    await store.attach(unit);
+    store.flush();
+
+    expect([store.str("ui.menu", ""), store.has("ui.tab"), store.str("ui.read", ""), store.has("a")]).toEqual(["Edit", false, "new", false]);
+    expect([...changed].sort(), "what stays is no change").toEqual(["a", "ui.read", "ui.tab"]);
+  });
+
   it("stays on its transport when the new one's snapshot cannot be read", async () => {
     const { store, transport: sim } = simStore([["ch.ch1.gain", 20]]);
     await store.attach(sim);

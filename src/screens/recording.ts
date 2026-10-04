@@ -74,18 +74,24 @@ export function formatClock(seconds: number): string {
   return [Math.floor(s / 3600), Math.floor(s / 60) % 60, s % 60].map((n) => String(n).padStart(2, "0")).join(":");
 }
 
+// Each step of the recorder and of playback below writes its state and its counter as one operation of the store.
+
 /** [▶] on an armed recorder, or on a paused take: the counter runs from here. */
 export function recordTake(store: DeviceStore, now = Date.now()): void {
-  if (recState(store) === "armed") void store.set("sd.recSeconds", 0);
-  void store.set("sd.recSince", now);
-  void store.set("sd.rec", "recording");
+  store.operation(() => {
+    if (recState(store) === "armed") void store.set("sd.recSeconds", 0);
+    void store.set("sd.recSince", now);
+    void store.set("sd.rec", "recording");
+  });
 }
 
 /** [⏸] on a take recording: the counter holds what it has reached, to the part of a second. */
 export function pauseTake(store: DeviceStore, now = Date.now()): void {
-  void store.set("sd.recSeconds", takeTime(store, now));
-  void store.set("sd.recSince", 0);
-  void store.set("sd.rec", "paused");
+  store.operation(() => {
+    void store.set("sd.recSeconds", takeTime(store, now));
+    void store.set("sd.recSince", 0);
+    void store.set("sd.rec", "paused");
+  });
 }
 
 /**
@@ -96,22 +102,24 @@ export function pauseTake(store: DeviceStore, now = Date.now()): void {
  */
 export function stopTake(store: DeviceStore, now = Date.now()): void {
   const seconds = Math.min(takeSeconds(store, now), takeRoom(store));
-  if (seconds > 0 && store.bool("sd.mounted", true)) {
-    const entry: CardEntry = {
-      name: takeName(store, now),
-      kind: "take",
-      seconds,
-      tracks: store.num("sd.trackCount", 16),
-      rate: store.num("setup.samplingFrequency", 48_000),
-      written: clockParts(store, now),
-      dir: store.str("sd.path", CARD_ROOT),
-    };
-    void changeCard(store, [...readCard(store), entry]);
-  }
-  void store.set("sd.rec", "idle");
-  void store.set("sd.recSeconds", 0);
-  void store.set("sd.recSince", 0);
-  stopPlayback(store);
+  store.operation(() => {
+    if (seconds > 0 && store.bool("sd.mounted", true)) {
+      const entry: CardEntry = {
+        name: takeName(store, now),
+        kind: "take",
+        seconds,
+        tracks: store.num("sd.trackCount", 16),
+        rate: store.num("setup.samplingFrequency", 48_000),
+        written: clockParts(store, now),
+        dir: store.str("sd.path", CARD_ROOT),
+      };
+      void changeCard(store, [...readCard(store), entry]);
+    }
+    void store.set("sd.rec", "idle");
+    void store.set("sd.recSeconds", 0);
+    void store.set("sd.recSince", 0);
+    stopPlayback(store);
+  });
 }
 
 /** The seconds of the file playback holds that have played, parts of a second kept. */
@@ -131,19 +139,23 @@ export function holdsFile(store: DeviceStore): boolean {
 
 /** [▶] on a file, or on the file paused: the counter runs from here. */
 export function startPlayback(store: DeviceStore, row: number, now = Date.now()): void {
-  if (row !== store.num("sd.playingFile", -1)) {
-    void store.set("sd.playingFile", row);
-    void store.set("sd.playSeconds", 0);
-  }
-  void store.set("sd.playSince", now);
-  void store.set("sd.playing", true);
+  store.operation(() => {
+    if (row !== store.num("sd.playingFile", -1)) {
+      void store.set("sd.playingFile", row);
+      void store.set("sd.playSeconds", 0);
+    }
+    void store.set("sd.playSince", now);
+    void store.set("sd.playing", true);
+  });
 }
 
 /** [⏸] on a file playing: the counter holds where it has reached, to the part of a second. */
 export function pausePlayback(store: DeviceStore, now = Date.now()): void {
-  void store.set("sd.playSeconds", playTime(store, now));
-  void store.set("sd.playSince", 0);
-  void store.set("sd.playing", false);
+  store.operation(() => {
+    void store.set("sd.playSeconds", playTime(store, now));
+    void store.set("sd.playSince", 0);
+    void store.set("sd.playing", false);
+  });
 }
 
 /** A change of the unit's sampling frequency lets go of the file playback holds. */
@@ -153,10 +165,12 @@ export function releaseOnRateChange(store: DeviceStore, before: number, after: n
 
 /** [■] on the file playback holds, or the file played to its end: it lets the file go and the counter clears. */
 export function stopPlayback(store: DeviceStore): void {
-  void store.set("sd.playing", false);
-  void store.set("sd.playingFile", -1);
-  void store.set("sd.playSeconds", 0);
-  void store.set("sd.playSince", 0);
+  store.operation(() => {
+    void store.set("sd.playing", false);
+    void store.set("sd.playingFile", -1);
+    void store.set("sd.playSeconds", 0);
+    void store.set("sd.playSince", 0);
+  });
 }
 
 /**

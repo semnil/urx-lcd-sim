@@ -1526,6 +1526,38 @@ describe("the SEND TO destination tabs", () => {
     expect(shell.ctx.store.num("ch.ch1.pan", 0), "turning it turns the channel's PAN").toBe(-19);
   });
 
+  it("places a stereo channel, an FX channel and a pair on its balance into the stereo bus by their BAL, captioned Bal", async () => {
+    // URX44V: CH 5/6, FX1 and CH 3 of CH 3/4 linked on its balance each read `Bal` C there, and one step
+    // took the position the strip is placed by to R1.
+    const shell = await mount();
+    await shell.ctx.store.set("ch.ch3.signalType", "STEREO");
+    await shell.ctx.store.set("ch.ch4.signalType", "STEREO");
+    await shell.ctx.store.set("ch.ch3.panBal", "BAL");
+    await shell.ctx.store.set("ch.ch4.panBal", "BAL");
+    await shell.ctx.store.set("ui.sendToGroup", "ST");
+    const read: [string, string | null | undefined, string | null | undefined, number][] = [];
+    for (const [strip, position] of [
+      ["ch_5_6", "ch.ch_5_6.balance"],
+      ["fx1", "ch.fx1.balance"],
+      ["ch3", "ch.ch3.balance"],
+    ] as const) {
+      shell.ctx.nav.home();
+      shell.ctx.nav.push({ id: "ch.sendto", strip });
+      await flush();
+      const bal = shell.root.querySelector<HTMLElement>(".sendto-bal .value-box");
+      const caption = shell.root.querySelector(".sendto-bal-caption")?.textContent;
+      const before = bal?.textContent;
+      bal?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+      await flush();
+      read.push([strip, caption, before, shell.ctx.store.num(position, 0)]);
+    }
+    expect(read, "each reads Bal at C, and one step turns its own position to R1").toEqual([
+      ["ch_5_6", "Bal", "C", 1],
+      ["fx1", "Bal", "C", 1],
+      ["ch3", "Bal", "C", 1],
+    ]);
+  });
+
   it("stacks the three groups down the rail, one of them lit", async () => {
     const shell = await mount();
     shell.ctx.nav.push({ id: "ch.sendto", strip: "ch1" });
@@ -3212,6 +3244,14 @@ describe("the screen backlight", () => {
     const dim = declarations(CSS, ".lcd-dim");
     expect(Number(dim["z-index"])).toBeGreaterThan(Number(declarations(CSS, ".dialog-overlay")["z-index"]));
     expect(dim["pointer-events"], "and never takes a tap").toBe("none");
+  });
+
+  it("dims the ring that marks the keys with the rest of the glass", async () => {
+    const shell = await mount();
+    const ring = shell.root.querySelector(".focus-ring");
+    const veil = shell.root.querySelector(".lcd-dim");
+    expect([ring?.parentElement === shell.root, veil?.parentElement === shell.root], "both lie on the glass itself").toEqual([true, true]);
+    expect(Number(declarations(CSS, ".lcd-dim")["z-index"])).toBeGreaterThan(Number(declarations(CSS, ".focus-ring")["z-index"]));
   });
 });
 

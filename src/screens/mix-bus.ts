@@ -70,12 +70,15 @@ export function resetSendBank(ctx: AppContext, busId: string, on: boolean): void
  * Change the bus type. Taking a type resets the whole bank into that bus: every
  * send goes to the bottom of its fader, and every switch to what the type takes
  * them to — off for FIXED, on for VARI. Taking the type back resets it again
- * rather than putting back what was there.
+ * rather than putting back what was there. The type and the reset are one
+ * operation of the store.
  */
 export function setBusType(ctx: AppContext, strip: Strip, value: string): void {
   if (busType(ctx, strip) === value) return;
-  void ctx.store.set(`ch.${strip.id}.busType`, value);
-  resetSendBank(ctx, strip.id, value === "VARI");
+  ctx.store.operation(() => {
+    void ctx.store.set(`ch.${strip.id}.busType`, value);
+    resetSendBank(ctx, strip.id, value === "VARI");
+  });
 }
 
 export function setPanLink(ctx: AppContext, strip: Strip, value: boolean): void {

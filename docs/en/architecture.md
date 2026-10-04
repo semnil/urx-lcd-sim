@@ -12,11 +12,11 @@ flowchart TB
   subgraph ui["Screen layer (src/screens, src/ui)"]
     S["ScreenDefs<br/>HOME / SETUP / MONITOR / SCENE / each channel screen"]
     W["Widgets<br/>buttons, value boxes, meters, lists, dialogs"]
+    FC["FocusController<br/>focus on the screen"]
   end
   subgraph app["App layer (src/app)"]
     SH["Shell<br/>toolbar, main area, side menu, knob strip"]
     NV["Navigator<br/>screen stack"]
-    FC["FocusController<br/>focus on the screen"]
   end
   subgraph model["Model layer (src/model)"]
     UM["UnitModel<br/>strip inventory per model"]
@@ -44,8 +44,17 @@ flowchart TB
   CD --> S
 ```
 
-Each layer depends only downward. The screen layer knows only `DeviceStore` and `UnitModel`, and does
-not distinguish whether a value lives in this process or inside the unit.
+Two dependencies point up, the app layer's on the screen layer and the model layer's on the screen
+layer's `src/ui`; the rest point down. The Shell imports the screen layer to build and show a screen,
+and builds the toolbar, side menu and knob strip from the parts in `src/ui`. It also takes from
+`src/screens` what it hands `DeviceStore` at start-up from there, the write rules ("Value flow") and
+which values the screens keep for themselves (`screenOnly`), as well as the bank stepping, the moment a screen being drawn takes its readings at
+(`drawAtOneMoment`), and the record dot and the play mark on the microSD icon; `src/app/persist.ts`
+takes from `src/screens/mix-bus.ts` how Pan Link is brought into place when a stored state is put back. The model
+layer shares the value ranges and display formats (`src/ui/param-spec.ts`, `src/ui/dom.ts`) with the
+screen layer. The device layer imports no other layer. The screen layer reads and writes
+parameter values through `DeviceStore`, and does not distinguish whether a value lives in this process
+or inside the unit.
 
 ## Value flow
 
@@ -90,9 +99,10 @@ Change notifications are batched per microtask and fire once (`markChanged` → 
 ## What survives a reload
 
 The store's mirror is written to the browser's IndexedDB as one record (database `urx-lcd-sim`, object store
-`unit`, key `state`) and read back when the simulator opens on the same model (`src/app/persist.ts`). A burst of
-changes is written once, 400 ms after the last of them; a stored unit of another model or another version is not
-read. Switching the model writes every change made up to it, a change made while a write was under way included,
+`unit`, key `state`) and read back when the simulator opens on the same model (`src/app/persist.ts`). On a change,
+the unit is written 400 ms later, together with the changes made in those 400 ms. A change within them does not
+put the write off, so while changes go on the unit is written once each 400 ms. A stored unit of another model or
+another version is not read. Switching the model writes every change made up to it, a change made while a write was under way included,
 before the picked model starts. Leaving the page cannot wait
 for a write, so a change still waiting is left in `localStorage` under `urx-lcd-sim.left.` and the tab's own name,
 and the next start takes it in on the terms below. A page the browser keeps and brings back on [Back] runs on as it
@@ -173,7 +183,7 @@ unit as it ships.
 
 ```mermaid
 flowchart LR
-  ST["DeviceStore"] -->|"on change, 400 ms after the last, where the record holds what the tab read"| DB["IndexedDB<br/>urx-lcd-sim / unit / state"]
+  ST["DeviceStore"] -->|"on change, 400 ms after the first, where the record holds what the tab read"| DB["IndexedDB<br/>urx-lcd-sim / unit / state"]
   DB -->|"opening on the same model"| ST
   ST -->|"leaving the page"| LEFT["localStorage<br/>urx-lcd-sim.left.*"]
   LEFT -->|"the next start, where the record holds what that tab read"| DB
@@ -259,7 +269,8 @@ corners a pixel at a time carries no `border-radius`, so the ring reads how wide
 `::after` lays down; only the side tabs, whose corners are drawn by a box at each end, name theirs in `--ring-corners`
 as four lengths. The unit's palette gives a
 meaning to nearly every hue, so the ring carries none: one pale dashed line (`--focus-ring`), a dash the unit
-draws nowhere else.
+draws nowhere else. The ring follows the backlight's brightness: lowering Screen on SETUP's BRIGHTNESS dims it
+with the rest of the glass.
 
 Every change draws the screen again, and while the screen stays the same the focus goes back to the
 control it stood on: the control of the same kind at the same place, or else the one control of that kind

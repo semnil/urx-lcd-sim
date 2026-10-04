@@ -25,6 +25,7 @@ import { delaySyncWriteRule } from "../model/effects";
 import { eqOneKnobWriteRule } from "../screens/channel";
 import { pairWriteRule } from "../screens/stereo-link";
 import { panLinkWriteRule } from "../screens/mix-bus";
+import { screenOnly } from "../screens/screen-only";
 import { bankSide, bankTotal, currentBank, stepBank } from "../screens/strip-state";
 import type { AppContext, KnobReadout } from "./context";
 import { Navigator } from "./navigator";
@@ -159,6 +160,7 @@ export class Shell {
         panLinkWriteRule({ store, model }),
       ),
     );
+    store.setScreenOnly(screenOnly);
     this.offSwipe = this.attachSwipe();
     this.attachBackdrop();
     this.press = attachPress(this.lcd);
@@ -176,6 +178,7 @@ export class Shell {
     window.removeEventListener("keydown", this.onEscape);
     this.offStore();
     this.ctx.store.setWriteRule(null);
+    this.ctx.store.setScreenOnly(null);
     this.press.off();
     this.offFocusRing();
     this.offSwipe();

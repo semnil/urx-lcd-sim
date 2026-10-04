@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Send nothing of an edit or of an operation to a unit connected through a `BridgeTransport` when one of the unit's paths it writes has no bound address, and put the screen back; a value the screen keeps for itself, such as the recorder's clock or SCENE's menu, holds nothing back, and stays on the screen unsent where it has no address, keeping what it held before the move onto the unit: switching on HI-Z with no address bound for it brought a bound A.Gain at +70 dB down to +40 dB on the unit, an edit to an unbound path of a linked pair was written for the other channel, and taking a BUS Type or a Signal Type with no address for it reset the bus's sends or wrote the pair's PAN/BAL and placing, while the edit itself was refused.
 - Send a value to a unit connected through a `BridgeTransport` while an earlier write of the same value still awaits the unit's answer, and wait for the unit to take it: a scene recall or a settings file load over such a write took the value as written at once, and when the unit refused the earlier write, the recall ended with the value the unit held before.
 - Take each screen capture `scripts/extract-ug-screens.mjs` writes from the file `pdfimages` numbers for it in its listing, and stop with an error, copying nothing, when a file to be copied is not the size its listing row gives: a guide with a stencil or a mask image before a capture had another image written under the capture's name.
 - Write nothing to a unit connected through a `BridgeTransport` once the transport is closed, read nothing more from it, and leave no subscription open on it: a write or a snapshot after close is refused, where the rest of a settings file load still running went on to the unit, a snapshot the transport is closed during reads no further address, and a subscription the unit answers after close, or a second one taken by snapshots that overlap, no longer stays open.
@@ -124,7 +125,7 @@
 - Take an insert's compander along the curve its screen draws, lifting what sits on the flat of the curve as the unit does, and read its reduction bar from that flat; take M.B.Comp along the unit's own readings, moved by its Out Gain, and an amp insert's along them moved by its Output. They only held the level down over their threshold.
 - Keep a strip's signal dot lit while it clips, and light it from about -40 dB, as the unit does.
 - Let bars, clip marks and the indicator dots fall at 30 dB a second rather than at once.
-- Give the stereo bus on SEND TO no level of its own, and show and turn the channel's own PAN there, captioned `Pan`, as the unit does.
+- Give the stereo bus on SEND TO no level of its own, and show and turn the channel's own position there, captioned `Pan` on a channel placed by its PAN and `Bal` on the others, as the unit does.
 - Leave the title of a scene number with nothing stored under it empty on the SCENE LIST and the HOME scene box, where it read `No Scene`.
 - Shut [Recall] on a scene number with nothing stored under it, as the unit does.
 - Recall the Simple Mode presets P01 Live Music 0, P02 Streaming 0 and P03 DAW Rec 0 with the mixer each holds; recalling them only moved the recalled number. A URX22 takes the presets' channels in order, its HI-Z CH 2 taking the presets' CH 3.

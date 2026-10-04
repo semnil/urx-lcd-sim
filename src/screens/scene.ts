@@ -98,10 +98,13 @@ export async function recallScene(ctx: AppContext, no: number): Promise<void> {
   ctx.repaint();
 }
 
-/** Take the mixer as it stands into a scene number, and recall it. */
+/** Take the mixer as it stands into a scene number, and recall it, the scene and the number in one operation of the store. */
 export async function storeScene(ctx: AppContext, bank: string, no: number): Promise<void> {
-  await ctx.store.set(statePath(bank, no), toJson(captureScene(ctx.store)));
-  await ctx.store.set("scene.current", no);
+  const writes: Promise<void>[] = [];
+  ctx.store.operation(() => {
+    writes.push(ctx.store.set(statePath(bank, no), toJson(captureScene(ctx.store))), ctx.store.set("scene.current", no));
+  });
+  await Promise.all(writes);
   ctx.repaint();
 }
 
@@ -290,11 +293,13 @@ export const sceneScreen: ScreenDef = {
             const shut = simpleMode && b === "Standard";
             const node = toggle(b, b === bank, () => {
               if (shut) return;
-              void ctx.store.set("scene.bank", b);
-              // The selection is dropped, so the other bank opens at its first row.
-              void ctx.store.set("scene.selected", 0);
-              // The menu shown is kept, and a bank whose list cannot be edited moves it to Store/Recall.
-              void ctx.store.set("ui.sceneMenu", readOnlyBank(ctx, b) ? "Store/Recall" : menu);
+              ctx.store.operation(() => {
+                void ctx.store.set("scene.bank", b);
+                // The selection is dropped, so the other bank opens at its first row.
+                void ctx.store.set("scene.selected", 0);
+                // The menu shown is kept, and a bank whose list cannot be edited moves it to Store/Recall.
+                void ctx.store.set("ui.sceneMenu", readOnlyBank(ctx, b) ? "Store/Recall" : menu);
+              });
             }, "scene-bank");
             return markShut(node, shut);
           }),

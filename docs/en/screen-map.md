@@ -11,15 +11,15 @@ them on the stack — they lie over the screen that is open — so they are not 
 
 ```mermaid
 flowchart LR
-  RAIL["Toolbar and side rail<br>reachable from any screen"]
-  RAIL --> SETUP[["SETUP GENERAL<br>(setup)"]]:::ref
-  RAIL --> SD[["microSD top menu<br>(microsd)"]]:::ref
-  RAIL --> MON[["MONITOR top menu<br>(monitor)"]]:::ref
-  RAIL --> BANK["(bank-select)"]
+  ICONS["Toolbar icons on HOME<br>and the channel view"]
+  ICONS --> SETUP[["SETUP GENERAL<br>(setup)"]]:::ref
+  ICONS --> SD[["microSD top menu<br>(microsd)"]]:::ref
+  ICONS --> MON[["MONITOR top menu<br>(monitor)"]]:::ref
 
   HOME["HOME (Overview)<br>(home)"]
   HOME --> CV[["Channel view<br>(channel-view)"]]:::ref
   HOME --> SENDS["(sends-select)"]
+  HOME --> BANK["(bank-select)"]
   HOME --> SCENE["SCENE (menu)<br>(scene)"]
   SCENE --> SLIST["SCENE LIST<br>(scene.list)"]
   SLIST --> STITLE["(scene.title)"]
@@ -82,6 +82,7 @@ flowchart LR
   SD --> SDTOOL["TOOLS<br>(microsd.tools)"]
   SDSL --> SDNAME["(microsd.name)"]
   SDTOOL --> SDNAME
+  SDREC --> SDNAME
 
   MON[["MONITOR top menu<br>(monitor)"]]:::ref
   MON --> MLEV["Monitor<br>(monitor.level)"]
@@ -98,9 +99,11 @@ flowchart LR
 - **The first line of a node is the user guide's name for the screen.** The `()` under it is the
   screen id inside this simulator. Where the guide names no screen (the bank list, the sends sheet,
   name entry, the assignment popups), the node carries the id alone, in `()`.
-- **The side rail opens just above HOME.** SETUP, microSD and MONITOR open from any screen, and one
-  press of the back arrow from them returns to HOME (`openTop()`). Every other arrow stacks on the
-  screen it was pressed from (`push()`).
+- **The toolbar icons open just above HOME.** SETUP, microSD and MONITOR open from the icons on HOME
+  and the channel view, with HOME alone under them wherever they were pressed (`openTop()`). Their top
+  screens draw no back arrow: the HOME button or `Escape` returns to HOME. The sends sheet and the bank
+  list show the icons through the dark around them, and they do not answer there. Every other
+  arrow stacks on the screen it was pressed from (`push()`).
 - **The four SSMCS screens swap.** The round arrows at the edges of the glass replace rather than stack
   (`replace()`), so the back arrow returns to the channel view from any of the four. The channel view
   opens the main one.
@@ -111,3 +114,5 @@ flowchart LR
   name (`microsd.name`) are built the same way, and each returns where it was opened from.
 - **A channel screen carries its strip.** The arrows either side of the toolbar's channel name change
   the strip without leaving the screen, and a block the strip does not carry opens no screen.
+- **The name box opens CH SETTING.** Every channel screen but CH SETTING opens CH SETTING for its strip
+  from the name box in the toolbar. The map draws that arrow from the channel view alone.

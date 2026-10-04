@@ -4,7 +4,7 @@ The LCD screens shown in the URX44V/44/22 user guide (English, revision D0), and
 status in the simulator. The "Ref." column is the user guide page number. IDs such as `p045-1` and
 `wide/p040-2` in the text are the files of captures extracted from that page; where they are and how
 they are named is in [the "How the values were sampled" section of design-tokens.md](design-tokens.md#how-the-values-were-sampled)
-(`reference/` is gitignored; to regenerate, `node scripts/extract-ug-screens.mjs --pdf <user guide PDF>`).
+(`reference/` is gitignored; how to regenerate it is in [the "Where the appearance comes from" section of README.md](../../README.md#where-the-appearance-comes-from)).
 
 "Screen ID" is the identifier registered in `ScreenRegistry`, and `buildRegistry()` in
 `src/screens/index.ts` is the only place a screen is registered.
@@ -31,7 +31,7 @@ Which screen leads to which is drawn in [screen-map.md](screen-map.md).
 | SETUP GENERAL (top menu) | `setup` | p52 | Built |
 | Operation Mode | `setup.mode` | p41-42, p117 | Built (the screens after choosing Simple are left out) |
 | Version | `setup.version` | p53 | Built (Total Version and the simulator's own APP Version) |
-| License | `setup.license` | p54 | Built (the text is read from the unit) |
+| License | `setup.license` | p54 | Built (the simulator's own license, the repository's LICENSE) |
 | Language | `setup.language` | p55 | Built (English only; Japanese and Chinese cannot be chosen) |
 | Brightness | `setup.brightness` | p56 | Built |
 | User Defined Knobs | `setup.udk` | p57, p152 | Built |
@@ -69,7 +69,7 @@ Which screen leads to which is drawn in [screen-map.md](screen-map.md).
 | Channel view | `channel-view` | p90-98 | Built |
 | CH SETTING | `ch.setting` | p92-93 | Built (the Icon picker is left out) |
 | INPUT | `ch.input` | p100-102 | Built |
-| Input source picker | `ch.source` | p100 | Built (p100's figures are a mono pair's sheet; the bus sheet has no figure) |
+| Input source picker | (no screen) | p100 | Built. INPUT's Input Source box lays a sheet over the screen (p100's figures are a mono pair's sheet; the bus sheet has no figure) |
 | GATE | `ch.gate` | p103 | Built |
 | COMP | `ch.comp` | p99, p104-105 | Built |
 | EQ | `ch.eq` | p106-107 | Built (parameters and curve of the 4 bands) |
@@ -123,7 +123,7 @@ the unit, its row says so with the result and the date.
 | Parameter settings | `ch.effect` | Nothing. p113-1 is [No Effect], and the middle the controls stand in is black. Rev-X Hall's rows, the readout bar's order, the value framed on opening and the value boxes without units follow the unit (URX44V, 2026-09-22) |
 | An FX channel's panel and the EFFECT TYPE screen | `ch.effect` | Only the FX strip on HOME (p048-3). The arrangement follows what the unit shows |
 | MONITOR's Source sheet | `monitor.level` | Only the Source button (p068-1). The guide does not show the sheet itself. The title, names, arrangement and back button match the unit (URX44V, 2026-09-22) |
-| The STREAMING input source sheet | `ch.source` | Nothing. The title, names, arrangement and back button follow the unit (URX44V, 2026-09-22) |
+| The STREAMING input source sheet | (no screen) | Nothing. The sheet lies over STREAMING's INPUT screen. The title, names, arrangement and back button follow the unit (URX44V, 2026-09-22) |
 
 ### The screen exists, but no default state draws it
 
@@ -521,7 +521,7 @@ box the name overlaps it.
 The copy mark (10x10, `--chip-mark`) stands at the top right of the name, 5px in from the box's
 corner. It appears on channel and bus detail screens but not on the screens further below them (COMP,
 EQ and so on) nor on CH SETTING (p092-1, p093-2). STREAMING's detail screen carries the copy mark too; the
-pencil in a square that p098-6 draws in its place is not what the unit shows (confirmed by the operator).
+pencil in a square that p098-2 draws in its place is not what the unit shows (confirmed by the operator).
 CH SETTING's Icon box carries the chip's single-colour square in place of the icon (x221..234 / y69..82).
 
 The channel color sits behind the name. In the narrow box the name overlaps it. A name that does not
@@ -1103,9 +1103,12 @@ leaves the pick alone.
 A send's tap (PRE / POST) is taken against the stereo bus's own fader, so a send into the stereo bus
 is that reference and carries no tap: [PRE] goes from its cell, keeping its room. A send into the
 stereo bus has no level and no placing of its own either: no Level goes on the knob, the pan slider and
-its value show the channel's own PAN (BAL), and turning the value box turns the channel's PAN. On a channel
+its value show the channel's own PAN (BAL), and turning the value box turns the channel's PAN (BAL). On a channel
 placed by its PAN the value is captioned `Pan` (CH 3's PAN at L20 shows `Pan` L20 in the STEREO cell, and
-one step of the box takes CH 3's PAN to L21; confirmed on a URX44V on 2026-09-28).
+one step of the box takes CH 3's PAN to L21; confirmed on a URX44V on 2026-09-28), and on a channel
+placed by its BAL `Bal`: a stereo channel, an FX channel and a pair linked on its balance (CH 5/6, FX1
+and CH 3 of CH 3/4 each show `Bal` C in the STEREO cell, and one step of the box takes the BAL to R1;
+confirmed on a URX44V on 2026-10-04).
 
 A cell is a column like a HOME strip, 98px wide and 181px high: under a 36px `--surface-raised` band
 naming the destination come [ON], [PRE], the send's own pan slider, and `Bal` with its value (measured
@@ -1398,8 +1401,10 @@ rail moves.
 
 HOME's icon row (SETUP / microSD / MONITOR / HOME) stays on the screens one level from HOME. Those are
 the channel view (p090-1) and the Sends destination sheet (p051-1), declared with `toolbar: "home"` on
-`ScreenDef`. The channel bank button belongs to a separate declaration (`bankButton`), and HOME and the
-bank list show it.
+`ScreenDef`. The channel bank button belongs to a separate declaration (`bankButton`), and HOME, the
+Sends destination sheet and the bank list show it. Around the Sends destination sheet and the bank list,
+which carry both declarations as well, what shows through the dark answers no touch but for the button
+lit there ("Sheets over the screen", "Channel bank layout").
 
 The row reaches the right edge of the screen, lays out 40px cells 4px apart, and has a 1px divider
 before HOME (the box is x297..479; the glyph centers are 318.5 / 362.5 / 406.5 / 455.5). The title is
@@ -1414,11 +1419,22 @@ and p041-1 draw them, matching the unit.
 ## Toolbar back arrow
 
 The back arrow is for going back to the screen beneath, and does not appear on a screen that has only
-HOME beneath it. SETUP, microSD and MONITOR opened from the toolbar icons, SCENE opened from the scene
-name, and the channel view one level from there show just the HOME icon (wide/p072-1, p078-1, p066-1,
-p090-1). Screens two or more levels down (VERSION, SCENE LIST, CH SETTING, INPUT and so on) show the
-arrow and a divider (p053-1, p073-1, p092-1, p100-1). The decision is by stack depth, not a per-screen
-declaration, and `Escape` goes back on every screen.
+HOME beneath it. SETUP, microSD and MONITOR opened from the toolbar icons and SCENE opened from the scene
+name show just the HOME icon (wide/p072-1, p078-1, p066-1). The channel view one level from HOME shows no
+back arrow either, and keeps HOME's icon row (SETUP / microSD / MONITOR / HOME) up ("Toolbar icon row",
+p090-1). What the bar shows follows the screen's declaration on `ScreenDef` and the stack depth together.
+A screen declared with `toolbar: "home"` keeps the icon row at any depth (the channel view, the Sends
+destination sheet and the bank list, each one level from HOME, "Toolbar icon row"). A screen declared
+with `shellExits: false` and no `dimsBehind` (Operation Mode, USER DEFINED KNOBS' assignment sheet,
+DATE / TIME's popups for the date and time and for the time zone, and the title entry sheet, also when
+it opens as `microsd.name`) shows neither the arrow nor HOME, and a tap on the bare screen around it
+closes it, but for the title entry sheet, which is left through its own controls alone
+(`leavesOnTouchAround: false`). The Sends destination sheet and the bank list declare
+`shellExits: false` with `dimsBehind: true`, and the icon row shows through the dark around them
+("Sheets over the screen", "Channel bank layout"): the icons answer no touch, and a tap on the dark
+closes the sheet or the list. Any other screen shows just the HOME icon one level from HOME, and the arrow and a divider two or
+more levels down (`nav.depth > 2`): VERSION, SCENE LIST, CH SETTING, INPUT and so on (p053-1, p073-1,
+p092-1, p100-1). `Escape` goes back on every screen.
 
 ## SETUP screen
 
@@ -1592,6 +1608,8 @@ paused as well as playing, in the same shape and place, URX44V, the operator, 20
 (y22..35), and 10px wide 3px in from the dot's left (x367..376). It goes once the file is let go, by [■] or at the
 end of the file ("What is on the card").
 
+Moving to the Play or Edit tab holds up a `Loading...` modal for 2 seconds before the tab changes, and the Record tab comes up at once.
+
 TOOLS carries the card-eject button on its toolbar as well (p087-1). [Format microSD] on the Format tab opens the
 same keyboard screen the title entry uses, under the title `Volume Label`, with the card's volume label in the
 field; it takes up to 11 characters, and [OK] goes on with the field empty too (the volume label is then
@@ -1653,7 +1671,8 @@ Format Date is set to each time the list is drawn (a file written before the for
 now stands), and its time on the 24-hour clock whatever Time is set to (see [known-issues.md](known-issues.md)).
 
 The free space is the card's capacity less what is on it. The capacity is the 125,000,000,000 bytes a
-formatted 128 GB card leaves; a take costs its seconds × 48,000 × 3 bytes × its tracks (the guide's
+formatted 128 GB card leaves; a take costs its seconds × the sampling frequency it was recorded at (48,000 for
+an older take that carries no frequency) × 3 bytes × its tracks (the guide's
 specifications give the microSD card slot as WAV, 24-bit), and a settings file 50,668 bytes, which is
 the size every settings file takes. It is printed over 1024³ to one decimal, as `116.4GB Free` (p083-1, p087-1).
 The card's name, the volume label it was formatted under, stands on a line above it, the two lines top right and
@@ -1701,8 +1720,9 @@ that differs from a folder's in case alone asks nothing and writes nothing. On a
 file, a [Save as] under a new name writes nothing and shows nothing, and writing over a settings file there still goes
 through (what the unit does with a full card is in `known-issues.md`). [Save] and [Load] stand out of reach until a settings file is under the
 cursor. A settings file carries every value but the screen's own state (`ui.`, and the tabs OUTPUT
-PATCH, PERIPHERAL and SCENE LIST's Standard / Simple stand on) and the card itself (`sd.`), so a load
-leaves those tabs where they stand, as on the unit (URX44V, the operator, 2026-10-04). SCENE LIST's
+PATCH, PERIPHERAL and SCENE LIST's Standard / Simple stand on), the card itself (`sd.`), the clock ("SETUP
+screen") and what a linked pair's COMP hears (`pair.`, "The three dynamics screens (GATE / COMP / DUCKER)"),
+so a load leaves those tabs where they stand, as on the unit (URX44V, the operator, 2026-10-04). SCENE LIST's
 cursor is in the file, and a load puts it back on the row it stood on when the file was saved, as on
 the unit (URX44V, the operator, 2026-10-04, on Standard's list). Where the tab standing open does not
 list that row, SCENE LIST opens the tab that does; a row both tabs list leaves the open tab where it
@@ -1750,8 +1770,8 @@ the picked scene's) with [Cancel] / [OK], and on [OK] stores over it and makes i
 [Recall] cannot be used on a number with nothing stored, and a press asks nothing. On a stored number and on a factory scene
 it asks `Recall scene "Band"?` (the title is the picked scene's) with [Cancel] / [OK], and on [OK] puts that scene's mixer
 back and makes it the recalled one. A source the scene holds no D.Gain for comes back to 0 dB. 00 Initial Data puts the
-factory mixer back. P01 to P03 lay the settings below over the factory mixer, and what they do not set stays as the factory
-ships it (`src/model/scene-presets.ts`). The table's channels go onto the mono and the stereo channels from the lowest number
+factory mixer back. P01 to P03 lay settings of their own over the factory mixer. The main ones are below; the whole of what
+a preset changes is in `src/model/scene-presets.ts`. The table's channels go onto the mono and the stereo channels from the lowest number
 up, the mono channels on a HI-Z connector (CH 3-4 in the table) apart from the rest: on a URX22, CH 1 takes the table's CH 1,
 CH 2 on its HI-Z connector takes the table's CH 3, and CH 3/4 to 9/10 take its four stereo channels.
 
@@ -1824,15 +1844,19 @@ title's keyboard.
 ## The focus frame
 
 Of the controls the unit's knob turns, only the one touched holds the focus, shown in magenta (`--accent-focus`). None
-holds it when a screen opens or after moving to another screen, with three exceptions: EQ opens holding the band picked
+holds it when a screen opens or after moving to another screen, with these exceptions: EQ opens holding the band picked
 last (LOW at first), one band shared by every channel's EQ, which a reload keeps and [Reset the unit] brings back to
-LOW; the COMP and EQ screens with 1-knob on open with the focus pinned on the level (below); and BRIGHTNESS, whose only
-turnable value is Screen, opens holding it.
+LOW; SSMCS EQ opens holding the band picked last there (MID at first), one band shared by every channel and kept apart
+from EQ's; the COMP and EQ screens with 1-knob on open with the focus pinned on the level (below); an effect's page on
+INS FX or an FX channel opens, and is stepped to, with its first knob's value framed (M.B.Comp's with the value it sets
+out in a box, and Compander-H and Compander-S with none); and BRIGHTNESS, whose only turnable value is Screen, opens
+holding it.
 
 - Value boxes: a frame and a fill (`--accent-focus-fill`). A popup's values (DATE / TIME's date and time), HOME's strip
   levels and the knob readout along the bottom of the screen take none.
 - Scroll bars: touching the list or text, or the bar, turns the rim magenta. SCENE LIST, microSD's lists, LICENSE, the
-  input source sheet, DATE / TIME's TIME ZONE and USER DEFINED KNOBS' assignment columns (only the column touched).
+  input source sheet, SSMCS's Sweet Spot Data sheet, DATE / TIME's TIME ZONE and USER DEFINED KNOBS' assignment columns
+  (only the column touched).
   A pulldown's option list and the pulldown box take none.
 - The dynamics handles and EQ's band rings: the rim, and triangles blinking on both sides of the way the value moves
   (left and right for LOW and HIGH, above and below for LOW MID and HIGH MID).
@@ -1909,16 +1933,23 @@ The colours are `--corner-sunk-*`, `--corner-block-*`, `--corner-well-*`, `--cor
 SETUP, microSD and MONITOR, the three screens the icons at the toolbar's top right open, do not show
 the USER DEFINED KNOBS toggle at the bottom right (captures: p078-1 for microSD, p066-1 for MONITOR).
 The screens hanging below them (VERSION, RECORDER, MONITOR's Level and so on) show it. Each screen
-declares it with `knobToggle: false` on `ScreenDef`, and the shell draws accordingly. The channel bank
-list hides it with the same declaration.
+declares it with `knobToggle: false` on `ScreenDef`, and the shell draws accordingly. Besides the three
+screens, the declaration also leaves it out of Operation Mode, USER DEFINED KNOBS' assignment sheet,
+DATE / TIME's popups for the date and time and for the time zone, and the title entry sheet (also when
+it opens as `microsd.name`). The Sends destination sheet and the channel bank list carry no declaration
+and draw HOME's toggle showing through the dark around them, where a touch on it closes the sheet or the
+list as a touch on the dark does.
 
 ## Dropdowns
 
-A box that picks a value (Signal Type / Rec Point / COMP and EQ in CH SETTING, SETUP's User Defined
-Knobs and the Date/Time format, Software Integration's destination, COMP's Knee, DUCKER's Ducker
-Source, DELAY's Frame rate) opens a list of options on the screen when tapped, and closes when one is
-picked. It is not a control that sends one value per tap. The glass holds five options; a longer list
-opens on the sheet the unit opens a long list on (DUCKER's Ducker Source and DELAY's Frame rate).
+A box that picks a value (Signal Type / Rec Point / COMP and EQ in CH SETTING, SETUP's Date/Time
+format, Software Integration's destination, COMP's Knee, DUCKER's Ducker Source, DELAY's Frame rate)
+opens a list of options on the screen when tapped, and closes when one is picked. It is not a control
+that sends one value per tap. The glass holds five options; a longer list opens on the sheet the unit
+opens a long list on (DELAY's Frame rate). A list laid out in a panel of its own stays on the screen
+with more than five: DUCKER's Ducker Source opens as the panel three rows by eight under the box ("Head
+amp column in the channel view"), and a delay's Note as three rows of five. A card on USER DEFINED KNOBS
+is not such a box: a tap on it opens USER DEFINED KNOBS' assignment sheet.
 
 A list's panel sets its choices 4px inside it on every edge, with 4px between them (measured on
 p079-3: the panel runs y46..225, its first tile starts at y50 and its last ends at y221).
@@ -1945,7 +1976,7 @@ setting name).
 
 The knob at the foot of a strip turns the send to the destination the [Sends] tab is showing (g under
 "Channel area" in the user guide). The channel's own fader is what feeds the stereo bus, so the fader
-stands there instead (p047-1 reads the factory fader's `0.00`, p157-1 the send's `-inf` under MIX 1). The FX 1-2 faders ship at the bottom, `-∞`.
+stands there instead (p047-1 reads the factory fader's `0.00`, p157-1 the send's `-∞` under MIX 1). The FX 1-2 faders ship at the bottom, `-∞`.
 The tab names the stereo bus short, `ST`, and a numbered bus with the space, `MIX 1` (p047-1, p157-1).
 
 While that send is switched off on the SEND TO screen, the knob's face and its lit arc take
@@ -2023,8 +2054,19 @@ text sizes.
 
 Confirmed on the unit's HOME (URX44V, 2026-09-04). The toolbar's INPUT / OUTPUT buttons open the bank
 list, and the bank to show is picked from the list. There is no path by which one tap of the button
-advances one bank. The user guide's p47 says only that the bank changes when you touch the bank select
-button on the toolbar.
+advances one bank. The user guide's p47 names two ways to change the bank, touching the channel bank
+selection button on the toolbar and swiping left or right in the main area, and its NOTE says a swipe
+cannot move between the input and output banks.
+
+In the simulator, a press on HOME's main area off the parts that answer a touch (a strip's name, its
+indicator rows, [ON] / [CUE] and the level), by a mouse, a finger or a pen, let go on the main area 40px
+or more of the page to the left or right of where it was pressed, moves one bank within the side on
+display, left to the next bank and right to the one before, and stops at the side's last and first
+bank. A press let go off the main area, or cancelled, moves none, and leaves nothing behind for the next
+press; a second finger pressed while the first is down neither starts a swipe nor ends the first
+finger's. On a URX44V, swipes to the left went from `CH 1 - 4` to `CH 5 - 12` and `FX 1 - 2` and stayed
+on `FX 1 - 2`, swipes to the right came back to `CH 1 - 4` and stayed there, and the output side's one
+bank stayed (confirmed on 2026-10-04).
 
 | Side | Bank | Strips |
 | --- | --- | --- |

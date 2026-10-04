@@ -1,13 +1,15 @@
 # Where the design tokens came from
 
-The colors in `src/style/tokens.css` were sampled pixel by pixel from the 480x272 screen captures
-embedded in the user guide (English, revision D0). None was matched by eye. A value of the simulator's
-own, which no figure shows, says so in its row or in "Outside the screen".
+Except where a row says no figure shows it, the colors in `src/style/tokens.css` were sampled pixel by
+pixel from the 480x272 screen captures embedded in the user guide (English, revision D0). None was
+matched by eye. A value of the simulator's own, which no figure shows, says so in its row or in
+"Outside the screen".
 
 ## How the values were sampled
 
 The user guide PDF embeds bitmaps of the unit's screen pasted as they are. Some are exactly the
-480x272 screen; others sit on a canvas with white margin added around the screen.
+480x272 screen; others sit on a canvas with white margin added around the screen, and others are part
+of a screen cut out on its own (crops).
 `scripts/extract-ug-screens.mjs` extracts them and writes each as `p<3-digit page number>-<n>.png` to
 the location in the table below. `<n>` counts, within the page, only the captures that go to the same
 directory. The capture IDs in this document and in [screen-inventory.md](screen-inventory.md)
@@ -25,6 +27,25 @@ directory. The capture IDs in this document and in [screen-inventory.md](screen-
 
 Coordinates take the top-left of the screen as the origin. When measuring on a padded canvas,
 subtract the position in this table.
+
+A crop is an image at least 88 wide and 88 high that fits in 480 x 272 and has none of the sizes in
+the table above. It is written to `reference/ug-lcd/` under the same naming, numbered on after the
+page's whole-screen captures in `reference/ug-lcd/`. A value read off a crop is still given in screen
+coordinates, and the screen's (x, y) is read at the crop's pixel (x − top-left x, y − top-left y).
+The top-left on the screen of each crop this document, [screen-inventory.md](screen-inventory.md) and
+`src/style` cite is as follows.
+
+| Crop | Width x height | Top-left on the screen |
+| --- | --- | --- |
+| `p096-2` | 90 x 88 | (202, 48) |
+| `p096-4` | 88 x 88 | (297, 48) |
+| `p104-2` | 272 x 161 | (208, -8) |
+| `p106-2` | 278 x 147 | (202, -3) |
+
+The top 8 and bottom 9 rows of `p104-2` and `p106-2` are white, are not the screen's pixels, and are
+not used as the basis for any value. To cite another crop, lay it on a whole-screen capture of the
+same screen, find the position where the pixels of what no state changes (the toolbar, a block's
+heading and so on) match, and add it to this table.
 
 The guide shows some captures clipped by the PDF. `pdfimages` extracts each image whole, before the
 clip, so those files carry pixels the pages do not show. `scripts/ug-visible-ranges.py` walks the PDF's
@@ -80,6 +101,11 @@ PY
 | `--handle-arrow` | `#ce0484` | The triangles on both sides of the way a handle holding the focus moves (x141..147 / y93..100 in p103-1) |
 | `--graph-fill` | `#424529` | The fill under the COMP curve (p099-1) |
 | `--graph-line` | `#ada24a` | The COMP curve itself (p099-1) |
+| `--mbc-gr-open` | `#e6e6e6` | M.B.Comp: the 1px frame round the reduction bar of the band whose page is open. No figure shows it |
+| `--mbc-mid-line` | `#29b5d6` | M.B.Comp's Mid band: its fill on the first page, and the curve on its own page. No figure shows it |
+| `--mbc-mid-fill` | `#23444c` | The area under the Mid band's curve on its own page. No figure shows it |
+| `--mbc-high-line` | `#8c4ade` | M.B.Comp's High band: its fill on the first page, and the curve on its own page. No figure shows it |
+| `--mbc-high-fill` | `#3b2a4e` | The area under the High band's curve on its own page. No figure shows it |
 | `--eq-fill` | `#314529` | The fill under the EQ curve (p106-1) |
 | `--eq-line` | `#6baa4a` | The curve on the EQ screen (x60 / y160 in p106-1) |
 | `--eq-thumb-line` | `#7bba63` | The lower row of the curve in a channel view's EQ block (y106 in p098-1) |
@@ -118,7 +144,7 @@ PY
 | `--knob-card-mark` | `#adaead` | The copy mark on a USER DEFINED KNOBS card (x80..89 / y104..113 in p057-1) |
 | `--rec-copy-mark` | `#eff3ef` | The copy mark on a RECORDER slot's Source button, drawn by mixing this colour into the face pixel by pixel; the value is the brightest pixel (x378..387 / y185..194 in p079-2, brightest at x80 / y96) |
 | `--strip-id-other` | `#000000` | On a HOME stereo input's first name line, the number of the channel its screens do not open on (as the operator specified) |
-| `--ink-on-lit` | `#3a3d3a` | The name on [USB Storage Mode] while it is lit (p078-1). The name on a chosen option — a language (p055-1), SAMPLING FREQUENCY's rate (p058-1), Peripheral (p061-1 / p062-1), the input and output source sheets (p100-2 / p060-2), the assignment dialog (p040-1), OSCILLATOR's mode (p070-1), PAN / BALANCE (p093-1) and USER DEFINED KNOBS' bank. A lit on/off switch such as [ON] or HDCP's [Enable] keeps black (`--text-inverse`; no figure shows HDCP's [Enable] lit, and the unit was checked) |
+| `--ink-on-lit` | `#3a3d3a` | The name on [USB Storage Mode] while it is lit (p078-1). The name on a chosen option — a language (p055-1), SAMPLING FREQUENCY's rate (p058-1), Peripheral (p061-1 / p062-1), the input and output source sheets (p100-2 / p060-2), the assignment dialog (wide/p040-1), OSCILLATOR's mode (p070-1), PAN / BALANCE (p093-1) and USER DEFINED KNOBS' bank. A lit on/off switch such as [ON] or HDCP's [Enable] keeps black (`--text-inverse`; no figure shows HDCP's [Enable] lit, and the unit was checked) |
 | `--test-pass` | `#01ff00` | The grade and the recording lines of a card test (p088-2) |
 | `--text-disabled` | `#848284` | The name on a button or side-rail tab that cannot be used (Store at x5..94 / y230..268 and the Edit tab at x422..479 / y115..163 in p073-1) |
 | `--menu-text-disabled` | `#7b797b` | The name on a menu entry that cannot be used (Recorder / Save/Load / Tools in p078-1, x82..386 / y99..109) |
@@ -297,7 +323,10 @@ PY
 | `--corner-flag-d` | `#3a3942` | INPUT's flags: bottom corner over the band, the outer shade (p100-1 at x107..174 / y147..170) |
 | `--corner-flag-e` | `#737573` | INPUT's flags: bottom corner over the band, the second shade (p100-1 at x107..174 / y147..170) |
 | `--corner-flag-f` | `#949694` | INPUT's flags: bottom corner over the band, the third shade (p100-1 at x107..174 / y147..170) |
-| `--band-sends` | `#8c3119` | HOME's [Sends] tab: its 3px band (p045-1 at x422..479 / y50..106) |
+| `--px-cut-out` | `40%` | A radius-4 corner: the share of the ground let through the pixels beside the cut along the button's edges ("Button corners" in screen-inventory.md) |
+| `--px-cut-in` | `8%` | The same, through the pixel beside the cut on the diagonal |
+| `--px-band-cast` | `31%` | The share of black laid over a face to draw its 3px band. HOME's [Sends] tab draws its band so, over `--accent-sends`. The share comes from that tab in p045-1, whose band reads `#8c3119` under the face's `#ce4529` (x422..479 / y50..106) |
+| `--px-foot-off` | `0px` | How far the cut at a button's foot stands above its bottom edge: none at rest, and the depth the face sinks while the button is sunk, so the outline stays the one it has at rest ("Button corners" in screen-inventory.md) |
 | `--band-wizard` | `#a6a6a6` | the band under the mode wizard's buttons |
 | `--corner-eq-band-a` | `#213131` | an EQ band's box: top corner, the outer shade (p106-1 at x2..56 / y49..86) |
 | `--corner-eq-band-b` | `#8cbace` | an EQ band's box: top corner, the second shade (p106-1 at x2..56 / y49..86) |
@@ -489,6 +518,7 @@ PY
 | `--radius-md` | `4px` | The rounded corner of buttons, dropdowns and the scene name box (the top-left of the COMP box at x254 / y2 and the Off dropdown at x306 / y49 in p099-1, and of the scene name box at x2 / y2 and the [Sends] button at x422 / y50 in p045-1; a quarter circle fitted to each gives radius 4). Value boxes, wells and sunk cells draw their corners in pixels instead (Button corners in screen-inventory.md) |
 | `--radius-strip` | `6px` | The corner of the selected HOME strip, which keeps a rounded box since its frame runs round a curve (the top-right of strip 3 at x311 / y50 in p045-1; a quarter circle fitted to it gives radius 6). A strip that is not selected draws its corners in pixels |
 | `--radius-lg` | `6px` | The corner of a band along the screen's edge: the bottom-left of the toolbar icon row's band (x384 / y41 in p099-1, x295 / y41 in p045-1). A quarter circle fitted to it gives radius 6. The knob readout bar and the channel view's panels draw their corners in pixels |
+| `--key-held` | `#ffffff3d` | Laid over a Pitch Fix key while it is held down. No figure shows it; the simulator's own value |
 | `--scrim` | `#000000ce` | The shade a sheet over the screen casts on the screen below, in a browser without backdrop-filter. A browser with backdrop-filter darkens the pixels below with an SVG filter (`src/ui/scrim.ts`) that scales R by 0.204, G by 0.202 and B by 0.192 and rounds R and B to 32 steps and G to 64. The factors are fitted to the darkened pixels of p100-2, p060-2 and p051-1 |
 | `--sheet-shadow-near` | `#000000b8` | The first pixel outside the shadow a sheet drops to its right and below, which the 2px offset darkens further, to 0.82 in all (p100-2, p060-2) |
 | `--sheet-shadow-far` | `#00000059` | The second pixel out, darkened by 0.35. Nothing is darkened to the sheet's left or above it |
@@ -555,18 +585,26 @@ PY
 
 ## Channel colors
 
-The channel colors that can be changed in CH SETTING. The colors themselves were taken from the rail
-at the bottom of the strips in p045-1 and p048-4. At the factory every input — mono, stereo and FX —
-is blue, MIX and STREAMING are orange and STEREO is red; the rest are candidates to choose in
-CH SETTING.
+The colors a channel can be given in CH SETTING, in the order its COLOR sheet lists them and under the
+names its buttons carry. Blue, Orange, Yellow and Magenta were taken from the rail at the bottom of the
+strips in p045-1, and Red from the first strip's rail in p048-4. At the factory every input — mono,
+stereo and FX — is Blue, MIX and STREAMING are Orange and STEREO is Red; the rest are candidates to
+choose in CH SETTING. Off takes the color away; its row gives the face of its button, which names
+itself in `--text-secondary`.
 
-| Color | Value | Factory assignment |
-| --- | --- | --- |
-| blue | `#1965ff` | Every input channel, FX 1-2 |
-| orange | `#ff8200` | MIX 1-2, STREAMING |
-| red | `#ce4529` | STEREO |
-| yellow | `#e6e710` | (candidate only) |
-| pink | `#ff499c` | (candidate only) |
+| Color | Value | Factory assignment | Taken from |
+| --- | --- | --- | --- |
+| Blue | `#1965ff` | Every input channel, FX 1-2 | The rail at x50 / y267 in p045-1 |
+| Orange | `#ff8200` | MIX 1-2, STREAMING | The rail at x156 / y267 in p045-1 |
+| Yellow | `#e6e710` | (candidate only) | The rail at x262 / y267 in p045-1 |
+| Purple | `#8c4ade` | (candidate only) | No figure shows a channel in this color |
+| Cyan | `#29b5d6` | (candidate only) | No figure shows a channel in this color |
+| Magenta | `#ff499c` | (candidate only) | The rail at x368 / y267 in p045-1 |
+| Red | `#ce4529` | STEREO | The rail at x50 / y267 in p048-4 |
+| Green | `#29c26b` | (candidate only) | No figure shows a channel in this color |
+| LtGreen | `#8ce63a` | (candidate only) | No figure shows a channel in this color |
+| White | `#e6e6e6` | (candidate only) | No figure shows a channel in this color |
+| Off | `#232326` | (candidate only) | No figure shows its button |
 
 The rail of a channel that cannot be used runs dark grey in place of a colour: `--strip-rail-shut`
 `#393a3e`. It was taken from the ratio between the rail and the face in one picture rather than from
