@@ -566,7 +566,10 @@ export interface From {
  * While the store is on a connected unit, its mirror is written under a key of
  * its own instead, and the record keeps the simulated unit as it was. A start
  * that stores the whole unit over what is stored ([Reset the unit]) lets that
- * key go. Returns the steps that end it.
+ * key go. A change not yet written when the store moves onto another transport
+ * is written just before the move, with the mirror and in the place of the
+ * transport it was made on; where a write of the record is under way, once that
+ * write lands. Returns the steps that end it.
  */
 export function startSaving(
   store: DeviceStore,
@@ -596,7 +599,12 @@ export function startSaving(
   let refused = false;
   const leftKey = `${LEFT}${from.tab ?? "tab"}`;
   const channel = keeper && typeof BroadcastChannel === "function" ? new BroadcastChannel(CHANNEL) : null;
+  /** The store's revision when the unit was last taken to be written. */
+  let taken = store.revision;
+  /** The simulated unit as it stood when the store moved off it, to be written once the write under way lands. */
+  let queued: string | null = null;
   const text = (): string => {
+    taken = store.revision;
     const saved: Saved = { version: VERSION, model, ...pack(snapshot(store)) };
     return toJson(saved);
   };
@@ -610,12 +618,13 @@ export function startSaving(
       // A browser that refuses to store it leaves the connected unit holding its own values.
     }
   };
-  const write = (): void => {
+  /** Write the record: the model where it is due, and the unit where it changed or `pending` holds it as it stood. */
+  const write = (pending?: string): void => {
     if (ended || !keeper || writing) return;
-    const unitDue = changes > written && !onConnectedUnit(store);
+    const unitDue = pending !== undefined || (changes > written && !onConnectedUnit(store));
     if (!unitDue && !modelDue) return;
     const upTo = changes;
-    const next: Kept = { token: unitDue ? newToken() : basis, model, unit: unitDue ? text() : unit };
+    const next: Kept = { token: unitDue ? newToken() : basis, model, unit: unitDue ? (pending ?? text()) : unit };
     const first = basis === null;
     writing = true;
     inFlight = unitDue ? next.token : null;
@@ -639,6 +648,12 @@ export function startSaving(
         forget(leftKey);
       }
       onWrite(outcome === "written");
+      if (queued !== null) {
+        const pending = queued;
+        queued = null;
+        write(pending);
+        return;
+      }
       if (changes > written && !timer) timer = window.setTimeout(due, delayMs);
     });
   };
@@ -650,6 +665,14 @@ export function startSaving(
   const off = store.onChange(() => {
     changes++;
     if (!timer && !ended) timer = window.setTimeout(due, delayMs);
+  });
+  store.onBeforeMove(() => {
+    if (store.revision === taken && (writing || changes <= written)) return;
+    if (timer) window.clearTimeout(timer);
+    timer = 0;
+    if (onConnectedUnit(store)) writeConnected();
+    else if (writing) queued = text();
+    else write(text());
   });
   /** Stop writing; the changes made after it are still counted, for `settle` to tell. */
   const halt = (): void => {
@@ -702,10 +725,10 @@ export function startSaving(
       if (ended) return;
       if (onConnectedUnit(store) && changes > written) writeConnected();
       if (!keeper) return;
-      const unitDue = !onConnectedUnit(store) && (changes > written || inFlight !== null);
+      const unitDue = queued !== null || (!onConnectedUnit(store) && (changes > written || inFlight !== null));
       if (!unitDue && !modelDue) return;
       try {
-        window.localStorage.setItem(leftKey, JSON.stringify({ basis, inFlight, model, unit: unitDue ? text() : null, at: Date.now() } satisfies Left));
+        window.localStorage.setItem(leftKey, JSON.stringify({ basis, inFlight, model, unit: unitDue ? (queued ?? text()) : null, at: Date.now() } satisfies Left));
       } catch {
         // A browser that refuses it drops what was still to be stored, as it refuses a write.
       }

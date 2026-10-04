@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BindingTable, scaledCodec } from "../device/binding";
 import { BridgeTransport, type DeviceLink } from "../device/bridge-transport";
+import type { ParamPath, ParamValue } from "../device/path";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
+import type { DeviceTransport } from "../device/transport";
 import { factoryState } from "../model/defaults";
 import type { CardEntry } from "../model/card";
 import { filePath, writeCard } from "../model/card";
@@ -982,6 +984,146 @@ describe("a unit connected through a BridgeTransport", () => {
     expect(connectedValues(), "on leaving").toEqual({ "ch.ch1.gain": 35 });
     const left = Object.keys(window.localStorage).filter((key) => key.startsWith("urx-lcd-sim.left."));
     expect(left, "and nothing left for the record").toEqual([]);
+  });
+
+  it("leaves an edit made just before the store moves onto it stored with the simulated unit", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = await unit();
+    await start(store);
+    await store.set("ch.ch1.level", -9);
+    await store.attach(connected().transport);
+    vi.advanceTimersByTime(20);
+    await settle();
+
+    expect((await stored())?.["ch.ch1.level"], "the edit is stored with the simulated unit").toBe(-9);
+    expect(connectedValues(), "and the connected unit under its own key").toEqual({ "ch.ch1.gain": 40 });
+  });
+
+  it("writes an edit made just before the move with the simulated unit once the write under way lands", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = await unit();
+    const { saving } = await start(store);
+    idb.hold();
+    await store.set("ch.ch1.level", -9);
+    vi.advanceTimersByTime(20);
+    await store.set("ch.ch2.level", -5);
+    await store.attach(connected().transport);
+    const settled = saving.settle();
+    idb.release();
+    await settled;
+    await settle();
+
+    expect([(await stored())?.["ch.ch1.level"], (await stored())?.["ch.ch2.level"]]).toEqual([-9, -5]);
+    expect((await stored())?.["ch.ch1.gain"], "with the simulated unit's own gain").not.toBe(40);
+  });
+
+  it("leaves an edit made just before the move for the next start when the page goes while a write is under way", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = await unit();
+    const { saving } = await start(store);
+    idb.hold();
+    await store.set("ch.ch1.level", -9);
+    vi.advanceTimersByTime(20);
+    await store.set("ch.ch2.level", -5);
+    await store.attach(connected().transport);
+    saving.leave();
+    saving.stop();
+    idb.release();
+    await settle();
+
+    const next = await unit();
+    await bring(next);
+    expect([next.num("ch.ch1.level", 0), next.num("ch.ch2.level", 0)]).toEqual([-9, -5]);
+  });
+
+  it("keeps an edit made on it just before the store moves back to the simulated unit", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = new DeviceStore();
+    await store.attach(connected().transport);
+    await start(store);
+    await store.set("ch.ch1.gain", 30);
+    await store.attach(new SimTransport(factoryState(unitById(MODEL))));
+    vi.advanceTimersByTime(20);
+
+    expect(connectedValues()).toEqual({ "ch.ch1.gain": 30 });
+  });
+
+  it("leaves an edit the store has not announced yet as it moves onto it stored with the simulated unit", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = await unit();
+    await start(store);
+    let answer = (_snap: Map<ParamPath, ParamValue>): void => {};
+    const other: DeviceTransport = {
+      kind: "bridge",
+      snapshot: () =>
+        new Promise((resolve) => {
+          answer = resolve;
+        }),
+      write: () => Promise.resolve(),
+      onNotify: () => () => {},
+      close: () => {},
+    };
+    const moving = store.attach(other);
+    answer(new Map([["ch.ch1.gain", 40]]));
+    void store.set("ch.ch1.level", -9);
+    await moving;
+    vi.advanceTimersByTime(20);
+    await settle();
+
+    expect((await stored())?.["ch.ch1.level"]).toBe(-9);
+  });
+
+  it("leaves what the browser stores for the simulated unit as it was when nothing changed before the move", async () => {
+    // Another model's unit is stored, and the simulator opened on this one starts as it ships.
+    const other = await unit("URX22");
+    await other.set("ch.ch1.level", -4);
+    const first = await start(other, "URX22", { first: "unit" });
+    await first.saving.settle();
+    first.saving.stop();
+    const before = await keeper.read();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = await unit();
+    await bring(store);
+    await start(store);
+    await store.attach(connected().transport);
+    vi.advanceTimersByTime(20);
+    await settle();
+
+    expect(await keeper.read()).toEqual(before);
+  });
+
+  it("writes the simulated unit no more on the move once its last edit is stored", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = await unit();
+    await start(store);
+    await store.set("ch.ch1.level", -9);
+    vi.advanceTimersByTime(20);
+    await settle();
+    const write = vi.spyOn(keeper, "write");
+    const set = vi.spyOn(Storage.prototype, "setItem");
+    await store.attach(connected().transport);
+    vi.advanceTimersByTime(20);
+    await settle();
+    const keys = set.mock.calls.map(([key]) => key);
+    set.mockRestore();
+
+    expect([write.mock.calls.length, keys], "only the connected unit is written").toEqual([0, [CONNECTED_KEY]]);
+  });
+
+  it("tries the simulated unit's last edit again on the move where the browser refused it", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = await unit();
+    await start(store);
+    idb.refuse = true;
+    await store.set("ch.ch1.level", -9);
+    vi.advanceTimersByTime(20);
+    await settle();
+    idb.refuse = false;
+    await store.attach(connected().transport);
+    vi.advanceTimersByTime(20);
+    await settle();
+
+    expect((await stored())?.["ch.ch1.level"]).toBe(-9);
   });
 
   it("is let go when the unit starts again as it ships", async () => {

@@ -143,7 +143,9 @@ JSON で書く。JSON には無限大の数が無いので、無限大 (SSMCS �
 `BridgeTransport` で実機につないでいる間 (`store.kind` が `bridge`、[device-integration.md](device-integration.md)) は、
 ミラーを記録ではなく `localStorage` の別のキー `urx-lcd-sim.bridge.state` に書き、起動したときも何も戻さない。
 ブラウザに残した値は実機へ書かれず、記録はシミュレーターの本体を保存したまま残す。機種を切り替える前の書き込みと
-ページを離れるときの書き込みも、このキーへ書く。[Reset the unit] は工場出荷状態を書くときにこのキーを消す。
+ページを離れるときの書き込みも、このキーへ書く。store が実機へ移るとき (実機から戻るときも) まだ書いていない変更は、
+移る直前に、その変更をしたトランスポートの置き場 (記録かこのキー) へ書く。記録への書き込みが進行中なら、それが終わってから書く。
+[Reset the unit] は工場出荷状態を書くときにこのキーを消す。
 
 ```mermaid
 flowchart LR

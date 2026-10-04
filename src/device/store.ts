@@ -59,6 +59,7 @@ export class DeviceStore {
   private detachTransport: (() => void) | null = null;
   private readonly listeners = new Set<ChangeListener>();
   private readonly failureListeners = new Set<(f: WriteFailure) => void>();
+  private readonly moveListeners = new Set<() => void>();
 
   /** Each path with writes awaiting the device, and the count each write is numbered from. */
   private readonly awaiting = new Map<ParamPath, Awaited>();
@@ -81,7 +82,8 @@ export class DeviceStore {
    * then moves its transport, its notifies and its mirror over at once. What
    * the new transport announces while its snapshot is read is taken after the
    * snapshot. A snapshot that cannot be read leaves the store where it was and
-   * throws; one that comes in after a later attach is dropped.
+   * throws; one that comes in after a later attach is dropped. The listeners
+   * given to `onBeforeMove` are told just before the move.
    */
   async attach(transport: DeviceTransport): Promise<void> {
     const turn = ++this.attaches;
@@ -101,6 +103,7 @@ export class DeviceStore {
       detach();
       return;
     }
+    for (const l of [...this.moveListeners]) l();
     this.detachTransport?.();
     this.transport = transport;
     this.detachTransport = detach;
@@ -254,6 +257,15 @@ export class DeviceStore {
   onWriteFailure(listener: (f: WriteFailure) => void): () => void {
     this.failureListeners.add(listener);
     return () => this.failureListeners.delete(listener);
+  }
+
+  /**
+   * Tell `listener` just before an attach moves the store onto its new
+   * transport, while `kind` and the mirror are still the old transport's.
+   */
+  onBeforeMove(listener: () => void): () => void {
+    this.moveListeners.add(listener);
+    return () => this.moveListeners.delete(listener);
   }
 
   /** Deliver any coalesced changes immediately (tests, and forced repaints). */

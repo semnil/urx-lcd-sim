@@ -160,8 +160,10 @@ While the store is on a unit connected through a `BridgeTransport` (`store.kind`
 [device-integration.md](device-integration.md)), the mirror is written to `localStorage` under a key of its own,
 `urx-lcd-sim.bridge.state`, instead of the record, and nothing is put back on start. Nothing the browser kept is
 written to the unit, and the record keeps the simulated unit as it was stored. The write before a switch of model
-and the one on leaving the page go under that key too. [Reset the unit] lets the key go as it stores the unit as
-it ships.
+and the one on leaving the page go under that key too. A change not yet written when the store moves onto the unit,
+or back, is written just before the move, to the record or under that key as the transport it was made on has it;
+where a write of the record is under way, once that write lands. [Reset the unit] lets the key go as it stores the
+unit as it ships.
 
 ```mermaid
 flowchart LR
