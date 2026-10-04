@@ -594,7 +594,7 @@ export const recorderScreen: ScreenDef = {
     // and Record and Edit take the face of a tab that cannot be used.
     const tabs = (["Record", "Play", "Edit"] as const).map((t) => {
       const shut = held && t !== "Play";
-      const node = sideTab(t, tab === t, () => (busy || shut ? undefined : openSdTab(ctx, tab, t)), SD_TAB_ICON[t]?.(), t === "Record" ? "" : "is-name-raised");
+      const node = sideTab(t, tab === t, () => (sdTabOpens(ctx, t) ? openSdTab(ctx, tab, t) : undefined), SD_TAB_ICON[t]?.(), t === "Record" ? "" : "is-name-raised");
       return markShut(node, shut);
     });
 
@@ -919,10 +919,18 @@ const SD_TAB_ICON: Record<string, () => SVGSVGElement> = {
 const SD_TAB_LOADING_MS = 2000;
 
 /**
+ * Whether RECORDER's tab `to` opens: recording mode keeps the tab it is in, and
+ * while playback holds a file, playing or paused, Play alone opens.
+ */
+function sdTabOpens(ctx: AppContext, to: string): boolean {
+  return !recordMode(ctx.store) && (!holdsFile(ctx.store) || to === "Play");
+}
+
+/**
  * Move to another RECORDER tab. Play and Edit read the card, so they come up
  * behind a loading modal; Record is the tab the screen opens on and needs none.
- * A tab still loading when recording mode comes on does not open: recording
- * mode holds the tab it is in.
+ * A tab that recording mode or a file held has put out of reach by the time the
+ * modal comes down does not open.
  */
 function openSdTab(ctx: AppContext, from: string, to: string): void {
   if (to === from) return;
@@ -933,7 +941,7 @@ function openSdTab(ctx: AppContext, from: string, to: string): void {
   let close = (): void => undefined;
   const timer = window.setTimeout(() => {
     close();
-    if (!recordMode(ctx.store)) void ctx.store.set("ui.sdTab", to);
+    if (sdTabOpens(ctx, to)) void ctx.store.set("ui.sdTab", to);
   }, SD_TAB_LOADING_MS);
   close = ctx.overlay(loadingDialog(), () => window.clearTimeout(timer));
 }

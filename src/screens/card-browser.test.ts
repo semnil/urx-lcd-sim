@@ -1007,6 +1007,44 @@ describe("the microSD card browser", () => {
     expect(store.str("ui.sdTab", ""), "let go: Record opens").toBe("Record");
   });
 
+  it("opens no tab at the end of Loading... that a file held or recording mode has by then put out of reach", async () => {
+    const shell = await mount({ id: "microsd.recorder" }, [entry("take.wav", "take", 600)]);
+    const store = shell.ctx.store;
+    const tab = (label: string): HTMLElement | undefined =>
+      [...shell.root.querySelectorAll<HTMLElement>(".side-tab")].find((t) => t.querySelector(".side-tab-label")?.textContent === label);
+    const settle = async (): Promise<void> => {
+      for (let i = 0; i < 5; i++) await Promise.resolve();
+    };
+    // Touch a tab, let the recorder change while Loading... is up, and wait the modal out.
+    const load = async (label: string, meanwhile?: () => unknown): Promise<string> => {
+      tab(label)?.click();
+      await settle();
+      expect(shell.root.querySelector(".dialog-text")?.textContent, `${label} loads`).toBe("Loading...");
+      await meanwhile?.();
+      await settle();
+      vi.advanceTimersByTime(60_000);
+      await settle();
+      expect(shell.root.querySelector(".dialog-overlay"), `${label}: the modal takes itself down`).toBeNull();
+      return store.str("ui.sdTab", "");
+    };
+    await pickTab(shell, "ui.sdTab", "Play");
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      expect(await load("Edit", () => startPlayback(store, 0)), "a file held by then: Edit stays shut").toBe("Play");
+      expect([store.num("sd.playingFile", -1), store.bool("sd.playing", false)], "with the file playing").toEqual([0, true]);
+      stopPlayback(store);
+      await settle();
+      expect(await load("Edit"), "the control: nothing changed under it, Edit opens").toBe("Edit");
+
+      tab("Record")?.click();
+      await settle();
+      expect(await load("Play", () => store.set("sd.rec", "armed")), "recording mode by then: it keeps the tab it came on in").toBe("Record");
+      expect([store.str("sd.rec", ""), shell.root.querySelector('.rec-transport [aria-label="Stop"]') !== null], "with [■] there to leave it").toEqual(["armed", true]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("puts Play's [↑] out of reach while playback holds a file, playing or paused, and brings it back once [■] lets the file go", async () => {
     const shell = await mount({ id: "microsd.recorder" }, [entry("Recordings", "folder"), entry("inside.wav", "take", 96, 2, "/Recordings/")]);
     const store = shell.ctx.store;
