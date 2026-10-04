@@ -122,7 +122,7 @@ paths alone, puts an edit to an unbound path back and writes a bound one" in
 adds to it ("The writes one edit carries with it" in [architecture.md](architecture.md)), and an operation a
 screen makes of one setting and the values that follow from it goes as one (`DeviceStore.operation()`): BUS
 Type, Signal Type, PAN/BAL, COMP / EQ, 1-knob EQ, an effect, an input source, the sampling frequency, Pitch
-Fix's keys and scale, SCENE's bank, storing and naming a scene, the recorder, playback and the card. Where
+Fix's keys and scale, SCENE's bank, storing a scene with its title, the recorder, playback and the card. Where
 `BridgeTransport.writable()` says one of their paths has no address, none of them is sent, the mirror goes
 back to what it held before, and the refusal of each such path is reported. Switching on an unbound HI-Z
 sends no A.Gain, and taking an unbound BUS Type or Signal Type sends none of the sends, pans or other values
