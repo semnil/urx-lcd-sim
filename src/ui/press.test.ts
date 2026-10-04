@@ -293,6 +293,34 @@ describe("a pressed control", () => {
     window.dispatchEvent(new PointerEvent("pointerup", { pointerId: 1, pointerType: "touch" }));
   });
 
+  it("keeps a held control down in its place only inside a box of the same name", () => {
+    const { root, press } = mount();
+    // A strip named for its channel, its [ON] carrying no name of its own.
+    const strip = (name: string): HTMLButtonElement => {
+      const box = document.createElement("div");
+      box.setAttribute("aria-label", name);
+      const on = document.createElement("button");
+      on.style.boxShadow = "inset 0 -4px 0 rgb(0, 0, 0)";
+      box.append(on);
+      return on;
+    };
+    const first = strip("CH 1");
+    root.prepend(first.parentElement as HTMLElement);
+    first.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 1, pointerType: "touch" }));
+    const redraw = (old: HTMLButtonElement, name: string): HTMLButtonElement => {
+      const carried = press.carry();
+      const next = strip(name);
+      old.parentElement?.replaceWith(next.parentElement as HTMLElement);
+      carried();
+      return next;
+    };
+    const same = redraw(first, "CH 1");
+    const sameDown = same.classList.contains("is-pressed");
+    const other = redraw(same, "CH 5/6");
+    expect({ sameDown, otherDown: other.classList.contains("is-pressed") }).toEqual({ sameDown: true, otherDown: false });
+    window.dispatchEvent(new PointerEvent("pointerup", { pointerId: 1, pointerType: "touch" }));
+  });
+
   it("lets every control rise when the window loses the focus", () => {
     const { banded, root } = mount();
     const second = document.createElement("button");

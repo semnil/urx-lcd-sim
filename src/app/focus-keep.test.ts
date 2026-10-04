@@ -149,6 +149,44 @@ describe("the focus through a redraw", () => {
     }
   });
 
+  it("keeps a held [ON] down while HOME's bank stands, and no other channel's [ON] when it steps", async () => {
+    const shell = await mount();
+    const band = document.createElement("style");
+    band.textContent = ".btn-on { box-shadow: inset 0 -4px 0 rgb(0, 0, 0); }";
+    document.head.append(band);
+    try {
+      const ons = (): HTMLElement[] => [...shell.root.querySelectorAll<HTMLElement>(".main .strip .btn-on")];
+      const down = (): number => ons().filter((n) => n.classList.contains("is-pressed")).length;
+      const firstStrip = (): string | null | undefined => shell.root.querySelector(".main .strip")?.getAttribute("aria-label");
+      const finger = (node: EventTarget | undefined, type: string, pointerId: number): void => {
+        node?.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId, pointerType: "touch" }));
+      };
+
+      // The same bank drawn again keeps CH 1's [ON] down, until the finger is cancelled.
+      finger(ons()[0], "pointerdown", 1);
+      await shell.ctx.store.set("ch.ch2.level", 3);
+      await flush();
+      const sameBank = { strip: firstStrip(), first: ons()[0]?.classList.contains("is-pressed"), down: down() };
+      finger(window, "pointercancel", 1);
+      const cancelled = down();
+
+      // Another bank: the [ON] drawn where CH 1's stood is another channel's.
+      finger(ons()[0], "pointerdown", 2);
+      await shell.ctx.store.set("ui.bank", 1);
+      await flush();
+      const otherBank = { strip: firstStrip(), down: down() };
+      finger(window, "pointerup", 2);
+      expect({ sameBank, cancelled, otherBank, letGo: down() }).toEqual({
+        sameBank: { strip: expect.stringMatching(/^CH 1\b/), first: true, down: 1 },
+        cancelled: 0,
+        otherBank: { strip: expect.not.stringMatching(/^CH 1\b/), down: 0 },
+        letGo: 0,
+      });
+    } finally {
+      band.remove();
+    }
+  });
+
   it("keeps down nothing another channel's screen draws in the place of a held control", async () => {
     const shell = await mount();
     const band = document.createElement("style");

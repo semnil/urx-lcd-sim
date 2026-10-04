@@ -58,7 +58,8 @@ export interface Press {
    * Before the screen is drawn again: the step that, once it is drawn, sinks the
    * control drawn in the place of each one held down, held by the same pointers or
    * key and marked `is-carried`, as it is down already and does not slide down again.
-   * A holder whose control has none in its place keeps nothing down.
+   * The control in the place is the held one only where it and the boxes around it
+   * carry the same names; a holder whose control has none keeps nothing down.
    */
   carry(): () => void;
 }
@@ -141,15 +142,25 @@ export function attachPress(root: HTMLElement): Press {
   window.addEventListener("pointerup", onPointerEnd);
   window.addEventListener("pointercancel", onPointerEnd);
   window.addEventListener("blur", onBlur);
+  // The names a control and the boxes around it inside `root` carry, which tell a
+  // strip's [ON] from another channel's [ON] drawn in the same place.
+  const namesOf = (node: Element): string => {
+    const names: string[] = [];
+    for (let n: Element | null = node; n && n !== root; n = n.parentElement) {
+      const name = n.getAttribute("aria-label");
+      if (name !== null) names.push(name);
+    }
+    return names.join("\n");
+  };
   const carry = (): (() => void) => {
     const places = [...held]
       .filter(([, node]) => root.contains(node))
-      .map(([holder, node]) => ({ holder, node, find: placeOf(root, node) }));
+      .map(([holder, node]) => ({ holder, node, find: placeOf(root, node), names: namesOf(node) }));
     return () => {
-      for (const { holder, node, find } of places) {
+      for (const { holder, node, find, names } of places) {
         if (held.get(holder) !== node || node.isConnected) continue;
         const next = find();
-        if (next) sink(holder, next, true);
+        if (next && namesOf(next) === names) sink(holder, next, true);
       }
     };
   };
