@@ -1029,7 +1029,8 @@ Ratio 1.00:1..INF:1 (sixty stops of 0.05 from 1.00:1 to 4.00:1; from there 4.00.
 9.3..999.0 ms over 277 stops (read to one place), Knee Soft / Medium / Hard, Q
 0.50..16.00, frequency 20 Hz..20 kHz in twelfths of an octave, the stops being numbers of the R40 series of preferred
 numbers (forty to a decade: 1.00, 1.06, 1.12, 1.18, 1.25 and on) read to three figures (LOW to 1.00 kHz, HIGH from
-500 Hz), and gain ±18.0 dB.
+500 Hz), and gain ±18.0 dB. A frequency, Attack or Release that a browser save, a settings file or a scene holds off
+these stops comes back on the stop nearest it, and the next save holds that stop.
 
 The compressor makes up no gain. Under the corner the curve runs at the height of the input, and Out
 Gain is the only thing that lifts the whole of it (p110-1 reads -76.9 dB out for -76 dB in and

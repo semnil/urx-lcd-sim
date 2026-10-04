@@ -280,8 +280,25 @@ describe("what a reload carries over", () => {
     await bring(store);
     expect(
       times.map(([p]) => store.num(p, 0)),
-      "each on its nearest stop, and the SSMCS strip's Attack as it is stored",
-    ).toEqual([20.17, 16, 150.2, 218, 1000, 4.124]);
+      "each on its nearest stop, the SSMCS strip's Attack on its own",
+    ).toEqual([20.17, 16, 150.2, 218, 1000, 4.122]);
+  });
+
+  it("brings an SSMCS frequency, Attack or Release stored off the stops back on the stop nearest it", async () => {
+    // A unit stored by an earlier version, on that version's stops.
+    window.localStorage.setItem(
+      "urx-lcd-sim.state",
+      JSON.stringify({
+        version: 1,
+        model: MODEL,
+        values: { "ch.ch1.ssmcs.sc.freq": 946, "ch.ch1.ssmcs.eq.high.freq": 532, "ch.ch1.ssmcs.comp.attack": 2.2, "ch.ch1.ssmcs.comp.release": 110.4 },
+      }),
+    );
+    const store = await unit();
+    await bring(store);
+    expect(
+      ["sc.freq", "eq.high.freq", "comp.attack", "comp.release"].map((k) => store.num(`ch.ch1.ssmcs.${k}`, 0)),
+    ).toEqual([950, 530, 2.197, 110.8]);
   });
 
   it("leaves another model's unit alone", async () => {

@@ -17,6 +17,7 @@ import { dropInsertsOverRate } from "./insert-fx";
 import { followSceneCursor } from "./scene";
 import { followRecall, pairStates } from "./stereo-link";
 import { settlePanLink } from "./mix-bus";
+import { onSsmcsStops } from "./ssmcs";
 import { allStrips, channelPairs } from "../model/types";
 import { el, markShut, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
@@ -488,13 +489,16 @@ function saveLoadAction(ctx: AppContext, label: string): void {
   ctx.overlay(dialog({ message: REPLACE_ASK, onOk: () => saveSettings(ctx, entry.name, row) }));
 }
 
-/** Put a settings file back on the unit, a GATE, COMP or DUCKER time off its stops on the stop nearest it. */
+/**
+ * Put a settings file back on the unit, a GATE, COMP or DUCKER time, and an SSMCS
+ * frequency, Attack or Release, off its stops on the stop nearest it.
+ */
 function loadSettings(ctx: AppContext, entry: CardEntry): void {
   const held = ctx.store.str(filePath(entry), "");
   if (!held) return;
   const before = ctx.store.num("setup.samplingFrequency", 48000);
   const pairs = pairStates(ctx);
-  void applySettings(ctx.store, onDynamicsTimeStops(fromJson(held) as Record<string, ParamValue>)).then(() => {
+  void applySettings(ctx.store, onSsmcsStops(onDynamicsTimeStops(fromJson(held) as Record<string, ParamValue>))).then(() => {
     followRecall(ctx, pairs);
     settlePanLink(ctx);
     const rate = ctx.store.num("setup.samplingFrequency", 48000);

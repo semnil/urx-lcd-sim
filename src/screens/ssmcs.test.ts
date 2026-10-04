@@ -454,7 +454,7 @@ describe("the compressor the strip runs", () => {
     expect([await press("Release", "ArrowUp", 0), await press("Release", "ArrowUp"), await press("Release", "ArrowDown")], "Release as it ships, up and back").toEqual([
       "92.0ms", "93.5ms", "92.0ms",
     ]);
-    // A value off the stops, as an older save holds, reads as the stop it turns from.
+    // A value off the stops reads as the stop it turns from.
     await shell.ctx.store.set("ch.ch1.ssmcs.comp.attack", 4.124);
     await shell.ctx.store.set("ch.ch1.ssmcs.comp.release", 91.6);
     await flush();
@@ -634,7 +634,7 @@ describe("the strip's EQ screen", () => {
     expect(held("SC-Freq."), "the side chain as it ships").toEqual(["90", "90.0Hz"]);
     expect([...(await turn("SC-Freq.", "ArrowDown")), ...(await turn("SC-Freq.", "ArrowUp", 2))]).toEqual(["85.0Hz", "90.0Hz", "95.0Hz"]);
 
-    // A value off the stops, as an older save holds, reads as the stop it turns from.
+    // A value off the stops reads as the stop it turns from.
     await shell.ctx.store.set("ch.ch1.ssmcs.sc.freq", 89);
     await flush();
     expect([reading("SC-Freq."), ...(await turn("SC-Freq.", "ArrowUp"))]).toEqual(["90.0Hz", "95.0Hz"]);

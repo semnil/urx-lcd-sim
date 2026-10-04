@@ -308,8 +308,8 @@ describe("storing and recalling a scene", () => {
     await recallScene(shell.ctx, 1);
     expect(
       older.map(([p]) => s.num(p, 0)),
-      "each on its nearest stop, and the SSMCS strip's Attack as the scene holds it",
-    ).toEqual([20.17, 150.2, 218, 20.17, 1000, 4.124]);
+      "each on its nearest stop, the SSMCS strip's Attack on its own",
+    ).toEqual([20.17, 150.2, 218, 20.17, 1000, 4.122]);
   });
 
   it("brings a BALANCE an older scene or settings file does not name back to the centre, and puts back one it names", async () => {
@@ -338,6 +338,29 @@ describe("storing and recalling a scene", () => {
     for (const p of absent) await s.set(p, 7);
     await applySettings(s, file);
     expect(read(), "an older settings file").toEqual([0, 0, 0, 0, 0, 9]);
+  });
+
+  it("puts an SSMCS frequency, Attack or Release an older scene holds off the stops on the stop nearest it", async () => {
+    // CH 1's strip as an earlier version shipped it, with LOW at that version's top and MID on one of its stops.
+    const shell = await mount();
+    const s = shell.ctx.store;
+    const older: [string, number][] = [
+      ["ch.ch1.ssmcs.sc.freq", 89],
+      ["ch.ch1.ssmcs.eq.low.freq", 1002],
+      ["ch.ch1.ssmcs.eq.mid.freq", 946],
+      ["ch.ch1.ssmcs.eq.high.freq", 10024],
+      ["ch.ch1.ssmcs.comp.attack", 4.124],
+      ["ch.ch1.ssmcs.comp.release", 91.6],
+      ["ch.ch1.comp.attack", 4.124],
+    ];
+    for (const [p, v] of older) await s.set(p, v);
+    await s.set("scene.Standard.1.title", "older");
+    await storeScene(shell.ctx, "Standard", 1);
+    await recallScene(shell.ctx, 1);
+    expect(
+      older.map(([p]) => s.num(p, 0)),
+      "the strip's on its stops, and the COMP's own Attack on its own",
+    ).toEqual([90, 1000, 950, 10000, 4.122, 92, 4.122]);
   });
 
   it("stores the mixer when a number is named for the first time", async () => {

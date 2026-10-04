@@ -18,6 +18,7 @@
 import type { AppContext } from "../app/context";
 import type { Route } from "../app/navigator";
 import type { Strip } from "../model/types";
+import type { ParamPath, ParamValue } from "../device/path";
 import { clamp } from "../device/store";
 import { SSMCS_DEFAULTS } from "../model/defaults";
 import { grBarShare, ssmcsCorner } from "../model/dynamics";
@@ -199,8 +200,7 @@ const qSpec = (path: string, label: string, fallback: number): NumericSpec =>
 
 /**
  * A frequency the strip sets, running from the first stop in `range` to the
- * last. A value off the stops, as an older save holds, reads as the stop it
- * turns from.
+ * last. A value off the stops reads as the stop it turns from.
  */
 const hzSpec = (path: string, label: string, fallback: number, range: readonly [number, number] = [20, 20000]): NumericSpec => {
   const stops = FREQ_STOPS.filter((hz) => hz >= range[0] && hz <= range[1]);
@@ -216,7 +216,7 @@ const hzSpec = (path: string, label: string, fallback: number, range: readonly [
 
 /**
  * A time the strip sets, read to the places `places` gives it. A value off the
- * stops, as an older save holds, reads as the stop it turns from.
+ * stops reads as the stop it turns from.
  */
 const timeSpec = (path: string, label: string, stops: readonly number[], fallback: number, places: (ms: number) => number): NumericSpec => {
   const travel = stopsTravel(stops);
@@ -261,6 +261,30 @@ function bandSpecs(b: string, band: (typeof SSMCS_BANDS)[number]): (NumericSpec 
     hzSpec(`${p}.freq`, `${band.label} Freq.`, factory.freq, range),
     gainSpec(`${p}.gain`, `${band.label} Gain`, factory.gain),
   ];
+}
+
+/** A strip's frequencies, Attack and Release, each turned through its own stops. */
+const stoppedSpecs = (b: string): NumericSpec[] => [
+  scFreqSpec(b),
+  ...SSMCS_BANDS.flatMap((band) => bandSpecs(b, band)[1] ?? []),
+  attackSpec(b),
+  releaseSpec(b),
+];
+
+/**
+ * A saved state as it is put back, with each SSMCS frequency, Attack and Release
+ * on the stop nearest the value it holds. A value off the stops comes back on
+ * one, and the next save holds that stop.
+ */
+export function onSsmcsStops(state: Record<ParamPath, ParamValue>): Record<ParamPath, ParamValue> {
+  const out = { ...state };
+  for (const [path, value] of Object.entries(state)) {
+    const at = path.indexOf(".ssmcs.");
+    if (at < 0 || typeof value !== "number") continue;
+    const travel = stoppedSpecs(path.slice(0, at)).find((s) => s.path === path)?.travel;
+    if (travel) out[path] = travel.step(value, 0);
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------- the curves

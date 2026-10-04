@@ -334,7 +334,24 @@ describe("playing a file back", () => {
     action(shell, "Load")?.click();
     await flush();
     await flush();
-    expect(times.map(([p]) => store.num(p, 0)), "each on its nearest stop, and the SSMCS strip's Attack as the file holds it").toEqual([16, 34.58, 1000, 4.124]);
+    expect(times.map(([p]) => store.num(p, 0)), "each on its nearest stop, the SSMCS strip's Attack on its own").toEqual([16, 34.58, 1000, 4.122]);
+  });
+
+  it("puts an SSMCS frequency, Attack or Release an older settings file holds off the stops on the stop nearest it", async () => {
+    // A file saved by an earlier version, with the side chain and Release where that version shipped them.
+    const shell = await mount({ id: "microsd.saveload" }, [{ name: "Recordings", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" }]);
+    const store = shell.ctx.store;
+    await store.set("ch.ch1.ssmcs.sc.freq", 89);
+    await store.set("ch.ch1.ssmcs.comp.release", 91.6);
+    action(shell, "Save as")?.click();
+    await flush();
+    await typeTitle(shell, "older");
+    await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === "older.urxf"));
+    await flush();
+    action(shell, "Load")?.click();
+    await flush();
+    await flush();
+    expect([store.num("ch.ch1.ssmcs.sc.freq", 0), store.num("ch.ch1.ssmcs.comp.release", 0)]).toEqual([90, 92]);
   });
 
   it("stops at the end of the file and lets it go", async () => {
