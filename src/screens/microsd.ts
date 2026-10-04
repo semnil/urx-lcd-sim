@@ -8,7 +8,7 @@
 import type { AppContext } from "../app/context";
 import type { ParamValue } from "../device/path";
 import type { CardEntry } from "../model/card";
-import { CARD_ROOT, TAKE_SUFFIX, changeCard, filePath, folderPath, formatFree, formatRate, freeBytes, parentPath, readCard, sameName, takeRate } from "../model/card";
+import { CARD_ROOT, TAKE_SUFFIX, changeCard, filePath, folderPath, formatFree, formatRate, freeBytes, parentPath, readCard, roomFor, sameName, takeRate } from "../model/card";
 import { clockParts } from "../model/clock";
 import { applySettings, captureSettings } from "../model/settings-file";
 import { onDynamicsTimeStops } from "../model/dynamics-times";
@@ -427,9 +427,11 @@ function newFolder(ctx: AppContext): void {
 /**
  * Write the unit's settings to the card under `name` in the folder that is
  * open: over the settings file at row `at`, or as a new file where `at` is -1.
+ * A new file the card has no room for writes nothing.
  */
 function saveSettings(ctx: AppContext, name: string, at = -1): void {
   const entry: CardEntry = { name, kind: "data", seconds: 0, tracks: 0, written: clockParts(ctx.store), dir: cardPath(ctx) };
+  if (at < 0 && !roomFor(ctx.store, entry)) return;
   void ctx.store.set(filePath(entry), toJson(captureSettings(ctx.store)));
   const entries = cardEntries(ctx);
   updateCard(ctx, at < 0 ? [...entries, entry] : entries.map((e, i) => (i === at ? entry : e)));

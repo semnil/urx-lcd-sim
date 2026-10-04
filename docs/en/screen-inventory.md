@@ -1697,7 +1697,9 @@ back on the unit. Writing over a file that is already there, or a [Save as] unde
 that is open, asks `File already exists. Replace it?` first; loading asks nothing. Under a folder's name, [OK] leaves
 the folder as it is and writes nothing, as the unit does. A [Save as] name that differs from a settings file's in the folder
 that is open in case alone asks nothing and writes over that file, which keeps its name as it was spelt, as the unit does; one
-that differs from a folder's in case alone asks nothing and writes nothing. [Save] and [Load] stand out of reach until a settings file is under the
+that differs from a folder's in case alone asks nothing and writes nothing. On a card with no room for one more settings
+file, a [Save as] under a new name writes nothing and shows nothing, and writing over a settings file there still goes
+through (what the unit does with a full card is in `known-issues.md`). [Save] and [Load] stand out of reach until a settings file is under the
 cursor. A settings file carries every value but the screen's own state (`ui.`, and the tabs OUTPUT
 PATCH, PERIPHERAL and SCENE LIST's Standard / Simple stand on) and the card itself (`sd.`), so a load
 leaves those tabs where they stand, as on the unit (URX44V, the operator, 2026-10-04). SCENE LIST's

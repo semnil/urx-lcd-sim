@@ -43,7 +43,7 @@ is built is in [screen-inventory.md](screen-inventory.md).
   computation is is not known, so this simulator leaves those values where they are. It does not draw
   them unusable either — the unit lets the operator turn them after it has computed them. The values
   under `01 Basic` are the ones it knows, and those are what it ships with.
-- **The microSD card going in and out, how long a name on it runs, and recording onto it when it is full.**
+- **The microSD card going in and out, how long a name on it runs, and recording and saving onto it when it is full.**
   The card goes in and out on the screen. The eject button asks the unit's question, and its [OK] brings up the
   unit's `Now you may safely remove the microSD card.`. On
   the unit that dialog closes by itself after a few seconds and [OK] does nothing, since the unit
@@ -59,6 +59,9 @@ is built is in [screen-inventory.md](screen-inventory.md).
   [●] is pressed on a card with no room left, has not been tried on the unit. This simulator stops the take, saying
   nothing, at the moment it fills what the card has left, and leaves it on the card within that room. With no room
   for a second of take at the recorder's [Track Count] and frequency, [●] does nothing.
+  What the unit does on [Save as] under a new name onto a card with no room for a settings file, and on writing over
+  a settings file there, has not been tried on the unit either. This simulator writes no new settings file, saying
+  nothing, and writes over a settings file already on the card.
 - **COMP's 1-knob only takes the rows too.** While it is on the unit recomputes Threshold, Ratio,
   Gain and Knee from the Level. What that computation is is not known, so this simulator leaves the
   other rows out of reach, as the unit does, and moves no value.

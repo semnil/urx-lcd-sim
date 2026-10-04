@@ -6,7 +6,7 @@ import type { Route } from "../app/navigator";
 import { clockParts, setClock } from "../model/clock";
 import { factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
-import { freeBytes, readCard, writeCard } from "../model/card";
+import { entryBytes, freeBytes, readCard, writeCard } from "../model/card";
 import type { CardEntry } from "../model/card";
 import { buildRegistry } from "./index";
 import { restore } from "../app/persist";
@@ -1200,6 +1200,43 @@ describe("what the card's own actions do to it", () => {
       { name: "huge.wav", kind: "take", seconds: 10_000_000, tracks: 16, stamp: "", dir: "/" },
     ]);
     expect(freeBytes(shell.ctx.store)).toBe(0);
+  });
+
+  it("writes no new settings file onto a card without room for one, and writes over a settings file there with no room left", async () => {
+    const shell = await mount({ id: "microsd.saveload" }, [{ name: "old.urxf", kind: "data", seconds: 0, tracks: 0, stamp: "", dir: "/" }]);
+    const store = shell.ctx.store;
+    const size = entryBytes({ name: "x.urxf", kind: "data", seconds: 0, tracks: 0, dir: "/" });
+    const used = (): number => readCard(store).reduce((sum, e) => sum + entryBytes(e), 0);
+    const leave = async (free: number): Promise<void> => {
+      await store.set("sd.capacity", used() + free);
+      await flush();
+    };
+    const saveAs = async (free: number, name: string): Promise<[string[], boolean, number]> => {
+      await leave(free);
+      action(shell, "Save as")?.click();
+      await flush();
+      await typeTitle(shell, name);
+      return [names(shell), store.has(`sd.file./${name}.urxf`), freeBytes(store)];
+    };
+    expect(await saveAs(size - 1, "short"), "a byte short of a file").toEqual([["old.urxf"], false, size - 1]);
+    expect(await saveAs(0, "full"), "nothing free").toEqual([["old.urxf"], false, 0]);
+    expect(await saveAs(size, "just"), "the control: room for a file to the byte").toEqual([["just.urxf", "old.urxf"], true, 0]);
+    expect(await saveAs(size + 1, "more"), "a byte over").toEqual([["just.urxf", "more.urxf", "old.urxf"], true, 1]);
+
+    await leave(0);
+    const held = (): string => store.str("sd.file./old.urxf", "");
+    const before = held();
+    await store.set("ch.ch1.level", -7);
+    await store.set("sd.selectedFile", 2);
+    await flush();
+    action(shell, "Save")?.click();
+    await flush();
+    await okDialog(shell);
+    expect([names(shell), held() !== before, freeBytes(store)], "[Save] over a settings file on a full card").toEqual([["just.urxf", "more.urxf", "old.urxf"], true, 0]);
+    const saved = held();
+    await store.set("ch.ch1.level", -9);
+    await saveAs(0, "OLD");
+    expect([names(shell), held() !== saved, freeBytes(store)], "[Save as] over it in other case").toEqual([["just.urxf", "more.urxf", "old.urxf"], true, 0]);
   });
 
   it("leaves Save and Load out of reach until a settings file is under the cursor", async () => {
