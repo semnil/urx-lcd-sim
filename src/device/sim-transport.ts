@@ -23,17 +23,18 @@ export class SimTransport implements DeviceTransport {
     return Promise.resolve(new Map(this.values));
   }
 
-  write(path: ParamPath, value: ParamValue): Promise<void> {
+  write(path: ParamPath, value: ParamValue, onSent?: () => void): Promise<ParamValue> {
     if (this.closed) return Promise.reject(new Error("transport closed"));
+    onSent?.();
     this.values.set(path, value);
     this.emit({ path, value, echo: true });
-    return Promise.resolve();
+    return Promise.resolve(value);
   }
 
   /**
    * A change made on the device itself: a scene recall, an automatic level
-   * adjustment finishing, a physical knob being turned. Not an echo, so the
-   * store adopts it even while the operator is holding another control.
+   * adjustment finishing, a physical knob being turned. Not an echo; the store
+   * adopts it even while the operator is holding another control.
    */
   inject(path: ParamPath, value: ParamValue): void {
     if (this.closed) return;

@@ -33,6 +33,8 @@ export interface DeviceLink {
 **It starts empty**, and filling it is the responsibility of whoever supplies a validated catalog.
 Calling `BridgeTransport.write()` while it is empty throws `UnboundPathError`. There is no path by
 which a guessed address is written to the unit.
+A value whose encoding is not a finite number (an enumeration's tag given to `identityCodec`, say) is
+refused as well, without being sent to the unit.
 
 A catalog may carry only addresses and encodings confirmed against the unit one parameter at a time.
 This repository ships no catalog.
@@ -41,7 +43,16 @@ This repository ships no catalog.
 
 `BridgeTransport.snapshot()` subscribes to every bound address. Changes made on the unit's LCD or
 physical knobs arrive as notifies and are reflected on the simulator's screen. It is a mirror, not a
-one-way remote control.
+one-way remote control. It subscribes before it reads, so `DeviceStore` also takes a change made on
+the unit while the values are read, after the values themselves. A string address (a channel name,
+say) is read again with `getStr` on each of its notifies, and the string read is what arrives.
+
+Writes to one address go to `DeviceLink` one at a time, each once the link has answered the one
+before it, so they reach the unit, and come back, in the order they were issued. A write the link
+never answers holds up every later write to its address. A read a string address's notify starts
+goes out once the writes to the address issued before it are answered, and no write waits for it:
+a write to a string address drops a read of it not yet answered, and reads the address again when
+the unit refuses the write.
 
 A notify that is our own written value coming back is marked `echo: true`
 ("flags the notify that is our own write coming back" in `src/device/bridge-transport.test.ts`).
@@ -59,11 +70,11 @@ sequenceDiagram
   App->>Bridge: new BridgeTransport(link, bindings)
   App->>Store: attach(bridge)
   Store->>Bridge: snapshot()
+  Bridge->>DevLink: subscribe(every bound address)
   Bridge->>DevLink: get(addr) x bound count
   DevLink->>Unit: read
   Unit-->>DevLink: value
   DevLink-->>Bridge: value
-  Bridge->>DevLink: subscribe(every bound address)
   Bridge-->>Store: Map<path, value>
   Note over App,Unit: two-way from here on
   App->>Store: set(path, value)
@@ -86,8 +97,15 @@ sequenceDiagram
    number reads as silence, and one over 0 dB, +Infinity included, as a clip at 0 dB. Until one is
    passed, the simulator's internal synthetic signal is shown.
 
-The `chrome-link` indicator in `src/main.ts` reads `store.kind`, so the connection state shows at the
-top of the screen as it is.
+The `chrome-link` indicator at the top of the screen (`src/ui/link-indicator.ts`) reads `store.kind`
+again on every change to the store, so the connection state shows as it is, also when the
+`BridgeTransport` is passed to `store.attach()` after the simulator has started.
+
+While the store is on a unit (`store.kind` is `bridge`), nothing the browser kept ("What survives a
+reload" in [architecture.md](architecture.md)) is written to the unit. `restore()` does nothing, and
+`startSaving()` writes the mirror to `localStorage` under `urx-lcd-sim.bridge.state` rather than to the
+IndexedDB record that holds the simulator. The simulated unit stored there, its scenes, card and settings
+files included, stays as it was stored.
 
 ## Running partly unbound
 

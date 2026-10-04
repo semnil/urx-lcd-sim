@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { BindingTable, boolCodec, identityCodec, scaledCodec } from "./binding";
 import { BridgeTransport, UnboundPathError, type DeviceLink } from "./bridge-transport";
+import { DeviceStore } from "./store";
+import { applyScene } from "../model/scene-state";
+import { applySettings } from "../model/settings-file";
+
+const tick = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
 /** What the stand-in unit holds before the test starts, and the addresses that do not answer a read. */
 interface FakeUnit {
@@ -51,6 +56,235 @@ function fakeBridge(unit: FakeUnit = {}): DeviceLink & {
   };
 }
 
+/** A unit that keeps a written value within [0, max] and announces what it kept before it answers the write. */
+function clampingUnit(max: number): DeviceLink & { held: Map<string, number> } {
+  const held = new Map<string, number>();
+  let handler: ((addr: string, raw: number) => void) | null = null;
+  return {
+    held,
+    get: (addr) => Promise.resolve(held.get(addr) ?? 0),
+    set: (addr, value) => {
+      const kept = Math.max(0, Math.min(value, max));
+      held.set(addr, kept);
+      handler?.(addr, kept);
+      return Promise.resolve();
+    },
+    getStr: () => Promise.resolve(""),
+    setStr: () => Promise.resolve(),
+    subscribe: (_addrs, onUpdate) => {
+      handler = onUpdate;
+      return Promise.resolve(() => {
+        handler = null;
+      });
+    },
+  };
+}
+
+/**
+ * A unit whose writes wait until the test takes or refuses each one, keeping a
+ * taken value within [0, max], and that announces a raw value when the test says.
+ * With `announces`, it also announces each value it takes before it answers.
+ */
+function answeringUnit(
+  max: number,
+  announces = false,
+): DeviceLink & {
+  held: Map<string, number>;
+  answers: { take: () => void; refuse: () => void }[];
+  announce: (addr: string, raw: number) => void;
+} {
+  const held = new Map<string, number>();
+  const answers: { take: () => void; refuse: () => void }[] = [];
+  let handler: ((addr: string, raw: number) => void) | null = null;
+  return {
+    held,
+    answers,
+    announce: (addr, raw) => handler?.(addr, raw),
+    get: (addr) => Promise.resolve(held.get(addr) ?? 0),
+    set: (addr, value) =>
+      new Promise<void>((resolve, reject) => {
+        answers.push({
+          take: () => {
+            const kept = Math.max(0, Math.min(value, max));
+            held.set(addr, kept);
+            if (announces) handler?.(addr, kept);
+            resolve();
+          },
+          refuse: () => reject(new Error("unit said no")),
+        });
+      }),
+    getStr: () => Promise.resolve(""),
+    setStr: () => Promise.resolve(),
+    subscribe: (_addrs, onUpdate) => {
+      handler = onUpdate;
+      return Promise.resolve(() => {
+        handler = null;
+      });
+    },
+  };
+}
+
+/** A unit that keeps every subscription made on it open until that subscription's unsubscribe is called. */
+function subscribingUnit(): DeviceLink & { subscribes: () => number; open: Set<(addr: string, raw: number) => void> } {
+  const open = new Set<(addr: string, raw: number) => void>();
+  let subscribes = 0;
+  return {
+    ...fakeBridge(),
+    subscribes: () => subscribes,
+    open,
+    subscribe: (_addrs, onUpdate) => {
+      subscribes++;
+      open.add(onUpdate);
+      return Promise.resolve(() => {
+        open.delete(onUpdate);
+      });
+    },
+  };
+}
+
+/** A transport bound to ch.ch1.level on a `subscribingUnit`, whose reads wait until the test answers or refuses each one. */
+function levelReadOnAnswer(): {
+  unit: ReturnType<typeof subscribingUnit>;
+  transport: BridgeTransport;
+  reads: { answer: (raw: number) => void; refuse: () => void }[];
+} {
+  const unit = subscribingUnit();
+  const reads: { answer: (raw: number) => void; refuse: () => void }[] = [];
+  const link: DeviceLink = {
+    ...unit,
+    get: () => new Promise<number>((resolve, reject) => reads.push({ answer: resolve, refuse: () => reject(new Error("read failed")) })),
+  };
+  const bindings = new BindingTable();
+  bindings.bind("ch.ch1.level", { addr: "level-addr", codec: identityCodec });
+  return { unit, transport: new BridgeTransport(link, bindings), reads };
+}
+
+/** A transport following ch.ch1.name, whose reads of the name after the snapshot wait until the test answers each one. */
+async function nameReadAgainOnAnswer(): Promise<{
+  bridge: ReturnType<typeof fakeBridge>;
+  transport: BridgeTransport;
+  answers: ((value: string) => void)[];
+}> {
+  const bridge = fakeBridge();
+  const answers: ((value: string) => void)[] = [];
+  let reads = 0;
+  const link: DeviceLink = {
+    ...bridge,
+    getStr: (addr) => (++reads > 1 ? new Promise<string>((resolve) => answers.push(resolve)) : bridge.getStr(addr)),
+  };
+  const bindings = new BindingTable();
+  bindings.bind("ch.ch1.name", { addr: "name-addr", codec: identityCodec, isString: true });
+  const transport = new BridgeTransport(link, bindings);
+  await transport.snapshot();
+  return { bridge, transport, answers };
+}
+
+/** A store on a unit that clamps and announces, with ch.ch1.gain stored in tenths of a dB. */
+async function storeOnClampingUnit(): Promise<{ store: DeviceStore; unit: ReturnType<typeof clampingUnit> }> {
+  const unit = clampingUnit(100);
+  const bindings = new BindingTable();
+  bindings.bind("ch.ch1.gain", { addr: "gain-addr", codec: scaledCodec(10) });
+  const store = new DeviceStore();
+  await store.attach(new BridgeTransport(unit, bindings));
+  return { store, unit };
+}
+
+/** A store on an `answeringUnit` that keeps up to 100, with ch.ch1.gain stored in tenths of a dB. */
+async function storeOnAnsweringUnit(announces = false): Promise<{ store: DeviceStore; unit: ReturnType<typeof answeringUnit> }> {
+  const unit = answeringUnit(100, announces);
+  const bindings = new BindingTable();
+  bindings.bind("ch.ch1.gain", { addr: "gain-addr", codec: scaledCodec(10) });
+  const store = new DeviceStore();
+  await store.attach(new BridgeTransport(unit, bindings));
+  return { store, unit };
+}
+
+/** A store on an `answeringUnit` that keeps up to 100, with ch.ch1.level and ch.ch2.level carried as they are. */
+async function storeOnTwoLevels(): Promise<{ store: DeviceStore; unit: ReturnType<typeof answeringUnit> }> {
+  const unit = answeringUnit(100);
+  const bindings = new BindingTable();
+  bindings.bind("ch.ch1.level", { addr: "level1-addr", codec: identityCodec });
+  bindings.bind("ch.ch2.level", { addr: "level2-addr", codec: identityCodec });
+  const store = new DeviceStore();
+  await store.attach(new BridgeTransport(unit, bindings));
+  return { store, unit };
+}
+
+/**
+ * A unit holding one name at "name-addr". A read answers with the name the
+ * unit held when it was asked, once the test answers it; a write waits until
+ * the test takes or refuses it. `rename` changes the name on the unit's own
+ * panel and announces it.
+ */
+function nameUnit(initial: string): DeviceLink & {
+  name: () => string;
+  reads: (() => void)[];
+  writes: { take: () => void; refuse: () => void }[];
+  rename: (name: string) => void;
+} {
+  let held = initial;
+  const reads: (() => void)[] = [];
+  const writes: { take: () => void; refuse: () => void }[] = [];
+  let handler: ((addr: string, raw: number) => void) | null = null;
+  return {
+    name: () => held,
+    reads,
+    writes,
+    rename: (name) => {
+      held = name;
+      handler?.("name-addr", 1);
+    },
+    get: () => Promise.resolve(0),
+    set: () => Promise.resolve(),
+    getStr: () => {
+      const asked = held;
+      return new Promise<string>((resolve) => reads.push(() => resolve(asked)));
+    },
+    setStr: (_addr, value) =>
+      new Promise<void>((resolve, reject) => {
+        writes.push({
+          take: () => {
+            held = value;
+            resolve();
+          },
+          refuse: () => reject(new Error("unit said no")),
+        });
+      }),
+    subscribe: (_addrs, onUpdate) => {
+      handler = onUpdate;
+      return Promise.resolve(() => {
+        handler = null;
+      });
+    },
+  };
+}
+
+/** A transport following ch.ch1.name on a `nameUnit` holding `initial`, its snapshot read answered. */
+async function nameTransport(initial: string): Promise<{ unit: ReturnType<typeof nameUnit>; transport: BridgeTransport }> {
+  const unit = nameUnit(initial);
+  const bindings = new BindingTable();
+  bindings.bind("ch.ch1.name", { addr: "name-addr", codec: identityCodec, isString: true });
+  const transport = new BridgeTransport(unit, bindings);
+  const snapshot = transport.snapshot();
+  await tick();
+  unit.reads.shift()!();
+  await snapshot;
+  return { unit, transport };
+}
+
+/** A store on a `nameUnit` holding `initial` as ch.ch1.name, its snapshot read answered. */
+async function storeOnNameUnit(initial: string): Promise<{ store: DeviceStore; unit: ReturnType<typeof nameUnit> }> {
+  const unit = nameUnit(initial);
+  const bindings = new BindingTable();
+  bindings.bind("ch.ch1.name", { addr: "name-addr", codec: identityCodec, isString: true });
+  const store = new DeviceStore();
+  const attach = store.attach(new BridgeTransport(unit, bindings));
+  await tick();
+  unit.reads.shift()!();
+  await attach;
+  return { store, unit };
+}
+
 describe("BridgeTransport", () => {
   it("refuses a path with no validated address rather than guessing one", async () => {
     const bridge = fakeBridge();
@@ -71,6 +305,73 @@ describe("BridgeTransport", () => {
     expect(bridge.writes).toEqual([["level-addr", -650]]);
   });
 
+  it("refuses a value its codec does not turn into a number, sending nothing", async () => {
+    const bridge = fakeBridge();
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.signalType", { addr: "type-addr", codec: identityCodec });
+    const transport = new BridgeTransport(bridge, bindings);
+
+    await expect(transport.write("ch.ch1.signalType", "STEREO")).rejects.toThrow();
+    expect(bridge.writes).toEqual([]);
+  });
+
+  it("refuses an infinite value its codec passes on as it is, sending nothing", async () => {
+    const bridge = fakeBridge();
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.comp.ratio", { addr: "ratio-addr", codec: identityCodec });
+    const transport = new BridgeTransport(bridge, bindings);
+
+    await expect(transport.write("ch.ch1.comp.ratio", Number.POSITIVE_INFINITY)).rejects.toThrow();
+    expect(bridge.writes).toEqual([]);
+  });
+
+  it("puts back a value its codec does not turn into a number and reports the refusal", async () => {
+    const bridge = fakeBridge();
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.signalType", { addr: "type-addr", codec: identityCodec });
+    const store = new DeviceStore();
+    await store.attach(new BridgeTransport(bridge, bindings));
+    const failures: [unknown, unknown][] = [];
+    store.onWriteFailure((f) => failures.push([f.attempted, f.restored]));
+
+    await store.set("ch.ch1.signalType", "STEREO");
+
+    expect(store.get("ch.ch1.signalType", "unset")).toBe(0);
+    expect(failures).toEqual([["STEREO", 0]]);
+  });
+
+  it("keeps the echo of an earlier write when a later value cannot be encoded", async () => {
+    const answers: (() => void)[] = [];
+    const link: DeviceLink = {
+      ...fakeBridge(),
+      set: () => new Promise<void>((resolve) => answers.push(resolve)),
+    };
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.signalType", { addr: "type-addr", codec: identityCodec });
+    const transport = new BridgeTransport(link, bindings);
+    await transport.snapshot();
+    const seen: unknown[] = [];
+    transport.onNotify((n) => seen.push(n.value));
+
+    const first = transport.write("ch.ch1.signalType", 1);
+    await expect(transport.write("ch.ch1.signalType", "STEREO")).rejects.toThrow();
+    answers[0]!();
+    await first;
+
+    expect(seen).toEqual([1]);
+  });
+
+  it("refuses a write after close, sending nothing", async () => {
+    const bridge = fakeBridge();
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.level", { addr: "level-addr", codec: identityCodec });
+    const transport = new BridgeTransport(bridge, bindings);
+    transport.close();
+
+    await expect(transport.write("ch.ch1.level", -3)).rejects.toThrow("transport closed");
+    expect(bridge.writes).toEqual([]);
+  });
+
   it("decodes a device notify back onto its path", async () => {
     const bridge = fakeBridge();
     const bindings = new BindingTable();
@@ -83,6 +384,69 @@ describe("BridgeTransport", () => {
     bridge.fire("on-addr", 0);
 
     expect(seen).toEqual([{ path: "ch.ch1.on", value: false, echo: false }]);
+  });
+
+  it("reads a string address again when the unit announces a change to it", async () => {
+    const bridge = fakeBridge();
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.name", { addr: "name-addr", codec: identityCodec, isString: true });
+    const transport = new BridgeTransport(bridge, bindings);
+    await transport.snapshot();
+    await bridge.setStr("name-addr", "Guitar");
+
+    const seen: { path: string; value: unknown; echo: boolean }[] = [];
+    transport.onNotify((n) => seen.push(n));
+    bridge.fire("name-addr", 1);
+    await tick();
+
+    expect(seen).toEqual([{ path: "ch.ch1.name", value: "Guitar", echo: false }]);
+  });
+
+  it("passes nothing on for a string address it cannot read again", async () => {
+    const bridge = fakeBridge();
+    let reads = 0;
+    const link: DeviceLink = {
+      ...bridge,
+      getStr: (addr) => (++reads > 1 ? Promise.reject(new Error("read failed")) : bridge.getStr(addr)),
+    };
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.name", { addr: "name-addr", codec: identityCodec, isString: true });
+    const transport = new BridgeTransport(link, bindings);
+    await transport.snapshot();
+
+    const seen: unknown[] = [];
+    transport.onNotify((n) => seen.push(n.value));
+    bridge.fire("name-addr", 1);
+    await tick();
+
+    expect(seen).toEqual([]);
+  });
+
+  it("passes on the newest read of a string address when reads answer out of order", async () => {
+    const { bridge, transport, answers } = await nameReadAgainOnAnswer();
+
+    const seen: unknown[] = [];
+    transport.onNotify((n) => seen.push(n.value));
+    bridge.fire("name-addr", 1);
+    bridge.fire("name-addr", 1);
+    answers[1]!("Guitar");
+    answers[0]!("Vocal");
+    await tick();
+
+    expect(seen).toEqual(["Guitar"]);
+  });
+
+  it("sends nothing for a read of a string address that answers after close", async () => {
+    const { bridge, transport, answers } = await nameReadAgainOnAnswer();
+
+    bridge.fire("name-addr", 1);
+    transport.close();
+    const seen: unknown[] = [];
+    transport.onNotify((n) => seen.push(n.value));
+    answers[0]!("Guitar");
+    await tick();
+
+    expect(seen).toEqual([]);
   });
 
   it("flags the notify that is our own write coming back", async () => {
@@ -100,6 +464,453 @@ describe("BridgeTransport", () => {
 
     expect(seen).toEqual([true, true, false]);
   });
+
+  it("leaves what the unit clamped a write to on screen when the unit announces it before answering", async () => {
+    const { store, unit } = await storeOnClampingUnit();
+
+    await store.set("ch.ch1.gain", 15);
+
+    expect(unit.held.get("gain-addr")).toBe(100);
+    expect(store.num("ch.ch1.gain")).toBe(10);
+  });
+
+  it("leaves what the unit rounded a write to on screen when the unit announces it before answering", async () => {
+    const { store, unit } = await storeOnClampingUnit();
+
+    await store.set("ch.ch1.gain", 1.25);
+
+    expect(unit.held.get("gain-addr")).toBe(13);
+    expect(store.num("ch.ch1.gain")).toBe(1.3);
+  });
+
+  it("echoes a write as encoded for the unit when the unit announces nothing", async () => {
+    const bridge = fakeBridge();
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.gain", { addr: "gain-addr", codec: scaledCodec(10) });
+    const store = new DeviceStore();
+    await store.attach(new BridgeTransport(bridge, bindings));
+
+    await store.set("ch.ch1.gain", 1.25);
+
+    expect(bridge.writes).toEqual([["gain-addr", 13]]);
+    expect(store.num("ch.ch1.gain")).toBe(1.3);
+  });
+
+  it("goes back to what the unit clamped a write to when a later write is refused", async () => {
+    const { store, unit } = await storeOnAnsweringUnit();
+
+    const first = store.set("ch.ch1.gain", 15);
+    unit.announce("gain-addr", 100);
+    const second = store.set("ch.ch1.gain", 3);
+    unit.answers[0]!.take();
+    await first;
+    unit.answers[1]!.refuse();
+    await second;
+
+    expect([unit.held.get("gain-addr"), store.num("ch.ch1.gain")]).toEqual([100, 10]);
+  });
+
+  it("goes back to what the unit rounded a write to when a later write is refused", async () => {
+    const { store, unit } = await storeOnAnsweringUnit();
+
+    const first = store.set("ch.ch1.gain", 1.25);
+    const second = store.set("ch.ch1.gain", 3);
+    unit.answers[0]!.take();
+    await first;
+    unit.answers[1]!.refuse();
+    await second;
+
+    expect([unit.held.get("gain-addr"), store.num("ch.ch1.gain")]).toEqual([13, 1.3]);
+  });
+
+  it("resolves a write with what the unit holds of it", async () => {
+    const bridge = fakeBridge();
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.gain", { addr: "gain-addr", codec: scaledCodec(10) });
+    bindings.bind("ch.ch1.name", { addr: "name-addr", codec: identityCodec, isString: true });
+    const transport = new BridgeTransport(bridge, bindings);
+
+    const held = [await transport.write("ch.ch1.gain", 1.25), await transport.write("ch.ch1.name", "Guitar")];
+
+    expect(held).toEqual([1.3, "Guitar"]);
+  });
+
+  it("sends no echo for a write a later write has overtaken", async () => {
+    const answers: (() => void)[] = [];
+    const link: DeviceLink = {
+      ...fakeBridge(),
+      set: () => new Promise<void>((resolve) => answers.push(resolve)),
+    };
+    const bindings = new BindingTable();
+    bindings.bind("setup.brightness", { addr: "brightness-addr", codec: identityCodec });
+    const transport = new BridgeTransport(link, bindings);
+    await transport.snapshot();
+    const seen: [unknown, boolean][] = [];
+    transport.onNotify((n) => seen.push([n.value, n.echo]));
+
+    const first = transport.write("setup.brightness", 7);
+    const second = transport.write("setup.brightness", 3);
+    answers[0]!();
+    await first;
+    answers[1]!();
+    await second;
+
+    expect(seen).toEqual([[3, true]]);
+  });
+
+  it("sends no echo for a string write a later write has overtaken", async () => {
+    const answers: (() => void)[] = [];
+    const link: DeviceLink = {
+      ...fakeBridge(),
+      setStr: () => new Promise<void>((resolve) => answers.push(resolve)),
+    };
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.name", { addr: "name-addr", codec: identityCodec, isString: true });
+    const transport = new BridgeTransport(link, bindings);
+    await transport.snapshot();
+    const seen: [unknown, boolean][] = [];
+    transport.onNotify((n) => seen.push([n.value, n.echo]));
+
+    const first = transport.write("ch.ch1.name", "Guitar");
+    const second = transport.write("ch.ch1.name", "Bass");
+    answers[0]!();
+    await first;
+    answers[1]!();
+    await second;
+
+    expect(seen).toEqual([["Bass", true]]);
+  });
+
+  it("sends no echo for a string write when the unit announces a change to the address before answering it", async () => {
+    const bridge = fakeBridge();
+    const answers: (() => void)[] = [];
+    const link: DeviceLink = {
+      ...bridge,
+      setStr: () => new Promise<void>((resolve) => answers.push(resolve)),
+    };
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.name", { addr: "name-addr", codec: identityCodec, isString: true });
+    const transport = new BridgeTransport(link, bindings);
+    await transport.snapshot();
+    const seen: [unknown, boolean][] = [];
+    transport.onNotify((n) => seen.push([n.value, n.echo]));
+
+    const write = transport.write("ch.ch1.name", "Guitar");
+    // The name is changed to Drums on the unit's own panel.
+    await bridge.setStr("name-addr", "Drums");
+    bridge.fire("name-addr", 1);
+    await tick();
+    answers[0]!();
+    await write;
+    // The read the notify started goes out once the write is answered.
+    await tick();
+
+    expect(seen).toEqual([["Drums", false]]);
+  });
+
+  it("sends a write to an address only once the unit has answered the write before it", async () => {
+    const { store, unit } = await storeOnAnsweringUnit();
+
+    const first = store.set("ch.ch1.gain", 4);
+    const second = store.set("ch.ch1.gain", 7);
+    await tick();
+    expect(unit.answers, "while the first write awaits the unit").toHaveLength(1);
+    unit.answers[0]!.take();
+    await first;
+    await tick();
+    unit.answers[1]!.take();
+    await second;
+
+    expect([unit.held.get("gain-addr"), store.num("ch.ch1.gain")]).toEqual([70, 7]);
+  });
+
+  it("sends a write at once when nothing on its address awaits the unit", async () => {
+    const { store, unit } = await storeOnAnsweringUnit();
+    const first = store.set("ch.ch1.gain", 4);
+    unit.answers[0]!.take();
+    await first;
+    await tick();
+
+    void store.set("ch.ch1.gain", 7);
+
+    expect(unit.answers).toHaveLength(2);
+  });
+
+  for (const announces of [false, true]) {
+    for (const answers of [
+      ["take", "take"],
+      ["take", "refuse"],
+      ["refuse", "take"],
+      ["refuse", "refuse"],
+    ] as const) {
+      it(`shows what the unit holds after it ${answers[0]}s and ${answers[1]}s two writes to an address${announces ? ", announcing what it takes" : ""}`, async () => {
+        const { store, unit } = await storeOnAnsweringUnit(announces);
+
+        const writes = [store.set("ch.ch1.gain", 4), store.set("ch.ch1.gain", 7)];
+        for (const [i, answer] of answers.entries()) {
+          await tick();
+          unit.answers[i]![answer]();
+          await writes[i];
+        }
+        await tick();
+
+        expect(store.num("ch.ch1.gain")).toBe((unit.held.get("gain-addr") ?? 0) / 10);
+      });
+    }
+  }
+
+  it("shows a write that waited its turn when the unit announces a change made before the write went out", async () => {
+    const { store, unit } = await storeOnAnsweringUnit();
+
+    const first = store.set("ch.ch1.gain", 4);
+    const second = store.set("ch.ch1.gain", 7);
+    // Gain is turned to 9 dB on the unit's own panel while the first write awaits it.
+    unit.held.set("gain-addr", 90);
+    unit.announce("gain-addr", 90);
+    unit.answers[0]!.take();
+    await first;
+    await tick();
+    unit.answers[1]!.take();
+    await second;
+
+    expect([unit.held.get("gain-addr"), store.num("ch.ch1.gain")]).toEqual([70, 7]);
+  });
+
+  it("echoes a write that waited its turn when the unit announced a change before the write went out", async () => {
+    const unit = answeringUnit(100);
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.gain", { addr: "gain-addr", codec: scaledCodec(10) });
+    const transport = new BridgeTransport(unit, bindings);
+    await transport.snapshot();
+    const seen: [unknown, boolean][] = [];
+    transport.onNotify((n) => seen.push([n.value, n.echo]));
+
+    const first = transport.write("ch.ch1.gain", 4);
+    const second = transport.write("ch.ch1.gain", 7);
+    unit.announce("gain-addr", 90);
+    unit.answers[0]!.take();
+    await first;
+    await tick();
+    unit.answers[1]!.take();
+    await second;
+
+    expect(seen).toEqual([
+      [9, false],
+      [7, true],
+    ]);
+  });
+
+  it("refuses a write still waiting its turn when the transport is closed, sending it nothing", async () => {
+    const unit = answeringUnit(100);
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.gain", { addr: "gain-addr", codec: scaledCodec(10) });
+    const transport = new BridgeTransport(unit, bindings);
+    await transport.snapshot();
+
+    const first = transport.write("ch.ch1.gain", 4);
+    const second = transport.write("ch.ch1.gain", 7).then(
+      () => "taken",
+      (error: Error) => error.message,
+    );
+    transport.close();
+    expect(unit.answers, "while the first write awaits the unit").toHaveLength(1);
+    unit.answers[0]!.take();
+    await first;
+
+    expect([await second, unit.answers.length, unit.held.get("gain-addr")]).toEqual(["transport closed", 1, 40]);
+  });
+
+  for (const edited of [7, 9]) {
+    for (const answers of [
+      ["take", "take"],
+      ["take", "refuse"],
+      ["refuse", "take"],
+      ["refuse", "refuse"],
+    ] as const) {
+      it(`ends a scene recall over a write of ${edited === 7 ? "the same value" : "another value"} with what the unit holds when it ${answers[0]}s the write and ${answers[1]}s the recall's`, async () => {
+        const { store, unit } = await storeOnTwoLevels();
+
+        const write = store.set("ch.ch1.level", edited);
+        const recall = applyScene(store, { "ch.ch1.level": 7, "ch.ch2.level": 3 });
+        await tick();
+        unit.answers[0]![answers[0]]();
+        await write;
+        await tick();
+        unit.answers[1]![answers[1]]();
+        await tick();
+        unit.answers[2]!.take();
+        await recall;
+
+        expect([store.num("ch.ch1.level"), store.num("ch.ch2.level")]).toEqual([
+          unit.held.get("level1-addr") ?? 0,
+          unit.held.get("level2-addr") ?? 0,
+        ]);
+      });
+    }
+  }
+
+  for (const read of ["before", "after"] as const) {
+    it(`sends a name written from the screen while the read a notify started awaits the unit, and keeps it over that read answered ${read} the write`, async () => {
+      const { store, unit } = await storeOnNameUnit("Vocal");
+      const shown: string[] = [];
+      store.onChange(() => shown.push(store.str("ch.ch1.name")));
+
+      unit.rename("Old");
+      const write = store.set("ch.ch1.name", "New");
+      await tick();
+      expect(unit.writes, "while the read awaits the unit").toHaveLength(1);
+      if (read === "before") unit.reads[0]!();
+      await tick();
+      unit.writes[0]!.take();
+      await write;
+      if (read === "after") unit.reads[0]!();
+      await tick();
+
+      expect({ unit: unit.name(), screen: store.str("ch.ch1.name"), shown }).toEqual({ unit: "New", screen: "New", shown: ["New"] });
+    });
+  }
+
+  it("reads a name again when the unit refuses a name written from the screen over the read a notify started", async () => {
+    const { store, unit } = await storeOnNameUnit("Vocal");
+
+    unit.rename("Old");
+    const write = store.set("ch.ch1.name", "New");
+    await tick();
+    unit.reads[0]!();
+    await tick();
+    unit.writes[0]!.refuse();
+    await write;
+    await tick();
+    unit.reads[1]?.();
+    await tick();
+
+    expect([unit.name(), store.str("ch.ch1.name")]).toEqual(["Old", "Old"]);
+  });
+
+  for (const renamed of ["before", "after"] as const) {
+    it(`shows the name the unit holds when it is renamed on the unit ${renamed} the unit takes a name written from the screen`, async () => {
+      const { store, unit } = await storeOnNameUnit("Vocal");
+
+      unit.rename("Old");
+      const write = store.set("ch.ch1.name", "New");
+      await tick();
+      unit.reads[0]!();
+      await tick();
+      if (renamed === "before") unit.rename("Panel");
+      unit.writes[0]!.take();
+      await write;
+      if (renamed === "after") unit.rename("Panel");
+      await tick();
+      unit.reads[1]!();
+      await tick();
+
+      expect(store.str("ch.ch1.name")).toBe(unit.name());
+    });
+  }
+
+  it("reads nothing for a notify waiting on a name written from the screen when the transport is closed", async () => {
+    const { unit, transport } = await nameTransport("Vocal");
+
+    const write = transport.write("ch.ch1.name", "New");
+    unit.rename("Panel");
+    transport.close();
+    unit.writes[0]!.take();
+    await write;
+    await tick();
+
+    expect(unit.reads).toHaveLength(0);
+  });
+
+  it("calls onSent as each write goes out, once the write before it is answered", async () => {
+    const unit = answeringUnit(100);
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.gain", { addr: "gain-addr", codec: scaledCodec(10) });
+    const transport = new BridgeTransport(unit, bindings);
+    await transport.snapshot();
+    const sent: number[] = [];
+
+    const first = transport.write("ch.ch1.gain", 4, () => sent.push(unit.answers.length));
+    const second = transport.write("ch.ch1.gain", 7, () => sent.push(unit.answers.length));
+    expect([...sent], "while the first write awaits the unit").toEqual([0]);
+    unit.answers[0]!.take();
+    await first;
+    await tick();
+    unit.answers[1]!.take();
+    await second;
+
+    expect(sent).toEqual([0, 1]);
+  });
+
+  it("calls onSent as each name write goes out, once the write before it is answered", async () => {
+    const { unit, transport } = await nameTransport("Vocal");
+    const sent: number[] = [];
+
+    const first = transport.write("ch.ch1.name", "Guitar", () => sent.push(unit.writes.length));
+    const second = transport.write("ch.ch1.name", "Bass", () => sent.push(unit.writes.length));
+    expect([...sent], "while the first write awaits the unit").toEqual([0]);
+    unit.writes[0]!.take();
+    await first;
+    await tick();
+    unit.writes[1]!.take();
+    await second;
+
+    expect(sent).toEqual([0, 1]);
+  });
+
+  it("goes back to a write the unit took after a change it announced while that write waited its turn, when a later write is refused", async () => {
+    const { store, unit } = await storeOnAnsweringUnit();
+    const restored: unknown[] = [];
+    store.onWriteFailure((f) => restored.push(f.restored));
+
+    const writes = [store.set("ch.ch1.gain", 4), store.set("ch.ch1.gain", 7), store.set("ch.ch1.gain", 8)];
+    // Gain is turned to 9 dB on the unit's own panel while the first write awaits it.
+    unit.held.set("gain-addr", 90);
+    unit.announce("gain-addr", 90);
+    expect(store.num("ch.ch1.gain"), "while later writes wait their turn").toBe(8);
+    unit.answers[0]!.take();
+    await writes[0];
+    await tick();
+    unit.answers[1]!.take();
+    await writes[1];
+    await tick();
+    unit.answers[2]!.refuse();
+    await writes[2];
+
+    expect({ screen: store.num("ch.ch1.gain"), unit: unit.held.get("gain-addr")! / 10, restored }).toEqual({ screen: 7, unit: 7, restored: [7] });
+  });
+
+  for (const [what, putBack] of [
+    ["a scene recall", applyScene],
+    ["a settings file load", applySettings],
+  ] as const) {
+    it(`goes back to a write the unit took after a change it announced when the write ${what} sends is refused`, async () => {
+      const { store, unit } = await storeOnTwoLevels();
+      const restored: unknown[] = [];
+      store.onWriteFailure((f) => restored.push(f.restored));
+
+      const writes = [store.set("ch.ch1.level", 4), store.set("ch.ch1.level", 7)];
+      // CH 1 is turned to 9 on the unit's own panel while the first write awaits it.
+      unit.held.set("level1-addr", 9);
+      unit.announce("level1-addr", 9);
+      const putting = putBack(store, { "ch.ch1.level": 8, "ch.ch2.level": 3 });
+      unit.answers[0]!.take();
+      await writes[0];
+      await tick();
+      unit.answers[1]!.take();
+      await writes[1];
+      await tick();
+      unit.answers[2]!.refuse();
+      await tick();
+      unit.answers[3]!.take();
+      await putting;
+
+      expect({
+        screen: [store.num("ch.ch1.level"), store.num("ch.ch2.level")],
+        unit: [unit.held.get("level1-addr"), unit.held.get("level2-addr")],
+        restored,
+      }).toEqual({ screen: [7, 3], unit: [7, 3], restored: [7] });
+    });
+  }
 
   it("flags only the first notify of the value it wrote as its own", async () => {
     const bridge = fakeBridge();
@@ -180,6 +991,237 @@ describe("BridgeTransport", () => {
     bridge.fire("on-addr", 0);
 
     expect(seen, "the notify before close, and none after").toEqual([true]);
+  });
+
+  it("takes a change the unit announces while the snapshot is read", async () => {
+    const bridge = fakeBridge();
+    const link: DeviceLink = {
+      ...bridge,
+      get: (addr) => {
+        // CH1 is turned on the unit after it was read, while CH2 is read.
+        if (addr === "level2-addr") bridge.fire("level1-addr", 55);
+        return bridge.get(addr);
+      },
+    };
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.level", { addr: "level1-addr", codec: identityCodec });
+    bindings.bind("ch.ch2.level", { addr: "level2-addr", codec: identityCodec });
+    const store = new DeviceStore();
+
+    await store.attach(new BridgeTransport(link, bindings));
+
+    expect(store.num("ch.ch1.level")).toBe(55);
+  });
+
+  it("stops following the unit when a snapshot that started following it cannot be read", async () => {
+    const bridge = fakeBridge();
+    const link: DeviceLink = { ...bridge, get: () => Promise.reject(new Error("read failed")) };
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.on", { addr: "on-addr", codec: boolCodec });
+    const transport = new BridgeTransport(link, bindings);
+    const seen: unknown[] = [];
+    transport.onNotify((n) => seen.push(n.value));
+
+    await expect(transport.snapshot()).rejects.toThrow("read failed");
+    bridge.fire("on-addr", 0);
+
+    expect(seen).toEqual([]);
+  });
+
+  it("keeps following the unit when a later snapshot cannot be read", async () => {
+    const bridge = fakeBridge();
+    let reads = 0;
+    const link: DeviceLink = {
+      ...bridge,
+      get: (addr) => (++reads > 1 ? Promise.reject(new Error("read failed")) : bridge.get(addr)),
+    };
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.on", { addr: "on-addr", codec: boolCodec });
+    const transport = new BridgeTransport(link, bindings);
+    await transport.snapshot();
+    const seen: unknown[] = [];
+    transport.onNotify((n) => seen.push(n.value));
+
+    await expect(transport.snapshot()).rejects.toThrow("read failed");
+    bridge.fire("on-addr", 0);
+
+    expect(seen).toEqual([false]);
+  });
+
+  it("follows the unit again on a snapshot after one that cannot be read", async () => {
+    const bridge = fakeBridge();
+    let reads = 0;
+    const link: DeviceLink = {
+      ...bridge,
+      get: (addr) => (++reads === 1 ? Promise.reject(new Error("read failed")) : bridge.get(addr)),
+    };
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.on", { addr: "on-addr", codec: boolCodec });
+    const transport = new BridgeTransport(link, bindings);
+    const seen: unknown[] = [];
+    transport.onNotify((n) => seen.push(n.value));
+
+    await expect(transport.snapshot()).rejects.toThrow("read failed");
+    await transport.snapshot();
+    bridge.fire("on-addr", 0);
+
+    expect(seen).toEqual([false]);
+  });
+
+  it("refuses a snapshot after close, asking the unit for nothing", async () => {
+    const unit = subscribingUnit();
+    let reads = 0;
+    const link: DeviceLink = {
+      ...unit,
+      get: (addr) => {
+        reads++;
+        return unit.get(addr);
+      },
+    };
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.level", { addr: "level-addr", codec: identityCodec });
+    const transport = new BridgeTransport(link, bindings);
+    transport.close();
+
+    await expect(transport.snapshot()).rejects.toThrow("transport closed");
+    expect([unit.subscribes(), reads]).toEqual([0, 0]);
+  });
+
+  it("leaves no subscription open, reads nothing and refuses its snapshot when closed while it subscribes", async () => {
+    const unit = subscribingUnit();
+    let reads = 0;
+    const link: DeviceLink = {
+      ...unit,
+      get: (addr) => {
+        reads++;
+        return unit.get(addr);
+      },
+    };
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.level", { addr: "level-addr", codec: identityCodec });
+    const transport = new BridgeTransport(link, bindings);
+
+    const snapshot = transport.snapshot();
+    transport.close();
+
+    await expect(snapshot).rejects.toThrow("transport closed");
+    expect([unit.open.size, reads]).toEqual([0, 0]);
+  });
+
+  it("reads no further address and refuses its snapshot when closed while an address is read", async () => {
+    const unit = fakeBridge();
+    const asked: string[] = [];
+    let answerLevel = (): void => {};
+    const link: DeviceLink = {
+      ...unit,
+      get: (addr) => {
+        asked.push(addr);
+        if (addr !== "level-addr") return unit.get(addr);
+        return new Promise((resolve) => {
+          answerLevel = () => resolve(0);
+        });
+      },
+      getStr: (addr) => {
+        asked.push(addr);
+        return unit.getStr(addr);
+      },
+    };
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.level", { addr: "level-addr", codec: identityCodec });
+    bindings.bind("ch.ch1.name", { addr: "name-addr", codec: identityCodec, isString: true });
+    bindings.bind("ch.ch1.on", { addr: "on-addr", codec: boolCodec });
+    const transport = new BridgeTransport(link, bindings);
+
+    const snapshot = transport.snapshot();
+    await tick();
+    transport.close();
+    answerLevel();
+
+    await expect(snapshot).rejects.toThrow("transport closed");
+    expect(asked).toEqual(["level-addr"]);
+  });
+
+  it("refuses its snapshot when closed while the last address is read", async () => {
+    const unit = fakeBridge();
+    let answerLevel = (): void => {};
+    const link: DeviceLink = {
+      ...unit,
+      get: () =>
+        new Promise((resolve) => {
+          answerLevel = () => resolve(0);
+        }),
+    };
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.level", { addr: "level-addr", codec: identityCodec });
+    const transport = new BridgeTransport(link, bindings);
+
+    const snapshot = transport.snapshot();
+    await tick();
+    transport.close();
+    answerLevel();
+
+    await expect(snapshot).rejects.toThrow("transport closed");
+  });
+
+  it("subscribes once for snapshots that overlap, and close leaves none open", async () => {
+    const unit = subscribingUnit();
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.level", { addr: "level-addr", codec: identityCodec });
+    const transport = new BridgeTransport(unit, bindings);
+    const seen: unknown[] = [];
+    transport.onNotify((n) => seen.push(n.value));
+
+    await Promise.all([transport.snapshot(), transport.snapshot()]);
+    for (const onUpdate of [...unit.open]) onUpdate("level-addr", 33);
+    transport.close();
+
+    expect([unit.subscribes(), seen, unit.open.size]).toEqual([1, [33], 0]);
+  });
+
+  it("keeps following the unit when the first of two overlapping snapshots cannot be read and the second is", async () => {
+    const { unit, transport, reads } = levelReadOnAnswer();
+    const store = new DeviceStore();
+
+    const first = store.attach(transport);
+    const second = store.attach(transport);
+    await tick();
+    reads[0]!.refuse();
+    await expect(first).rejects.toThrow("read failed");
+    reads[1]!.answer(10);
+    await second;
+    for (const onUpdate of [...unit.open]) onUpdate("level-addr", 55);
+
+    expect([store.kind, unit.open.size, store.num("ch.ch1.level")]).toEqual(["bridge", 1, 55]);
+  });
+
+  it("keeps following the unit when the first of two overlapping snapshots cannot be read after the second is", async () => {
+    const { unit, transport, reads } = levelReadOnAnswer();
+    const store = new DeviceStore();
+
+    const first = store.attach(transport);
+    const second = store.attach(transport);
+    await tick();
+    reads[1]!.answer(10);
+    await second;
+    reads[0]!.refuse();
+    await expect(first).rejects.toThrow("read failed");
+    for (const onUpdate of [...unit.open]) onUpdate("level-addr", 55);
+
+    expect([store.kind, unit.open.size, store.num("ch.ch1.level")]).toEqual(["bridge", 1, 55]);
+  });
+
+  it("leaves no subscription open when neither of two overlapping snapshots can be read", async () => {
+    const { unit, transport, reads } = levelReadOnAnswer();
+
+    const first = transport.snapshot();
+    const second = transport.snapshot();
+    await tick();
+    reads[0]!.refuse();
+    await expect(first).rejects.toThrow("read failed");
+    reads[1]!.refuse();
+    await expect(second).rejects.toThrow("read failed");
+
+    expect([unit.subscribes(), unit.open.size]).toEqual([1, 0]);
   });
 });
 

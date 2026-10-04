@@ -64,7 +64,7 @@ export class BindingTable {
   }
 }
 
-/** Values that are already integers on the wire (enum index, on/off as 0/1). */
+/** Numbers carried as they are, and on/off as 0/1. */
 export const identityCodec: Codec = {
   encode: (v) => (typeof v === "boolean" ? (v ? 1 : 0) : Number(v)),
   decode: (raw) => raw,

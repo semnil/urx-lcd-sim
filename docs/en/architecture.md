@@ -53,9 +53,13 @@ not distinguish whether a value lives in this process or inside the unit.
 the unit is asynchronous, which is why the values are held twice.
 
 - **Edits from the screen** — `store.set(path, value)` updates the mirror first (optimistic update)
-  and sends the write to the transport. If the write is refused, the mirror goes back to the previous
-  value and `onWriteFailure` is notified. The screen never keeps showing a value the unit did not
-  accept.
+  and sends the write to the transport. If a refused write is the newest write to its path and still
+  on screen, the mirror goes back to the value the unit holds as the store last heard of it: the
+  value the unit announced in a notify, or, for a write the unit took with nothing announced after
+  the write was sent and no later write's answer before it, the value the transport reports the
+  unit holding (`BridgeTransport` reports it as encoded for the unit). Where a later write, or a notify from the unit since, has changed
+  the value, that value stays. Either way `onWriteFailure` is notified. The screen never keeps
+  showing a value the unit did not accept.
 - **The writes one edit carries with it** — `DeviceStore` holds a single write rule, handed to it by
   the Shell at start-up and made of the following: `src/screens/stereo-link.ts` carries an edit on one channel
   of a stereo-linked pair onto the other, and `src/screens/date-time.ts` brings the DATE / TIME
@@ -72,9 +76,14 @@ the unit is asynchronous, which is why the values are held twice.
   back they bring Pan Link to where the unit's screen leaves it.
 - **Changes on the device side** — arrive as notifies from the transport. Scene recall, turning a
   knob on the unit, and Auto Gain completing all take this path. A notify with `echo: false` is
-  always taken.
-- **Echoes** — a write of our own coming back is told apart by `echo: true`, which is what lets a
-  re-render leave alone a control that is being operated.
+  taken, unless a write to its path has yet to go out to the unit. The transport reports each
+  write as it goes out, and a notify that comes before that is older than the write: the screen
+  keeps the write's value, and the notify's value is what the mirror goes back to if that write and
+  every later one are refused.
+- **Echoes** — the transport marks a notify that is a write of our own coming back with
+  `echo: true`. Sending no echo for an older write that a later write has overtaken is the
+  transport's responsibility (`BridgeTransport` for a unit); `DeviceStore` does not tell echoes
+  apart and takes every notify that differs from the mirror, under the rule above.
 
 Change notifications are batched per microtask and fire once (`markChanged` → `flush`).
 
@@ -153,6 +162,15 @@ left unwritten at a switch of model, because another tab stored the unit first o
 the picked model's start. What the banner says of changes lost before a start stands beside what it says of how storing
 stands now. Two tabs starting at the same time take what a tab left in once.
 
+While the store is on a unit connected through a `BridgeTransport` (`store.kind` is `bridge`,
+[device-integration.md](device-integration.md)), the mirror is written to `localStorage` under a key of its own,
+`urx-lcd-sim.bridge.state`, instead of the record, and nothing is put back on start. Nothing the browser kept is
+written to the unit, and the record keeps the simulated unit as it was stored. The write before a switch of model
+and the one on leaving the page go under that key too. A change not yet written when the store moves onto the unit,
+or back, is written just before the move, to the record or under that key as the transport it was made on has it;
+where a write of the record is under way, once that write lands. [Reset the unit] lets the key go as it stores the
+unit as it ships.
+
 ```mermaid
 flowchart LR
   ST["DeviceStore"] -->|"on change, 400 ms after the last, where the record holds what the tab read"| DB["IndexedDB<br/>urx-lcd-sim / unit / state"]
@@ -160,6 +178,8 @@ flowchart LR
   ST -->|"leaving the page"| LEFT["localStorage<br/>urx-lcd-sim.left.*"]
   LEFT -->|"the next start, where the record holds what that tab read"| DB
   RS["[Reset the unit]"] -->|"ask, start again and store the unit as it ships"| DB
+  ST -->|"here instead while on a unit"| LB["localStorage<br/>urx-lcd-sim.bridge.state"]
+  RS -->|"lets it go"| LB
 ```
 
 ## Addressing parameters

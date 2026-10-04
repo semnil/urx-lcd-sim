@@ -33,6 +33,8 @@ export interface DeviceLink {
 **初期状態は空**で、埋めるのは検証済みカタログを供給する側の責任になる。空のまま
 `BridgeTransport.write()` を呼ぶと `UnboundPathError` を投げる。推測したアドレスを実機へ書く
 経路は存在しない。
+符号化した結果が有限の数にならない値 (列挙のタグを `identityCodec` に渡した場合など) も、実機へ
+送らずに書き込みを拒否する。
 
 カタログに載せてよいのは、実機に対して 1 パラメータずつ確認したアドレスと符号化だけ。
 このリポジトリはカタログを同梱しない。
@@ -41,6 +43,14 @@ export interface DeviceLink {
 
 `BridgeTransport.snapshot()` は束縛済みの全アドレスを購読する。実機の LCD や物理ノブで行われた
 変更が notify として届き、シミュレーター画面へ反映される。片方向のリモコンではなく、鏡になる。
+購読は読み出しより先に張るので、読み出しの途中に実機で変わった値も、`DeviceStore` が読み出した値の後で採る。
+文字列のアドレス (チャンネル名など) は、notify を受けるたびに `getStr` で読み直し、読めた文字列を届ける。
+
+1 つのアドレスへの書き込みは、`DeviceLink` が前の書き込みに応答してから次を送るので、出した順に
+実機へ届き、出した順に返る。link が応答しない書き込みがあると、同じアドレスへのそれ以降の書き込みはすべて待ったままになる。
+文字列のアドレスの notify で始める読み直しは、それより前に出したそのアドレスへの書き込みに応答があってから送り、
+書き込みは読み直しを待たない。文字列のアドレスへの書き込みは、そのアドレスのまだ応答の無い読み直しを捨て、
+実機が書き込みを拒否したときは読み直す。
 
 自分が書いた値がそのまま返ってきた notify は `echo: true` として区別する
 (`src/device/bridge-transport.test.ts` の「flags the notify that is our own write coming back」)。
@@ -58,11 +68,11 @@ sequenceDiagram
   App->>Bridge: new BridgeTransport(link, bindings)
   App->>Store: attach(bridge)
   Store->>Bridge: snapshot()
+  Bridge->>DevLink: subscribe(全束縛アドレス)
   Bridge->>DevLink: get(addr) x 束縛数
   DevLink->>Unit: 読み出し
   Unit-->>DevLink: 値
   DevLink-->>Bridge: 値
-  Bridge->>DevLink: subscribe(全束縛アドレス)
   Bridge-->>Store: Map<path, value>
   Note over App,Unit: 以降 双方向
   App->>Store: set(path, value)
@@ -83,7 +93,12 @@ sequenceDiagram
    `playback` (カードの再生が出すもの。microSD Playback の D.Gain の後) を受け取り、レベルを dB で返す。数でない値は無音、
    0 dB を超える値は +Infinity も含めて 0 dB のクリップとして読む。渡さない間はシミュレーター内部の合成信号が表示される。
 
-`src/main.ts` の `chrome-link` 表示は `store.kind` を読むので、接続状態がそのまま画面上部に出る。
+画面上部の `chrome-link` 表示 (`src/ui/link-indicator.ts`) は store が変わるたびに `store.kind` を読み直すので、
+起動した後で `BridgeTransport` を `store.attach()` に渡しても、接続状態がそのまま出る。
+
+実機につないでいる間 (`store.kind` が `bridge`) は、ブラウザに残した値 ([architecture.md](architecture.md)「残る値」) を
+実機へ書かない。`restore()` は何もせず、`startSaving()` はミラーを、シミュレーターを持つ IndexedDB の記録ではなく
+`localStorage` の `urx-lcd-sim.bridge.state` に書く。シミュレーターの本体 (シーン・カード・設定ファイルを含む) は保存したまま残る。
 
 ## 未束縛のまま動くこと
 
