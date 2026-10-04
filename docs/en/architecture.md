@@ -83,10 +83,11 @@ Change notifications are batched per microtask and fire once (`markChanged` → 
 The store's mirror is written to the browser's IndexedDB as one record (database `urx-lcd-sim`, object store
 `unit`, key `state`) and read back when the simulator opens on the same model (`src/app/persist.ts`). A burst of
 changes is written once, 400 ms after the last of them; a stored unit of another model or another version is not
-read. Switching the model writes a change still waiting to be written there and then. Leaving the page cannot wait
+read. Switching the model writes every change made up to it, a change made while a write was under way included,
+before the picked model starts. Leaving the page cannot wait
 for a write, so a change still waiting is left in `localStorage` under `urx-lcd-sim.left.` and the tab's own name,
 and the next start takes it in on the terms below. A page the browser keeps and brings back on [Back] runs on as it
-was left and takes back what it left. The record keeps the model the simulator opens on: the model of the unit stored
+was left, and its next write lets go of what it left. The record keeps the model the simulator opens on: the model of the unit stored
 last, or a model picked after it (where the record keeps none, it opens on the stored unit's model). There is one
 stored unit across the models: after the model selector switches to another model, the first change replaces what
 the previous model stored. A unit stored by a version before IndexedDB, under `localStorage`'s `urx-lcd-sim.state`
@@ -146,9 +147,11 @@ not to write over the other tab's unit, and says so on the same banner, which, o
 change to the unit. It writes again once it starts again, on a reload, a switch of model or [Reset the unit]. What a
 tab left on leaving the page is taken in by the next start only where the record still holds the token that tab read
 or wrote last, or the token of its write still under way; otherwise it is dropped, and that start says on the banner
-that the last changes made before it were not kept. A change made just before a switch of model and left unwritten
-because another tab stored the unit first is told the same way. Two tabs starting at the same time take what a tab
-left in once.
+that the last changes made before it were not kept. Where the browser refuses to take it in, it stays where it was left,
+the start shows it, and the banner says it is not stored yet until the next write the browser takes stores it. A change
+left unwritten at a switch of model, because another tab stored the unit first or the browser refused it, is told on
+the picked model's start. What the banner says of changes lost before a start stands beside what it says of how storing
+stands now. Two tabs starting at the same time take what a tab left in once.
 
 ```mermaid
 flowchart LR

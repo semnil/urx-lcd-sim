@@ -337,7 +337,15 @@ function forget(key: string): void {
 
 /** What the browser holds as the simulator opens. */
 export interface Opened {
+  /** The record: its token is what the start's writes compare against. */
   kept: Kept;
+  /**
+   * What the start puts back: the record, or where the browser refused to take
+   * in what a page left, the record with that page's model and unit over it.
+   */
+  shown: Kept;
+  /** The name of the page whose left changes `shown` carries, still to be stored; nothing where it carries none. */
+  carried: string | null;
   /** Whether a tab's changes left on leaving were dropped, the record having been written after what that tab read. */
   dropped: boolean;
   /** Whether the browser refused to read what it holds. */
@@ -348,17 +356,21 @@ export interface Opened {
  * What the browser holds as the simulator opens, with what tabs left on
  * leaving the page taken in: each where nothing was written after what that
  * tab had read, or after the write it still had under way. Two tabs opening at
- * once take one in under the same token, so it goes in once.
+ * once take one in under the same token, so it goes in once. What the browser
+ * refuses to take in stays where it was left for a later write, and the latest
+ * of it is what the start shows.
  */
 export async function openKept(keeper: Keeper | null): Promise<Opened> {
   let kept: Kept;
   try {
     kept = (keeper && (await keeper.read())) ?? legacy();
   } catch {
-    return { kept: legacy(), dropped: false, refused: true };
+    const kept = legacy();
+    return { kept, shown: kept, carried: null, dropped: false, refused: true };
   }
   let dropped = false;
-  if (!keeper) return { kept, dropped, refused: false };
+  let carried: [string, Left] | null = null;
+  if (!keeper) return { kept, shown: kept, carried: null, dropped, refused: false };
   for (const [key, left] of leftBehind()) {
     const token = `${key}.${left.at}`;
     if (kept.token === token) {
@@ -372,7 +384,10 @@ export async function openKept(keeper: Keeper | null): Promise<Opened> {
     }
     const next: Kept = { token: left.unit === null ? kept.token : token, model: left.model, unit: left.unit ?? kept.unit };
     const outcome = await keeper.write(kept.token, next);
-    if (outcome === "refused") continue;
+    if (outcome === "refused") {
+      carried ??= [key, left];
+      continue;
+    }
     forget(key);
     if (outcome === "written") {
       if (next.token !== null && next.token !== kept.token) announce(next.token);
@@ -383,7 +398,10 @@ export async function openKept(keeper: Keeper | null): Promise<Opened> {
       if (now) kept = now;
     }
   }
-  return { kept, dropped, refused: false };
+  if (!carried) return { kept, shown: kept, carried: null, dropped, refused: false };
+  const [key, left] = carried;
+  const shown: Kept = { token: kept.token, model: left.model, unit: left.unit ?? kept.unit };
+  return { kept, shown, carried: key.slice(LEFT.length), dropped, refused: false };
 }
 
 /** The values the record holds for `model`, or nothing where it holds none of them. */
@@ -479,17 +497,26 @@ export function cardInSlot(store: DeviceStore): Record<string, ParamValue> {
   return values;
 }
 
+/**
+ * How a settle ended: every change made up to it stored, or some left
+ * unwritten because another tab stored the unit first or because the browser
+ * refused the write.
+ */
+export type Settled = "kept" | "moved" | "refused";
+
 /** The steps that end the writing `startSaving` starts. */
 export interface Saving {
   /**
-   * Write a change still waiting now, and resolve once it is written or will
-   * not be: false where a change is left unwritten because another tab stored the unit.
+   * Write every change made up to now, and resolve once each is written or
+   * will not be. Where one is left unwritten, what this tab left behind on
+   * leaving is let go with it, for the caller to tell.
    */
-  settle: () => Promise<boolean>;
-  /** Leave what is still to be stored for the next start to take in, for a page that is going. */
+  settle: () => Promise<Settled>;
+  /**
+   * Leave what is still to be stored for the next start to take in, for a page
+   * that is going; the tab's next write that is taken lets it go.
+   */
   leave: () => void;
-  /** Take back what `leave` left, for a page the browser brings back. */
-  resume: () => void;
   /** Stop writing, dropping a change still waiting. */
   stop: () => void;
 }
@@ -504,6 +531,8 @@ export interface From {
   first?: "model" | "unit";
   /** Names what this tab leaves on leaving the page. */
   tab?: string;
+  /** Whether the unit as it starts carries changes a page left that are still to be stored. */
+  carried?: boolean;
 }
 
 /**
@@ -544,8 +573,9 @@ export function startSaving(
   let modelDue = from.first === "model";
   let over = from.first === "unit";
   let ended = false;
-  /** Whether it stopped because another tab stored the unit. */
+  /** Whether it stopped because another tab stored the unit, and whether the browser refused the last write. */
   let away = false;
+  let refused = false;
   const leftKey = `${LEFT}${from.tab ?? "tab"}`;
   const channel = keeper && typeof BroadcastChannel === "function" ? new BroadcastChannel(CHANNEL) : null;
   const text = (): string => {
@@ -569,6 +599,7 @@ export function startSaving(
         elsewhere();
         return;
       }
+      refused = outcome === "refused";
       if (outcome === "written") {
         if (next.token !== basis) channel?.postMessage(next.token);
         basis = next.token;
@@ -577,6 +608,7 @@ export function startSaving(
         modelDue = false;
         over = false;
         if (first) dropLegacy();
+        forget(leftKey);
       }
       onWrite(outcome === "written");
       if (changes > written && !timer) timer = window.setTimeout(due, delayMs);
@@ -590,32 +622,44 @@ export function startSaving(
     changes++;
     if (!timer && !ended) timer = window.setTimeout(due, delayMs);
   });
-  const stop = (): void => {
+  /** Stop writing; the changes made after it are still counted, for `settle` to tell. */
+  const halt = (): void => {
     ended = true;
     if (timer) window.clearTimeout(timer);
     timer = 0;
-    off();
     channel?.close();
+  };
+  const stop = (): void => {
+    halt();
+    off();
   };
   const elsewhere = (): void => {
     if (ended) return;
     away = true;
-    stop();
+    halt();
     onElsewhere();
   };
   // Every other tab's write reaches this one; this tab's own never does.
   channel?.addEventListener("message", (ev: MessageEvent) => {
     if (ev.data !== basis && ev.data !== inFlight) elsewhere();
   });
-  if (over) changes++;
+  if (over || from.carried) changes++;
   write();
   return {
     settle: async () => {
-      if (timer) window.clearTimeout(timer);
-      timer = 0;
-      write();
-      await flight;
-      return !(away && changes > written);
+      // A change made while a write is under way is written once that write lands;
+      // it stops once nothing is left to write or a write is refused.
+      for (;;) {
+        if (timer) window.clearTimeout(timer);
+        timer = 0;
+        write();
+        if (!writing) break;
+        await flight;
+        if (refused) break;
+      }
+      const settled: Settled = changes <= written && !modelDue ? "kept" : away ? "moved" : "refused";
+      if (settled !== "kept") forget(leftKey);
+      return settled;
     },
     leave: () => {
       if (ended || !keeper) return;
@@ -627,7 +671,6 @@ export function startSaving(
         // A browser that refuses it drops what was still to be stored, as it refuses a write.
       }
     },
-    resume: () => forget(leftKey),
     stop,
   };
 }

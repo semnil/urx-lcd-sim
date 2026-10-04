@@ -338,7 +338,8 @@ describe("what a reload carries over", () => {
     expect(await keeper.read(), "and nothing is stored").toBeNull();
     const blocked: Keeper = { read: () => Promise.reject(new Error("storage is blocked")), write: () => Promise.resolve("refused") };
     const opened = await openKept(blocked);
-    expect(opened, "a refused read is nothing stored, and told").toEqual({ kept: { token: null, model: null, unit: null }, dropped: false, refused: true });
+    const nothing = { token: null, model: null, unit: null };
+    expect(opened, "a refused read is nothing stored, and told").toEqual({ kept: nothing, shown: nothing, carried: null, dropped: false, refused: true });
     await expect(restore(store, MODEL, opened.kept)).resolves.toBeUndefined();
   });
 
@@ -485,11 +486,41 @@ describe("one tab at a time", () => {
   it("settles on whether a change was left unwritten because another tab stored the unit", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const { a, b, tabA, tabB } = await twoTabs();
-    expect(await tabB.saving.settle(), "nothing was waiting").toBe(true);
+    expect(await tabB.saving.settle(), "nothing was waiting").toBe("kept");
     await a.set("ch.ch1.level", -9);
-    expect(await tabA.saving.settle(), "written").toBe(true);
+    expect(await tabA.saving.settle(), "written").toBe("kept");
+    await settle();
     await b.set("ch.ch2.level", -5);
-    expect(await tabB.saving.settle(), "left unwritten").toBe(false);
+    expect(await tabB.saving.settle(), "left unwritten").toBe("moved");
+  });
+
+  it("settles only once every change made up to it is stored, one made while a write was under way included", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = await unit();
+    const tab = await start(store);
+    idb.hold();
+    await store.set("ch.ch1.level", -9);
+    vi.advanceTimersByTime(20);
+    await store.set("ch.ch2.level", -5);
+    const settled = tab.saving.settle();
+    idb.release();
+    const outcome = await settled;
+    tab.saving.stop();
+    await settle();
+    expect([(await stored())?.["ch.ch1.level"], (await stored())?.["ch.ch2.level"]], "both changes stored before it settles").toEqual([-9, -5]);
+    expect(outcome).toBe("kept");
+  });
+
+  it("settles on refused where the browser refuses the write, and leaves nothing behind for the next start", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = await unit();
+    const tab = await start(store, MODEL, { tab: "a" });
+    await store.set("ch.ch1.level", -9);
+    tab.saving.leave();
+    idb.refuse = true;
+    const outcome = await tab.saving.settle();
+    expect([await keeper.read(), window.localStorage.length], "nothing stored, and what was left let go with it").toEqual([null, 0]);
+    expect(outcome).toBe("refused");
   });
 
   it("stops at its next write, and tells so, where another tab's write moved the record on unheard", async () => {
@@ -640,13 +671,12 @@ describe("one tab at a time", () => {
     expect([again.dropped, readUnit(again.kept, MODEL)?.["ch.ch1.level"], window.localStorage.length]).toEqual([false, -9, 0]);
   });
 
-  it("takes back what it left when the page comes back, so a later start drops nothing", async () => {
+  it("lets go of what it left at its next write, as a page brought back does, so a later start drops nothing", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const store = await unit();
     const tab = await start(store, MODEL, { tab: "a" });
     await store.set("ch.ch1.level", -9);
     tab.saving.leave();
-    tab.saving.resume();
     await tab.saving.settle();
     const { kept, dropped } = await openKept(keeper);
     expect([dropped, readUnit(kept, MODEL)?.["ch.ch1.level"], window.localStorage.length]).toEqual([false, -9, 0]);
@@ -661,6 +691,33 @@ describe("one tab at a time", () => {
     await openKept(keeper);
     await settle();
     expect(tabB.told(), "the other tab hears of it").toBe(1);
+  });
+
+  it("opens on what a page left where the browser refuses to take it in, keeps it for later, and stores it at the next write the browser takes", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = await unit("URX22");
+    const tab = await start(store, "URX22", { tab: "a" });
+    await writeCard(store, [{ name: "mine.urxf", kind: "data", seconds: 0, tracks: 0, stamp: "", dir: "/" }]);
+    await store.set("ch.ch1.level", -9);
+    tab.saving.leave();
+    tab.saving.stop();
+    idb.refuse = true;
+    const opened = await openKept(keeper);
+    expect([opened.dropped, opened.carried, window.localStorage.length], "kept for later, and told").toEqual([false, "a", 1]);
+    expect([modelOf(opened.shown), readUnit(opened.shown, "URX22")?.["ch.ch1.level"], readUnit(opened.shown, "URX22")?.["sd.card"]], "what it opens on").toEqual(["URX22", -9, store.str("sd.card", "")]);
+    // The start puts back what was left, and stores it with its next change once the browser takes it.
+    const next = await unit("URX22");
+    await restore(next, "URX22", opened.shown);
+    const saving = startSaving(next, "URX22", 10, undefined, undefined, { keeper, kept: opened.kept, tab: opened.carried as string, carried: true });
+    started.push(saving);
+    idb.refuse = false;
+    expect(await saving.settle(), "with no change made yet").toBe("kept");
+    expect(readUnit(await keeper.read(), "URX22")?.["ch.ch1.level"], "what was left is stored").toBe(-9);
+    await next.set("ch.ch2.level", -5);
+    expect(await saving.settle()).toBe("kept");
+    const kept = (await keeper.read()) as Kept;
+    expect([modelOf(kept), readUnit(kept, "URX22")?.["ch.ch1.level"], readUnit(kept, "URX22")?.["ch.ch2.level"], readUnit(kept, "URX22")?.["sd.card"]]).toEqual(["URX22", -9, -5, store.str("sd.card", "")]);
+    expect(window.localStorage.length, "what was left is let go once stored").toBe(0);
   });
 
   it("drops what a tab left, and says so, where another tab writes while a start takes it in", async () => {

@@ -577,6 +577,101 @@ describe("a change made just before another model is picked", () => {
   });
 });
 
+describe("a change made while a write is under way, then another model picked", () => {
+  it("is stored before the picked model starts, and nothing is told", async () => {
+    await openPage();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    idb.hold();
+    await nudge();
+    vi.advanceTimersByTime(500);
+    const shown = await nudge();
+    const switching = chooseModel("URX22");
+    await pause(50);
+    idb.release();
+    await switching;
+    expect((await readSaved("URX44V"))?.["ch.ch1.level"], "the later change stored").toBe(Number(shown));
+    expect(notice()?.hidden).toBe(true);
+  });
+
+  it("is told on the picked model's start where the browser refused to store it", async () => {
+    await openPage();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    idb.refuse = true;
+    await nudge();
+    await chooseModel("URX22");
+    await until("the notice", () => notice()?.hidden === false);
+    expect(notice()?.textContent).toMatch(/refused to store the last changes made before this start/);
+    expect(await keeper.read(), "nothing stored").toBeNull();
+  });
+});
+
+describe("a change left on leaving the page that the browser refuses to take in", () => {
+  it("is shown on the next start and told, kept for later, and stored once the browser takes a write", async () => {
+    await openPage();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const shown = await nudge();
+    leave(false);
+    idb.refuse = true;
+    await openPage();
+    expect(shownLevel(), "the start shows what was left").toBe(shown);
+    await until("the notice", () => notice()?.hidden === false);
+    expect(notice()?.textContent).toMatch(/shown here/);
+    expect([await keeper.read(), window.localStorage.length], "nothing stored, and what was left kept").toEqual([null, 1]);
+    idb.refuse = false;
+    const now = await nudge();
+    vi.advanceTimersByTime(500);
+    await until("the unit to be stored", async () => (await readSaved("URX44V"))?.["ch.ch1.level"] === Number(now));
+    expect([notice()?.hidden, window.localStorage.length], "the notice goes, and what was left with it").toEqual([true, 0]);
+  });
+});
+
+describe("what another tab left on another model, which the browser refuses to take in", () => {
+  it("opens the page on that model, with what was left", async () => {
+    await openPage();
+    await nudgeLevel("URX44V");
+    const record = (await keeper.read()) as Kept;
+    window.localStorage.setItem(
+      "urx-lcd-sim.left.y",
+      JSON.stringify({ basis: record.token, inFlight: null, model: "URX22", unit: JSON.stringify({ version: 1, model: "URX22", values: { "ch.ch1.level": -9 } }), at: Date.now() }),
+    );
+    idb.refuse = true;
+    await openPage();
+    expect([modelSelect()?.value, shownLevel()]).toEqual(["URX22", "-9"]);
+  });
+});
+
+describe("what another tab left, which the browser refuses to take in when a model is picked", () => {
+  it("stays where it was left, and the picked model starts from what is stored", async () => {
+    await openPage();
+    window.localStorage.setItem(
+      "urx-lcd-sim.left.x",
+      JSON.stringify({ basis: null, inFlight: null, model: "URX22", unit: JSON.stringify({ version: 1, model: "URX22", values: { "ch.ch1.level": -9 } }), at: Date.now() }),
+    );
+    idb.refuse = true;
+    await chooseModel("URX22");
+    expect(shownLevel(), "not the other tab's level").not.toBe("-9");
+    expect(window.localStorage.getItem("urx-lcd-sim.left.x"), "kept for a later start").not.toBeNull();
+  });
+});
+
+describe("the banner closed over changes lost before the start", () => {
+  it("does not bring them back with what it says next", async () => {
+    await openPage();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    await nudge();
+    leave(false);
+    await storedElsewhere(false);
+    await openPage();
+    await until("the notice", () => notice()?.hidden === false);
+    noticeClose().click();
+    idb.refuse = true;
+    await nudge();
+    vi.advanceTimersByTime(500);
+    await until("the notice again", () => notice()?.hidden === false);
+    expect(notice()?.querySelector("p")?.textContent, "only how storing stands now").toBe("The browser is not keeping the unit: changes made now will not come back after a reload.");
+  });
+});
+
 describe("a change left on leaving the page", () => {
   it("is dropped where another tab stored the unit before the next start, and that start says so", async () => {
     await openPage();

@@ -9,7 +9,7 @@ import "./style/tokens.css";
 import "./style/app.css";
 import "./style/lcd.css";
 
-import { cardInSlot, modelOf, openKeeper, openKept, restore, startSaving, type Opened } from "./app/persist";
+import { cardInSlot, modelOf, openKeeper, openKept, restore, type Settled, startSaving, type Opened } from "./app/persist";
 import { Shell } from "./app/shell";
 import type { ParamValue } from "./device/path";
 import { DeviceStore } from "./device/store";
@@ -46,6 +46,12 @@ const NO_STORE_TEXT = "This browser does not let the simulator keep the unit: ch
 /** What the chrome says where the last changes made before this start were dropped. */
 const DROPPED_TEXT = "The last changes made before this start were not kept: another tab stored the unit first.";
 
+/** What the chrome says where the browser refused the last changes made before this start. */
+const REFUSED_BEFORE_TEXT = "The browser refused to store the last changes made before this start, so they were not kept.";
+
+/** What the chrome says where the start shows changes a page left that the browser refused to take in. */
+const CARRIED_TEXT = "The browser refused to store the last changes made before this start: they are shown here, and stored at the next write it takes.";
+
 function applyZoom(percent: number): void {
   document.documentElement.style.setProperty("--zoom", String(percent / 100));
   document.documentElement.dataset["zoom"] = String(percent);
@@ -65,9 +71,8 @@ function requestedZoom(): number {
 /** Teardown for whatever is mounted: the shell's listeners, the meters, the link. */
 let disposeMounted: (() => void) | null = null;
 
-/** Leaves a change of the mounted unit still waiting to be stored for the next start, and takes it back. */
+/** Leaves a change of the mounted unit still waiting to be stored for the next start. */
 let leaveMounted: (() => void) | null = null;
-let resumeMounted: (() => void) | null = null;
 
 /** Where the browser keeps the unit, and the name of what this page leaves on leaving. */
 const keeper = openKeeper();
@@ -84,28 +89,32 @@ async function boot(
   how: "opened" | "picked" | "reset" = "opened",
   card: Record<string, ParamValue> = {},
   opened?: Opened,
-  droppedBefore = false,
+  before: Settled = "kept",
 ): Promise<void> {
   disposeMounted?.();
   disposeMounted = null;
   leaveMounted = null;
-  resumeMounted = null;
-  const { kept, dropped, refused } = opened ?? (await openKept(keeper));
+  const { kept, shown, carried, dropped, refused } = opened ?? (await openKept(keeper));
+  // Only the page's opening shows what a page left that the browser refused; a
+  // model picked or a reset starts from the record, and what was left stays for later.
+  const carries = how === "opened" && carried !== null;
   const model = unitById(modelId);
   const store = new DeviceStore();
   const transport = new SimTransport(factoryState(model));
   await store.attach(transport);
   // A reset starts from the unit as it ships, and stores it with the card at once.
-  if (how !== "reset") await restore(store, modelId, kept);
+  if (how !== "reset") await restore(store, modelId, carries ? shown : kept);
   for (const [path, value] of Object.entries(card)) await store.restore(path, value);
-  // A banner over the top centre of the page while the browser refuses the unit,
-  // full or blocked, which goes once a write is taken again. Once another tab has
-  // stored the unit, it says so instead until the unit starts again. From the
-  // start, it says where the browser gives the simulator nowhere to keep the
-  // unit, or where the last changes made before this start were dropped. It lies
-  // over the page, so showing it moves nothing else. [×] or Escape closes it; the
-  // browser's refusal brings it back at the next write it refuses, the other tab
-  // at the next change to the unit.
+  // A banner over the top centre of the page that says what was lost before this
+  // start, and how storing stands now. What was lost (the last changes before the
+  // start dropped, refused, or shown here and not yet stored) stays until the
+  // banner is closed; changes shown here and not yet stored go once a write is
+  // taken. How storing stands: the browser refusing the unit, full or blocked,
+  // until a write is taken again; another tab having stored the unit, until the
+  // unit starts again; the browser giving the simulator nowhere to keep it. It
+  // lies over the page, so showing it moves nothing else. [×] or Escape closes
+  // it; the browser's refusal brings it back at the next write it refuses, the
+  // other tab at the next change to the unit.
   const noticeText = el("p", { attrs: { role: "status" } });
   const notice = el("div", {
     class: "chrome-notice",
@@ -121,12 +130,19 @@ async function boot(
   });
   notice.hidden = true;
   let storedElsewhere = false;
+  let lost: string[] = [];
+  let now: string | null = null;
+  const render = (): void => {
+    noticeText.textContent = [...lost, now].filter(Boolean).join(" ");
+    notice.hidden = lost.length === 0 && now === null;
+  };
   const showNotice = (text: string): void => {
-    noticeText.textContent = text;
-    notice.hidden = false;
+    now = text;
+    render();
   };
   const closeNotice = (): void => {
     const hadFocus = notice.contains(document.activeElement);
+    lost = [];
     notice.hidden = true;
     if (hadFocus) modelSelect.focus();
   };
@@ -137,23 +153,36 @@ async function boot(
     store,
     modelId,
     undefined,
-    (kept) => {
-      if (!kept) showNotice(UNKEPT_TEXT);
-      else if (noticeText.textContent === UNKEPT_TEXT) notice.hidden = true;
+    (taken) => {
+      if (!taken) {
+        showNotice(UNKEPT_TEXT);
+        return;
+      }
+      if (now === UNKEPT_TEXT || now === NO_STORE_TEXT) now = null;
+      lost = lost.filter((text) => text !== CARRIED_TEXT);
+      render();
     },
     () => {
       storedElsewhere = true;
       showNotice(ELSEWHERE_TEXT);
     },
-    { keeper, kept, tab, ...(how === "opened" ? {} : { first: how === "reset" ? "unit" : "model" }) },
+    {
+      keeper,
+      kept,
+      tab: carries ? (carried as string) : tab,
+      ...(how === "reset" ? { first: "unit" } : how === "picked" ? { first: "model" } : {}),
+      ...(carries && shown.unit !== kept.unit ? { carried: true } : carries ? { first: "model" } : {}),
+    },
   );
-  if (!keeper || refused) showNotice(NO_STORE_TEXT);
-  else if (dropped || droppedBefore) showNotice(DROPPED_TEXT);
+  if (carries) lost.push(CARRIED_TEXT);
+  if (dropped || before === "moved") lost.push(DROPPED_TEXT);
+  if (before === "refused") lost.push(REFUSED_BEFORE_TEXT);
+  if (!keeper || refused) now = NO_STORE_TEXT;
+  render();
   const offNotice = store.onChange(() => {
     if (storedElsewhere) showNotice(ELSEWHERE_TEXT);
   });
   leaveMounted = saving.leave;
-  resumeMounted = saving.resume;
 
   const shell = new Shell(buildRegistry(), store, model);
   const panel = buildPanel(shell);
@@ -168,7 +197,7 @@ async function boot(
   }
   // The change still waiting is written before the picked model's start reads what is stored.
   modelSelect.addEventListener("change", () => {
-    void saving.settle().then((stored) => boot(modelSelect.value as ModelId, mount, "picked", {}, undefined, !stored));
+    void saving.settle().then((settled) => boot(modelSelect.value as ModelId, mount, "picked", {}, undefined, settled));
   });
 
   const zoomSelect = el("select", { class: "chrome-select", attrs: { "aria-label": "Display scale" } }) as HTMLSelectElement;
@@ -291,21 +320,18 @@ async function boot(
 }
 
 // Leaving the page leaves a change still waiting for the next start to take in.
-// A page the browser keeps to bring back on [Back] runs on as it was and, once
-// back, takes what it left back to write itself; a page let go is torn down.
+// A page the browser keeps to bring back on [Back] runs on as it was, and its
+// next write lets go of what it left; a page let go is torn down.
 window.addEventListener("pagehide", (ev) => {
   leaveMounted?.();
   if (!ev.persisted) disposeMounted?.();
-});
-window.addEventListener("pageshow", (ev) => {
-  if (ev.persisted) resumeMounted?.();
 });
 
 const mount = document.getElementById("app");
 if (mount) {
   applyZoom(requestedZoom());
   void openKept(keeper).then((opened) => {
-    const last = modelOf(opened.kept);
+    const last = modelOf(opened.shown);
     return boot(MODEL_IDS.find((id) => id === last) ?? "URX44V", mount, "opened", {}, opened);
   });
 }
