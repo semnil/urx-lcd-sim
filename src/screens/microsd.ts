@@ -8,7 +8,8 @@
 import type { AppContext } from "../app/context";
 import type { ParamValue } from "../device/path";
 import type { CardEntry } from "../model/card";
-import { CARD_ROOT, cardStamp, folderPath, formatFree, formatRate, freeBytes, parentPath, readCard, takeRate, writeCard } from "../model/card";
+import { CARD_ROOT, TAKE_SUFFIX, changeCard, filePath, folderPath, formatFree, formatRate, freeBytes, parentPath, readCard, sameName, takeRate } from "../model/card";
+import { clockParts } from "../model/clock";
 import { applySettings, captureSettings } from "../model/settings-file";
 import { onDynamicsTimeStops } from "../model/dynamics-times";
 import { TRACK_COUNTS, dropTracksOverRate, trackCountCeiling } from "../model/track-count";
@@ -20,8 +21,9 @@ import { el, markShut, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { LIST_THUMB_MIN_PX, button, dialog, dropdown, listView, loadingDialog, menuButton, menuGrid, meter, pickerGrid, pickerSheet, scrollbar, sideTab, toggle } from "../ui/widgets";
 import { meterLevels, pairMeterId } from "./meters";
-import { listenedTap } from "./signal-flow";
-import { formatClock, holdsFile, pausePlayback, pauseTake, playedSeconds, recState, recordMode, recordTake, releaseOnRateChange, startPlayback, stopPlayback, stopTake, takeOpen, takeSeconds } from "./recording";
+import { PLAYBACK_METER, listenedTap } from "./signal-flow";
+import { dateText } from "./date-time";
+import { formatClock, holdsFile, pausePlayback, pauseTake, playedSeconds, recState, recordMode, recordTake, releaseOnRateChange, startPlayback, stopPlayback, stopTake, takeOpen, takeRoom, takeSeconds } from "./recording";
 import type { TitleDraft } from "./title-entry";
 import { draftTitle, titleEntryScreen } from "./title-entry";
 import type { ScreenBody, ScreenDef } from "./types";
@@ -44,10 +46,12 @@ export const microsdScreen: ScreenDef = {
     }
     const open = (id: string) => () => ctx.nav.push({ id });
     // While USB Storage Mode is on the three entries are out of reach and no
-    // card-eject button is drawn. In recording mode, Recorder alone stays in
-    // reach and carries the record dot.
+    // card-eject button is drawn. In recording mode and while playback holds a
+    // file, playing or paused, Recorder alone stays in reach; in recording mode
+    // it carries the record dot.
     const usbOn = ctx.store.bool("sd.usbStorage", false);
     const taking = recordMode(ctx.store);
+    const held = holdsFile(ctx.store);
     const entry = (label: string, onTap: () => void, usable = !usbOn): HTMLElement =>
       markShut(menuButton(label, usable ? onTap : () => undefined), !usable);
     const recorder = entry("Recorder", open("microsd.recorder"));
@@ -58,14 +62,16 @@ export const microsdScreen: ScreenDef = {
     }
     return {
       main: menuGrid(
-        [recorder, entry("Save/Load", open("microsd.saveload"), !usbOn && !taking), entry("Tools", open("microsd.tools"), !usbOn && !taking)],
+        [recorder, entry("Save/Load", open("microsd.saveload"), !usbOn && !taking && !held), entry("Tools", open("microsd.tools"), !usbOn && !taking && !held)],
         SD_MENU,
       ),
       headerLeft: (() => {
         // The button asks before it goes either way, and lights while the mode is on.
-        const node = button("USB Storage Mode", () => (taking ? undefined : usbStorageAsk(ctx, usbOn)), "usb-storage");
+        // In recording mode and while playback holds a file, playing or paused, it is out of reach.
+        const shut = taking || held;
+        const node = button("USB Storage Mode", () => (shut ? undefined : usbStorageAsk(ctx, usbOn)), "usb-storage");
         setPressed(node, usbOn);
-        return markShut(node, taking);
+        return markShut(node, shut);
       })(),
       ...(usbOn ? {} : { headerRight: ejectButton(ctx) }),
     };
@@ -73,23 +79,28 @@ export const microsdScreen: ScreenDef = {
 };
 
 /**
- * The button that takes the card out. It asks what the unit asks, and [OK]
- * stands for the card being pulled from the slot. In recording mode and while a
- * file plays it is out of reach.
+ * The button that takes the card out. It asks what the unit asks, `Eject the
+ * microSD card?`, and its [OK] says what the unit says once the card can come
+ * out. That dialog's [OK] stands for the card being pulled from the slot, which
+ * lets go of the card test's result. In recording mode and while playback holds
+ * a file, playing or paused, it is out of reach on every screen that carries it.
  */
 function ejectButton(ctx: AppContext): HTMLElement {
-  const usable = !recordMode(ctx.store) && !ctx.store.bool("sd.playing", false);
-  const ask = (): void => {
+  const usable = !holdsFile(ctx.store) && !recordMode(ctx.store);
+  const pull = (): void => {
     ctx.overlay(
       dialog({
         message: "Now you may safely remove the microSD card.",
         okOnly: true,
         onOk: () => {
-          stopPlayback(ctx.store);
+          void ctx.store.set("sd.tested", false);
           void ctx.store.set("sd.mounted", false);
         },
       }),
     );
+  };
+  const ask = (): void => {
+    ctx.overlay(dialog({ message: "Eject the microSD card?", onOk: pull }));
   };
   return el("button", {
     class: `sd-eject${usable ? "" : " is-disabled"}`,
@@ -127,6 +138,12 @@ interface BrowserOptions {
   fileNote?: (entry: CardEntry, row: number) => string | undefined;
   /** Which entries the list shows; a row keeps its entry's place on the card. */
   listed?: (entry: CardEntry, row: number) => boolean;
+  /**
+   * Whether the browser moves to another folder: a folder under the cursor opens
+   * on the next touch, and [↑] climbs out of the one that is open. Where it does
+   * not, a touch on a folder only brings the cursor to it, and [↑] is out of reach.
+   */
+  opens?: boolean;
 }
 
 /**
@@ -134,19 +151,20 @@ interface BrowserOptions {
  * open, its entries as list rows, and the actions of the tab under them.
  */
 function cardBrowser(ctx: AppContext, opts: BrowserOptions): HTMLElement {
-  const { listName, metaColumn, meta, actions, extraClass = "", fileIcon = () => Icons.file(), fileNote = () => undefined, listed = () => true } = opts;
+  const { listName, metaColumn, meta, actions, extraClass = "", fileIcon = () => Icons.file(), fileNote = () => undefined, listed = () => true, opens = true } = opts;
   const entries = cardEntries(ctx);
   const selected = ctx.store.num("sd.selectedFile", 0);
   const path = cardPath(ctx);
+  const climbs = opens && path !== CARD_ROOT;
   const rows = entries
     .map((entry, i) => ({
       key: String(i),
       selected: i === selected,
       description: entry.kind === "folder" ? "folder" : fileNote(entry, i),
       // The first touch brings the cursor to the row; a folder already under it
-      // opens on the next touch.
+      // opens on the next touch, where the browser opens folders.
       onTap:
-        entry.kind === "folder" && i === selected ? () => openFolder(ctx, entry) : () => void ctx.store.set("sd.selectedFile", i),
+        entry.kind === "folder" && i === selected && opens ? () => openFolder(ctx, entry) : () => void ctx.store.set("sd.selectedFile", i),
       cells: [
         el("span", { class: "sd-icon", children: [entry.kind === "folder" ? Icons.folder() : fileIcon(entry, i)] }),
         entry.name,
@@ -169,15 +187,15 @@ function cardBrowser(ctx: AppContext, opts: BrowserOptions): HTMLElement {
       el("div", {
         class: "sd-path",
         children: [
-          // Nothing to climb out of until a folder is opened.
+          // Nothing to climb out of until a folder is opened, and out of reach where the browser keeps to the folder that is open.
           markShut(
             el("button", {
               class: "btn sd-up",
               attrs: { "aria-label": "Up one level" },
-              onTap: path === CARD_ROOT ? () => undefined : () => openPath(ctx, parentPath(path)),
+              onTap: climbs ? () => openPath(ctx, parentPath(path)) : () => undefined,
               children: [Icons.upFolder()],
             }),
-            path === CARD_ROOT,
+            !climbs,
           ),
           el("div", { class: "sd-path-field", children: [el("span", { text: path })] }),
         ],
@@ -219,10 +237,28 @@ function cardEntries(ctx: AppContext): CardEntry[] {
 /** The name sheet, opened on something on the card: it gives way once the card is out. */
 const cardNameScreen: ScreenDef = { ...titleEntryScreen, id: "microsd.name", needsCard: true };
 
-/** Open the name sheet on `title`; [OK] hands what is typed to `onOk`. `more` carries the rest of the draft. */
-function nameOnCard(ctx: AppContext, title: string, onOk: (text: string) => void, more: Pick<TitleDraft, "heading" | "max" | "empty"> = {}): void {
-  draftTitle(ctx, { ...more, path: "", title, onOk });
+/**
+ * Open the name sheet on `name`, on the card's own keyboard unless `more.keys`
+ * names another. The extension `more.suffix` stands beside the field rather than
+ * in it, and [OK] hands what is typed, the extension after it, to `onOk`. `more`
+ * carries the rest of the draft.
+ */
+function nameOnCard(ctx: AppContext, name: string, onOk: (text: string) => void, more: Pick<TitleDraft, "heading" | "max" | "empty" | "refuse" | "keys" | "suffix"> = {}): void {
+  const suffix = more.suffix ?? "";
+  const title = suffix && name.endsWith(suffix) ? name.slice(0, -suffix.length) : name;
+  draftTitle(ctx, { keys: "card", ...more, path: "", title, onOk });
   ctx.nav.push({ id: "microsd.name" });
+}
+
+/** The longest name the card takes for a file or a folder, a file's extension included. */
+const NAME_MAX = 255;
+
+/** The most characters [Save as] takes for a settings file's name, before its extension. */
+const SAVE_AS_MAX = 14;
+
+/** The extension a file on the card carries: `.wav` for a take, `.urxf` for a settings file. */
+function suffixOf(entry: CardEntry): string {
+  return entry.kind === "take" ? TAKE_SUFFIX : entry.kind === "data" ? SETTINGS_SUFFIX : "";
 }
 
 /** What the card leaves. */
@@ -243,15 +279,21 @@ function cardLabel(ctx: AppContext): string {
 /** Leave the card with nothing on it. */
 function formatCard(ctx: AppContext): void {
   stopPlayback(ctx.store);
-  for (const entry of cardEntries(ctx)) void ctx.store.set(filePath(entry.name), "");
-  void ctx.store.set("sd.selectedFile", 0);
+  for (const entry of cardEntries(ctx)) void ctx.store.set(filePath(entry), "");
   void ctx.store.set("sd.path", CARD_ROOT);
   updateCard(ctx, []);
+  void ctx.store.set("sd.selectedFile", 0);
 }
 
-/** The entry the list's cursor stands on, if the card carries one there. */
+/** The row of the card the list's cursor stands on, or -1 where it stands on nothing in the folder that is open. */
+function cursorRow(ctx: AppContext): number {
+  const row = ctx.store.num("sd.selectedFile", 0);
+  return cardEntries(ctx)[row]?.dir === cardPath(ctx) ? row : -1;
+}
+
+/** The entry the list's cursor stands on, if the folder that is open carries one there. */
 function selectedEntry(ctx: AppContext): CardEntry | undefined {
-  return cardEntries(ctx)[ctx.store.num("sd.selectedFile", 0)];
+  return cardEntries(ctx)[cursorRow(ctx)];
 }
 
 /** Whether the selected row is a file on a card in the slot: the thing Delete, Rename and playback act on. */
@@ -302,20 +344,15 @@ function iconAction(label: string, icon: SVGSVGElement, usable: boolean, onTap: 
   return markShut(node, !usable);
 }
 
-/** Where a settings file's contents are kept. */
-function filePath(name: string): string {
-  return `sd.file.${name}`;
-}
-
-/** Put a changed card back and draw it as it now stands. */
-function updateCard(ctx: AppContext, entries: readonly CardEntry[]): void {
-  void writeCard(ctx.store, entries);
+/** Put a changed card back, the cursor and the file playback holds going with their entries, and draw it as it now stands. */
+function updateCard(ctx: AppContext, entries: readonly (CardEntry | undefined)[]): void {
+  void changeCard(ctx.store, entries);
   ctx.repaint();
 }
 
 /** Take the selected file off the card, asking first. */
 function deleteSelected(ctx: AppContext): void {
-  const row = ctx.store.num("sd.selectedFile", 0);
+  const row = cursorRow(ctx);
   const entries = cardEntries(ctx);
   const entry = entries[row];
   if (!entry) return;
@@ -324,73 +361,122 @@ function deleteSelected(ctx: AppContext): void {
       message: "Delete the selected file?",
       onOk: () => {
         if (row === playingFile(ctx)) stopPlayback(ctx.store);
-        void ctx.store.set(filePath(entry.name), "");
-        void ctx.store.set("sd.selectedFile", Math.max(0, Math.min(row, entries.length - 2)));
-        updateCard(ctx, entries.filter((_, i) => i !== row));
+        void ctx.store.set(filePath(entry), "");
+        // The cursor goes on to the next entry of the same folder, else back to
+        // the one before it, else onto nothing.
+        const next = entries[row + 1]?.dir === entry.dir ? row + 1 : entries[row - 1]?.dir === entry.dir ? row - 1 : -1;
+        void ctx.store.set("sd.selectedFile", next);
+        updateCard(ctx, entries.map((e, i) => (i === row ? undefined : e)));
       },
     }),
   );
 }
 
-/** Give the selected entry another name, keeping what it holds. */
+/**
+ * Whether the folder `dir` carries an entry named `name`, other than the one at
+ * row `except`. Two names are one where `same` takes them for one, and where it
+ * is not given, where they are spelt the same, case included.
+ */
+function folderCarries(entries: readonly CardEntry[], dir: string, name: string, except = -1, same = (a: string, b: string): boolean => a === b): boolean {
+  return entries.some((e, i) => i !== except && e.dir === dir && same(e.name, name));
+}
+
+/**
+ * Give the selected entry another name, keeping what it holds. The extension
+ * goes on whatever is typed. A name another entry of its folder carries, a
+ * file's or a folder's, in any case, is refused, as is a name typed that,
+ * before the extension goes on, a file of its folder carries in any case, and
+ * the sheet stays as typed.
+ */
 function renameSelected(ctx: AppContext): void {
-  const row = ctx.store.num("sd.selectedFile", 0);
+  const row = cursorRow(ctx);
   const entries = cardEntries(ctx);
   const entry = entries[row];
   if (!entry) return;
+  const suffix = suffixOf(entry);
+  const taken = (name: string): boolean => {
+    const typed = name.slice(0, name.length - suffix.length);
+    return folderCarries(entries, entry.dir, name, row, sameName) || entries.some((e, i) => i !== row && e.kind !== "folder" && e.dir === entry.dir && sameName(e.name, typed));
+  };
   nameOnCard(ctx, entry.name, (name) => {
-    const held = ctx.store.str(filePath(entry.name), "");
+    const held = ctx.store.str(filePath(entry), "");
     if (held) {
-      void ctx.store.set(filePath(entry.name), "");
-      void ctx.store.set(filePath(name), held);
+      void ctx.store.set(filePath(entry), "");
+      void ctx.store.set(filePath({ ...entry, name }), held);
     }
     updateCard(
       ctx,
       entries.map((e, i) => (i === row ? { ...e, name } : e)),
     );
-  });
+  }, { suffix, max: NAME_MAX - suffix.length, refuse: (name) => (taken(name) ? NAME_TAKEN : undefined) });
 }
 
-/** Put a folder on the card under the name that is typed. */
+/**
+ * Put a folder on the card under the name that is typed, the sheet going back to
+ * the Edit tab. A name the folder that is open already carries, a folder's or a
+ * file's, in any case, makes nothing: `Directory already exists.` comes up with
+ * [OK] alone, over the sheet as it was typed.
+ */
 function newFolder(ctx: AppContext): void {
   nameOnCard(ctx, "", (name) => {
-    updateCard(ctx, [...cardEntries(ctx), { name, kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: cardPath(ctx) }]);
-  });
+    updateCard(ctx, [...cardEntries(ctx), { name, kind: "folder", seconds: 0, tracks: 0, dir: cardPath(ctx) }]);
+  }, { max: NAME_MAX, refuse: (name) => (folderCarries(cardEntries(ctx), cardPath(ctx), name, -1, sameName) ? DIRECTORY_TAKEN : undefined) });
 }
 
-/** Write the unit's settings to the card under `name`, over a file of that name. */
-function saveSettings(ctx: AppContext, name: string): void {
-  void ctx.store.set(filePath(name), toJson(captureSettings(ctx.store)));
+/**
+ * Write the unit's settings to the card under `name` in the folder that is
+ * open: over the settings file at row `at`, or as a new file where `at` is -1.
+ */
+function saveSettings(ctx: AppContext, name: string, at = -1): void {
+  const entry: CardEntry = { name, kind: "data", seconds: 0, tracks: 0, written: clockParts(ctx.store), dir: cardPath(ctx) };
+  void ctx.store.set(filePath(entry), toJson(captureSettings(ctx.store)));
   const entries = cardEntries(ctx);
-  const at = entries.findIndex((e) => e.name === name && e.dir === cardPath(ctx));
-  const entry: CardEntry = { name, kind: "data", seconds: 0, tracks: 0, stamp: cardStamp(ctx.store), dir: cardPath(ctx) };
   updateCard(ctx, at < 0 ? [...entries, entry] : entries.map((e, i) => (i === at ? entry : e)));
+}
+
+/** The row of the settings file the folder that is open carries under `name`, or -1 where it carries none. */
+function settingsRow(ctx: AppContext, name: string): number {
+  return cardEntries(ctx).findIndex((e) => e.kind === "data" && e.dir === cardPath(ctx) && e.name === name);
 }
 
 /** What SAVE/LOAD's three buttons do: over the selected file, under a new name, and back onto the unit. */
 function saveLoadAction(ctx: AppContext, label: string): void {
+  const row = cursorRow(ctx);
   const entry = selectedEntry(ctx);
   if (label === "Save as") {
-    nameOnCard(ctx, "", (typed) => {
-      const name = `${typed}${SETTINGS_SUFFIX}`;
-      const taken = cardEntries(ctx).some((e) => e.name === name && e.dir === cardPath(ctx));
-      if (taken) ctx.overlay(dialog({ message: REPLACE_ASK, onOk: () => saveSettings(ctx, name) }));
-      else saveSettings(ctx, name);
-    });
+    nameOnCard(ctx, "", (name) => {
+      // A name the folder already carries asks first. [OK] writes over a
+      // settings file of that name, and leaves a folder of that name as it is,
+      // writing nothing. A name that differs from one the folder carries in case
+      // alone asks nothing: it writes over a settings file under the name the
+      // file carries, and writes nothing over a folder.
+      if (!folderCarries(cardEntries(ctx), cardPath(ctx), name)) {
+        const at = cardEntries(ctx).findIndex((e) => e.dir === cardPath(ctx) && sameName(e.name, name));
+        const same = cardEntries(ctx)[at];
+        if (!same) saveSettings(ctx, name);
+        else if (same.kind === "data") saveSettings(ctx, same.name, at);
+        return;
+      }
+      const over = (): void => {
+        const at = settingsRow(ctx, name);
+        if (at >= 0) saveSettings(ctx, name, at);
+      };
+      ctx.overlay(dialog({ message: REPLACE_ASK, onOk: over }));
+    }, { suffix: SETTINGS_SUFFIX, max: SAVE_AS_MAX });
     return;
   }
   if (entry === undefined || entry.kind !== "data") return;
   if (label === "Load") {
-    loadSettings(ctx, entry.name);
+    loadSettings(ctx, entry);
     return;
   }
-  // Saving over a file that is already there asks first; nothing else does.
-  ctx.overlay(dialog({ message: REPLACE_ASK, onOk: () => saveSettings(ctx, entry.name) }));
+  // Saving over the file the cursor stands on asks first; nothing else does.
+  ctx.overlay(dialog({ message: REPLACE_ASK, onOk: () => saveSettings(ctx, entry.name, row) }));
 }
 
 /** Put a settings file back on the unit, a GATE, COMP or DUCKER time off its stops on the stop nearest it. */
-function loadSettings(ctx: AppContext, name: string): void {
-  const held = ctx.store.str(filePath(name), "");
+function loadSettings(ctx: AppContext, entry: CardEntry): void {
+  const held = ctx.store.str(filePath(entry), "");
   if (!held) return;
   const before = ctx.store.num("setup.samplingFrequency", 48000);
   const pairs = pairStates(ctx);
@@ -406,7 +492,13 @@ function loadSettings(ctx: AppContext, name: string): void {
 }
 
 /** What the unit asks before it writes over a file that is already on the card. */
-const REPLACE_ASK = "File alerady exists. Replace it?";
+const REPLACE_ASK = "File already exists. Replace it?";
+
+/** What the unit says when an entry is renamed onto a name its folder already carries. */
+const NAME_TAKEN = "File already exists.";
+
+/** What the unit says when a folder is made under a name the folder that is open already carries, in any case. */
+const DIRECTORY_TAKEN = "Directory already exists.";
 
 /** What the unit calls a settings file. */
 const SETTINGS_SUFFIX = ".urxf";
@@ -469,18 +561,18 @@ function sourceMeterView(ctx: AppContext, source: string): HTMLElement {
   return id ? meter({ levels: meterLevels(ctx.store, id, 2), source: id }) : meter({ levels: [-96, -96] });
 }
 
-/** What RECORDER's OUT meter reads while a file plays, until the store carries a level. */
-const OUT_LEVELS_DB = [-15.6, -13.5];
-
-/** The meter beside RECORDER's list: the file playing, in stereo, and unlit while nothing plays. */
-function outMeter(ctx: AppContext, playing: boolean): HTMLElement {
-  const levels = OUT_LEVELS_DB.map((db, i) => (playing ? ctx.store.num(`sd.outLevel.${i}`, db) : -96));
+/**
+ * The meter beside RECORDER's list: what the file playing puts out, in stereo
+ * after microSD Playback's D.Gain, kept moving; unlit while nothing plays.
+ */
+function outMeter(ctx: AppContext): HTMLElement {
+  const levels = meterLevels(ctx.store, PLAYBACK_METER, 2);
   return el("div", {
     class: "dyn-io sd-out",
     children: [
       el("div", {
         class: "dyn-io-col",
-        children: [el("span", { class: "dyn-io-caption", text: "OUT" }), meter({ levels })],
+        children: [el("span", { class: "dyn-io-caption", text: "OUT" }), meter({ levels, source: PLAYBACK_METER })],
       }),
     ],
   });
@@ -501,17 +593,21 @@ export const recorderScreen: ScreenDef = {
     const recording = takeOpen(ctx.store);
     const busy = recordMode(ctx.store);
     const playing = ctx.store.bool("sd.playing", false);
+    const held = holdsFile(ctx.store);
     const tab = ctx.store.str("ui.sdTab", "Record");
-    const tabs = (["Record", "Play", "Edit"] as const).map((t) =>
-      sideTab(t, tab === t, () => (busy ? undefined : openSdTab(ctx, tab, t)), SD_TAB_ICON[t]?.(), t === "Record" ? "" : "is-name-raised"),
-    );
+    // While playback holds a file, playing or paused, Play alone stays in reach
+    // and Record and Edit take the face of a tab that cannot be used.
+    const tabs = (["Record", "Play", "Edit"] as const).map((t) => {
+      const shut = held && t !== "Play";
+      const node = sideTab(t, tab === t, () => (sdTabOpens(ctx, t) ? openSdTab(ctx, tab, t) : undefined), SD_TAB_ICON[t]?.(), t === "Record" ? "" : "is-name-raised");
+      return markShut(node, shut);
+    });
 
     // Play and Edit list what is on the card; only Record lays out the inputs.
     if (tab !== "Record") {
       // Delete and Rename take only a file the list shows.
       const cursor = selectedEntry(ctx);
       const onFile = fileSelected(ctx) && cursor !== undefined && recorderLists(ctx, cursor);
-      const held = holdsFile(ctx.store);
       const actions =
         tab === "Play"
           ? [
@@ -553,7 +649,7 @@ export const recorderScreen: ScreenDef = {
       const playingRow = tab === "Play" && held ? playingFile(ctx) : -1;
       // Play lists the folders and the files it can play back, not a recording of four tracks or more. Neither
       // tab lists a take recorded at another frequency than the unit is running.
-      const playList = (entry: CardEntry): boolean => entry.kind === "folder" || (entry.tracks < MULTITRACK && recorderLists(ctx, entry));
+      const playList = (entry: CardEntry): boolean => entry.kind === "folder" || (entry.kind === "take" && entry.tracks < MULTITRACK && atUnitRate(ctx, entry));
       const browser = cardBrowser(ctx, {
         listName: "RECORDER files",
         metaColumn: "Time",
@@ -563,8 +659,10 @@ export const recorderScreen: ScreenDef = {
         fileIcon: recFileIcon(playingRow),
         fileNote: (_, row) => (row === playingRow ? (playing ? "playing" : "paused") : undefined),
         listed: tab === "Play" ? playList : (entry: CardEntry) => recorderLists(ctx, entry),
+        // While playback holds a file, a folder takes the cursor and stays shut, and [↑] is out of reach.
+        opens: !held,
       });
-      browser.appendChild(outMeter(ctx, playing));
+      browser.appendChild(outMeter(ctx));
       return { main: browser, side: tabs, headerRight: ejectButton(ctx) };
     }
 
@@ -620,8 +718,9 @@ export const recorderScreen: ScreenDef = {
                 else if (rec === "recording") pauseTake(ctx.store);
               }, { "aria-pressed": String(rec === "paused") }),
               // [●] stands pressed in recording mode.
+              // A card with no room for a second of take leaves Record doing nothing.
               iconButton("Record", Icons.record(), `rec-rec${rec === "armed" ? " is-armed" : ""}`, () => {
-                if (rec === "idle") void ctx.store.set("sd.rec", "armed");
+                if (rec === "idle" && takeRoom(ctx.store) > 0) void ctx.store.set("sd.rec", "armed");
                 else if (rec === "armed") stopTake(ctx.store);
               }, { "aria-pressed": String(busy) }),
             ],
@@ -653,6 +752,19 @@ export const recorderScreen: ScreenDef = {
   },
 };
 
+/**
+ * What SAVE/LOAD's Date/Time column reads for an entry: the day it was written,
+ * in the order DATE / TIME's Display Format is set to, over the time on the
+ * 24-hour clock whatever its Time is set to. An entry the card keeps as the list
+ * printed it reads as printed.
+ */
+function writtenText(ctx: AppContext, entry: CardEntry): string {
+  const at = entry.written;
+  if (!at) return entry.stamp ?? "";
+  const time = [at.hour, at.minute, at.second].map((n) => String(n).padStart(2, "0")).join(":");
+  return `${dateText(ctx.store, at, "/")}\n${time}`;
+}
+
 export const saveLoadScreen: ScreenDef = {
   id: "microsd.saveload",
   toolbar: "sub",
@@ -676,7 +788,7 @@ export const saveLoadScreen: ScreenDef = {
             return markShut(button(label, () => (usable ? saveLoadAction(ctx, label) : undefined)), !usable);
           });
     return {
-      main: cardBrowser(ctx, { listName: "SAVE/LOAD files", metaColumn: "Date/Time", meta: (entry) => entry.stamp, actions }),
+      main: cardBrowser(ctx, { listName: "SAVE/LOAD files", metaColumn: "Date/Time", meta: (entry) => writtenText(ctx, entry), actions }),
       side: (["Save/\nLoad", "Edit"] as const).map((t) =>
         sideTab(t, tab === t, () => void ctx.store.set("ui.sdSaveTab", t), t === "Edit" ? Icons.edit() : Icons.save(), t === "Edit" ? "is-name-raised" : "is-name-apart"),
       ),
@@ -717,9 +829,9 @@ const FORMAT_WARNING =
 /** The most characters a volume label takes. */
 const VOLUME_LABEL_MAX = 11;
 
-/** Format asks for the volume label first, empty or not, and [OK] goes on to the warning. */
+/** Format asks for the volume label first, on a title's keyboard, empty or not, and [OK] goes on to the warning. */
 function askVolumeLabel(ctx: AppContext): void {
-  nameOnCard(ctx, cardName(ctx), (label) => warnFormat(ctx, label), { heading: "Volume Label", max: VOLUME_LABEL_MAX, empty: true });
+  nameOnCard(ctx, cardName(ctx), (label) => warnFormat(ctx, label), { heading: "Volume Label", max: VOLUME_LABEL_MAX, empty: true, keys: "title" });
 }
 
 /** The warning's [OK] formats the card under `label`. */
@@ -812,10 +924,18 @@ const SD_TAB_ICON: Record<string, () => SVGSVGElement> = {
 const SD_TAB_LOADING_MS = 2000;
 
 /**
+ * Whether RECORDER's tab `to` opens: recording mode keeps the tab it is in, and
+ * while playback holds a file, playing or paused, Play alone opens.
+ */
+function sdTabOpens(ctx: AppContext, to: string): boolean {
+  return !recordMode(ctx.store) && (!holdsFile(ctx.store) || to === "Play");
+}
+
+/**
  * Move to another RECORDER tab. Play and Edit read the card, so they come up
  * behind a loading modal; Record is the tab the screen opens on and needs none.
- * A tab still loading when recording mode comes on does not open: recording
- * mode holds the tab it is in.
+ * A tab that recording mode or a file held has put out of reach by the time the
+ * modal comes down does not open.
  */
 function openSdTab(ctx: AppContext, from: string, to: string): void {
   if (to === from) return;
@@ -826,7 +946,7 @@ function openSdTab(ctx: AppContext, from: string, to: string): void {
   let close = (): void => undefined;
   const timer = window.setTimeout(() => {
     close();
-    if (!recordMode(ctx.store)) void ctx.store.set("ui.sdTab", to);
+    if (sdTabOpens(ctx, to)) void ctx.store.set("ui.sdTab", to);
   }, SD_TAB_LOADING_MS);
   close = ctx.overlay(loadingDialog(), () => window.clearTimeout(timer));
 }

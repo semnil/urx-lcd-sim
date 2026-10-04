@@ -87,7 +87,8 @@ read.
 
 What is left out is **what the unit was doing** at that moment: a take or a playback running
 (`sd.rec` and the rest) and a name half typed (`ui.titleEntry.`, `ui.dateTimeDraft.`) come back
-stopped, as they do on a unit that has been switched off. [Reset the unit], outside the screen, asks
+stopped, as they do on a unit that has been switched off. The result of TOOLS' card test (`sd.tested`)
+is left out too, as a unit switched off no longer shows it. [Reset the unit], outside the screen, asks
 in place and then forgets what was stored and starts again from the unit as it ships.
 
 A value stored in an earlier form is brought to the current one as it is read. A state stored while
@@ -99,6 +100,12 @@ amp's Type or Amp Type stored by its name comes back at the place on its knob th
 and a name the amp does not have is not put back. A state stored while Pan Link left each send's own placing where
 it was, or kept Pan Link on over a FIXED bus, comes back with Pan Link where the unit's screen leaves it. A GATE,
 COMP or DUCKER time stored off its stops comes back on the stop nearest it.
+A state stored while a settings file's contents were kept under the file's name alone gives those contents to
+every settings file of that name, whatever folder holds it (they are now kept under the folder and the name, so
+files of one name in two folders hold their own).
+A state stored while an entry on the card kept when it was written as the text the list printed reads as that text
+in SAVE/LOAD's `Date/Time` column (it is now kept as the parts of the clock, and the column prints the date in the
+order DATE / TIME is set to each time it is drawn).
 
 What is on the card, the scene memories and the settings files are values in the same mirror, and
 they are kept with it. The browser's storage, the scene memories and the settings files are written as JSON, which has

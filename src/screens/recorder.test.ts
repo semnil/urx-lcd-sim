@@ -5,7 +5,8 @@ import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
-import { freeBytes } from "../model/card";
+import type { CardEntry } from "../model/card";
+import { freeBytes, readCard, writeCard } from "../model/card";
 import { recordTake, stopTake } from "./recording";
 
 // Track Count is a value with eight settings. It sits in the toolbar as a box
@@ -299,5 +300,21 @@ describe("what a take costs on the card", () => {
 
     expect(at48, "ten seconds of two tracks at 48 kHz").toBe(10 * 48_000 * 3 * 2);
     expect(at96, "and twice that at 96 kHz").toBe(at48 * 2);
+  });
+
+  it("keeps the cursor on the file it stood on when [■] leaves a take that sorts ahead of it", async () => {
+    const shell = await mount();
+    const store = shell.ctx.store;
+    const take = (name: string): CardEntry => ({ name, kind: "take", seconds: 10, tracks: 2, stamp: "", dir: "/" });
+    await writeCard(store, [take("m.wav"), take("n.wav")]);
+    await store.set("sd.selectedFile", 1);
+    await store.set("sd.rec", "armed");
+    recordTake(store, Date.now() - 5_000);
+    await flush();
+    shell.root.querySelector<HTMLElement>('.rec-transport [aria-label="Stop"]')?.click();
+    await flush();
+    const card = readCard(store);
+    expect(card.length, "the take is on the card").toBe(3);
+    expect(card[store.num("sd.selectedFile", -1)]?.name).toBe("n.wav");
   });
 });

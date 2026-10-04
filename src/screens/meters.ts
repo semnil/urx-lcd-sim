@@ -94,9 +94,9 @@ export function markClipSafe(store: DeviceStore, node: HTMLElement, connector: S
 /**
  * Meter values in dB for anything that carries a meter: a strip's point by its
  * tap id (a bare strip id reads what the strip puts out), a monitor bus as
- * `monitor.<n>`, the cue bus, the oscillator, or two of them side by side. `at`
- * is the moment the synthetic signal is read at, so two readings can be taken of
- * the same instant.
+ * `monitor.<n>`, the cue bus, the oscillator, the card's playback, or two of
+ * them side by side. `at` is the moment the synthetic signal is read at, so two
+ * readings can be taken of the same instant.
  */
 export function meterLevels(store: DeviceStore, id: string, channels: number, at = readingMoment()): number[] {
   const members = pairMembers(id);

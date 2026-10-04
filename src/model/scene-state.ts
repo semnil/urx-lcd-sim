@@ -43,6 +43,22 @@ export async function applyScene(store: DeviceStore, state: Record<string, Param
   }
 }
 
+/** What a bank keeps under a scene number: its title, its mixer and its protection. */
+const SCENE_MEMORY = /^scene\.[^.]+\.\d+\.(title|state|protect)$/;
+
+/**
+ * A settings file as it is put back. A scene number the file does not name
+ * comes back empty: no title, no mixer, and unprotected.
+ */
+export function withEverySceneCleared(store: DeviceStore, state: Record<ParamPath, ParamValue>): Record<ParamPath, ParamValue> {
+  const out = { ...state };
+  for (const path of store.pathsUnder("scene")) {
+    const part = SCENE_MEMORY.exec(path)?.[1];
+    if (part && !(path in out)) out[path] = part === "protect" ? 0 : "";
+  }
+  return out;
+}
+
 /** Read back what `captureScene` wrote, or nothing where the number holds no mixer. */
 export function readScene(store: DeviceStore, path: ParamPath): Record<string, ParamValue> | undefined {
   const text = store.str(path, "");

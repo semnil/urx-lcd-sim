@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
+import type { CardEntry } from "../model/card";
+import { filePath, writeCard } from "../model/card";
 import { unitById } from "../model/units";
 import { forget, persisted, readSaved, restore, snapshot, startSaving } from "./persist";
 
@@ -30,6 +32,20 @@ describe("what a reload carries over", () => {
     }
   });
 
+  it("leaves out the result of a card test, as a unit switched off does", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = await unit();
+    const stop = startSaving(store, MODEL, 10);
+    await store.set("ui.sdToolsTab", "Test");
+    await store.set("sd.tested", true);
+    vi.advanceTimersByTime(20);
+    stop();
+
+    const next = await unit();
+    await restore(next, MODEL);
+    expect([next.str("ui.sdToolsTab", ""), next.bool("sd.tested", false)], "the tab back, and no result on it").toEqual(["Test", false]);
+  });
+
   it("brings the values back on the next start", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const store = await unit();
@@ -46,6 +62,21 @@ describe("what a reload carries over", () => {
     await restore(next, MODEL);
     expect([next.num("ch.ch1.level", 0), next.str("ch.ch1.name", ""), next.num("setup.brightness", 0)]).toEqual([-9, "Kick", 3]);
     expect(next.str("sd.rec", "idle"), "the recorder comes back stopped").toBe("idle");
+  });
+
+  it("brings back what each settings file on the card holds", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = await unit();
+    const stop = startSaving(store, MODEL, 10);
+    const files: CardEntry[] = ["/", "/Recordings/"].map((dir) => ({ name: "mine.urxf", kind: "data", seconds: 0, tracks: 0, stamp: "", dir }));
+    await writeCard(store, [{ name: "Recordings", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" }, ...files]);
+    for (const file of files) await store.set(filePath(file), `held in ${file.dir}`);
+    vi.advanceTimersByTime(20);
+    stop();
+
+    const next = await unit();
+    await restore(next, MODEL);
+    expect(files.map((file) => next.str(filePath(file), ""))).toEqual(["held in /", "held in /Recordings/"]);
   });
 
   it("brings back a ratio left at the top of its travel", async () => {

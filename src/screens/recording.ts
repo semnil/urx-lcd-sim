@@ -4,7 +4,8 @@
 
 import type { DeviceStore } from "../device/store";
 import type { CardEntry } from "../model/card";
-import { CARD_ROOT, cardStamp, readCard, takeName, writeCard } from "../model/card";
+import { CARD_ROOT, changeCard, readCard, roomSeconds, takeName } from "../model/card";
+import { clockParts } from "../model/clock";
 
 /** Where the recorder stands: stopped, armed by [●], recording, or paused. */
 export type RecState = "idle" | "armed" | "recording" | "paused";
@@ -31,15 +32,40 @@ export function takeOpen(store: DeviceStore): boolean {
 }
 
 /**
+ * The seconds a counter has run, to the millisecond: `before` from the runs
+ * before a pause, and the run under way counted from `since`, the moment it
+ * started. A counter running with no start moment counts nothing more than the
+ * runs before it.
+ */
+function runTime(before: number, since: number, running: boolean, now: number): number {
+  const run = running && since > 0 ? Math.max(0, now - since) : 0;
+  return (Math.round(before * 1000) + run) / 1000;
+}
+
+/** The seconds the take has recorded, parts of a second kept. */
+function takeTime(store: DeviceStore, now: number): number {
+  return runTime(store.num("sd.recSeconds", 0), store.num("sd.recSince", 0), recState(store) === "recording", now);
+}
+
+/**
  * How many whole seconds the take has recorded: the runs before a pause, and the
  * run under way counted from the moment it started. A take marked as recording
  * with no start moment counts nothing more than the runs before it.
  */
 export function takeSeconds(store: DeviceStore, now = Date.now()): number {
-  const before = store.num("sd.recSeconds", 0);
+  return Math.floor(takeTime(store, now));
+}
+
+/** How many whole seconds of take the card has room for, at the tracks and the frequency the recorder is set to. */
+export function takeRoom(store: DeviceStore): number {
+  return roomSeconds(store, store.num("setup.samplingFrequency", 48_000), store.num("sd.trackCount", 16));
+}
+
+/** The moment the take recording fills the room the card has; a take with no start moment fills nothing more. */
+function takeFullAt(store: DeviceStore): number {
   const since = store.num("sd.recSince", 0);
-  if (recState(store) !== "recording" || since <= 0) return before;
-  return before + Math.max(0, Math.floor((now - since) / 1000));
+  if (since <= 0) return Number.POSITIVE_INFINITY;
+  return since + takeRoom(store) * 1000 - Math.round(store.num("sd.recSeconds", 0) * 1000);
 }
 
 /** Seconds as the recorder's counter prints them, hh:mm:ss. */
@@ -55,9 +81,9 @@ export function recordTake(store: DeviceStore, now = Date.now()): void {
   void store.set("sd.rec", "recording");
 }
 
-/** [⏸] on a take recording: the counter holds what it has reached. */
+/** [⏸] on a take recording: the counter holds what it has reached, to the part of a second. */
 export function pauseTake(store: DeviceStore, now = Date.now()): void {
-  void store.set("sd.recSeconds", takeSeconds(store, now));
+  void store.set("sd.recSeconds", takeTime(store, now));
   void store.set("sd.recSince", 0);
   void store.set("sd.rec", "paused");
 }
@@ -66,10 +92,10 @@ export function pauseTake(store: DeviceStore, now = Date.now()): void {
  * [■], or [●] pressed again while armed: back to the recorder as it opens, the
  * counter cleared. A take that recorded anything is left in the folder the card
  * browser is open on, named for the moment it was taken and holding the tracks
- * the recorder was set to.
+ * the recorder was set to, no longer than the card has room for.
  */
 export function stopTake(store: DeviceStore, now = Date.now()): void {
-  const seconds = takeSeconds(store, now);
+  const seconds = Math.min(takeSeconds(store, now), takeRoom(store));
   if (seconds > 0 && store.bool("sd.mounted", true)) {
     const entry: CardEntry = {
       name: takeName(store, now),
@@ -77,10 +103,10 @@ export function stopTake(store: DeviceStore, now = Date.now()): void {
       seconds,
       tracks: store.num("sd.trackCount", 16),
       rate: store.num("setup.samplingFrequency", 48_000),
-      stamp: cardStamp(store, now),
+      written: clockParts(store, now),
       dir: store.str("sd.path", CARD_ROOT),
     };
-    void writeCard(store, [...readCard(store), entry]);
+    void changeCard(store, [...readCard(store), entry]);
   }
   void store.set("sd.rec", "idle");
   void store.set("sd.recSeconds", 0);
@@ -88,12 +114,14 @@ export function stopTake(store: DeviceStore, now = Date.now()): void {
   stopPlayback(store);
 }
 
+/** The seconds of the file playback holds that have played, parts of a second kept. */
+function playTime(store: DeviceStore, now: number): number {
+  return runTime(store.num("sd.playSeconds", 0), store.num("sd.playSince", 0), store.bool("sd.playing", false), now);
+}
+
 /** How many whole seconds of the file playback holds have played. */
 export function playedSeconds(store: DeviceStore, now = Date.now()): number {
-  const before = store.num("sd.playSeconds", 0);
-  const since = store.num("sd.playSince", 0);
-  if (!store.bool("sd.playing", false) || since <= 0) return before;
-  return before + Math.max(0, Math.floor((now - since) / 1000));
+  return Math.floor(playTime(store, now));
 }
 
 /** Whether playback holds a file, playing or paused. */
@@ -111,18 +139,11 @@ export function startPlayback(store: DeviceStore, row: number, now = Date.now())
   void store.set("sd.playing", true);
 }
 
-/** [⏸] on a file playing: the counter holds where it has reached. */
+/** [⏸] on a file playing: the counter holds where it has reached, to the part of a second. */
 export function pausePlayback(store: DeviceStore, now = Date.now()): void {
-  void store.set("sd.playSeconds", playedSeconds(store, now));
+  void store.set("sd.playSeconds", playTime(store, now));
   void store.set("sd.playSince", 0);
   void store.set("sd.playing", false);
-}
-
-/** The end of the file: the counter goes back to the start, the file still held. */
-export function rewindPlayback(store: DeviceStore): void {
-  void store.set("sd.playing", false);
-  void store.set("sd.playSeconds", 0);
-  void store.set("sd.playSince", 0);
 }
 
 /** A change of the unit's sampling frequency lets go of the file playback holds. */
@@ -130,7 +151,7 @@ export function releaseOnRateChange(store: DeviceStore, before: number, after: n
   if (before !== after) stopPlayback(store);
 }
 
-/** [■] on the file playback holds: it lets the file go and the counter clears. */
+/** [■] on the file playback holds, or the file played to its end: it lets the file go and the counter clears. */
 export function stopPlayback(store: DeviceStore): void {
   void store.set("sd.playing", false);
   void store.set("sd.playingFile", -1);
@@ -141,19 +162,23 @@ export function stopPlayback(store: DeviceStore): void {
 /**
  * Keep the counters on the page at the running time of the take and of the file
  * playing, in place rather than by repainting the screen once a second. The
- * file playing stops at its end.
+ * take recording stops, saying nothing, at the moment it fills the room the
+ * card has, and the file playing stops and is let go at its end.
  */
 export function startRecorderClock(store: DeviceStore, root: HTMLElement, intervalMs = 100): () => void {
   const id = window.setInterval(() => {
     const write = (selector: string, text: string): void => {
       for (const node of root.querySelectorAll<HTMLElement>(selector)) if (node.textContent !== text) node.textContent = text;
     };
+    if (recState(store) === "recording") {
+      const full = takeFullAt(store);
+      if (Date.now() >= full) stopTake(store, full);
+    }
     write("[data-rec-clock]", formatClock(takeSeconds(store)));
 
     const length = readCard(store)[store.num("sd.playingFile", -1)]?.seconds ?? 0;
-    // At the end of the file the counter goes back to the start, and the file
-    // playback holds stays held.
-    if (store.bool("sd.playing", false) && playedSeconds(store) >= length) rewindPlayback(store);
+    // At the end of the file playback lets the file go, as [■] does.
+    if (store.bool("sd.playing", false) && playedSeconds(store) >= length) stopPlayback(store);
     const played = Math.min(playedSeconds(store), length);
     write("[data-play-clock]", holdsFile(store) ? formatClock(played) : "");
     const share = length > 0 ? Math.min(1, played / length) : 0;

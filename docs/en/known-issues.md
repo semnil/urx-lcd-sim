@@ -43,12 +43,22 @@ is built is in [screen-inventory.md](screen-inventory.md).
   computation is is not known, so this simulator leaves those values where they are. It does not draw
   them unusable either — the unit lets the operator turn them after it has computed them. The values
   under `01 Basic` are the ones it knows, and those are what it ships with.
-- **The microSD card goes in and out on the screen.** The eject button brings up the unit's dialog. On
-  the unit the dialog closes by itself after a few seconds and [OK] does nothing, since the unit
+- **The microSD card going in and out, how long a name on it runs, and recording onto it when it is full.**
+  The card goes in and out on the screen. The eject button asks the unit's question, and its [OK] brings up the
+  unit's `Now you may safely remove the microSD card.`. On
+  the unit that dialog closes by itself after a few seconds and [OK] does nothing, since the unit
   detects the card leaving the slot. Here the dialog stays until [OK], and [OK] stands for the card
   being pulled out. On the microSD top with no card, a touch on `Not inserted microSD card` brings up
   a question of the simulator's own, `Simulate inserting the microSD card?` ([Cancel] / [OK]), and
   [OK] stands for the same card going back in.
+  On the unit, [Rename] takes about 255 characters and does not save a long name (from what length it stops saving
+  one has not been tried on the unit), and [New folder] takes more than 255 characters and makes the
+  folder under the name cut short. This simulator stops [Rename] at 255 characters less the extension's (250 for
+  `.urxf`, 251 for `.wav`) and [New folder] at 255, and a key typed past that changes nothing.
+  What the unit does when a take uses up what the card has left, and when
+  [●] is pressed on a card with no room left, has not been tried on the unit. This simulator stops the take, saying
+  nothing, at the moment it fills what the card has left, and leaves it on the card within that room. With no room
+  for a second of take at the recorder's [Track Count] and frequency, [●] does nothing.
 - **COMP's 1-knob only takes the rows too.** While it is on the unit recomputes Threshold, Ratio,
   Gain and Knee from the Level. What that computation is is not known, so this simulator leaves the
   other rows out of reach, as the unit does, and moves no value.
@@ -73,10 +83,15 @@ is built is in [screen-inventory.md](screen-inventory.md).
 
 What the unit lacks, this simulator lacks as well.
 
-- **Summer time.** The unit's clock shows the standard time of the [Time Zone] city all year and does
+- **Summer time, and the 12-hour clock on SAVE/LOAD's list.**
+  The unit's clock shows the standard time of the [Time Zone] city all year and does
   not switch to summer time (21:15 in Tokyo reads 12:15 in London in September, confirmed on the
   unit). The simulator shows the same standard time, so while summer time is in force it reads an
   hour off the clock of a computer in a zone that keeps summer time.
+  The user guide's "Date/Time menu" says of the [Display Format] Time
+  button "Selects the display format for the time.", but the unit's SAVE/LOAD `Date/Time` column gives the time on
+  the 24-hour clock with Time set to 12h, while its date follows the Date format. The simulator gives that column's
+  time on the 24-hour clock as well.
 - **+48V and HI-Z held apart.** The user guide's description of [+48V] on the INPUT screen says "The
   phantom power supply and HI-Z cannot be turned on at the same time.", but on the unit pressing [HI-Z]
   with [+48V] on, or [+48V] with [HI-Z] on, leaves [+48V] and [HI-Z] on together (URX44V, confirmed on

@@ -5,10 +5,12 @@
 // read back when the simulator opens on the same model. What the unit was doing
 // at that moment — a take running, a file playing, a name half typed — is not
 // part of that: those come back stopped, as they do on a unit that has been
-// switched off.
+// switched off. Nor is the result of a card test, which such a unit no longer
+// shows.
 
 import type { ParamPath, ParamValue } from "../device/path";
 import type { DeviceStore } from "../device/store";
+import { FILES, filePath, readCard } from "../model/card";
 import { LEGACY_CLOCK } from "../model/clock";
 import { onDynamicsTimeStops } from "../model/dynamics-times";
 import { placeOfReading } from "../model/effects";
@@ -33,6 +35,7 @@ const IN_FLIGHT = [
   "sd.playSince",
   "sd.playSeconds",
   "sd.playingFile",
+  "sd.tested",
   "ui.titleEntry.",
   "ui.dateTimeDraft.",
 ];
@@ -84,7 +87,16 @@ export async function restore(store: DeviceStore, model: UnitModel["id"]): Promi
     // A clock that stood still is not put back: the clock runs with the computer's.
     if (LEGACY_SAFE.test(path) || LEGACY_CLOCK.test(path)) continue;
     if (NAMED_AMP_TYPE.test(path) && typeof value === "string") continue;
+    if (path.startsWith(FILES)) continue;
     if (persisted(path)) await store.set(path, value);
+  }
+  // What each settings file on the card holds comes back under its folder and
+  // name. A state written while the contents were kept under the file's name
+  // alone gives every file of that name what was kept there.
+  for (const entry of readCard(store)) {
+    if (entry.kind !== "data") continue;
+    const held = values[filePath(entry)] ?? values[`${FILES}${entry.name}`];
+    if (typeof held === "string" && held) await store.set(filePath(entry), held);
   }
   // An amp's type written as its name comes back at the place on its knob that
   // reads that name, and a name the amp does not have is not put back.

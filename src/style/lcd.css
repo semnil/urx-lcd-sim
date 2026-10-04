@@ -4129,6 +4129,20 @@
   height: 20px;
 }
 
+/* A name's extension on the card, outside the field against its right edge, in the field's type. */
+.title-suffix {
+  position: absolute;
+  left: 362px;
+  top: 45px;
+  height: 41px;
+  display: flex;
+  align-items: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-inverse);
+  pointer-events: none;
+}
+
 .title-keys {
   position: absolute;
   left: 3px;
@@ -6233,6 +6247,23 @@
 .icon-btn .rec-dot {
   left: 23px;
   top: 22px;
+}
+
+/* The play triangle a file playing puts on the microSD icon: on the record
+ * dot's rows and as tall, 3px in from the dot's left and pointing right. */
+.icon-btn.has-play-mark {
+  position: relative;
+}
+
+.play-mark {
+  position: absolute;
+  left: 26px;
+  top: 22px;
+  width: 10px;
+  height: 14px;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+  background: var(--transport-play);
+  pointer-events: none;
 }
 
 /* Left of the entry's name, which keeps its place. */

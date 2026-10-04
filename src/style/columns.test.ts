@@ -3449,6 +3449,21 @@ describe("the marks on the control holding the focus", () => {
     }
   });
 
+  it("marks a file playing with a green triangle on the record dot's rows, 3px in from its left", () => {
+    const dot = { ...declarations(CSS, ".rec-dot"), ...declarations(CSS, ".icon-btn .rec-dot") };
+    const mark = declarations(CSS, ".play-mark");
+    expect([px(mark["left"]) - px(dot["left"]), mark["top"], mark["height"], mark["width"]]).toEqual([3, dot["top"], dot["height"], "10px"]);
+    expect([mark["position"], mark["clip-path"], mark["background"]]).toEqual(["absolute", "polygon(0 0, 100% 50%, 0 100%)", "var(--transport-play)"]);
+    expect(declarations(CSS, ".icon-btn.has-play-mark")["position"]).toBe("relative");
+  });
+
+  it("draws the play triangle by those two rules alone, a file paused as a file playing", () => {
+    const selectors = ["tokens.css", "app.css", "lcd.css"].flatMap((file) => styleRules(readStyle(file)).flatMap((rule) => rule.selectors.map((s) => `${file} ${s}`)));
+    expect(selectors.filter((s) => s.includes("play-mark"))).toEqual(["lcd.css .icon-btn.has-play-mark", "lcd.css .play-mark"]);
+    // The microSD icon tells a file paused from one playing by its name alone, so no rule picks a control by its name.
+    expect(selectors.filter((s) => s.includes("[aria-label"))).toEqual([]);
+  });
+
   it("greys Simple Mode, which cannot be chosen", () => {
     const card = declarations(CSS, ".mode-card.is-disabled");
     expect([card["background"], card["color"], card["pointer-events"]]).toEqual(["var(--surface-disabled)", "var(--menu-text-disabled)", "none"]);

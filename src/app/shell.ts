@@ -17,7 +17,7 @@ import type { Modal } from "../ui/widgets";
 import type { NumericSpec } from "../ui/param-spec";
 import { BRIGHTNESS_MAX, formatValue } from "../ui/param-spec";
 import type { ScreenBody, ScreenRegistry } from "../screens/types";
-import { recordMode } from "../screens/recording";
+import { holdsFile, recordMode } from "../screens/recording";
 import { drawAtOneMoment } from "../screens/signal-flow";
 import { dateDraftWriteRule } from "../screens/date-time";
 import { hiZWriteRule } from "../screens/head-amp";
@@ -361,11 +361,17 @@ export class Shell {
       icons.appendChild(iconBtn("SETUP", Icons.setup(), () => this.ctx.nav.openTop({ id: "setup" })));
       if (this.ctx.model.hasSD) {
         const sd = iconBtn("microSD", Icons.storage(), () => this.ctx.nav.openTop({ id: "microsd" }));
-        // Recording mode marks the icon with the record dot at its lower right.
+        // Recording mode marks the icon with the record dot at its lower right,
+        // and a file playback holds, playing or paused, with the play triangle
+        // where the dot stands.
         if (recordMode(this.ctx.store)) {
           sd.classList.add("has-rec-dot");
           sd.appendChild(el("span", { class: "rec-dot", attrs: { "aria-hidden": "true" } }));
           sd.setAttribute("aria-label", "microSD, recording");
+        } else if (holdsFile(this.ctx.store)) {
+          sd.classList.add("has-play-mark");
+          sd.appendChild(el("span", { class: "play-mark", attrs: { "aria-hidden": "true" } }));
+          sd.setAttribute("aria-label", this.ctx.store.bool("sd.playing", false) ? "microSD, playing" : "microSD, paused");
         }
         icons.appendChild(sd);
       }

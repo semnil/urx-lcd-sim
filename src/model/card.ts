@@ -6,7 +6,7 @@
 // the card's capacity less everything on it.
 
 import type { DeviceStore } from "../device/store";
-import { clockParts } from "./clock";
+import { clockParts, type ClockParts } from "./clock";
 
 /** What an entry on the card is. */
 export type CardKind = "folder" | "take" | "data";
@@ -21,8 +21,10 @@ export interface CardEntry {
   /** The sampling frequency it was recorded at. A take written before the
    *  recorder followed the frequency carries none and is costed at 48 kHz. */
   rate?: number;
-  /** When it was written, as the list prints it: the date over the time. */
-  stamp: string;
+  /** When it was written, on the unit's clock. A folder carries none. */
+  written?: ClockParts;
+  /** When it was written, as the list printed it, on an entry that carries no `written`. */
+  stamp?: string;
   /** The folder holding it, from the root: "/" or "/new sound/". */
   dir: string;
 }
@@ -40,6 +42,26 @@ export function parentPath(path: string): string {
   const cut = path.slice(0, -1).lastIndexOf("/");
   return cut <= 0 ? CARD_ROOT : path.slice(0, cut + 1);
 }
+
+/** Where the store keeps what settings files hold. */
+export const FILES = "sd.file.";
+
+/**
+ * Where the store keeps what a settings file holds: under the folder holding it
+ * and its name, so files of one name in two folders each hold their own. An
+ * entry keeps the folder it was made in for as long as it is on the card.
+ */
+export function filePath(entry: Pick<CardEntry, "dir" | "name">): string {
+  return `${FILES}${entry.dir}${entry.name}`;
+}
+
+/** Whether the card takes two names for one: it tells names apart by their letters, not by their case. */
+export function sameName(a: string, b: string): boolean {
+  return a.toLowerCase() === b.toLowerCase();
+}
+
+/** What follows the name of a take the recorder writes. */
+export const TAKE_SUFFIX = ".wav";
 
 /** The sampling frequency as the recorder's screens print it. */
 export function formatRate(hz: number): string {
@@ -72,13 +94,36 @@ export function readCard(store: DeviceStore): CardEntry[] {
   }
 }
 
+/**
+ * The order the card keeps its entries in: by folder, folders first and each
+ * group by name, in the English order of letters whatever language the browser
+ * runs in.
+ */
+function cardOrder(a: CardEntry, b: CardEntry): number {
+  if (a.dir !== b.dir) return a.dir.localeCompare(b.dir, "en");
+  if ((a.kind === "folder") !== (b.kind === "folder")) return a.kind === "folder" ? -1 : 1;
+  return a.name.localeCompare(b.name, "en");
+}
+
 /** Put the card's entries back, by folder, folders first and each group by name. */
 export async function writeCard(store: DeviceStore, entries: readonly CardEntry[]): Promise<void> {
-  const sorted = [...entries].sort((a, b) => {
-    if (a.dir !== b.dir) return a.dir.localeCompare(b.dir);
-    if ((a.kind === "folder") !== (b.kind === "folder")) return a.kind === "folder" ? -1 : 1;
-    return a.name.localeCompare(b.name);
-  });
+  const sorted = [...entries].sort(cardOrder);
+  await store.set(CARD, JSON.stringify(sorted));
+}
+
+/**
+ * Put a changed card back, the list's cursor and the file playback holds each
+ * going with the entry it stood on to wherever the card now sorts it, or onto
+ * nothing where the card no longer carries that entry. `entries` holds each
+ * entry at the row it stood at, changed in place or left `undefined` where it
+ * is taken off, and anything new after them.
+ */
+export async function changeCard(store: DeviceStore, entries: readonly (CardEntry | undefined)[]): Promise<void> {
+  const cursor = entries[store.num("sd.selectedFile", 0)];
+  const held = entries[store.num("sd.playingFile", -1)];
+  const sorted = entries.filter((e) => e !== undefined).sort(cardOrder);
+  void store.set("sd.selectedFile", cursor ? sorted.indexOf(cursor) : -1);
+  void store.set("sd.playingFile", held ? sorted.indexOf(held) : -1);
   await store.set(CARD, JSON.stringify(sorted));
 }
 
@@ -100,6 +145,11 @@ export function freeBytes(store: DeviceStore): number {
   return Math.max(0, store.num("sd.capacity", CARD_CAPACITY) - used);
 }
 
+/** How many whole seconds of a take of `tracks` recorded at `rate` what is left on the card holds. */
+export function roomSeconds(store: DeviceStore, rate: number, tracks: number): number {
+  return Math.floor(freeBytes(store) / (rate * BYTES_PER_SAMPLE * tracks));
+}
+
 /** What is left on the card, as the screens print it. */
 export function formatFree(bytes: number): string {
   return `${(bytes / 1024 ** 3).toFixed(1)}GB Free`;
@@ -107,24 +157,18 @@ export function formatFree(bytes: number): string {
 
 const pad = (n: number, width = 2): string => String(n).padStart(width, "0");
 
-/** When an entry was written, as the card's list prints it. */
-export function cardStamp(store: DeviceStore, at = Date.now()): string {
-  const { year, month, day, hour, minute, second } = clockParts(store, at);
-  return `${pad(month)}/${pad(day)}/${year}\n${pad(hour)}:${pad(minute)}:${pad(second)}`;
-}
-
 /**
  * What the recorder names a take: the unit's clock, to the second. A name the
- * card already carries takes the next second that is free.
+ * card already carries, in any case, takes the next second that is free, the
+ * clock carrying into the minute, the hour and the day.
  */
 export function takeName(store: DeviceStore, at = Date.now()): string {
-  const { year, month, day, hour, minute, second } = clockParts(store, at);
-  const taken = new Set(readCard(store).map((e) => e.name));
-  for (let i = 0; i < 60; i++) {
-    const name = `${year}${pad(month)}${pad(day)}_${pad(hour)}${pad(minute)}${pad((second + i) % 60)}.wav`;
-    if (!taken.has(name)) return name;
+  const taken = readCard(store).map((e) => e.name);
+  for (let i = 0; ; i++) {
+    const { year, month, day, hour, minute, second } = clockParts(store, at + i * 1000);
+    const name = `${year}${pad(month)}${pad(day)}_${pad(hour)}${pad(minute)}${pad(second)}${TAKE_SUFFIX}`;
+    if (!taken.some((t) => sameName(t, name))) return name;
   }
-  return `${year}${pad(month)}${pad(day)}_${pad(hour)}${pad(minute)}${pad(second)}.wav`;
 }
 
 /** The card the simulator ships with: one in the slot, with nothing on it yet. */

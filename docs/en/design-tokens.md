@@ -508,7 +508,7 @@ PY
 | `--meter-yellow` | `#fffb42` | The upper half of a meter's bar |
 | `--meter-red` | `#de5152` | The HOME strip's lit clip lamp and the reduction readout in the channel view's COMP block |
 | `--transport-rec` | `#ff696b` | The dot on the recorder's [●] (x383..392 / y246..255 in p079-1), the pause's two bars while a take is paused, and the dot recording mode puts on the microSD icon and the microSD menu's [Recorder] |
-| `--transport-play` | `#31eb73` | The triangle on the recorder's play (x322..332 / y243..256 in p079-2), the colour of the [Play/Pause] picture in the guide's description as well |
+| `--transport-play` | `#31eb73` | The triangle on the recorder's play (x322..332 / y243..256 in p079-2), the colour of the [Play/Pause] picture in the guide's description as well, and the triangle a file playback holds, playing or paused, puts on the microSD icon |
 | `--progress-played` | `#2196f7` | The part of the progress bar on RECORDER's Play tab already played (p081-1) |
 | `--meter-track` | `#292d31` | The unlit part of a meter and the clip indicator (x87 / y99..128 in p036-1) |
 | `--meter-track-wide` | `#4a4d5a` | The unlit part of a wide meter. IN / OUT and the reduction bar on the dynamics screens (p099-1), HOME's STEREO/CUE meter (p045-1) |

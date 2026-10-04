@@ -6,7 +6,7 @@
 import licenseText from "../../LICENSE?raw";
 import type { AppContext } from "../app/context";
 import { UDK_BANKS, UDK_KNOBS, UDK_UNASSIGNED, udkAssignment, udkColumn, udkFromColumns, udkLines, udkPath } from "../model/udk";
-import { el, makeTappable, setPressed } from "../ui/dom";
+import { el, makeTappable, markShut, setPressed } from "../ui/dom";
 import { brightnessSpec, intSpec } from "../ui/param-spec";
 import { Icons } from "../ui/icons";
 import { dateTimeSetScreen, dateTimeSpans, openDateTimeSet, openTimeZone, timeZoneScreen } from "./date-time";
@@ -20,7 +20,7 @@ import { factoryState } from "../model/defaults";
 import { TIME_ZONE_SHIPPED } from "../model/time-zone";
 import { dropTracksOverRate } from "../model/track-count";
 import { dropInsertsOverRate } from "./insert-fx";
-import { releaseOnRateChange } from "./recording";
+import { recordMode, releaseOnRateChange } from "./recording";
 
 /** The languages the unit offers. The simulator's messages are in English only, so the other two cannot be chosen. */
 const LANGUAGES = [
@@ -50,11 +50,14 @@ export const setupScreen: ScreenDef = {
       "setup-general",
     );
 
+    // In recording mode, armed, recording or paused, Sampling Frequency takes the
+    // face of an entry out of reach and opens nothing.
+    const taking = recordMode(ctx.store);
     const rest: HTMLElement[] = [
       menuButton("User Defined\nKnobs", open("setup.udk")),
       el("div"),
       el("div"),
-      menuButton("Sampling\nFrequency", open("setup.rate")),
+      markShut(menuButton("Sampling\nFrequency", taking ? () => undefined : open("setup.rate")), taking),
       menuButton("Output Patch", open("setup.patch")),
       menuButton("Peripheral", open("setup.peripheral")),
       menuButton("Power\nManagement", open("setup.power")),

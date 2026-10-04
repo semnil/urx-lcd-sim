@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Shell } from "../app/shell";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
@@ -6,10 +6,14 @@ import { factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
 import type { Route } from "../app/navigator";
 import { buildRegistry } from "./index";
-import { columnGap, declarations, px, readStyle } from "../style/css-read";
-import { setMeterSource } from "./meters";
+import { declarations, readStyle } from "../style/css-read";
+import { inputMeterId, meterLevels, setMeterSource, startMeterTicker } from "./meters";
 import type { CardEntry } from "../model/card";
-import { formatFree, freeBytes, writeCard } from "../model/card";
+import { filePath, formatFree, freeBytes, readCard, writeCard } from "../model/card";
+import { levelBarShare } from "../model/dynamics";
+import { SILENT_DB } from "../model/signal";
+import { digitalGainPath } from "../model/source-gain";
+import { pausePlayback, startPlayback, startRecorderClock, stopPlayback } from "./recording";
 
 // RECORDER's Play and Edit tabs and both SAVE/LOAD tabs show what is on the
 // card, as rows of the same list the SCENE screen uses.
@@ -433,35 +437,145 @@ describe("the microSD card browser", () => {
     for (const id of ["microsd", "microsd.recorder", "microsd.saveload", "microsd.tools"]) {
       const shell = await mount({ id });
       const eject = shell.root.querySelector<HTMLElement>(".toolbar .sd-eject");
+      const said = (): [string | null, string[], boolean] => [
+        shell.root.querySelector(".dialog-text")?.textContent ?? null,
+        [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].map((b) => b.textContent ?? ""),
+        shell.root.querySelector(".dialog:not(.is-caution) .dialog-mark svg") !== null,
+      ];
+      const answer = async (label: string): Promise<void> => {
+        [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === label)?.click();
+        await flush();
+      };
       expect([eject?.classList.contains("is-disabled"), eject?.hasAttribute("aria-disabled")], `${id}: in reach`).toEqual([false, false]);
       eject?.click();
       await flush();
-      expect(shell.root.querySelector(".dialog-text")?.textContent, id).toBe("Now you may safely remove the microSD card.");
-      const answers = [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")];
-      expect(answers.map((b) => b.textContent), `${id}: [OK] alone`).toEqual(["OK"]);
+      expect(said(), `${id}: asked first, under the i mark`).toEqual(["Eject the microSD card?", ["Cancel", "OK"], true]);
+      await answer("Cancel");
+      expect([shell.root.querySelector(".dialog-overlay"), shell.ctx.store.bool("sd.mounted", false)], `${id}: [Cancel] leaves the card in`).toEqual([null, true]);
+
+      eject?.click();
+      await flush();
+      await answer("OK");
+      expect(said(), `${id}: then told the card can come out`).toEqual(["Now you may safely remove the microSD card.", ["OK"], true]);
       expect(shell.ctx.store.bool("sd.mounted", false), `${id}: asking takes nothing out`).toBe(true);
 
       // [OK] stands for the card being pulled from the slot.
-      answers[0]?.click();
-      await flush();
+      await answer("OK");
       expect(shell.ctx.store.bool("sd.mounted", true), id).toBe(false);
       expect(shell.ctx.nav.current.id, id).toBe("microsd");
       expect(shell.root.querySelector(".sd-no-card"), id).not.toBeNull();
     }
   });
 
-  it("lets go of the file playback holds paused once the card is taken out", async () => {
-    const shell = await mount({ id: "microsd" });
-    await shell.ctx.store.set("sd.playingFile", 1);
+  it("keeps the card in and the paused file held when the eject button on RECORDER's Play tab is touched", async () => {
+    const shell = await mount({ id: "microsd.recorder" });
+    const store = shell.ctx.store;
+    await pickTab(shell, "ui.sdTab", "Play");
+    rows(shell).find((r) => cellsOf(r)[1] === "20251020_112323.wav")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await flush();
-    shell.root.querySelector<HTMLElement>(".toolbar .sd-eject")?.click();
+    for (let i = 0; i < 2; i++) {
+      [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === "Play/Pause")?.click();
+      await flush();
+    }
+    const eject = shell.root.querySelector<HTMLElement>(".toolbar .sd-eject");
+    expect([store.bool("sd.playing", true), store.num("sd.playingFile", -1), eject?.classList.contains("is-disabled"), eject?.getAttribute("aria-disabled")], "paused").toEqual([
+      false,
+      1,
+      true,
+      "true",
+    ]);
+    eject?.click();
     await flush();
-    shell.root.querySelector<HTMLElement>(".dialog-actions .btn")?.click();
-    await flush();
-    expect(shell.ctx.store.num("sd.playingFile", -1)).toBe(-1);
+    expect([shell.root.querySelector(".dialog-overlay"), store.bool("sd.mounted", false), store.num("sd.playingFile", -1)], "nothing asked, the card in and the file held").toEqual([
+      null,
+      true,
+      1,
+    ]);
   });
 
-  it("puts the card-eject button out of reach while a file plays and in recording mode", async () => {
+  it("keeps the file playback holds paused, under the speaker and on [Play/Pause], when the card sorts anew around it", async () => {
+    const card = [entry("a.wav", "take", 10), entry("b.wav", "take", 25), entry("c.wav", "take", 40)];
+    const press = async (shell: Shell, label: string): Promise<void> => {
+      [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === label || b.textContent === label)?.click();
+      await flush();
+    };
+    const tapRow = async (shell: Shell, name: string): Promise<void> => {
+      rows(shell).find((r) => cellsOf(r)[1] === name)?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flush();
+    };
+    const typed = async (shell: Shell, text: string): Promise<void> => {
+      await shell.ctx.store.set("ui.titleEntry.text", text);
+      await flush();
+      shell.root.querySelector<HTMLElement>(".pick-dialog-ok")?.click();
+      await flush();
+    };
+    const onSaveLoad = async (shell: Shell, tab: string, act: () => Promise<void>): Promise<void> => {
+      shell.ctx.nav.push({ id: "microsd.saveload" });
+      await pickTab(shell, "ui.sdSaveTab", tab);
+      await act();
+      shell.ctx.nav.back();
+      await flush();
+    };
+    const changes: [string, (shell: Shell) => Promise<void>, string][] = [
+      [
+        "[Delete] on the file ahead of it",
+        async (shell) => {
+          await pickTab(shell, "ui.sdTab", "Edit");
+          await tapRow(shell, "a.wav");
+          await press(shell, "Delete");
+          [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === "OK")?.click();
+          await flush();
+        },
+        "b.wav",
+      ],
+      [
+        "[Rename] onto a name the card sorts after the others",
+        async (shell) => {
+          await pickTab(shell, "ui.sdTab", "Edit");
+          await tapRow(shell, "b.wav");
+          await press(shell, "Rename");
+          await typed(shell, "z");
+        },
+        "z.wav",
+      ],
+      [
+        "[Save as] under a name the card sorts ahead of it",
+        (shell) =>
+          onSaveLoad(shell, "Save/\nLoad", async () => {
+            await press(shell, "Save as");
+            await typed(shell, "a");
+          }),
+        "b.wav",
+      ],
+      [
+        "[New folder]",
+        (shell) =>
+          onSaveLoad(shell, "Edit", async () => {
+            await press(shell, "New folder");
+            await typed(shell, "Z");
+          }),
+        "b.wav",
+      ],
+    ];
+    for (const [why, change, held] of changes) {
+      const shell = await mount({ id: "microsd.recorder" }, card);
+      const store = shell.ctx.store;
+      await pickTab(shell, "ui.sdTab", "Play");
+      await tapRow(shell, "b.wav");
+      await press(shell, "Play/Pause");
+      await press(shell, "Play/Pause");
+      expect([store.bool("sd.playing", true), readCard(store)[store.num("sd.playingFile", -1)]?.name], `${why}: paused on b.wav`).toEqual([false, "b.wav"]);
+
+      await change(shell);
+      await pickTab(shell, "ui.sdTab", "Play");
+      const speaker = rows(shell).find((r) => r.querySelector(".sd-icon .icon-speaker") !== null);
+      expect(speaker ? cellsOf(speaker)[1] : undefined, `${why}: the speaker`).toBe(held);
+      await press(shell, "Play/Pause");
+      expect([store.bool("sd.playing", false), readCard(store)[store.num("sd.playingFile", -1)]?.name], `${why}: [Play/Pause] resumes`).toEqual([true, held]);
+    }
+  });
+
+  it("puts the card-eject button out of reach while a file plays and in recording mode, and back in reach once [■] lets the file go", async () => {
     const out = async (shell: Shell, why: string): Promise<void> => {
       const eject = shell.root.querySelector<HTMLElement>(".toolbar .sd-eject");
       expect([eject?.classList.contains("is-disabled"), eject?.getAttribute("aria-disabled")], why).toEqual([true, "true"]);
@@ -470,15 +584,125 @@ describe("the microSD card browser", () => {
       expect(shell.root.querySelector(".dialog-overlay"), `${why}: nothing asked`).toBeNull();
     };
     const playing = await mount({ id: "microsd.recorder" });
+    const press = async (label: string): Promise<void> => {
+      [...playing.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === label)?.click();
+      await flush();
+    };
     await pickTab(playing, "ui.sdTab", "Play");
-    await playing.ctx.store.set("sd.playing", true);
+    rows(playing).find((r) => cellsOf(r)[1] === "20251020_112323.wav")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await flush();
+    await press("Play/Pause");
+    expect([playing.ctx.store.bool("sd.playing", false), playing.ctx.store.num("sd.playingFile", -1)], "a file playing").toEqual([true, 1]);
     await out(playing, "a file playing");
+    await press("Stop");
+    const back = playing.root.querySelector<HTMLElement>(".toolbar .sd-eject");
+    expect([back?.classList.contains("is-disabled"), back?.getAttribute("aria-disabled")], "[■] lets the file go").toEqual([false, null]);
 
     const armed = await mount({ id: "microsd" });
     await armed.ctx.store.set("sd.rec", "armed");
     await flush();
     await out(armed, "recording mode");
+  });
+
+  it("puts Save/Load and Tools on the microSD top out of reach while playback holds a file, playing or paused, until [■] lets it go", async () => {
+    const shell = await mount({ id: "microsd" });
+    const store = shell.ctx.store;
+    const press = async (label: string): Promise<void> => {
+      [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === label)?.click();
+      await flush();
+    };
+    const menu = (name: string): HTMLElement | undefined => [...shell.root.querySelectorAll<HTMLElement>(".menu-btn")].find((b) => b.textContent === name);
+    const reach = (): [string, boolean | undefined, string | null | undefined][] =>
+      ["Recorder", "Save/Load", "Tools"].map((name) => [name, menu(name)?.classList.contains("is-disabled"), menu(name)?.getAttribute("aria-disabled")]);
+    const top = async (): Promise<void> => {
+      shell.ctx.nav.back();
+      await flush();
+      expect(shell.ctx.nav.current.id).toBe("microsd");
+    };
+
+    shell.ctx.nav.push({ id: "microsd.recorder" });
+    await pickTab(shell, "ui.sdTab", "Play");
+    rows(shell).find((r) => cellsOf(r)[1] === "20251020_112323.wav")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+    for (const [why, playing] of [["playing", true], ["paused", false]] as const) {
+      await press("Play/Pause");
+      expect([store.bool("sd.playing", !playing), store.num("sd.playingFile", -1)], why).toEqual([playing, 1]);
+      await top();
+      expect(reach(), why).toEqual([
+        ["Recorder", false, null],
+        ["Save/Load", true, "true"],
+        ["Tools", true, "true"],
+      ]);
+      for (const name of ["Save/Load", "Tools"]) {
+        menu(name)?.click();
+        await flush();
+        expect(shell.ctx.nav.current.id, `${why}: ${name} opens nothing`).toBe("microsd");
+      }
+      menu("Recorder")?.click();
+      await flush();
+      expect(shell.ctx.nav.current.id, `${why}: Recorder still opens`).toBe("microsd.recorder");
+    }
+
+    await press("Stop");
+    await top();
+    expect(reach(), "back in reach once [■] lets the file go").toEqual([
+      ["Recorder", false, null],
+      ["Save/Load", false, null],
+      ["Tools", false, null],
+    ]);
+    menu("Save/Load")?.click();
+    await flush();
+    expect(shell.ctx.nav.current.id, "Save/Load opens once more").toBe("microsd.saveload");
+  });
+
+  it("lets go of the file playback holds once it has played to its end, as [■] does: the triangle leaves the microSD icon, and the card-eject button and the microSD top's Save/Load and Tools come back in reach", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    const shell = await mount({ id: "microsd" });
+    const stop = startRecorderClock(shell.ctx.store, shell.root, 50);
+    try {
+      const store = shell.ctx.store;
+      const press = async (label: string): Promise<void> => {
+        [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === label)?.click();
+        await flush();
+      };
+      const shut = (node: HTMLElement | null | undefined): [boolean | undefined, string | null | undefined] => [node?.classList.contains("is-disabled"), node?.getAttribute("aria-disabled")];
+      const menu = (name: string): HTMLElement | undefined => [...shell.root.querySelectorAll<HTMLElement>(".menu-btn")].find((b) => b.textContent === name);
+      // The eject button on RECORDER's toolbar, Save/Load and Tools on the
+      // microSD top, and the microSD icon on HOME's toolbar, back on RECORDER after.
+      const reach = async (): Promise<unknown[]> => {
+        const eject = shut(shell.root.querySelector<HTMLElement>(".toolbar .sd-eject"));
+        shell.ctx.nav.back();
+        await flush();
+        const top = [shut(menu("Save/Load")), shut(menu("Tools"))];
+        shell.ctx.nav.home();
+        await flush();
+        const icon = shell.root.querySelector<HTMLElement>('.toolbar-icons .icon-btn[aria-label^="microSD"]');
+        const seen = [store.num("sd.playingFile", -1), eject, ...top, icon?.getAttribute("aria-label"), icon?.querySelector(".play-mark") != null];
+        shell.ctx.nav.openTop({ id: "microsd" });
+        shell.ctx.nav.push({ id: "microsd.recorder" });
+        await flush();
+        return seen;
+      };
+
+      shell.ctx.nav.push({ id: "microsd.recorder" });
+      await pickTab(shell, "ui.sdTab", "Play");
+      rows(shell).find((r) => cellsOf(r)[1] === "20251020_112323.wav")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flush();
+      await press("Play/Pause");
+      vi.advanceTimersByTime(60);
+      await flush();
+      expect(await reach(), "the control: ten seconds of file, playing").toEqual([1, [true, "true"], [true, "true"], [true, "true"], "microSD, playing", true]);
+
+      // The file has run past its ten seconds.
+      await store.set("sd.playSince", Date.now() - 11_000);
+      vi.advanceTimersByTime(60);
+      await flush();
+      expect([store.bool("sd.playing", true), store.num("sd.playSeconds", -1)], "stopped, the counter cleared").toEqual([false, 0]);
+      expect(await reach(), "played to its end").toEqual([-1, [false, null], [false, null], [false, null], "microSD", false]);
+    } finally {
+      stop();
+      vi.useRealTimers();
+    }
   });
 
   it("marks a file of four tracks or more by its count on Edit and leaves it off Play, the speaker marking the file played or paused and the audio mark any other", async () => {
@@ -571,6 +795,17 @@ describe("the microSD card browser", () => {
     expect(described(saveLoad), "SAVE/LOAD").toEqual(["folder", null]);
   });
 
+  it("leaves a settings file off Play, which lists the folders and the files it plays", async () => {
+    const shell = await mount({ id: "microsd.recorder" }, [
+      entry("Recordings", "folder"),
+      entry("four.wav", "take", 10, 4),
+      entry("mine.urxf", "data"),
+      entry("two.wav", "take", 10),
+    ]);
+    await pickTab(shell, "ui.sdTab", "Play");
+    expect(rows(shell).map((r) => cellsOf(r)[1])).toEqual(["Recordings", "two.wav"]);
+  });
+
   it("leaves a take recorded at another sampling frequency off Play and Edit and unplayed, until the unit runs at that frequency again", async () => {
     const shell = await mount({ id: "microsd.recorder" }, [
       entry("Recordings", "folder"),
@@ -655,6 +890,73 @@ describe("the microSD card browser", () => {
     expect(usable(filled), "the control: a file under the cursor").toEqual([true, true, true]);
   });
 
+  it("keeps SAVE/LOAD's cursor in the folder that is open once its last file is deleted, and acts on no file the list does not show", async () => {
+    const shell = await mount({ id: "microsd.saveload" }, [entry("F", "folder"), entry("B.urxf", "data"), entry("X.urxf", "data", 0, 0, "/F/")]);
+    const store = shell.ctx.store;
+    await store.set(filePath({ dir: "/F/", name: "X.urxf" }), JSON.stringify({ "ch.ch1.level": -30 }));
+    const press = async (label: string): Promise<void> => {
+      [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === label || b.textContent === label)?.click();
+      await flush();
+    };
+    const saveLoad = (): boolean[] =>
+      ["Save", "Save as", "Load"].map((l) => [...shell.root.querySelectorAll(".sd-actions .btn")].find((b) => b.textContent === l)?.classList.contains("is-disabled") === false);
+    const shown = (): [string, boolean][] => rows(shell).map((r) => [cellsOf(r)[1] ?? "", r.classList.contains("is-selected")]);
+    await pickTab(shell, "ui.sdSaveTab", "Edit");
+    rows(shell)[1]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+    await press("Delete");
+    [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === "OK")?.click();
+    await flush();
+    expect(readCard(store)[store.num("sd.selectedFile", -1)]?.dir ?? "/", "the cursor stays in the root").toBe("/");
+    expect(shown(), "on the folder left there").toEqual([["F", true]]);
+    expect(usable(shell), "New folder, Delete, Rename").toEqual([true, false, false]);
+    await pickTab(shell, "ui.sdSaveTab", "Save/\nLoad");
+    expect(saveLoad(), "Save, Save as, Load").toEqual([false, true, false]);
+
+    // The cursor on a file of another folder: the root's list shows no row under it.
+    await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === "X.urxf"));
+    await flush();
+    expect(shown()).toEqual([["F", false]]);
+    expect(saveLoad(), "Save, Save as, Load").toEqual([false, true, false]);
+    await store.set("ch.ch1.level", 0);
+    await press("Load");
+    await flush();
+    expect(store.num("ch.ch1.level", 99), "nothing loaded").toBe(0);
+    await pickTab(shell, "ui.sdSaveTab", "Edit");
+    expect(usable(shell), "New folder, Delete, Rename").toEqual([true, false, false]);
+    await press("Delete");
+    expect(shell.root.querySelector(".dialog-overlay"), "nothing asked").toBeNull();
+    expect(readCard(store).map((e) => `${e.dir}${e.name}`)).toEqual(["/F", "/F/X.urxf"]);
+  });
+
+  it("keeps RECORDER's cursor in the folder that is open once its last file is deleted", async () => {
+    const shell = await mount({ id: "microsd.recorder" }, [entry("Takes", "folder"), entry("A.wav", "take", 10), entry("Z.wav", "take", 10, 2, "/Takes/")]);
+    const store = shell.ctx.store;
+    await pickTab(shell, "ui.sdTab", "Edit");
+    rows(shell)[1]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+    shell.root.querySelector<HTMLElement>('.sd-actions [aria-label="Delete"]')?.click();
+    await flush();
+    [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === "OK")?.click();
+    await flush();
+    expect(readCard(store)[store.num("sd.selectedFile", -1)]?.dir ?? "/", "the cursor stays in the root").toBe("/");
+    expect(usable(shell), "Delete, Rename").toEqual([false, false]);
+    shell.root.querySelector<HTMLElement>('.sd-actions [aria-label="Delete"]')?.click();
+    await flush();
+    expect(shell.root.querySelector(".dialog-overlay"), "nothing asked").toBeNull();
+    expect(readCard(store).map((e) => `${e.dir}${e.name}`)).toEqual(["/Takes", "/Takes/Z.wav"]);
+
+    // The folder's only file deleted: the cursor stands on nothing.
+    await store.set("sd.path", "/Takes/");
+    await store.set("sd.selectedFile", 1);
+    await flush();
+    shell.root.querySelector<HTMLElement>('.sd-actions [aria-label="Delete"]')?.click();
+    await flush();
+    [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === "OK")?.click();
+    await flush();
+    expect([readCard(store).map((e) => `${e.dir}${e.name}`), store.num("sd.selectedFile", 0)]).toEqual([["/Takes"], -1]);
+  });
+
   it("sizes the bar's thumb by whole rows, three of four in view taking three quarters of its travel, a pixel in from the rim", async () => {
     const shell = await mount({ id: "microsd.saveload" });
     await shell.ctx.store.set("sd.files", "a/\nb\nc\nd");
@@ -668,6 +970,177 @@ describe("the microSD card browser", () => {
     const thumb = shell.root.querySelector<HTMLElement>(".sd-scrollbar .scroll-thumb");
     expect(Number.parseFloat(thumb?.style.height ?? "")).toBeCloseTo((111 * 3) / 4);
     expect(declarations(readStyle("lcd.css"), ".list-carded + .scrollbar .scroll-thumb")["margin-top"]).toBe("1px");
+  });
+
+  it("keeps Play's folders shut and Record and Edit out of reach while playback holds a file, playing or paused, until [■] lets it go", async () => {
+    const shell = await mount({ id: "microsd.recorder" }, [
+      entry("Recordings", "folder"),
+      entry("take.wav", "take", 10),
+      entry("inside.wav", "take", 96, 2, "/Recordings/"),
+    ]);
+    const store = shell.ctx.store;
+    await pickTab(shell, "ui.sdTab", "Play");
+    const press = async (cls: string): Promise<void> => {
+      shell.root.querySelector<HTMLElement>(`.sd-actions > .${cls}`)?.click();
+      await flush();
+    };
+    const touch = async (name: string): Promise<void> => {
+      rows(shell).find((r) => cellsOf(r)[1] === name)?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flush();
+    };
+    const tab = (label: string): HTMLElement | undefined =>
+      [...shell.root.querySelectorAll<HTMLElement>(".side-tab")].find((t) => t.querySelector(".side-tab-label")?.textContent === label);
+    const shut = (): boolean[] => ["Record", "Play", "Edit"].map((t) => tab(t)?.getAttribute("aria-disabled") === "true" && tab(t)?.classList.contains("is-disabled") === true);
+    const where = (): [string, string, number] => [store.str("ui.sdTab", ""), store.str("sd.path", "/"), store.num("sd.selectedFile", -1)];
+
+    await touch("take.wav");
+    await press("rec-pause");
+    for (const state of ["playing", "paused"]) {
+      expect([store.num("sd.playingFile", -1), store.bool("sd.playing", false)], state).toEqual([1, state === "playing"]);
+      expect(shut(), `${state}: Record and Edit shut`).toEqual([true, false, true]);
+      await touch("Recordings");
+      await touch("Recordings");
+      expect(where(), `${state}: the folder takes the cursor and stays shut`).toEqual(["Play", "/", 0]);
+      for (const label of ["Edit", "Record"]) {
+        tab(label)?.click();
+        await flush();
+        expect([store.str("ui.sdTab", ""), shell.root.querySelector(".dialog-overlay")], `${state}: ${label} does nothing`).toEqual(["Play", null]);
+      }
+      await touch("take.wav");
+      if (state === "playing") await press("rec-pause");
+    }
+
+    await press("rec-stop");
+    expect(shut(), "let go: every tab in reach").toEqual([false, false, false]);
+    await touch("Recordings");
+    await touch("Recordings");
+    expect(where(), "let go: the folder opens").toEqual(["Play", "/Recordings/", 2]);
+    tab("Record")?.click();
+    await flush();
+    expect(store.str("ui.sdTab", ""), "let go: Record opens").toBe("Record");
+  });
+
+  it("opens no tab at the end of Loading... that a file held or recording mode has by then put out of reach", async () => {
+    const shell = await mount({ id: "microsd.recorder" }, [entry("take.wav", "take", 600)]);
+    const store = shell.ctx.store;
+    const tab = (label: string): HTMLElement | undefined =>
+      [...shell.root.querySelectorAll<HTMLElement>(".side-tab")].find((t) => t.querySelector(".side-tab-label")?.textContent === label);
+    const settle = async (): Promise<void> => {
+      for (let i = 0; i < 5; i++) await Promise.resolve();
+    };
+    // Touch a tab, let the recorder change while Loading... is up, and wait the modal out.
+    const load = async (label: string, meanwhile?: () => unknown): Promise<string> => {
+      tab(label)?.click();
+      await settle();
+      expect(shell.root.querySelector(".dialog-text")?.textContent, `${label} loads`).toBe("Loading...");
+      await meanwhile?.();
+      await settle();
+      vi.advanceTimersByTime(60_000);
+      await settle();
+      expect(shell.root.querySelector(".dialog-overlay"), `${label}: the modal takes itself down`).toBeNull();
+      return store.str("ui.sdTab", "");
+    };
+    await pickTab(shell, "ui.sdTab", "Play");
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      expect(await load("Edit", () => startPlayback(store, 0)), "a file held by then: Edit stays shut").toBe("Play");
+      expect([store.num("sd.playingFile", -1), store.bool("sd.playing", false)], "with the file playing").toEqual([0, true]);
+      stopPlayback(store);
+      await settle();
+      expect(await load("Edit"), "the control: nothing changed under it, Edit opens").toBe("Edit");
+
+      tab("Record")?.click();
+      await settle();
+      expect(await load("Play", () => store.set("sd.rec", "armed")), "recording mode by then: it keeps the tab it came on in").toBe("Record");
+      expect([store.str("sd.rec", ""), shell.root.querySelector('.rec-transport [aria-label="Stop"]') !== null], "with [■] there to leave it").toEqual(["armed", true]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("holds playback out of the keys' reach behind Loading..., and Record and Edit out of it while a file is held", async () => {
+    const shell = await mount({ id: "microsd.recorder" }, [entry("take.wav", "take", 600)]);
+    document.body.appendChild(shell.root);
+    const store = shell.ctx.store;
+    const tab = (label: string): HTMLElement | undefined =>
+      [...shell.root.querySelectorAll<HTMLElement>(".side-tab")].find((t) => t.querySelector(".side-tab-label")?.textContent === label);
+    const control = (cls: string): HTMLElement | null => shell.root.querySelector<HTMLElement>(`.sd-actions > .${cls}`);
+    const settle = async (): Promise<void> => {
+      for (let i = 0; i < 5; i++) await Promise.resolve();
+    };
+    // Enter pressed and let go on a control the focus is put on.
+    const enter = async (node: HTMLElement | null | undefined): Promise<void> => {
+      node?.focus();
+      node?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+      await settle();
+      node?.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter", bubbles: true, cancelable: true }));
+      await settle();
+    };
+    const modal = (): string | null => shell.root.querySelector(".dialog-text")?.textContent ?? null;
+    await pickTab(shell, "ui.sdTab", "Play");
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await enter(tab("Edit"));
+      expect(modal(), "Edit loads").toBe("Loading...");
+      expect(
+        [control("rec-pause"), control("rec-stop"), tab("Record"), tab("Play"), tab("Edit")].map((n) => n !== null && n?.closest("[inert]") !== null),
+        "[Play/Pause], [■] and the tabs are under it",
+      ).toEqual([true, true, true, true, true]);
+      vi.advanceTimersByTime(60_000);
+      await settle();
+      expect([modal(), store.str("ui.sdTab", ""), store.num("sd.playingFile", -1)], "Edit opens on nothing held").toEqual([null, "Edit", -1]);
+
+      await enter(tab("Play"));
+      vi.advanceTimersByTime(60_000);
+      await settle();
+      await enter(control("rec-pause"));
+      expect([store.str("ui.sdTab", ""), store.num("sd.playingFile", -1), store.bool("sd.playing", false)], "a file played from the keys").toEqual(["Play", 0, true]);
+      for (const label of ["Edit", "Record"]) {
+        await enter(tab(label));
+        expect([modal(), store.str("ui.sdTab", "")], `held: ${label} does nothing`).toEqual([null, "Play"]);
+      }
+      await enter(control("rec-stop"));
+      await enter(tab("Edit"));
+      expect([store.num("sd.playingFile", -1), modal()], "the control: let go, Edit loads").toEqual([-1, "Loading..."]);
+      vi.advanceTimersByTime(60_000);
+      await settle();
+    } finally {
+      vi.useRealTimers();
+      shell.destroy();
+      shell.root.remove();
+    }
+  });
+
+
+  it("puts Play's [↑] out of reach while playback holds a file, playing or paused, and brings it back once [■] lets the file go", async () => {
+    const shell = await mount({ id: "microsd.recorder" }, [entry("Recordings", "folder"), entry("inside.wav", "take", 96, 2, "/Recordings/")]);
+    const store = shell.ctx.store;
+    await store.set("sd.path", "/Recordings/");
+    await store.set("sd.selectedFile", 1);
+    await pickTab(shell, "ui.sdTab", "Play");
+    const press = async (cls: string): Promise<void> => {
+      shell.root.querySelector<HTMLElement>(`.sd-actions > .${cls}`)?.click();
+      await flush();
+    };
+    // The face [↑] wears, and the folder open once it is touched.
+    const climb = async (): Promise<[boolean, string | null, string]> => {
+      const up = shell.root.querySelector<HTMLElement>(".sd-up");
+      const face: [boolean, string | null] = [up?.classList.contains("is-disabled") === true, up?.getAttribute("aria-disabled") ?? null];
+      up?.click();
+      await flush();
+      return [...face, store.str("sd.path", "/")];
+    };
+
+    await press("rec-pause");
+    expect([store.num("sd.playingFile", -1), store.bool("sd.playing", false)], "playing").toEqual([1, true]);
+    expect(await climb(), "playing: shut, the folder staying open").toEqual([true, "true", "/Recordings/"]);
+    await press("rec-pause");
+    expect([store.num("sd.playingFile", -1), store.bool("sd.playing", false)], "paused").toEqual([1, false]);
+    expect(await climb(), "paused: shut, the folder staying open").toEqual([true, "true", "/Recordings/"]);
+
+    await press("rec-stop");
+    expect(store.num("sd.playingFile", -1), "let go").toBe(-1);
+    expect(await climb(), "let go: [↑] climbs out").toEqual([false, null, "/"]);
   });
 
   it("brings the cursor to the file playback holds, playing or paused, and fills the bar by that file's length", async () => {
@@ -705,30 +1178,53 @@ describe("the microSD card browser", () => {
     expect(shell.ctx.store.num("sd.selectedFile", -1)).toBe(1);
   });
 
-  it("meters the file playing on OUT beside RECORDER's list, lit to the rows its defaults give, and unlit while nothing plays", async () => {
-    const CSS = readStyle("lcd.css");
-    const barRows =
-      px(declarations(CSS, ".dyn-io .meter")["height"]) -
-      px(declarations(CSS, ".dyn-io .meter-clip")["height"]) -
-      columnGap(declarations(CSS, ".dyn-io .meter-lane")["gap"]);
-    const shell = await mount({ id: "microsd.recorder" });
-    const unlitRows = (): number[] =>
-      [...shell.root.querySelectorAll<HTMLElement>(".sd-out .meter-bar")].map((b) =>
-        Math.round((Number.parseFloat(b.style.getPropertyValue("--unlit")) / 100) * barRows),
-      );
-    for (const tab of ["Play", "Edit"]) {
-      await shell.ctx.store.set("sd.playing", false);
-      await pickTab(shell, "ui.sdTab", tab);
-      expect(shell.root.querySelector(".sd-out .dyn-io-caption")?.textContent, tab).toBe("OUT");
-      expect(unlitRows(), `${tab}, stopped`).toEqual([barRows, barRows]);
-      await shell.ctx.store.set("sd.playing", true);
+  it("meters on OUT beside RECORDER's list what the file playing puts out after microSD Playback's D.Gain, moving as it plays, and nothing while no file plays", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
+    const shell = await mount({ id: "microsd.recorder" }, [entry("a.wav", "take", 600)]);
+    const store = shell.ctx.store;
+    const stopTicker = startMeterTicker(store, shell.root);
+    try {
+      // A stereo channel on microSD Playback takes in what the file puts out.
+      await store.set("ch.ch_5_6.source", "microSD Playback");
+      const unlit = (): string[] => [...shell.root.querySelectorAll<HTMLElement>(".sd-out .meter-bar")].map((b) => b.style.getPropertyValue("--unlit"));
+      const out = (): number[] => meterLevels(store, shell.root.querySelector<HTMLElement>(".sd-out .meter")?.dataset["meterSource"] ?? "", 2, Date.now());
+      const taken = (): number[] => meterLevels(store, inputMeterId("ch_5_6"), 2, Date.now());
+      const drawn = (levels: number[]): string[] => levels.map((db) => `${(1 - levelBarShare(db)) * 100}%`);
+      for (const tab of ["Play", "Edit"]) {
+        stopPlayback(store);
+        await pickTab(shell, "ui.sdTab", tab);
+        expect(shell.root.querySelector(".sd-out .dyn-io-caption")?.textContent, tab).toBe("OUT");
+        expect(unlit(), `${tab}, stopped`).toEqual(["100%", "100%"]);
+        startPlayback(store, 0);
+        await flush();
+        expect(out(), `${tab}, playing: what the channel takes in`).toEqual(taken());
+        expect(Math.max(...out()), `${tab}, playing: sounding`).toBeGreaterThan(-60);
+        expect(unlit(), `${tab}, playing: drawn to it`).toEqual(drawn(taken()));
+      }
+      const seen = new Set<string>();
+      for (let i = 0; i < 4; i++) {
+        vi.advanceTimersByTime(2_500);
+        expect(out(), `${2.5 * (i + 1)} s on`).toEqual(taken());
+        seen.add(unlit().join(" "));
+      }
+      expect(seen.size, "moving as the file plays").toBeGreaterThan(1);
+
+      const before = out();
+      await store.set(digitalGainPath("microSD Playback"), -20);
+      expect(out().map((db, i) => db - (before[i] ?? 0)), "20 dB down with the D.Gain").toEqual([expect.closeTo(-20, 6), expect.closeTo(-20, 6)]);
+      const heard = out();
+      await store.set("ch.ch_5_6.source", "None");
+      expect(out(), "whatever the channels take").toEqual(heard);
+
+      pausePlayback(store);
       await flush();
-      expect(unlitRows(), `${tab}, playing`).toEqual([45, 39]);
+      expect(out(), "paused").toEqual([SILENT_DB, SILENT_DB]);
+      vi.advanceTimersByTime(5_000);
+      expect(unlit(), "paused, fallen").toEqual(["100%", "100%"]);
+    } finally {
+      stopTicker();
+      vi.useRealTimers();
     }
-    await shell.ctx.store.set("sd.outLevel.0", 0);
-    await shell.ctx.store.set("sd.outLevel.1", -60);
-    await flush();
-    expect(unlitRows(), "the levels the store carries").toEqual([0, barRows]);
   });
 
   it("marks every control out of reach that RECORDER and SAVE/LOAD shut, so a key press does not sink it", async () => {
@@ -969,5 +1465,53 @@ describe("USB Storage Mode", () => {
       expect(shell.root.querySelector(".menu-grid-sd"), `${way}, ${answer}: the menu is still there`).not.toBeNull();
     }
     expect(shell.ctx.store.bool("sd.usbStorage", true), "in and out again").toBe(false);
+  });
+
+  it("puts USB Storage Mode and the card-eject button out of reach while playback holds a file, playing or paused, until [■] lets it go", async () => {
+    const shell = await mount({ id: "microsd" });
+    const store = shell.ctx.store;
+    const press = async (label: string): Promise<void> => {
+      [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === label)?.click();
+      await flush();
+    };
+    const top = async (): Promise<void> => {
+      shell.ctx.nav.back();
+      await flush();
+      expect(shell.ctx.nav.current.id).toBe("microsd");
+    };
+    const reach = (): [string, boolean | undefined, string | null | undefined][] =>
+      [".usb-storage", ".sd-eject"].map((sel) => {
+        const node = shell.root.querySelector<HTMLElement>(`.toolbar ${sel}`);
+        return [sel, node?.classList.contains("is-disabled"), node?.getAttribute("aria-disabled")];
+      });
+
+    shell.ctx.nav.push({ id: "microsd.recorder" });
+    await pickTab(shell, "ui.sdTab", "Play");
+    rows(shell).find((r) => cellsOf(r)[1] === "20251020_112323.wav")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+    for (const [why, playing] of [["playing", true], ["paused", false]] as const) {
+      await press("Play/Pause");
+      expect([store.bool("sd.playing", !playing), store.num("sd.playingFile", -1)], why).toEqual([playing, 1]);
+      await top();
+      expect(reach(), why).toEqual([
+        [".usb-storage", true, "true"],
+        [".sd-eject", true, "true"],
+      ]);
+      for (const sel of [".usb-storage", ".sd-eject"]) {
+        shell.root.querySelector<HTMLElement>(`.toolbar ${sel}`)?.click();
+        await flush();
+        expect(shell.root.querySelector(".dialog-overlay"), `${why}: ${sel} asks nothing`).toBeNull();
+      }
+      expect([store.bool("sd.usbStorage", false), store.bool("sd.mounted", false), store.num("sd.playingFile", -1)], `${why}: the file still held`).toEqual([false, true, 1]);
+      shell.ctx.nav.push({ id: "microsd.recorder" });
+      await flush();
+    }
+
+    await press("Stop");
+    await top();
+    expect(reach(), "both back in reach once [■] lets the file go").toEqual([
+      [".usb-storage", false, null],
+      [".sd-eject", false, null],
+    ]);
   });
 });

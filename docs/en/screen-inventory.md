@@ -22,7 +22,7 @@ Which screen leads to which is drawn in [screen-map.md](screen-map.md).
 | Sends destination picker | `sends-select` | p51 | Built. A sheet over HOME's main area; the side rail stays HOME's |
 | SCENE (menu) | `scene` | p72 | Built. Opened from the scene name at HOME's top left |
 | SCENE LIST | `scene.list` | p72-75 | Built (Store/Recall and Edit) |
-| Title entry | `scene.title` | — | Built. Opened from [Title] on SCENE LIST's Edit tab and from [Store] on a number with nothing stored. [Save as], [New folder] and [Rename] on SAVE/LOAD, [Rename] on RECORDER and [Format microSD] on TOOLS open the same screen as `microsd.name` ([Format microSD] titles it `Volume Label`, takes up to 11 characters and lets [OK] go on with the field empty). The guide has no figure of it |
+| Title entry | `scene.title` | — | Built. Opened from [Title] on SCENE LIST's Edit tab and from [Store] on a number with nothing stored. [Save as], [New folder] and [Rename] on SAVE/LOAD, [Rename] on RECORDER and [Format microSD] on TOOLS open the same screen as `microsd.name` ([Save as], [New folder] and [Rename] open it on the card's keyboard, with the extension outside the field; [Format microSD] titles it `Volume Label`, takes up to 11 characters and lets [OK] go on with the field empty). The guide has no figure of it |
 
 ### SETUP
 
@@ -153,7 +153,8 @@ the unit, its row says so with the result and the date.
   the frequency shows, the progress bar is grey throughout, and the button left of the bar greys its
   mark. Paused, the counter and the frequency show, the bar is blue as far as the file has played, the
   file keeps the speaker, and that button's mark is white, a touch on it bringing the cursor back to
-  the file. [Play/Pause] carries the green triangle in both, and the eject button can be used in both.
+  the file. [Play/Pause] carries the green triangle in both. The eject button can be used stopped, and
+  paused it takes the face of a button that cannot be used (URX44V, the operator, 2026-10-03).
   The triangle follows the picture in the guide's description.
 - The channel view of the STEREO bus — the channel view figures are of input channels (p090-1, p098-1
   and others) and of STREAMING (p098-2). None has the STEREO bus open. The channel selector
@@ -1307,6 +1308,7 @@ and URX44 run the same laws, bar the number of channels.
 | The COMP Side Chain screen's SC meter | The SSMCS input plus the SC-Gain |
 | The MONITOR screen's meter | After the LEVEL |
 | A RECORDER track's meter | A channel at its Rec Point, a bus as it goes out |
+| OUT on RECORDER's Play and Edit tabs | What the file playing puts out (after microSD Playback's D.Gain); silent while stopped or paused (after [■] and paused, URX44V, the operator, 2026-10-03) |
 
 - The left dot (signal) lights green from about -40 dBFS and stays lit while the right dot (clip) is red.
   The right dot lights only while the level clips (0 dB).
@@ -1559,7 +1561,10 @@ the progress bar at y235..244, and the middle button carries the pause's two whi
 without rebuilding the screen. A press on the bars pauses the take; while paused the running time stands still and the
 bars are the ●'s red, `--transport-rec`, and a press on the red bars records again, the running time going on from
 where it stood. A press on [■] ends recording and returns the screen to the state it opened in. A second press on [●]
-while armed does the same as [■], and [●] does nothing while a take records or is paused.
+while armed does the same as [■], and [●] does nothing while a take records or is paused. On a card with nearly all its
+room free, the unit's Record tab progress bar is an empty groove from end to end and stays one while a take records. The
+simulator keeps it an empty groove whatever room the card has (f under Record in the user guide's "RECORDER menu" says
+it shows the remaining free space on the microSD card).
 
 Armed, recording or paused, the recorder is in recording mode. [Track Count] and the eject button keep what they show
 on the face of a button that cannot be used (`--surface-disabled`, their name and mark `--menu-text-disabled`) and do
@@ -1567,7 +1572,14 @@ nothing when pressed, and the Record / Play / Edit tabs and the slots' Source bu
 pressed. Recording mode goes on off the RECORDER screen, and a 14px dot of `--transport-rec` stands at the lower right of
 the microSD icon on the HOME and channel view toolbars (x364..377 / y22..35) and left of the name on the microSD menu's
 [Recorder] (x62..75, 4px from the name). On the microSD menu everything but [Recorder] ([Save/Load], [Tools], [USB Storage Mode] and the eject
-button) takes the face of a button that cannot be used and does nothing when pressed.
+button) takes the face of a button that cannot be used and does nothing when pressed. SETUP's [Sampling Frequency] takes
+that face too, as the unit does, and does not open the SAMPLING FREQUENCY screen.
+
+While playback holds a file, playing or paused, the microSD icon on the HOME and channel view toolbars carries a
+triangle of `--transport-play` pointing right where recording mode puts its dot (d under "Toolbar" in the user guide;
+paused as well as playing, in the same shape and place, URX44V, the operator, 2026-10-03). The triangle stands on the dot's rows and is as tall, 14px
+(y22..35), and 10px wide 3px in from the dot's left (x367..376). It goes once the file is let go, by [■] or at the
+end of the file ("What is on the card").
 
 TOOLS carries the card-eject button on its toolbar as well (p087-1). [Format microSD] on the Format tab opens the
 same keyboard screen the title entry uses, under the title `Volume Label`, with the card's volume label in the
@@ -1578,7 +1590,8 @@ label. [Test microSD] on the Test tab holds up the modal `Loading...` uses, read
 3 seconds. Once the test has run, `Result : A` stands
 right of the button, and below it Card specs, BUS Interface, UHS Speed Class, Speed Class, 2 Tracks Recording and
 Multi Tracks Recording, one line every 25px, the grade and the two recording lines in `--test-pass` (p088-2). The
-report's values are the ones the guide's figure shows.
+report's values are the ones the guide's figure shows. The report stays through other screens and a format, and goes
+once the card is taken out, as the unit does.
 
 [Play/Pause] plays the file selected in the list; pressed while it plays, it pauses, and pressed again it goes back to
 playing that file. Another file plays once [■] has stopped this one (the NOTE under Play in the user guide's "RECORDER
@@ -1593,29 +1606,40 @@ The counter and the sampling frequency show over the progress bar only while pla
 paused. Their line keeps its height while they do not show, so the bar stays where it is (URX44V, the operator,
 2026-09-22). The button left of the bar (three lines and a ▶) carries a white mark while a file is held, and a touch on
 it brings the cursor to that file (f under Play in the user guide's "RECORDER menu"). With no file held it stays on
-the plain face with its mark greyed, as [↑] does, and a touch on it does nothing.
+the plain face with its mark greyed, as [↑] does, and a touch on it does nothing. While a file is held, a touch on a
+folder on the Play tab only brings the cursor to it and does not open it, [↑] on the path field takes the face of a
+button that cannot be used and does nothing when pressed (playing and paused, URX44V, the operator, 2026-10-03), and
+the Record and Edit tabs take the face of a tab that cannot be used and do nothing when pressed, as the unit does. [■]
+lets the file go, as the end of the file does, and they come back.
 
-While a file plays, the card-eject button cannot be used (a dimmed face in p081-1, the plain face in p083-1). The
+While playback holds a file, playing or paused, the card-eject button cannot be used (a dimmed face in p081-1, the
+plain face in p083-1; paused on RECORDER's Play tab as well, URX44V, the operator, 2026-10-03). On the microSD top,
+while a file is held, playing or paused, everything but [Recorder] ([Save/Load], [Tools], [USB Storage Mode] and the
+eject button) takes the face of a button that cannot be used and does nothing when pressed, as the unit does
+([Save/Load] and [Tools] URX44V, the operator, 2026-10-03). The
 Play tab lists folders and the files that play, and leaves a file of four tracks or more off; its marks are a folder,
 a file that plays, and the file playing or paused (a speaker). The Edit tab lists a file of four tracks or more as well, marked
 `4tr` to `16tr` (List icons under Play and Edit in the user guide's "RECORDER menu"). Neither tab lists a file recorded
 at another sampling frequency than the unit is running (the NOTE under Play in the user guide; on a URX44V a 48 kHz
 take was on neither tab at 44.1 kHz and back at 48 kHz, the operator, 2026-09-22). Changing the frequency lets go of
-a paused file too (checked on SETUP's Sampling Frequency the same day); a settings file that brings another frequency
-does the same here. SAVE/LOAD marks a file with a
+a paused file too (checked on SETUP's Sampling Frequency the same day). SAVE/LOAD marks a file with a
 page, its corner folded down, carrying two lines (p084-1).
 
 ## What is on the card
 
 The card carries three kinds of entry (`src/model/card.ts`): folders, the takes the recorder writes
 (`.wav`) and the settings files SAVE/LOAD writes (`.urxf`). Folders stand first, and each group by
-name. The simulator ships with a card named `test` in the slot and nothing on it.
+name, in the English order of letters whatever language the browser runs in. The simulator ships with a card named `test` in the slot and nothing on it.
 
 [■] leaves the take on the card. Its name comes from the unit's clock as `YYYYMMDD_HHMMSS.wav`, its
 length from the counter, its track count from [Track Count] and its place from the folder the card
-browser is open on; a name the card already carries takes the next second that is free, and a take
-shorter than a second leaves nothing. RECORDER's `Time` column is the take's length, and
-SAVE/LOAD's `Date/Time` column is when the file was written.
+browser is open on; a name the card already carries, in any case, takes the next second that is free, and a take
+shorter than a second leaves nothing. A take stops, saying nothing, at the moment it fills what the card has left,
+and is left on the card within that room; with no room for a second of take at the recorder's [Track Count] and
+frequency, [●] does nothing (see [known-issues.md](known-issues.md)). RECORDER's `Time` column is the take's length, and
+SAVE/LOAD's `Date/Time` column is when the file was written. Its date is printed in the order DATE / TIME's Display
+Format Date is set to each time the list is drawn (a file written before the format changed reads in the format as it
+now stands), and its time on the 24-hour clock whatever Time is set to (see [known-issues.md](known-issues.md)).
 
 The free space is the card's capacity less what is on it. The capacity is the 125,000,000,000 bytes a
 formatted 128 GB card leaves; a take costs its seconds × 48,000 × 3 bytes × its tracks (the guide's
@@ -1625,28 +1649,55 @@ The card's name, the volume label it was formatted under, stands on a line above
 set left from x313 (x313..387 / y58..81). Every card screen puts them in the same place (URX44V, the operator,
 2026-09-22): SAVE/LOAD's p084-1 and TOOLS' p087-1 show both lines, and RECORDER's p081-1 and p083-1 show the name
 line empty. With no card none of these screens
-is open: the microSD top takes their place. A touch on the eject button brings up the unit's dialog,
-`Now you may safely remove the microSD card.` with [OK] alone: the text on one line, the circled i
-mark to its left and [OK] at the lower right (URX44V, the operator, 2026-09-22). [OK] stands for the
+is open: the microSD top takes their place. A touch on the eject button first asks `Eject the microSD card?` under the
+circled i mark, with [Cancel] and [OK], as the unit does (URX44V, the operator, 2026-10-04). Its [OK] brings up the unit's
+dialog `Now you may safely remove the microSD card.` with [OK] alone: the text on one line, the circled i
+mark to its left and [OK] at the lower right (URX44V, the operator, 2026-09-22). That [OK] stands for the
 card being pulled out (see [known-issues.md](known-issues.md)).
 
 The first touch on a folder brings the cursor to it, and a touch on the folder the cursor stands on
-opens it; the list then carries what is in it (the guide's "File list" under the RECORDER menu).
-[↑] climbs one level and stands out of reach at the root. The path field shows where the browser
+opens it (not on RECORDER's Play tab while a file is held, "RECORDER"); the list then carries what is in it (the guide's "File list" under the RECORDER menu).
+[↑] climbs one level and stands out of reach at the root, and on RECORDER while a file is held ("RECORDER"). The path field shows where the browser
 stands from the root, and a path too long for it is shown from its end (the same section's "Folder
 name display"). A new folder and a [Save as] settings file are made in the folder that is open.
 
 On the Edit tab, [Delete] asks `Delete the selected file?` before it takes the entry off, and
-[Rename] and [New folder] open the same sheet SCENE's title opens. TOOLS' [Format] leaves the card
+[Rename] and [New folder] open the same sheet SCENE's title opens, on the card's keyboard ("The title
+entry sheet"). [Delete] and [Rename] take a file alone and stand out of reach with a folder under the cursor, as on
+the unit, whose LCD has no way to delete or rename a folder (URX44V, the operator, 2026-10-04). [Rename] onto a name the folder
+already carries brings up `File already exists.` with the i mark and [OK] alone, as the unit does,
+and renames nothing: [OK] goes back to the sheet as it was typed (on SAVE/LOAD's and RECORDER's
+Edit tabs alike). Names are compared without regard to case, so a name that differs from another
+entry's in case alone is refused the same way (a file's name on SAVE/LOAD, URX44V, the operator, 2026-10-03; a take's,
+2026-10-04). The name is
+compared as it will stand, its extension on: a settings file renamed `qz` beside the folder `Qz` becomes `qz.urxf`, one
+renamed `take` beside `take.wav` becomes `take.urxf`, and one renamed `Fold` beside the folder `fold.urxf` is refused
+(URX44V, the operator, 2026-10-04). The extension goes on whatever is typed, so `new.urxf` typed becomes `new.urxf.urxf`,
+and so does `zz.urxf` typed beside the folder `zz.urxf`; a name typed as a file of the folder is named, in any case, is refused as well,
+`mix.urxf` typed beside `mix.urxf` and `CC.urxf` typed beside `cc.urxf` (URX44V, the operator, 2026-10-04). A file renamed onto its own name in other case takes it (a settings
+file, URX44V, the operator, 2026-10-03). [New folder] under a name the folder already carries, a folder's or a file's, spelt the same or
+in other case, brings up `Directory already exists.` with the i mark and [OK] alone and makes nothing, and [OK] goes
+back to the name sheet, as the unit does (a file's name spelt the same and in other case, and a folder's in other case,
+URX44V, the operator, 2026-10-03; a folder's spelt the same, 2026-10-04). The sheet holds the name as it was typed, as it does
+after [Rename], as on the unit (URX44V, the operator, 2026-10-04). TOOLS' [Format] leaves the card
 with nothing on it. On SAVE/LOAD, [Save] writes the unit's settings over the selected settings file,
 [Save as] writes them under the name that is typed with `.urxf` after it, and [Load] puts a file
-back on the unit. Writing over a file that is already there asks `File alerady exists. Replace it?`
-first; loading asks nothing. [Save] and [Load] stand out of reach until a settings file is under the
+back on the unit. Writing over a file that is already there, or a [Save as] under the name of a folder in the folder
+that is open, asks `File already exists. Replace it?` first; loading asks nothing. Under a folder's name, [OK] leaves
+the folder as it is and writes nothing, as the unit does. A [Save as] name that differs from a settings file's in the folder
+that is open in case alone asks nothing and writes over that file, which keeps its name as it was spelt, as the unit does; one
+that differs from a folder's in case alone asks nothing and writes nothing. [Save] and [Load] stand out of reach until a settings file is under the
 cursor. A settings file carries every value but the screen's own state (`ui.`) and the card itself
-(`sd.`). A source the file holds no D.Gain for comes back to 0 dB when it is loaded.
+(`sd.`). A source the file holds no D.Gain for comes back to 0 dB when it is loaded, and a scene number
+the file holds nothing under comes back empty.
 
 A playback runs against the take's length, writing the counter and the bar in place once a second.
-At the end of the file the counter goes back to the start and stops there, the file still held.
+At the end of the file playback lets the file go, as [■] does: the triangle leaves the microSD icon, and RECORDER's card-eject
+button and the microSD top's [Save/Load] and [Tools] come back in reach, as the unit does (URX44V, the operator,
+2026-10-03), as do the microSD top's card-eject button and [USB Storage Mode] (2026-10-04). The Play tab shows what it
+showed before the file played, the counter and the bar gone, and the cursor stays where it stood: on the unit, standing
+on the file that played, it stayed there, after a visit to the microSD top as well, and taken to a folder while the file
+played, it stayed on the folder (2026-10-04).
 
 ## The SCENE LIST list
 
@@ -1730,6 +1781,21 @@ wide), space (three keys wide), `@`, `.`, and `<` and `>` (one and three quarter
 capitals. A title takes up to 16 characters, and a key typed past that changes nothing. `<` and `>` move the cursor a character at a time, and typing and backspace act at the cursor. The clear
 button empties the field. The sheet opens on the letters with Shift off, and [OK] writes the title. [OK] does nothing
 while the field is empty, and [Cancel] writes nothing.
+
+A name on the card ([Save as], [New folder] and [Rename] on SAVE/LOAD, and [Rename] on RECORDER) opens the sheet on
+the card's keyboard. Its letters and row 4 are the title's, and its numbers and symbols run as below. A row shorter
+than the title's stands centred between the keys at its ends, as the title's rows do.
+
+| Layout | Row 1 | Row 2 | Row 3 |
+|---|---|---|---|
+| Numbers | `1234567890` | `-;()&` | [#+-], `.,!'`, backspace |
+| Symbols | `[]{}#%^+=` | `_~$` | [123], `.,!'`, backspace |
+
+A browser's keyboard types no more than those keys type. The extension (`.urxf` for a settings file, `.wav` for a
+take) is not in the field: it stands outside it on the right, bold like the field's type, and [OK] puts it after the
+name typed. [Save as] takes 14 characters, [Rename] 255 less the extension's (250 for `.urxf`, 251 for `.wav`) and
+[New folder] 255, and a key typed past that changes nothing. TOOLS' [Format microSD] opens the volume label on the
+title's keyboard.
 
 ## The focus frame
 
