@@ -1339,3 +1339,22 @@ describe("a store moved onto a unit with only some paths bound", () => {
     shell.destroy();
   });
 });
+
+describe("a store on a unit that renames a bound channel", () => {
+  it("shows the name the unit announces a change to", async () => {
+    const bridge = fakeBridge();
+    await bridge.setStr("name-addr", "Vox");
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.name", { addr: "name-addr", codec: identityCodec, isString: true });
+    const store = new DeviceStore();
+    await store.attach(new BridgeTransport(bridge, bindings));
+    expect(store.str("ch.ch1.name"), "the name read at attach").toBe("Vox");
+
+    // Renamed on the unit's own screen, which announces the address with a number.
+    await bridge.setStr("name-addr", "Guitar");
+    bridge.fire("name-addr", 1);
+    await tick();
+
+    expect(store.str("ch.ch1.name"), "the name the unit holds now").toBe("Guitar");
+  });
+});
