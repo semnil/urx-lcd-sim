@@ -113,7 +113,8 @@ files included, stays as it was stored.
 ## With only some paths bound
 
 `store.attach()` replaces the mirror with the values `BridgeTransport.snapshot()` reads, so once attached
-the mirror holds the bound paths alone. An unbound path holds no value, and a read of it returns the
+the mirror holds the bound paths alone, but for the values the screens keep for themselves with no address,
+which stay as they were (below). An unbound path holds no value, and a read of it returns the
 caller's fallback. An edit to it is refused by `BridgeTransport` with `UnboundPathError`, and
 `DeviceStore` puts the mirror back and reports the refusal through `onWriteFailure` ("mirrors the bound
 paths alone, puts an edit to an unbound path back and writes a bound one" in
@@ -132,7 +133,7 @@ screens keep for their own showing holds nothing back (`src/screens/screen-only.
 and the recorder's and playback's counters with the moments they count from):
 it goes with the rest, and where it has no address it stays on the screen and is not sent, an edit to it
 alone as well, so the recorder's and playback's counters run on a unit with their state bound and their
-clocks not. An operation
+clocks not, and a take paused before the attach counts on from where it stood. An operation
 that sets several values each on its own (a scene recall, a settings file Load, clearing every CUE, the
 oscillator's Clear All, the output patch's Default, All Input and All USB DAW) sends each value as an edit of
 its own.

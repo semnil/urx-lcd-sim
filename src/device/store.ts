@@ -116,7 +116,9 @@ export class DeviceStore {
   /**
    * Point the store at a transport and load its snapshot. Replaces any previous
    * transport (that is how the simulator is switched onto a real unit and back).
-   * Every path the snapshot holds, and every path it drops, is a change.
+   * A value the screens keep for themselves that the new transport cannot write
+   * stays as it was beside the snapshot. Every path the snapshot holds, and every
+   * other path it drops, is a change.
    *
    * The store stays on the transport it was on until the snapshot is in, and
    * then moves its transport, its notifies and its mirror over at once. What
@@ -150,8 +152,9 @@ export class DeviceStore {
     this.awaiting.clear();
     const before = this.mirror;
     this.mirror = new Map(snap);
+    for (const [p, v] of before) if (!snap.has(p) && this.screenOnly(p) && transport.writable?.(p) === false) this.mirror.set(p, v);
     for (const p of snap.keys()) this.markChanged(p);
-    for (const p of before.keys()) if (!snap.has(p)) this.markChanged(p);
+    for (const p of before.keys()) if (!this.mirror.has(p)) this.markChanged(p);
     const announced = early;
     early = null;
     for (const n of announced) this.adopt(n);

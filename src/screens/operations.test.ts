@@ -297,12 +297,12 @@ describe("a value the screens keep for themselves", () => {
 
   it("holds no recording back, and keeps its clock running, where the clock alone has no address", async () => {
     if (!recordingOn) throw new Error("no recording operation");
-    // The take goes on at 3 s and is read 3 s later.
+    // The take, paused after 1 s before the unit is attached, goes on at 3 s and is read 3 s later.
     const onlyRec = await unitWith(recordingOn, [["sd.rec", "paused"]]);
     expect(onlyRec.sent, "the recorder's own state reaches the unit").toEqual(["sd.rec"]);
     expect(onlyRec.after.get("sd.rec"), "and the unit records").toBe("recording");
     expect(onlyRec.failures, "nothing is refused").toEqual([]);
-    expect(takeSeconds(onlyRec.store, 6_000), "and the take's counter runs").toBe(3);
+    expect(takeSeconds(onlyRec.store, 6_000), "and the take's counter runs on from where it stood").toBe(4);
 
     const withClock = await unitWith(recordingOn, [
       ["sd.rec", "paused"],
@@ -310,7 +310,7 @@ describe("a value the screens keep for themselves", () => {
     ]);
     expect(withClock.sent).toEqual(["sd.recSince", "sd.rec"]);
     expect(withClock.failures).toEqual([]);
-    expect(takeSeconds(withClock.store, 6_000), "control: the clock bound as well").toBe(3);
+    expect(takeSeconds(withClock.store, 6_000), "control: the clock bound as well").toBe(4);
   });
 
   it("keeps playback's clock running where the clock alone has no address", async () => {
@@ -328,6 +328,23 @@ describe("a value the screens keep for themselves", () => {
     const withClock = await unitWith(playback, [...bound, ["sd.playSeconds", 0], ["sd.playSince", 0]]);
     expect(withClock.failures).toEqual([]);
     expect(playedSeconds(withClock.store, 4_000), "control: the clock bound as well").toBe(3);
+  });
+
+  it("keeps those it held through the attach where the unit has no address for them", async () => {
+    const shell = await mount();
+    const store = shell.ctx.store;
+    await store.set("ui.sceneMenu", "Edit");
+    recordTake(store, 1_000);
+    pauseTake(store, 2_500);
+    await flush();
+    const bindings = new BindingTable();
+    bindings.bind("sd.rec", { addr: "sd.rec", codec: { encode: () => 0, decode: () => "paused" } });
+    bindings.bind("sd.recSeconds", { addr: "sd.recSeconds", codec: { encode: (v) => Number(v), decode: () => 0 } });
+    await store.attach(new BridgeTransport(fakeLink(), bindings));
+    const kept = [store.str("ui.sceneMenu", ""), store.num("sd.recSince", -1), store.str("sd.rec", ""), store.num("sd.recSeconds", -1), store.has("ch.ch1.level")];
+    shell.destroy();
+    // The menu and the clock have no address and stay; the take's state and length are read from the unit, and the mixer is gone.
+    expect(kept).toEqual(["Edit", 0, "paused", 0, false]);
   });
 
   it("keeps an edit to one of them alone on the screen where it has no address", async () => {

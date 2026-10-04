@@ -105,7 +105,7 @@ sequenceDiagram
 ## 束縛が一部だけのとき
 
 `store.attach()` はミラーを `BridgeTransport.snapshot()` が読んだ値で置き換えるので、接続した後のミラーには
-束縛したパスだけが載る。束縛していないパスは値を持たず、読むと呼び出し側の既定値が返る。その編集は
+束縛したパスだけが載る。ただし、画面が自分のために持つ値のうちアドレスの無いものは、接続の前のまま残る (後述)。束縛していないパスは値を持たず、読むと呼び出し側の既定値が返る。その編集は
 `BridgeTransport` が `UnboundPathError` で拒否し、`DeviceStore` はミラーを元に戻して `onWriteFailure` で知らせる
 (`src/device/bridge-transport.test.ts` の「mirrors the bound paths alone, puts an edit to an unbound path back and
 writes a bound one」)。編集は、書き込み規則が連れていく書き込み ([architecture.md](architecture.md) の「1 つの編集が
@@ -118,5 +118,5 @@ writes a bound one」)。編集は、書き込み規則が連れていく書き�
 to an unbound path」と `src/screens/operations.test.ts`)。操作が書く経路の中にアドレスの無いものが 1 つあれば、実機がすでに
 その値を持っている場合でも操作全体を送らない。画面が自分の表示のために持つ値 (`src/screens/screen-only.ts`: `ui.` の下の値と、
 レコーダーと再生のカウンター、およびその起点の時刻) は操作を止めない。ほかの値と一緒に送り、アドレスが
-無ければ、その値だけを書く編集でも送らずに画面に残す。レコーダーと再生の状態だけを束縛した実機でも、カウンターは進む。複数の値をそれぞれ単独で書く操作 (シーンのリコール、設定ファイルの Load、
+無ければ、その値だけを書く編集でも送らずに画面に残す。レコーダーと再生の状態だけを束縛した実機でも、カウンターは進み、接続の前に一時停止したテイクはそこから数え続ける。複数の値をそれぞれ単独で書く操作 (シーンのリコール、設定ファイルの Load、
 CUE の一括解除、オシレーターの Clear All、出力パッチの Default、All Input と All USB DAW) は、値ごとに 1 つの編集として送る。
