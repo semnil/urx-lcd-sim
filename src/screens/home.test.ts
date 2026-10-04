@@ -4958,6 +4958,60 @@ describe("what the dedicated channel screens draw", () => {
     expect(shell.ctx.nav.current.strip).toBe("ch4");
   });
 
+  it("takes FX 2 off the Sends list, out of its SEND TO cell and off HOME's [Sends] at 176.4 / 192 kHz, and an FX send's placing at any rate", async () => {
+    const seen: Record<string, unknown> = {};
+    for (const rate of [96000, 176400, 192000]) {
+      const shell = await mount();
+      const store = shell.ctx.store;
+      // HOME's [Sends] on FX 2, then the rate picked on SETUP.
+      await store.set("ui.sendsTarget", "FX2");
+      shell.ctx.nav.openTop({ id: "setup.rate" });
+      await flush();
+      [...shell.root.querySelectorAll<HTMLElement>(".rate-btn")].find((b) => b.textContent === `${rate / 1000}kHz`)?.click();
+      await flush();
+      const target = store.str("ui.sendsTarget", "");
+      shell.ctx.nav.home();
+      shell.ctx.nav.push({ id: "sends-select" });
+      await flush();
+      const options = [...shell.root.querySelectorAll(".sends-option")].map((n) => n.textContent);
+      shell.ctx.nav.home();
+      shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+      await store.set("ui.sendToGroup", "FX");
+      shell.ctx.nav.push({ id: "ch.sendto", strip: "ch1" });
+      await flush();
+      const cells = [...shell.root.querySelectorAll(".sendto-cell")].map((cell) =>
+        [".sendto-title", ".sendto-name", ".btn-on", ".btn-pre", ".pan-slider", ".sendto-bal"].map((sel) => cell.querySelector(sel)?.textContent ?? null),
+      );
+      const bar = [...shell.root.querySelectorAll(".knob-strip .knob-cell")].slice(0, 2).map((c) => c.querySelector(".knob-cell-label")?.textContent ?? "");
+      // FX 2's own channel view: the name box without colour or name.
+      shell.ctx.nav.home();
+      await store.set("ui.lane.fx2", 0);
+      shell.ctx.nav.push({ id: "channel-view", strip: "fx2" });
+      await flush();
+      const chip = shell.root.querySelector<HTMLElement>(".ch-chip");
+      const box = [chip?.querySelector(".ch-chip-id")?.textContent, chip?.querySelector(".ch-chip-name")?.textContent, chip?.style.getPropertyValue("--rail")];
+      // Back down to 48 kHz, [Sends] stays where the higher rate left it.
+      shell.ctx.nav.openTop({ id: "setup.rate" });
+      await flush();
+      [...shell.root.querySelectorAll<HTMLElement>(".rate-btn")].find((b) => b.textContent === "48kHz")?.click();
+      await flush();
+      seen[rate] = { target, back: store.str("ui.sendsTarget", ""), options, cells, bar, box };
+      shell.destroy();
+    }
+    const fx1 = ["FX1", "FX 1", "ON", "PRE", null, null];
+    expect(seen[96000]).toEqual({
+      target: "FX2", back: "FX2", options: ["STEREO", "MIX 1", "MIX 2", "FX 1", "FX 2"], cells: [fx1, ["FX2", "FX 2", "ON", "PRE", null, null]], bar: ["Level", "Level"],
+      box: ["FX 2 L", "FX 2", (seen[96000] as { box: string[] }).box[2]],
+    });
+    expect((seen[96000] as { box: string[] }).box[2], "FX 2's colour at 96 kHz").not.toBe("var(--surface)");
+    for (const rate of [176400, 192000]) {
+      expect(seen[rate], `${rate}`).toEqual({
+        target: "FX1", back: "FX1", options: ["STEREO", "MIX 1", "MIX 2", "FX 1"], cells: [fx1, ["FX2", "", null, null, null, null]], bar: ["Level", ""],
+        box: ["FX 2 L", "", "var(--surface)"],
+      });
+    }
+  });
+
   it("leaves the pan slider and Bal off a send into an FX return, which is summed to one side", async () => {
     const shell = await mount();
     shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });

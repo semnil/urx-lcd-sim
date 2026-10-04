@@ -717,7 +717,11 @@ channel's colour. The strip can still be selected, and touching it no longer ope
 `‹` `›` still step onto FX 2 L and FX 2 R. There every channel screen, the channel view among them, keeps the
 channel's name in the toolbar, draws no title, and shows `This channel is not available at this sampling frequency` in
 the middle, with the knob readout bar at the foot, its cells empty, and nothing to operate: the name opens nothing, and
-nothing is written (URX44V, the operator, 2026-10-04).
+nothing is written. The name box there carries no colour, its icon square and rail the box's own face, and names the
+channel on its first line alone. The Sends destination sheet leaves FX 2 out, and HOME's [Sends] on FX 2 moves to FX 1
+when the rate goes up and stays on FX 1 when it comes back down. On SEND TO's FX 1-2 tab the FX 2 cell keeps its
+`FX2` and nothing under it: no second line, no [ON], no [PRE], and no Level on the knob (URX44V, the operator,
+2026-10-04).
 
 The guide carries no figure of either, so **the arrangement is this project's own**. What the guide
 does fix is that the controls stand in the middle of the screen (the middle of p113-1 is what

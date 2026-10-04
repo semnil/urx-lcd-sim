@@ -143,8 +143,12 @@ export function effectHolder(ctx: AppContext, strip: Strip): EffectHolder | null
  * it can be set to.
  */
 export function fxShutOut(ctx: AppContext, strip: Strip): boolean {
+  return fxShutAt(strip, ctx.store.num("setup.samplingFrequency", 48000));
+}
+
+/** Whether `rate` puts every effect an FX channel offers out of reach. */
+export function fxShutAt(strip: Strip, rate: number): boolean {
   if (strip.kind !== "fx") return false;
-  const rate = ctx.store.num("setup.samplingFrequency", 48000);
   const options: readonly EffectOption[] = FX_EFFECTS[strip.id] ?? [];
   return options.length > 0 && options.every((o) => o.maxRate !== undefined && rate > o.maxRate);
 }

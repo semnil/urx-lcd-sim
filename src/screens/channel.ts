@@ -203,23 +203,27 @@ export function channelSelector(ctx: AppContext, strip: Strip, route: Route, nar
   // the one that carries the copy mark. On the screens under it and on CH
   // SETTING, and on a channel the sampling frequency has put out of reach, it
   // is out of reach: it neither sinks nor opens anything.
-  const opens = !narrow && route.id !== "ch.setting" && !fxShutOut(ctx, strip);
+  const shut = fxShutOut(ctx, strip);
+  const opens = !narrow && route.id !== "ch.setting" && !shut;
+  // On an FX channel the sampling frequency has put out of reach the box carries
+  // no colour and names the channel alone.
+  const colour = shut ? "var(--surface)" : stripColor(ctx, strip);
   return el("div", {
     class: "ch-selector",
     children: [
       el("button", { class: "ch-arrow", children: [Icons.chevronLeft()], onTap: () => move(-1), attrs: { "aria-label": "Previous channel" } }),
       el("button", {
         class: `ch-chip${narrow ? " is-narrow" : ""}`,
-        style: { "--rail": stripColor(ctx, strip) },
+        style: { "--rail": colour },
         ...(opens ? {} : { attrs: { "aria-disabled": "true" } }),
         onTap: opens ? () => ctx.nav.push({ id: "ch.setting", strip: strip.id }) : () => undefined,
         children: [
-          el("span", { class: "ch-chip-icon", style: { background: stripColor(ctx, strip) } }),
+          el("span", { class: "ch-chip-icon", style: { background: colour } }),
           el("span", {
             class: "ch-chip-labels",
             children: [
               el("span", { class: "ch-chip-id", text: channelLabel(strip, stripLane(ctx, strip), narrow) }),
-              el("span", { class: "ch-chip-name", text: ctx.store.str(`ch.${strip.id}.name`, "") }),
+              el("span", { class: "ch-chip-name", text: shut ? "" : ctx.store.str(`ch.${strip.id}.name`, "") }),
             ],
           }),
           // The copy mark stands beside the name on the screen a channel opens
@@ -2014,8 +2018,11 @@ export const sendToScreen: ScreenDef = {
     // A bus taking its sends at a fixed level reads `Fixed` under the level and
     // gives the knob nothing to turn, and the stereo bus takes a channel at its
     // own fader, with no level of its own.
+    // An FX return the sampling frequency has put out of reach names itself and
+    // offers nothing to set.
+    const shut = (t: Strip): boolean => t.kind === "fx" && fxShutOut(ctx, t);
     const specs = targets.map((t) =>
-      t.kind === "stereo"
+      t.kind === "stereo" || shut(t)
         ? null
         : sendLocks(ctx, t).busFixed
           ? { label: "Level", text: FIXED_LEVEL_TEXT }
@@ -2052,12 +2059,12 @@ export const sendToScreen: ScreenDef = {
                 class: "sendto-head",
                 children: [
                   el("span", { class: "sendto-title", text: t.label }),
-                  el("span", { class: "sendto-name", text: ctx.store.str(`ch.${t.id}.name`, "") }),
+                  el("span", { class: "sendto-name", text: shut(t) ? "" : ctx.store.str(`ch.${t.id}.name`, "") }),
                 ],
               }),
               el("div", {
                 class: "sendto-body",
-                children: [
+                children: shut(t) ? [] : [
                   toggle("ON", ctx.store.bool(onPath, sendShipsOn(strip, t)), () => void ctx.store.set(onPath, !ctx.store.bool(onPath, sendShipsOn(strip, t))), "btn-switch btn-on"),
                   noTap
                     ? empty("sendto-empty-pre")
@@ -2112,13 +2119,16 @@ export const sendsSelectScreen: ScreenDef = {
     // tab and the level knob.
     const option = (label: string, id: string, accent: string): HTMLElement =>
       toggle(label, current === id, () => pick(id), `sends-option ${accent}`);
+    // FX 2 leaves the list while the sampling frequency has put it out of reach.
+    const fx2 = findStrip(ctx.model, "fx2");
+    const fx2Shut = fx2 !== undefined && fxShutOut(ctx, fx2);
     return {
       main: el("div", {
         class: "sends-popup",
         children: [
           option("STEREO", "ST", "sends-stereo"),
           el("div", { class: "sends-row", children: [option("MIX 1", "MIX1", "sends-mix"), option("MIX 2", "MIX2", "sends-mix")] }),
-          el("div", { class: "sends-row sends-fx-row", children: [option("FX 1", "FX1", "sends-fx"), option("FX 2", "FX2", "sends-fx")] }),
+          el("div", { class: "sends-row sends-fx-row", children: [option("FX 1", "FX1", "sends-fx"), ...(fx2Shut ? [] : [option("FX 2", "FX2", "sends-fx")])] }),
         ],
       }),
       side: homeSide(ctx),

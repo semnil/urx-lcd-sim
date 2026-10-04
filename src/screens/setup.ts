@@ -21,6 +21,9 @@ import { TIME_ZONE_SHIPPED } from "../model/time-zone";
 import { dropTracksOverRate } from "../model/track-count";
 import { dropInsertsOverRate } from "./insert-fx";
 import { recordMode, releaseOnRateChange } from "./recording";
+import { fxShutAt } from "./effect-params";
+import { findStrip } from "../model/types";
+import { sendsTarget } from "./strip-state";
 
 /** The languages the unit offers. The simulator's messages are in English only, so the other two cannot be chosen. */
 const LANGUAGES = [
@@ -200,7 +203,8 @@ export const samplingRateScreen: ScreenDef = {
     // and keeps showing it lit; the row simply cannot be used until the switch
     // is turned off again.
     const rates = SAMPLING_RATES.map((hz) => {
-      // The frequency and what it takes off the inserts, the recorder and playback are one operation of the store.
+      // The frequency and what it takes off the inserts, the recorder, playback and HOME's [Sends] are one operation
+      // of the store.
       const cell = toggle(label(hz), hz === current, () => {
         if (followUsb) return;
         ctx.store.operation(() => {
@@ -208,6 +212,9 @@ export const samplingRateScreen: ScreenDef = {
           dropInsertsOverRate(ctx, hz);
           dropTracksOverRate(ctx.store, hz);
           releaseOnRateChange(ctx.store, current, hz);
+          // HOME's [Sends] on FX 2 moves to FX 1 once FX 2 is out of reach, and stays there.
+          const fx2 = findStrip(ctx.model, "fx2");
+          if (sendsTarget(ctx) === "FX2" && fx2 !== undefined && fxShutAt(fx2, hz)) void ctx.store.set("ui.sendsTarget", "FX1");
         });
       }, "rate-btn");
       if (followUsb) cell.setAttribute("aria-disabled", "true");
