@@ -726,7 +726,8 @@ nothing is written. The name box there carries no colour, its icon square and ra
 channel on its first line alone. The Sends destination sheet leaves FX 2 out, and HOME's [Sends] on FX 2 moves to FX 1
 when the rate goes up and stays on FX 1 when it comes back down. On SEND TO's FX 1-2 tab the FX 2 cell keeps its
 `FX2` and nothing under it: no second line, no [ON], no [PRE], and no Level on the knob (URX44V, the operator,
-2026-10-04).
+2026-10-04). A settings file loaded, or a unit coming back from storage, at 176.4 or 192 kHz with [Sends] on FX 2 puts
+[Sends] on FX 1 the same way.
 
 The guide carries no figure of either, so **the arrangement is this project's own**. What the guide
 does fix is that the controls stand in the middle of the screen (the middle of p113-1 is what

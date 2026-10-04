@@ -26,7 +26,8 @@ import {
   pitchScaleNotes,
   pitchScaleSets,
 } from "../model/effects";
-import type { Strip } from "../model/types";
+import type { DeviceStore } from "../device/store";
+import { SENDS_TARGET_SHIPPED, findStrip, type Strip, type UnitModel } from "../model/types";
 import { el } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { COMPANDER_EXPANSION, compResponse, companderResponse, grBarShare } from "../model/dynamics";
@@ -151,6 +152,18 @@ export function fxShutAt(strip: Strip, rate: number): boolean {
   if (strip.kind !== "fx") return false;
   const options: readonly EffectOption[] = FX_EFFECTS[strip.id] ?? [];
   return options.length > 0 && options.every((o) => o.maxRate !== undefined && rate > o.maxRate);
+}
+
+/**
+ * Move HOME's [Sends] off FX 2 once `rate` puts FX 2 out of reach: it goes to
+ * FX 1, and stays there when the rate comes back down. Every path that moves the
+ * frequency runs this: the SAMPLING FREQUENCY screen, a settings file being
+ * loaded, and a unit coming back from storage.
+ */
+export function dropSendsOverRate(store: DeviceStore, model: UnitModel, rate: number): void {
+  const fx2 = findStrip(model, "fx2");
+  if (fx2 === undefined || !fxShutAt(fx2, rate)) return;
+  if (store.str("ui.sendsTarget", SENDS_TARGET_SHIPPED) === "FX2") void store.set("ui.sendsTarget", "FX1");
 }
 
 /** The button that names the effect and opens the list of the rest. */

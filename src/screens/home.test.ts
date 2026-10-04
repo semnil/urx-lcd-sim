@@ -12,6 +12,7 @@ import { bankName, channelLabel, stripLane } from "./strip-state";
 import { buildRegistry } from "./index";
 import { meterLevels, setMeterSource, startMeterTicker } from "./meters";
 import { storeScene } from "./scene";
+import { captureSettings } from "../model/settings-file";
 import { declarations, declarationsOn, px, readStyle } from "../style/css-read";
 import { INTERACTIVE } from "../ui/dom";
 import { SHORT_PROGRESS_MS, dialog } from "../ui/widgets";
@@ -5010,6 +5011,56 @@ describe("what the dedicated channel screens draw", () => {
         box: ["FX 2 L", "", "var(--surface)"],
       });
     }
+  });
+
+  it("moves HOME's [Sends] off FX 2 on each model as the rate puts FX 2 out of reach, its knob with it, and leaves it on FX 1 back at 48 kHz", async () => {
+    // As on the unit: FX 2 picked, 192 kHz, [Sends] on FX 1 and still on FX 1 back at 48 kHz (URX44V, 2026-10-04).
+    const seen: Record<string, unknown> = {};
+    const want: Record<string, unknown> = {};
+    const controls: (string | null)[][] = [];
+    for (const model of ["URX22", "URX44", "URX44V"] as const) {
+      for (const rate of [96000, 176400, 192000]) {
+        const shell = await mount(model);
+        const store = shell.ctx.store;
+        await store.set("ch.ch1.send.fx1.level", -10);
+        await store.set("ch.ch1.send.fx2.level", -20);
+        const read = async (): Promise<(string | null)[]> => {
+          shell.ctx.nav.home();
+          await flush();
+          const strip = [...shell.root.querySelectorAll(".strip")].find((n) => n.querySelector(".strip-id")?.textContent === "CH 1");
+          return [
+            store.str("ui.sendsTarget", ""),
+            shell.root.querySelector(".sends-target")?.textContent ?? null,
+            strip?.querySelector(".strip-level-value")?.textContent ?? null,
+            String(captureSettings(store)["ui.sendsTarget"]),
+          ];
+        };
+        const pick = async (hz: number): Promise<void> => {
+          shell.ctx.nav.openTop({ id: "setup.rate" });
+          await flush();
+          [...shell.root.querySelectorAll<HTMLElement>(".rate-btn")].find((b) => b.textContent === `${hz / 1000}kHz`)?.click();
+          await flush();
+        };
+        // What HOME reads with [Sends] on each FX return at 48 kHz, where both are in reach.
+        await store.set("ui.sendsTarget", "FX1");
+        const onFx1 = await read();
+        await store.set("ui.sendsTarget", "FX2");
+        const onFx2 = await read();
+        controls.push([model, onFx1[2] ?? null, onFx2[2] ?? null]);
+        await pick(rate);
+        const up = await read();
+        await pick(48000);
+        seen[`${model} ${rate}`] = { up, back: await read() };
+        want[`${model} ${rate}`] = rate > 96000 ? { up: onFx1, back: onFx1 } : { up: onFx2, back: onFx2 };
+        shell.destroy();
+      }
+    }
+    expect(
+      controls.filter(([, fx1, fx2]) => fx1 === null || fx2 === null || fx1 === fx2),
+      "CH 1's knob reads each FX return's send apart, on every model",
+    ).toEqual([]);
+    expect(seen).toEqual(want);
+    expect((want["URX44V 192000"] as { up: unknown }).up, "FX 1 as HOME reads it").toEqual(["FX1", "FX 1", expect.any(String), "FX1"]);
   });
 
   it("leaves the pan slider and Bal off a send into an FX return, which is summed to one side", async () => {

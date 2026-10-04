@@ -14,6 +14,7 @@ import { applySettings, captureSettings } from "../model/settings-file";
 import { onDynamicsTimeStops } from "../model/dynamics-times";
 import { TRACK_COUNTS, dropTracksOverRate, trackCountCeiling } from "../model/track-count";
 import { dropInsertsOverRate } from "./insert-fx";
+import { dropSendsOverRate } from "./effect-params";
 import { followSceneCursor } from "./scene";
 import { followRecall, pairStates } from "./stereo-link";
 import { settlePanLink } from "./mix-bus";
@@ -506,6 +507,7 @@ function loadSettings(ctx: AppContext, entry: CardEntry): void {
     const rate = ctx.store.num("setup.samplingFrequency", 48000);
     dropInsertsOverRate(ctx, rate);
     dropTracksOverRate(ctx.store, rate);
+    dropSendsOverRate(ctx.store, ctx.model, rate);
     releaseOnRateChange(ctx.store, before, rate);
     followSceneCursor(ctx);
     ctx.repaint();

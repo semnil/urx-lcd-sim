@@ -18,8 +18,8 @@ import { openTitleEntry } from "./title-entry";
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
-async function mount(route: Route, card?: CardEntry[]): Promise<Shell> {
-  const model = unitById("URX44V");
+async function mount(route: Route, card?: CardEntry[], id: "URX44V" | "URX44" | "URX22" = "URX44V"): Promise<Shell> {
+  const model = unitById(id);
   const store = new DeviceStore();
   await store.attach(new SimTransport(factoryState(model)));
   const shell = new Shell(buildRegistry(), store, model);
@@ -1097,6 +1097,36 @@ describe("what the card's own actions do to it", () => {
     await flush();
     expect(store.num("ch.ch1.level", 0), "the settings the file was saved with").toBe(-10);
     expect(store.num("setup.udk.bank", 0), "the bank the file was saved on").toBe(2);
+  });
+
+  it("moves HOME's [Sends] off FX 2 when a file holding a rate that puts FX 2 out of reach is loaded, on each model", async () => {
+    // A file holding [Sends] on FX 2 at its rate, as no unit writes one at 176.4 or 192 kHz.
+    const seen: Record<string, string> = {};
+    const want: Record<string, string> = {};
+    for (const model of ["URX22", "URX44", "URX44V"] as const) {
+      for (const rate of [96000, 176400, 192000]) {
+        const shell = await mount({ id: "microsd.saveload" }, card, model);
+        const store = shell.ctx.store;
+        await store.set("setup.samplingFrequency", rate);
+        await store.set("ui.sendsTarget", "FX2");
+        await flush();
+        action(shell, "Save as")?.click();
+        await flush();
+        await typeTitle(shell, "fx2");
+
+        await store.set("setup.samplingFrequency", 48000);
+        await store.set("ui.sendsTarget", "ST");
+        await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === "fx2.urxf"));
+        await flush();
+        action(shell, "Load")?.click();
+        await okDialog(shell);
+        await flush();
+        seen[`${model} ${rate}`] = `${store.num("setup.samplingFrequency", 0)} ${store.str("ui.sendsTarget", "")}`;
+        want[`${model} ${rate}`] = `${rate} ${rate > 96000 ? "FX1" : "FX2"}`;
+        shell.destroy();
+      }
+    }
+    expect(seen).toEqual(want);
   });
 
   for (const [saved, over, why] of [

@@ -23,6 +23,7 @@ import { dropTracksOverRate } from "../model/track-count";
 import type { UnitModel } from "../model/types";
 import { unitById } from "../model/units";
 import { onDelayGrid } from "../screens/channel";
+import { dropSendsOverRate } from "../screens/effect-params";
 import { settlePanLink } from "../screens/mix-bus";
 import { onSsmcsStops } from "../screens/ssmcs";
 import { fromJson, toJson } from "../device/value-json";
@@ -492,6 +493,9 @@ export async function restore(store: DeviceStore, model: UnitModel["id"], kept: 
   // A state written before the recorder followed the frequency can name a pair
   // the unit cannot hold, so it is taken through the same one-way drop.
   dropTracksOverRate(store, store.num("setup.samplingFrequency", 48000));
+  // A state written before HOME's [Sends] followed the frequency can name FX 2 at
+  // a rate that puts it out of reach; [Sends] goes to FX 1 the same way.
+  dropSendsOverRate(store, unitById(model), store.num("setup.samplingFrequency", 48000));
   // A state written while Pan Link left each send's own placing where it was, or
   // kept Pan Link on over a FIXED bus, comes back as the unit would hold it.
   settlePanLink({ store, model: unitById(model) });

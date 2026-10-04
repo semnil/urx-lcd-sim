@@ -265,6 +265,22 @@ describe("what a reload carries over", () => {
     expect(store.num("sd.trackCount", 0)).toBe(2);
   });
 
+  it("moves HOME's [Sends] off FX 2 on a unit stored at a rate that puts FX 2 out of reach, on each model", async () => {
+    // A unit an earlier version stored with [Sends] on FX 2 at the rate it ran at.
+    const seen: Record<string, string> = {};
+    const want: Record<string, string> = {};
+    for (const model of ["URX22", "URX44", "URX44V"] as const) {
+      for (const rate of [96000, 176400, 192000]) {
+        window.localStorage.setItem("urx-lcd-sim.state", JSON.stringify({ version: 1, model, values: { "setup.samplingFrequency": rate, "ui.sendsTarget": "FX2" } }));
+        const store = await unit(model);
+        await bring(store, model);
+        seen[`${model} ${rate}`] = `${store.num("setup.samplingFrequency", 0)} ${store.str("ui.sendsTarget", "")}`;
+        want[`${model} ${rate}`] = `${rate} ${rate > 96000 ? "FX1" : "FX2"}`;
+      }
+    }
+    expect(seen).toEqual(want);
+  });
+
   it("brings a GATE, COMP or DUCKER time stored off its stops back on the stop nearest it", async () => {
     // A unit stored by an earlier version: each time a detent up from where it ships, by that version's steps.
     const times: [string, number][] = [
