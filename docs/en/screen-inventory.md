@@ -2058,10 +2058,12 @@ cannot move between the input and output banks.
 In the simulator, a press on HOME's main area off the parts that answer a touch (a strip's name, its
 indicator rows, [ON] / [CUE] and the level), by a mouse, a finger or a pen, let go on the main area 40px
 or more of the page to the left or right of where it was pressed, moves one bank within the side on
-display, left to the next bank and right to the one before; from the last bank it goes round to the
-first, and from the first to the last. A press let go off the main area, or cancelled, moves none, and
-leaves nothing behind for the next press; a second finger pressed while the first is down neither starts
-a swipe nor ends the first finger's.
+display, left to the next bank and right to the one before, and stops at the side's last and first
+bank. A press let go off the main area, or cancelled, moves none, and leaves nothing behind for the next
+press; a second finger pressed while the first is down neither starts a swipe nor ends the first
+finger's. On a URX44V, swipes to the left went from `CH 1 - 4` to `CH 5 - 12` and `FX 1 - 2` and stayed
+on `FX 1 - 2`, swipes to the right came back to `CH 1 - 4` and stayed there, and the output side's one
+bank stayed (confirmed on 2026-10-04).
 
 | Side | Bank | Strips |
 | --- | --- | --- |
