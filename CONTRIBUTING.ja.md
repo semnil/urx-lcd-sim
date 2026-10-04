@@ -67,6 +67,8 @@ urx-lcd-sim は単独メンテナーのプロジェクトだが、外部から�
 - シミュレーターの変更は `CHANGES.md` と `CHANGES_ja.md` の未リリースの節に書く。
 - 画面に出る変更には、同じ機種・表示倍率・切り出し範囲で撮った変更前後の画像を添える。
 - GitHub Pages のワークフローは、`main` へのすべてのプルリクエストで `pnpm test` と `pnpm build` を実行する。
+  CI のワークフローは同じプルリクエストで `pnpm typecheck` と `pnpm test:coverage` を実行し、
+  カバレッジレポートを Codecov へ送る。
 - リリースは `package.json` の `version` だけを変更するプルリクエストで行う。README の「ホスティング」を参照。
 
 コントリビュートすることで、その成果物が [MIT ライセンス](LICENSE)の下で提供されることに同意したものとする。

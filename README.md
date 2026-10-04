@@ -1,5 +1,8 @@
 # urx-lcd-sim
 
+[![CI](https://github.com/semnil/urx-lcd-sim/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/semnil/urx-lcd-sim/actions/workflows/ci.yml)
+[![Test coverage](https://codecov.io/gh/semnil/urx-lcd-sim/branch/main/graph/badge.svg)](https://codecov.io/gh/semnil/urx-lcd-sim)
+
 An **unofficial** operation simulator for the YAMAHA URX series (URX22 / URX44 / URX44V): the
 unit's 4.3-inch LCD touch screen, driven in a browser.
 
@@ -47,6 +50,7 @@ pnpm dev
 | `pnpm dev` | Development server |
 | `pnpm build` | Typecheck and production build |
 | `pnpm test` | Unit tests |
+| `pnpm test:coverage` | Unit tests with a coverage report in `coverage/` |
 | `pnpm typecheck` | Typecheck only |
 
 No runtime dependencies. The dev dependencies are the ones `devDependencies` in `package.json` lists.

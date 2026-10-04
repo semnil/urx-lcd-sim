@@ -643,6 +643,34 @@ describe("one tab at a time", () => {
     }
   });
 
+  it("keeps a model picked and left while its write was still under way, on the unit stored, whether or not that write lands", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    for (const lands of [true, false]) {
+      const store = await unit();
+      const tab = await start(store, MODEL, { tab: "a" });
+      await store.set("ch.ch1.level", -9);
+      await tab.saving.settle();
+      tab.saving.stop();
+      const { kept: before } = await openKept(keeper);
+      const picked = await unit("URX22");
+      idb.hold();
+      const saving = startSaving(picked, "URX22", 10, undefined, undefined, { keeper, kept: before, first: "model", tab: "b" });
+      saving.leave();
+      saving.stop();
+      idb.refuse = !lands;
+      idb.release();
+      await settle();
+      idb.refuse = false;
+      const { kept, dropped } = await openKept(keeper);
+      expect([dropped, modelOf(kept), readUnit(kept, MODEL)?.["ch.ch1.level"]], lands ? "the write landed" : "the write did not").toEqual([false, "URX22", -9]);
+      expect(kept.token, "the record the unit was stored in").toBe(before.token);
+      expect(await keeper.read(), "and it is written").toEqual(kept);
+      expect(window.localStorage.length, "what was left is let go").toBe(0);
+      idb = fakeIndexedDb();
+      keeper = openKeeper(idb.factory) as Keeper;
+    }
+  });
+
   it("writes a change made while its write was under way once that write lands, as the same tab", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const store = await unit();
