@@ -1434,14 +1434,15 @@ const DUCK_FALL = [0.162, 0.318] as const;
 const DUCK_HOLD = 0.546;
 const DUCK_RISE = [0.899, 1] as const;
 
-/** Sound covers 343.59 m a second, and a foot is 0.3048 m. */
+/** Sound covers 343.59 m a second on the meter cell and 1127.26 ft a second on the feet cell. */
 const SOUND_M_PER_S = 343.59;
-const FOOT_M = 0.3048;
+const SOUND_FT_PER_S = 1127.26;
 
 /**
  * A time as a delay cell's value and that value as a time, worked in double
- * precision in this order: ms / 1000 × the frame rate, × the speed of sound,
- * or × the speed of sound / 0.3048, and back by the same steps undone.
+ * precision in this order: ms × (the frame rate / 1000), and back by / the frame
+ * rate × 1000; ms / 1000 × the speed of sound in metres or in feet a second, and
+ * back by the same steps undone.
  */
 interface DelayScale {
   of(ms: number): number;
@@ -1452,14 +1453,14 @@ interface DelayScale {
 
 const MS_SCALE: DelayScale = { of: (ms) => ms, ms: (v) => v };
 const METER_SCALE: DelayScale = { of: (ms) => (ms / 1000) * SOUND_M_PER_S, ms: (v) => (v / SOUND_M_PER_S) * 1000 };
-const FEET_SCALE: DelayScale = { of: (ms) => ((ms / 1000) * SOUND_M_PER_S) / FOOT_M, ms: (v) => ((v * FOOT_M) / SOUND_M_PER_S) * 1000 };
+const FEET_SCALE: DelayScale = { of: (ms) => (ms / 1000) * SOUND_FT_PER_S, ms: (v) => (v / SOUND_FT_PER_S) * 1000 };
 
 /**
  * frame at `fps`. A turn stops at the smallest reading on two places whose time
  * is 1.00 ms or more, 0.03 frame (1.20 ms) at 25 frames a second. At the top
  * the rate itself, 25.00 at 25, names 1000.00 ms, where the time stops.
  */
-const frameScale = (fps: number): DelayScale => ({ of: (ms) => (ms / 1000) * fps, ms: (v) => (v / fps) * 1000, lowest: Math.ceil(fps / 10) / 100 });
+const frameScale = (fps: number): DelayScale => ({ of: (ms) => ms * (fps / 1000), ms: (v) => (v / fps) * 1000, lowest: Math.ceil(fps / 10) / 100 });
 
 /**
  * How the DELAY screen names one time in four units: its scale at a frame rate,
@@ -1485,11 +1486,11 @@ const onDelayGridMs = (ms: number): number => Number((Math.round(ms / DELAY_GRID
 /**
  * A delay cell's turn of `by` ms: the cell's reading moves by as much of its own
  * unit, rounded to its places and held no lower than the cell's lowest reading,
- * and the time that reading names lands on 0.02 ms by Math.round on the time × 50.
+ * and the time that reading names lands on the nearest 0.02 ms, a half going up.
  */
 function delayTurn(scale: DelayScale, per: number, digits: number): (ms: number, by: number) => number {
   const lowest = scale.lowest ?? -Infinity;
-  return (ms, by) => Math.round(scale.ms(Math.max(lowest, delayRound(delayRound(scale.of(ms), digits) + by * per, digits))) * 50) / 50;
+  return (ms, by) => onDelayGridMs(scale.ms(Math.max(lowest, delayRound(delayRound(scale.of(ms), digits) + by * per, digits))));
 }
 
 /**

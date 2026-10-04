@@ -4527,6 +4527,8 @@ describe("what the dedicated channel screens draw", () => {
       // 508.00 ms is 572.65 ft, worked in double precision 572.6499999999999 and × 10
       // 5726.499999999998, and the unit reads 572.6.
       [50800, "30", ["508.00", "15.24", "174.5", "572.6"]],
+      [920, "25", ["9.20", "0.23", "3.2", "10.4"]],
+      [99700, "30", ["997.00", "29.91", "342.6", "1123.9"]],
     ];
     const seen: [number, string, (string | null)[]][] = [];
     for (const [raw, rate] of readings) {
@@ -4536,6 +4538,21 @@ describe("what the dedicated channel screens draw", () => {
       seen.push([raw, rate, boxes()]);
     }
     expect(seen).toEqual(readings);
+
+    // These cells were read on their own: 0.085 and 0.205 frame read 0.09 and 0.21, and 994.40 ms reads 1120.9 ft.
+    const cells: [number, string, number, string][] = [
+      [340, "25", 1, "0.09"],
+      [820, "25", 1, "0.21"],
+      [99440, "30", 3, "1120.9"],
+    ];
+    const read: [number, string, number, string | null | undefined][] = [];
+    for (const [raw, rate, cell] of cells) {
+      await shell.ctx.store.set("ch.bus.stream.delay.frameRate", rate);
+      await shell.ctx.store.set("ch.bus.stream.delay.ms", raw / 100);
+      await flush();
+      read.push([raw, rate, cell, boxes()[cell]]);
+    }
+    expect(read).toEqual(cells);
   });
 
   it("turns a delay cell from the reading it shows onto 0.02 ms, as the unit's detents went", async () => {
@@ -4588,6 +4605,10 @@ describe("what the dedicated channel screens draw", () => {
       // frame stops at the smallest reading whose time is 1.00 ms or more, 0.03
       // frame (1.20 ms) at 25 frames a second.
       ["frame", 120, "ArrowDown", "25", [120]],
+      // frame from 1.40 ms reads 0.03 frame and goes to 0.23 frame, 9.20 ms; 15.60 ms at 24 reads 0.37 and goes to
+      // 0.57, 23.75 ms, which lands on the upper 0.02 ms.
+      ["frame", 140, "ArrowUp", "25", [920]],
+      ["frame", 1560, "ArrowUp", "24", [2376]],
       ["frame", 400, "ArrowUp", "24", [1250, 2084, 2916]],
     ];
     const seen: [string, number, string, string, number[]][] = [];
@@ -4645,6 +4666,14 @@ describe("what the dedicated channel screens draw", () => {
       // frame stops at 0.03 frame (1.20 ms) at 25 frames a second, the smallest
       // reading whose time is 1.00 ms or more.
       ["frame", 140, "ArrowDown", "25", [120, 120]],
+      // 8.20 ms at 24 reads 0.20 frame and goes to 0.21, 8.75 ms, and 16.80 ms at 120 reads 2.02 and goes to 2.01,
+      // 16.75 ms: each lands on the upper 0.02 ms.
+      ["frame", 820, "ArrowUp", "24", [876]],
+      ["frame", 1680, "ArrowDown", "120", [1676]],
+      // feet reads 1127.26 ft a second, where meter reads 343.59 m.
+      ["meter", 99700, "ArrowUp", "30", [99740]],
+      ["feet", 99440, "ArrowUp", "30", [99444]],
+      ["feet", 99440, "ArrowDown", "30", [99426]],
     ];
     const seen: [string, number, string, string, number[]][] = [];
     for (const [cell, from, key, rate, want] of runs) {

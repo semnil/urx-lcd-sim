@@ -937,16 +937,17 @@ y48..87, its value 20px in from the left and its ▼ a 9x6 `--drop-mark` at x151
 name, a 60x22 value box (y163..184) and a 38 knob stacked vertically. One time is shown four ways, in ms / frame /
 meter / feet, and turning any of them moves the same value.
 
-The time runs 1.00..1000.00 ms and is held on 0.02 ms. The four cells work it in double precision as ms / 1000 ×
-the frame rate in frames, × 343.59 in metres and × 343.59 / 0.3048 in feet, and read it to their places, ms and
+The time runs 1.00..1000.00 ms and is held on 0.02 ms. The four cells work it in double precision as ms × (the
+frame rate / 1000) in frames, and ms / 1000 × 343.59 in metres and × 1127.26 in feet, and read it to their places, ms and
 frame to two and meter and feet to one, by Math.round on the value × 100 on ms and frame and × 10 on meter and
 feet, that product worked in double precision. At 25 frames a second 1.00 ms (0.025 frame) reads 0.03, and so does
 1.40 ms (0.035 frame), and 508.00 ms (572.65 ft) reads 572.6 ft (URX44V, the operator, 2026-10-03); the products
-come to 2.5, 3.4999999999999996 and 5726.499999999998. A detent (an arrow key, the wheel or a knob under the screen;
+come to 2.5, 3.4999999999999996 and 5726.499999999998. 3.40 ms (0.085 frame) reads 0.09 and 8.20 ms (0.205 frame)
+0.21 at 25 frames a second, and 994.40 ms reads 1120.9 ft (URX44V, the operator, 2026-10-04). A detent (an arrow key, the wheel or a knob under the screen;
 a drag turns as many detents as it covers) adds the cell's step to the reading the cell shows, rounds the sum to
 the cell's places and turns that back into a time by the same steps undone. The step is 1.00 ms on ms (45.86 goes
 to 46.86), 0.2 frame on frame, 1.0 m on meter and 5.0 ft on feet: 24.00 ms reads 8.2 m, so a detent up on meter
-goes to 9.2 m (26.78 ms). The time reached lands on 0.02 ms by Math.round on the time × 50 (0.09 frame at 24
+goes to 9.2 m (26.78 ms). The time reached lands on the nearest 0.02 ms, a half going up (0.09 frame at 24
 frames a second, 3.75 ms, goes to 3.76 ms), and a detent past 1.00 ms or 1000.00 ms stops there (URX44V, the
 operator, 2026-10-03; frame at 24, 25, 29.97, 29.97D, 30, 30D, 60 and 120 frames a second). The frame cell's
 reading stops at the smallest and the largest one on two places whose time lies in 1.00..1000.00 ms, 0.03 frame
@@ -954,7 +955,8 @@ reading stops at the smallest and the largest one on two places whose time lies 
 finer step the same way, as the unit's knob turns finer while it is pushed in as it turns: 0.02 ms on ms, and the
 reading's last place on frame, meter and feet, 0.01 frame, 0.1 m or 0.1 ft. From 24.00 ms it goes to 24.02 ms on
 ms, 24.34 ms on frame (0.73 frame) and 24.16 ms on meter (8.3 m) (URX44V, the operator, 2026-10-03; at 30 frames a
-second). It stops at the same ends as a detent does: at 25 frames a second frame goes down from 1.40 ms to 1.20 ms
+second). At 24 frames a second frame goes from 8.20 ms (0.20 frame) to 0.21 frame, 8.75 ms, which lands on 8.76 ms
+(URX44V, the operator, 2026-10-04). It stops at the same ends as a detent does: at 25 frames a second frame goes down from 1.40 ms to 1.20 ms
 and no further (URX44V, the operator, 2026-10-03). A time that a browser save or a settings file holds off 0.02 ms
 comes back on the 0.02 ms nearest it, and the next save holds that time.
 
