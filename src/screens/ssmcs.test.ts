@@ -156,6 +156,7 @@ describe("the strip's main screen", () => {
     await flush();
     expect(shell.ctx.store.str("ch.ch1.ssmcs.data", "")).toBe("04 Sweep - Boost");
     expect(shell.root.querySelector(".ssmcs-data-sheet"), "the sheet closes on the pick").toBeNull();
+    expect(shell.root.querySelector(".main")?.hasAttribute("inert"), "and gives the screen back").toBe(false);
     expect(shell.root.querySelector(".ssmcs-data")?.textContent, "the button names the pick").toBe("04 Sweep - Boost");
 
     tap(shell.root.querySelector(".ssmcs-data"));

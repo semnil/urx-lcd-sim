@@ -41,6 +41,16 @@ export function el<K extends keyof HTMLElementTagNameMap>(
 /** Anything that answers a pointer for itself. */
 export const INTERACTIVE = "button, [role='button'], [role='slider'], [role='spinbutton']";
 
+let tapping: HTMLElement | null = null;
+
+/**
+ * The control whose touch or key is being answered, while its handler runs,
+ * wherever the touch left the page's focus.
+ */
+export function tappedControl(): HTMLElement | null {
+  return tapping;
+}
+
 /** Whether `ev` comes from a control inside `node`, which answers it for itself. */
 export function fromInnerControl(ev: Event, node: Element): boolean {
   const inner = (ev.target as HTMLElement).closest(INTERACTIVE);
@@ -83,17 +93,26 @@ export function drawnScale(glass: HTMLElement): number {
 export function makeTappable(node: HTMLElement, handler: (ev: Event) => void): void {
   if (!node.hasAttribute("role") && node.tagName !== "BUTTON") node.setAttribute("role", "button");
   if (!node.hasAttribute("tabindex")) node.tabIndex = 0;
+  const fire = (ev: Event): void => {
+    const outer = tapping;
+    tapping = node;
+    try {
+      handler(ev);
+    } finally {
+      tapping = outer;
+    }
+  };
   node.addEventListener("click", (ev) => {
-    // A control inside a tappable area owns its own clicks: without this, a
-    // button or a value box would also fire whatever the area does.
+    // A control inside a tappable area owns its own clicks and keys: without this,
+    // a button or a value box would also fire whatever the area does.
     if (fromInnerControl(ev, node)) return;
-    handler(ev);
+    fire(ev);
   });
   // A key acts where a finger would: the control answers when the key is let go,
   // not when it goes down, and only where the same control took the key.
   let taken = false;
   node.addEventListener("keydown", (ev) => {
-    if (ev.key !== "Enter" && ev.key !== " ") return;
+    if ((ev.key !== "Enter" && ev.key !== " ") || fromInnerControl(ev, node)) return;
     ev.preventDefault();
     taken = true;
   });
@@ -101,7 +120,7 @@ export function makeTappable(node: HTMLElement, handler: (ev: Event) => void): v
     if ((ev.key !== "Enter" && ev.key !== " ") || !taken) return;
     ev.preventDefault();
     taken = false;
-    handler(ev);
+    fire(ev);
   });
   node.addEventListener("blur", () => {
     taken = false;

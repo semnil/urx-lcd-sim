@@ -1082,6 +1082,25 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     expect(outside).toEqual([]);
   });
 
+  it.each(STRIPS)("writes every control's value and ends as numbers assistive technology reads (%s)", async (strip) => {
+    // Every control writes its value and both its ends as numbers, the top of
+    // a Ratio included, so assistive technology reads where it stands.
+    const registry = buildRegistry();
+    const unread: string[] = [];
+    let checked = 0;
+    for (const id of registry.ids()) {
+      const { shell } = await mount();
+      await open(shell, { id, strip });
+      for (const node of turnables(shell.root)) {
+        checked += 1;
+        const attrs = ["aria-valuenow", "aria-valuemin", "aria-valuemax"].map((a) => node.getAttribute(a));
+        if (!attrs.every((a) => a !== null && Number.isFinite(Number(a)))) unread.push(`${id} (${strip}): ${node.getAttribute("aria-label")} ${attrs.join(" ")}`);
+      }
+    }
+    expect(checked, "the sweep found controls to check").toBeGreaterThan(30);
+    expect(unread).toEqual([]);
+  });
+
   /**
    * What one arrow key moves on each control `id` draws for `strip`, the channel view's blocks among them, in render
    * order: the up arrow, or the down arrow where the up arrow moves nothing. Runs with Shift and without start from
@@ -1145,7 +1164,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
       await open(shell, { id: "channel-view", strip: "ch1" });
       await open(shell, { id: route, strip: "ch1" });
       const ratios = (): HTMLElement[] => turnables(shell.root).filter((n) => n.getAttribute("aria-label")?.endsWith("Ratio"));
-      expect(ratios().length, `${route} draws the ratio as a control`).toBeGreaterThan(0);
+      expect(ratios().map((n) => n.getAttribute("aria-label")), `${route} draws the ratio as its grip and its box`).toEqual(["R handle: Ratio", "Ratio"]);
       // 500:1 is the last stop before INF.
       await store.set(path, 500);
       await flush();

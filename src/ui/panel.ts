@@ -7,10 +7,10 @@
 import type { Shell } from "../app/shell";
 import { el } from "./dom";
 
-/** Mount the screen in the frame that carries the display scale. */
+/** Mount the screen in the frame that carries the display scale, the page's main landmark. */
 export function buildPanel(shell: Shell): HTMLElement {
   // .lcd is transform-scaled, which does not reserve layout space; .lcd-frame is
   // the box that does.
   const frame = el("div", { class: "lcd-frame", children: [shell.root] });
-  return el("div", { class: "panel", children: [frame] });
+  return el("main", { class: "panel", children: [frame] });
 }

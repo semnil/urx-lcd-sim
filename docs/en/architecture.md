@@ -162,15 +162,24 @@ scale.
 The unit is a touch panel with no keyboard, but the simulator runs in a browser, so the touch
 targets can be reached with Tab and activated with Enter / Space, save the rotaries, scroll bars and title keys
 below. As a finger acts when it leaves the glass, a key acts when it is let go, and only where the control it went
-down on is the one it is let go on (`makeTappable`). Value boxes are `role="spinbutton"`
+down on is the one it is let go on. A tap or a key on a control inside a pressable area works that control alone
+(`makeTappable`). Value boxes are `role="spinbutton"`
 and HOME's level readouts are `role="slider"`; both move by drag, wheel or arrow keys (`attachSpin`
 takes drag, wheel and arrow keys in one place). A drag moves the value not at all over its first 4px and
 covers the whole range by 196px from where it is pressed (1/5 of that with Shift), and the wheel and arrow
 keys move one detent (with Shift, the finer `fastStep` of a value the unit's knob turns finer while it is
 pushed in as it turns, such as EQ's, COMP's and SSMCS's gains, and the same detent on any other value); Home
 and End take the value to
-either end of its range. These keys held with Alt, Cmd or Ctrl are left to the browser. Dialogs have a
-focus trap and cancel on Escape. Meter animation stops under `prefers-reduced-motion`.
+either end of its range. These keys held with Alt, Cmd or Ctrl are left to the browser. While a dialog, a
+picker sheet, a pulldown's list or a loading modal is up, the screen behind it answers neither the keys nor
+the pointer (`inert`). Wherever the focus
+stands, Tab goes round the controls of a dialog, a picker sheet or a list, and Escape cancels it unless the focus is on a
+control off the glass; once it closes, the focus is back on the control a tap or a key opened it from, even where the tap
+left the focus elsewhere (`tappedControl`), or on the control drawn in its place since. A confirmation dialog on the glass that holds
+[Cancel] and [OK] opens with the focus on [Cancel], so an Enter pressed after the key that opened it does not carry out what
+the dialog asks; a dialog whose only button is [OK] opens with the focus on [OK]. A list opens with the focus on the value its box holds, or on its first choice where it holds none of them, and its choices
+are `role="option"`, the one held `aria-selected`. A loading modal holds nothing to operate, and Escape does not take it
+down. Meter animation stops under `prefers-reduced-motion`.
 
 Where the keys stand is drawn by the simulator, in a layer over the glass (`src/ui/focus-ring.ts`). No control draws a
 ring of its own, so neither a neighbour nor a parent box can cover it. The ring stands outside the box of the control
@@ -184,20 +193,30 @@ draws nowhere else.
 
 Every change draws the screen again, and while the screen stays the same the focus goes back to the
 control it stood on: the control of the same kind at the same place, or else the one control of that kind
-with the same words (the shell's `focusPlace`). A value therefore turns press after press, and a switch can
-be pressed again without Tab. A rotary drawn beside a value box stays out of the Tab order, the box
+with the same words, or else, for a page step that goes, the one step the other way, or else the control that now
+stands at that place (the shell's `focusPlace`). A value therefore turns press after press, and a switch can
+be pressed again without Tab. A screen put in place of the current one, as the four SSMCS screens step from one to
+the next, takes the focus onto its one control of the same kind and name, or else, for an arrow the screen at either
+end does not carry, onto its one arrow the other way. A rotary drawn beside a value box stays out of the Tab order, the box
 carrying its keys. A list's scroll bar answers the pointer alone; the keys scroll a list by moving through
 its rows, and the LICENSE text, which holds no rows, is a Tab stop of its own that rims its bar when it
-takes the focus. The still of HOME on Operation Mode is `inert` and holds no Tab stop. The keys of the title sheet
+takes the focus. On SCENE LIST and the microSD lists the up and down arrow keys, Home and End move the focus
+from row to row too and leave the selection where it is; Enter or Space takes a row. The still of HOME on
+Operation Mode is `inert` and holds no Tab stop. The keys of the title sheet
 are pressed by a finger, so they hold no Tab stop either; the field itself holds one (`role="textbox"`) and takes
-what a browser's keyboard sends. Only the characters the unit's own keys can type go in, and their case comes from
+what a browser's keyboard sends. A press on one of the keys or on the clear button leaves the focus in the field, and a
+focus standing outside the field goes into it, so the browser's keys go on typing. Only the characters the unit's own keys can type go in, and their case comes from
 the browser's key (the sheet's Shift reaches the unit's keys alone). Backspace and the arrow keys do what the keys
 of the same face do, and nothing goes in while an IME is composing (`isComposing`).
 
 `Escape` does the same as the back arrow. A screen that shows no back arrow in its toolbar is left
-with the same key. While a dialog is open, cancelling the dialog takes precedence, and while a text
+with the same key. While a dialog, a picker sheet or a pulldown's list is open, cancelling it takes precedence, and while a text
 input has focus (IME composition included) the input receives the key. Held down, the key acts once, as
-the back arrow held down does: a press that cancels a dialog leaves the screen behind it where it is.
+the back arrow held down does: a press that cancels a dialog leaves the screen behind it where it is. While a control off the glass has focus (the
+model and display scale selectors at the top of the page, [Reset the unit]) that control receives it, and the screen
+stays. `Escape` takes [Reset the unit]'s question back as [Cancel] does, and the focus returns to [Reset the unit].
+Once [Reset] starts the unit again, or the model selector changes the model, the focus stands on the same control
+of the page drawn again ([Reset the unit], the model selector).
 
 On-screen controls keep the unit's dimensions (26px-high buttons on the 4.3-inch panel, and so on).
 The desktop GUI minimum touch target of 36x36 is met by the default `--scale` of 2 combined with a

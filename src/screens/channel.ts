@@ -176,7 +176,8 @@ export function channelSelector(ctx: AppContext, strip: Strip, route: Route, nar
 }
 
 /**
- * One processing block. Its name is the switch that turns the block on and off.
+ * One processing block. Its name is the switch that turns the block on and off;
+ * an `inert` block's name switches nothing, and a touch on it is the block's own.
  * A block with a value the knob turns takes the focus at the first touch, framing
  * `knob.frame`, and opens the screen that sets it at the next; a block with none
  * opens the screen at once.
@@ -193,14 +194,10 @@ export function block(
   inert = false,
 ): HTMLElement {
   const on = ctx.store.bool(onPath, fallback);
-  const badge = el("button", {
-    class: `badge badge-${kind} badge-switch`,
-    text: title,
-    onTap: () => {
-      if (!inert) void ctx.store.set(onPath, !on);
-    },
-  });
-  setPressed(badge, on);
+  const badge = inert
+    ? el("span", { class: `badge badge-${kind} badge-switch${on ? " is-on" : ""}`, text: title })
+    : el("button", { class: `badge badge-${kind} badge-switch`, text: title, onTap: () => void ctx.store.set(onPath, !on) });
+  if (!inert) setPressed(badge, on);
   const key = knob ? (knob.spec.focusKey ?? knob.spec.path) : "";
   const node = el("div", {
     class: `cv-block cv-block-${kind}`,
@@ -720,6 +717,10 @@ export const chSettingScreen: ScreenDef = {
 
     const colorBox = box("color", "copy", [el("span", { class: "chs-color", style: { background: stripColor(ctx, strip) } })]);
     makeTappable(colorBox, () => colorSheet(ctx, strip));
+    // The box is named by the colour the channel carries, in the words of the palette's buttons.
+    const chosen = ctx.store.str(`${base}.color`, strip.color);
+    const colorName = chosen === CH_COLOR_OFF ? CH_COLOR_OFF : CH_COLOR_PALETTE.find((c) => c.hex === chosen)?.name;
+    colorBox.setAttribute("aria-label", colorName ? `Color: ${colorName}` : "Color");
 
     const children = [
       field("Color", "color", colorBox),
@@ -734,16 +735,16 @@ export const chSettingScreen: ScreenDef = {
         field(
           "Rec Point",
           "rec",
-          pulldown(ctx, ctx.store.str(`${base}.recPoint`, REC_POINT_DEFAULT), recPoints(ctx, strip), (v) =>
-            void ctx.store.set(`${base}.recPoint`, v),
-          ),
+          pulldown(ctx, ctx.store.str(`${base}.recPoint`, REC_POINT_DEFAULT), recPoints(ctx, strip), (v) => void ctx.store.set(`${base}.recPoint`, v), {
+            label: "Rec Point",
+          }),
         ),
       );
     }
     if (strip.kind === "monoIn") {
       children.push(
-        field("COMP / EQ", "comp", pulldown(ctx, ctx.store.str(`${base}.compEqOrder`, "COMP->EQ"), COMP_EQ_ORDERS, (v) => setCompEq(ctx, strip, v))),
-        field("Signal Type", "signal", pulldown(ctx, signalType(ctx, strip), SIGNAL_TYPES, (v) => setSignalType(ctx, strip, v))),
+        field("COMP / EQ", "comp", pulldown(ctx, ctx.store.str(`${base}.compEqOrder`, "COMP->EQ"), COMP_EQ_ORDERS, (v) => setCompEq(ctx, strip, v), { label: "COMP / EQ" })),
+        field("Signal Type", "signal", pulldown(ctx, signalType(ctx, strip), SIGNAL_TYPES, (v) => setSignalType(ctx, strip, v), { label: "Signal Type" })),
       );
       // A stereo pair is placed either by one PAN per channel or by the pair's
       // balance, so it offers the choice under the Signal Type.
@@ -907,9 +908,24 @@ export function plotPanel(draw: (svg: SVGSVGElement) => void): HTMLElement {
   const svg = document.createElementNS(NS, "svg");
   svg.setAttribute("viewBox", `0 0 ${PLOT_W} ${PLOT_H}`);
   svg.setAttribute("class", "dyn-curve");
-  svg.setAttribute("aria-hidden", "true");
   draw(svg);
+  hidePlotDrawing(svg);
   return el("div", { class: "dyn-plot", children: [svg as unknown as HTMLElement] });
+}
+
+/**
+ * Hide what a plot draws from assistive technology and leave it the grips that
+ * take the focus: a plot carrying such grips hides every other part of itself,
+ * and a plot carrying none is hidden whole.
+ */
+export function hidePlotDrawing(svg: SVGSVGElement): void {
+  const grips = [...svg.children].filter((n) => n.getAttribute("role") === "slider");
+  if (grips.length === 0) {
+    svg.setAttribute("aria-hidden", "true");
+    return;
+  }
+  svg.removeAttribute("aria-hidden");
+  for (const node of svg.children) if (!grips.includes(node)) node.setAttribute("aria-hidden", "true");
 }
 
 /** The rules the unit lays across a plot, given as fractions of each axis. */
@@ -1231,9 +1247,9 @@ export const compScreen: ScreenDef = {
               ? [oneKnobPanel(ctx, level, `${b}.comp.oneKnob.on`)]
               : [
                   el("span", { class: "dyn-caption", text: "Auto\nMakeup" }),
-                  pulldown(ctx, makeup ? "On" : "Off", ["Off", "On"], (v) =>
-                    void ctx.store.set(`${b}.comp.autoMakeup`, v === "On"),
-                  ),
+                  pulldown(ctx, makeup ? "On" : "Off", ["Off", "On"], (v) => void ctx.store.set(`${b}.comp.autoMakeup`, v === "On"), {
+                    label: "Auto Makeup",
+                  }),
                   oneKnobButton(ctx, `${b}.comp.oneKnob.on`),
                 ],
           }),
@@ -1243,9 +1259,9 @@ export const compScreen: ScreenDef = {
               el("span", { class: "dyn-caption", text: "Knee" }),
               oneKnob
                 ? lockedPulldown(ctx.store.str(`${b}.comp.knee`, "Medium"))
-                : pulldown(ctx, ctx.store.str(`${b}.comp.knee`, "Medium"), COMP_KNEES, (v) =>
-                    void ctx.store.set(`${b}.comp.knee`, v),
-                  ),
+                : pulldown(ctx, ctx.store.str(`${b}.comp.knee`, "Medium"), COMP_KNEES, (v) => void ctx.store.set(`${b}.comp.knee`, v), {
+                    label: "Knee",
+                  }),
             ],
           }),
           el("div", { class: "dyn-sets", children: [attack, release].map((s) => dynSetting(ctx, s)) }),
@@ -1591,15 +1607,16 @@ export const eqScreen: ScreenDef = {
                   ctx,
                   level,
                   `${base}.eq.oneKnob.on`,
-                  pulldown(ctx, ctx.store.str(`${base}.eq.oneKnob.type`, "Intensity"), EQ_ONE_KNOB_TYPES, (v) =>
-                    setEqOneKnobType(ctx, base, v),
-                  ),
+                  pulldown(ctx, ctx.store.str(`${base}.eq.oneKnob.type`, "Intensity"), EQ_ONE_KNOB_TYPES, (v) => setEqOneKnobType(ctx, base, v), {
+                    label: "1-knob type",
+                  }),
                   (next) => setEqOneKnob(ctx, base, next),
                 ),
               ]
             : [
                 shapeBox(
                   pulldown(ctx, shape, shapes, (v) => void ctx.store.set(`${base}.eq.${band.key}.shape`, v), {
+                    label: `${band.label} Shape`,
                     render: (option) => Icons.eqShape(option),
                     optionClass: "eq-shape-option",
                   }),
@@ -1912,11 +1929,13 @@ export const sendToScreen: ScreenDef = {
 export const sendsSelectScreen: ScreenDef = {
   id: "sends-select",
   // A sheet over HOME's main area: the toolbar it covers stays HOME's, and
-  // goes dark with the rest of the screen under it.
+  // goes dark with the rest of the screen under it. It draws no ways out of
+  // its own, so a touch on what shows through closes it.
   toolbar: "home",
   bankButton: true,
   sideAtTop: true,
   dimsBehind: true,
+  shellExits: false,
   build(ctx): ScreenBody {
     const current = sendsTarget(ctx);
     const pick = (v: string): void => {

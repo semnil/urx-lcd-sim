@@ -12,6 +12,10 @@ import { buildRegistry } from "./index";
 import { meterLevels, setMeterSource, startMeterTicker } from "./meters";
 import { storeScene } from "./scene";
 import { declarations, declarationsOn, px, readStyle } from "../style/css-read";
+import { INTERACTIVE } from "../ui/dom";
+import { dialog } from "../ui/widgets";
+import { udkAssignment } from "../model/udk";
+import { openDateTimeSet, openTimeZone } from "./date-time";
 import { version as packageVersion } from "../../package.json";
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
@@ -341,6 +345,21 @@ describe("the channel-bank list", () => {
     await flush();
     expect(shell.ctx.nav.current.id).toBe("home");
     expect(shownStrips(shell)).toEqual(before);
+
+    // USER DEFINED KNOBS mode goes off as the list opens. Nothing on the glass switches it on under the
+    // list, so the setting is written here: its bar lies under the same dark, and its knobs and its page
+    // step answer nothing either.
+    await shell.ctx.store.set("ui.userDefinedKnobs", true);
+    await flush();
+    const bar = (): string[] =>
+      [...(shell.root.querySelector(".knob-strip")?.querySelectorAll(INTERACTIVE) ?? [])].map((n) => `${accessibleName(n)} ${n.hasAttribute("inert")}`);
+    expect(bar(), "on HOME the bar answers").toEqual(["Phones 1 Level false", "Phones 2 Level false", "User defined knobs page 2 false"]);
+    await openList(shell);
+    expect(bar(), "the list opens with the mode off").toEqual([]);
+    await shell.ctx.store.set("ui.userDefinedKnobs", true);
+    await flush();
+    expect(bar(), "under the dark it does not").toEqual(["Phones 1 Level true", "Phones 2 Level true", "User defined knobs page 2 true"]);
+    expect(bankButton(shell)?.hasAttribute("inert"), "the control that opened the list stays live").toBe(false);
   });
 
   it("closes on a tap in the bare screen around it, but not on the panel", async () => {
@@ -360,13 +379,27 @@ describe("the channel-bank list", () => {
     expect(shell.ctx.nav.current.id).toBe("home");
   });
 
-  it("leaves the [Sends] list's dimmed controls as they are", async () => {
-    // Only a sheet that draws no ways out of its own turns what it dims deaf.
-    const shell = await mount();
-    shell.root.querySelector<HTMLElement>(".sends-btn")?.click();
-    await flush();
-    expect(shell.ctx.nav.current.id).toBe("sends-select");
-    expect(shell.root.querySelectorAll("[inert]").length).toBe(0);
+  it("leaves what shows through the [Sends] list deaf to a touch, and closes it alone on a touch on the dark", async () => {
+    // On the unit, SETUP's icon and the STEREO meter under the dark each take the sheet down and nothing
+    // else, USER DEFINED KNOBS mode staying on. A browser's hit test passes a touch on a control out of
+    // reach on to what holds it; jsdom's does not, so here the touch lands on the toolbar and the rail.
+    const after: string[] = [];
+    for (const place of [".toolbar", ".side"]) {
+      const shell = await mount();
+      await shell.ctx.store.set("ui.userDefinedKnobs", true);
+      shell.root.querySelector<HTMLElement>(".sends-btn")?.click();
+      await flush();
+      const behind = [...shell.root.querySelectorAll(".toolbar button, .toolbar [role='button'], .side button, .side [role='button']")].filter(
+        (n) => !n.classList.contains("is-lit"),
+      );
+      expect(behind.length, "HOME's controls show through").toBeGreaterThan(0);
+      expect(behind.filter((n) => !n.hasAttribute("inert")).map((n) => n.className), "and none of them answers").toEqual([]);
+      expect(shell.root.querySelector(".sends-btn")?.hasAttribute("inert"), "the button that opened it stays live").toBe(false);
+      shell.root.querySelector(place)?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flush();
+      after.push(`${place} ${shell.ctx.nav.current.id} ${shell.ctx.store.bool("ui.userDefinedKnobs", false) ? "on" : "off"}`);
+    }
+    expect(after).toEqual([".toolbar home on", ".side home on"]);
   });
 
   it("leaves screens with their own exits alone when the bare screen is tapped", async () => {
@@ -376,6 +409,93 @@ describe("the channel-bank list", () => {
     shell.root.querySelector(".side")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await flush();
     expect(shell.ctx.nav.current.id, "SETUP has a back arrow, so its background is inert").toBe("setup");
+  });
+
+  it("closes a sheet with no exits of its own under a touch on the knob bar, as the unit closes TIME ZONE", async () => {
+    // On the unit a touch on the bar showing dark at the edge of DATE / TIME's TIME ZONE closes the sheet.
+    // Under the sheet the bar's knobs and page step are out of reach, and a browser's hit test passes a
+    // touch on one of them on to the bar itself; jsdom's does not, so here such a touch lands on the bar.
+    const open = async (): Promise<Shell> => {
+      const shell = await mount();
+      await shell.ctx.store.set("ui.userDefinedKnobs", true);
+      shell.ctx.nav.push({ id: "setup" });
+      shell.ctx.nav.push({ id: "setup.datetime" });
+      await flush();
+      openTimeZone(shell.ctx);
+      await flush();
+      return shell;
+    };
+    /** A press going down on `from` and let go where its click lands on `node`. */
+    const touch = (node: Element | null | undefined, from: Element | null | undefined = node): void => {
+      from?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+      node?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    };
+    const shown = await open();
+    const cells = [...shown.root.querySelectorAll(".knob-strip .knob-cell")].map((c) => accessibleName(c));
+    expect([shown.ctx.nav.current.id, shown.root.classList.contains("is-udk"), cells], "TIME ZONE over the bar").toEqual([
+      "setup.datetime.zone",
+      true,
+      ["Phones 1 Level", "Phones 2 Level", "---", "---"],
+    ]);
+
+    const places: Record<string, (shell: Shell) => Element | null | undefined> = {
+      "the bare toolbar": (s) => s.root.querySelector(".toolbar"),
+      "the bar where a knob or the page step is out of reach": (s) => s.root.querySelector(".knob-strip"),
+      "a `---` knob": (s) => [...s.root.querySelectorAll(".knob-strip .knob-cell")].find((c) => c.textContent === "---"),
+      "the page number": (s) => s.root.querySelector(".knob-strip .knob-bank"),
+    };
+    const after: Record<string, string> = {};
+    for (const [place, find] of Object.entries(places)) {
+      const shell = await open();
+      const node = find(shell);
+      touch(node);
+      await flush();
+      after[place] = node ? shell.ctx.nav.current.id : "absent";
+    }
+    expect(after).toEqual(Object.fromEntries(Object.keys(places).map((place) => [place, "setup.datetime"])));
+
+    // A press that goes down on the bar is the bare screen's, and one that goes down on the sheet is the
+    // sheet's, wherever it is let go: over the other, its click lands on the glass that holds both.
+    const fromBar = await open();
+    touch(fromBar.root, fromBar.root.querySelector(".knob-strip"));
+    const fromSheet = await open();
+    touch(fromSheet.root, fromSheet.root.querySelector(".pick-dialog"));
+    await flush();
+    expect([fromBar.ctx.nav.current.id, fromSheet.ctx.nav.current.id]).toEqual(["setup.datetime", "setup.datetime.zone"]);
+    // The press is spent on that click: a touch on the bare toolbar after it closes the sheet.
+    fromSheet.root.querySelector(".toolbar")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+    expect(fromSheet.ctx.nav.current.id).toBe("setup.datetime");
+  });
+
+  it("closes on a touch on the knob bar under its dark, as on the rest of the dark", async () => {
+    const shell = await mount();
+    // The list opens with USER DEFINED KNOBS mode off, and nothing on the glass switches it on under the
+    // list, so the setting is written here.
+    await openList(shell);
+    await shell.ctx.store.set("ui.userDefinedKnobs", true);
+    await flush();
+    const empty = [...shell.root.querySelectorAll(".knob-strip .knob-cell")].find((c) => c.textContent === "---");
+    empty?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+    expect([empty !== undefined, shell.ctx.nav.current.id]).toEqual([true, "home"]);
+  });
+
+  it("leaves a sheet with no exits of its own open under a touch on what is laid over it", async () => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "scene" });
+    shell.ctx.nav.push({ id: "scene.title" });
+    await flush();
+    try {
+      shell.ctx.overlay(dialog({ message: "Name taken", okOnly: true, onOk: () => undefined }));
+      await flush();
+      shell.root.querySelector(".dialog-overlay")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flush();
+      expect([shell.ctx.nav.current.id, shell.root.querySelector(".dialog-overlay") !== null]).toEqual(["scene.title", true]);
+    } finally {
+      // The dialog holds the window's keys while it is up.
+      shell.destroy();
+    }
   });
 
   it("reads the names off the strips, so a model with other banks gets other names", () => {
@@ -1368,7 +1488,7 @@ describe("the SEND TO destination tabs", () => {
     ]);
 
     const lit = (): (string | null)[] =>
-      [...shell.root.querySelectorAll(".dropdown-option[aria-pressed='true']")].map((o) => o.textContent);
+      [...shell.root.querySelectorAll(".dropdown-option[aria-selected='true']")].map((o) => o.textContent);
     expect(lit(), "the key it ships on is the one marked").toEqual(["1"]);
 
     // A key that is a bus resolves to that bus's own level.
@@ -2192,14 +2312,20 @@ describe("the SCENE menu the scene box opens", () => {
       ["1 / span 4", "1"], ["3 / span 4", "2"], ["33 / span 8", "3"], ["7 / span 12", "4"], ["34 / span 7", "4"],
     ]);
 
+    // Shift is the one key that stays on, and assistive technology reads whether it is.
+    const toggles = (): string[] =>
+      [...shell.root.querySelectorAll(".title-key[aria-pressed]")].map((k) => `${k.textContent} ${k.getAttribute("aria-pressed")}`);
+    expect(toggles(), "Shift off").toEqual(["Shift false"]);
     await tap(key("Shift"));
     expect(key("Shift")?.classList.contains("is-on"), "Shift lit").toBe(true);
+    expect(toggles(), "and read as on").toEqual(["Shift true"]);
     expect(faces().slice(0, 10).join("")).toBe("QWERTYUIOP");
     await tap(key("Q"));
     await tap(key("Q"));
     expect(typed(), "Shift stays on").toBe("BandQQ");
     await tap(key("Shift"));
     expect(key("Shift")?.classList.contains("is-on"), "and goes off on the next tap").toBe(false);
+    expect(toggles(), "and is read as off").toEqual(["Shift false"]);
 
     await tap(key("123"));
     expect(faces().slice(0, 10).join("")).toBe("1234567890");
@@ -2459,6 +2585,25 @@ describe("CH SETTING: what a channel is tapped at and what colour it carries", (
     // carrying the word the store keeps.
     const rail = shell.root.querySelector<HTMLElement>(".strip")?.style.getPropertyValue("--rail");
     expect(rail, "and its rail carries nothing").toBe("");
+  });
+
+  it("names every control it carries, the colour box by the colour the channel carries", async () => {
+    const colorBox = (shell: Shell): HTMLElement | null => shell.root.querySelector<HTMLElement>(".chs-color-box");
+    for (const [id, color] of [["ch1", "Blue"], ["bus.mix1", "Orange"]] as const) {
+      const shell = await setting(id);
+      const unnamed = [...shell.root.querySelectorAll<HTMLElement>(INTERACTIVE)]
+        .filter((n) => accessibleName(n).trim() === "")
+        .map((n) => `${n.tagName}.${n.className}`);
+      expect(unnamed, `${id}: every control has a name`).toEqual([]);
+      expect(colorBox(shell)?.getAttribute("aria-label"), id).toBe(`Color: ${color}`);
+    }
+    const shell = await setting("ch1");
+    await shell.ctx.store.set("ch.ch1.color", CH_COLOR_PALETTE.find((c) => c.name === "Red")?.hex ?? "");
+    await flush();
+    expect(colorBox(shell)?.getAttribute("aria-label")).toBe("Color: Red");
+    await shell.ctx.store.set("ch.ch1.color", "Off");
+    await flush();
+    expect(colorBox(shell)?.getAttribute("aria-label"), "a channel carrying none").toBe("Color: Off");
   });
 
   it("writes a name left in the field once the press that takes the focus has its click, and one the keys commit at once", async () => {
@@ -3016,6 +3161,399 @@ describe("the USER DEFINED KNOBS bar", () => {
     await udk(shell);
     expect(cells(shell)[0]).toEqual({ value: "-4.00", label: "Monitor 1" });
     expect(cells(shell)[1]).toEqual({ value: "---", label: "" });
+  });
+});
+
+describe("the moves USER DEFINED KNOBS mode goes off on", () => {
+  /** The mode as the glass shows it: the setting, and how many of the bar's cells are drawn in its colours. */
+  const mode = (shell: Shell): [boolean, number] => [
+    shell.ctx.store.bool("ui.userDefinedKnobs", false),
+    shell.root.querySelectorAll(".knob-strip .knob-cell.is-udk").length,
+  ];
+  const ON: [boolean, number] = [true, 4];
+  const OFF: [boolean, number] = [false, 0];
+  const where = (shell: Shell): string => `${shell.ctx.nav.current.id}${shell.ctx.nav.current.strip ? ` ${shell.ctx.nav.current.strip}` : ""}`;
+
+  async function tap(shell: Shell, selector: string, label?: string): Promise<void> {
+    const node = [...shell.root.querySelectorAll<HTMLElement>(selector)].find((n) => label === undefined || accessibleName(n) === label);
+    if (!node) throw new Error(`nothing at ${selector} ${label ?? ""}`);
+    node.click();
+    await flush();
+  }
+
+  /** The screens under the one the mode is switched on at, opened with it off. */
+  async function onAt(routes: { id: string; strip?: string }[] = [], setUp?: (shell: Shell) => Promise<void>): Promise<Shell> {
+    const shell = await mount();
+    await setUp?.(shell);
+    for (const route of routes) shell.ctx.nav.push(route);
+    await flush();
+    await tap(shell, ".udk-toggle");
+    expect(mode(shell), "the toggle switches it on").toEqual(ON);
+    return shell;
+  }
+
+  for (const icon of ["SETUP", "microSD", "MONITOR"]) {
+    it(`goes off on HOME's ${icon} icon`, async () => {
+      const shell = await onAt();
+      await tap(shell, ".toolbar .icon-btn", icon);
+      expect([where(shell), ...mode(shell)]).toEqual([icon.toLowerCase(), ...OFF]);
+    });
+  }
+
+  it("goes off on HOME's scene name box", async () => {
+    const shell = await onAt();
+    await tap(shell, ".scene-box");
+    expect([where(shell), ...mode(shell)]).toEqual(["scene", ...OFF]);
+  });
+
+  it("goes off on HOME's channel-bank button as it opens the bank list", async () => {
+    const shell = await onAt();
+    await tap(shell, ".bank-btn");
+    expect([where(shell), ...mode(shell)]).toEqual(["bank-select", ...OFF]);
+  });
+
+  for (const [top, name, under] of [
+    ["setup", "SETUP > USER DEFINED KNOBS", "setup.udk"],
+    ["microsd", "SAVE/LOAD", "microsd.saveload"],
+    ["microsd", "RECORDER", "microsd.recorder"],
+    ["microsd", "TOOLS", "microsd.tools"],
+    ["monitor", "MONITOR > Monitor", "monitor.level"],
+  ] as const) {
+    it(`goes off on the back arrow from ${name} onto ${top}, which shows no toggle, and stays off on the way back in`, async () => {
+      const shell = await onAt([{ id: top }, { id: under }]);
+      await tap(shell, ".toolbar .icon-btn", "Back");
+      expect([where(shell), shell.root.querySelector(".udk-toggle"), ...mode(shell)], "the bar is gone").toEqual([top, null, ...OFF]);
+      // The mode itself is off, not the bar hidden: the screen the toggle was on opens without it.
+      shell.ctx.nav.push({ id: under });
+      await flush();
+      expect([where(shell), shell.root.querySelector(".udk-toggle") !== null, ...mode(shell)], "opened again").toEqual([under, true, ...OFF]);
+    });
+  }
+
+  for (const [name, id] of [
+    ["SAVE/LOAD", "microsd.saveload"],
+    ["TOOLS", "microsd.tools"],
+    ["RECORDER", "microsd.recorder"],
+  ] as const) {
+    it(`goes off as ${name} gives way to microSD once the card is taken out, which shows no toggle`, async () => {
+      const shell = await onAt([{ id: "microsd" }, { id }]);
+      await tap(shell, ".sd-eject");
+      await tap(shell, ".dialog-actions .btn", "OK");
+      expect([where(shell), shell.root.querySelector(".sd-no-card")?.textContent, shell.root.querySelector(".udk-toggle"), ...mode(shell)]).toEqual([
+        "microsd",
+        "Not inserted microSD card",
+        null,
+        ...OFF,
+      ]);
+    });
+  }
+
+  it("stays on from a strip on HOME to its channel view, and from a block there to its screen", async () => {
+    const shell = await onAt();
+    for (let i = 0; i < 2 && shell.ctx.nav.current.id === "home"; i++) await tap(shell, '[aria-label="CH 1 settings"]');
+    expect([where(shell), ...mode(shell)], "the strip").toEqual(["channel-view ch1", ...ON]);
+    // The first touch takes the knob, the second opens the screen.
+    await tap(shell, ".cv-block-comp");
+    await tap(shell, ".cv-block-comp");
+    expect([where(shell), ...mode(shell)], "the block").toEqual(["ch.comp ch1", ...ON]);
+  });
+
+  it("stays on through the back arrow and through HOME", async () => {
+    const screens = [
+      { id: "channel-view", strip: "ch1" },
+      { id: "ch.comp", strip: "ch1" },
+    ];
+    const back = await onAt(screens);
+    await tap(back, ".toolbar .icon-btn", "Back");
+    expect([where(back), ...mode(back)], "the back arrow").toEqual(["channel-view ch1", ...ON]);
+    const home = await onAt(screens);
+    await tap(home, ".toolbar .icon-btn", "HOME");
+    expect([where(home), ...mode(home)], "HOME").toEqual(["home", ...ON]);
+  });
+
+  it("stays on as a sheet's [Cancel] steps back onto a screen that carries the toggle, SCENE a top-level one among them", async () => {
+    for (const [at, sheet] of [
+      [[{ id: "scene" }], "scene.title"],
+      [[{ id: "setup" }, { id: "setup.datetime" }], "setup.datetime.zone"],
+    ] as const) {
+      const shell = await onAt([...at]);
+      shell.ctx.nav.push({ id: sheet });
+      await flush();
+      await tap(shell, ".pick-dialog-cancel");
+      expect([where(shell), ...mode(shell)], sheet).toEqual([at.at(-1)?.id, ...ON]);
+    }
+  });
+
+  it("stays on through a channel's ‹ › and the SSMCS screens' page steps", async () => {
+    const arrows = await onAt([{ id: "channel-view", strip: "ch1" }]);
+    await tap(arrows, ".ch-arrow", "Next channel");
+    expect([where(arrows), ...mode(arrows)], "›").toEqual(["channel-view ch2", ...ON]);
+    await tap(arrows, ".ch-arrow", "Previous channel");
+    expect([where(arrows), ...mode(arrows)], "‹").toEqual(["channel-view ch1", ...ON]);
+
+    const pages = await onAt(
+      [
+        { id: "channel-view", strip: "ch1" },
+        { id: "ch.ssmcs", strip: "ch1" },
+      ],
+      (shell) => shell.ctx.store.set("ch.ch1.compEqOrder", "SSMCS"),
+    );
+    await tap(pages, ".ssmcs-page-next");
+    expect([where(pages), ...mode(pages)], "a page step").toEqual(["ch.ssmcs.comp ch1", ...ON]);
+  });
+
+  it("stays on through a screen's tabs", async () => {
+    const shell = await onAt([{ id: "microsd" }, { id: "microsd.saveload" }]);
+    await tap(shell, ".side-tab", "Edit");
+    expect([where(shell), shell.ctx.store.str("ui.sdSaveTab", ""), ...mode(shell)]).toEqual(["microsd.saveload", "Edit", ...ON]);
+  });
+
+  it("stays on under a picker sheet and once it closes, picked or left", async () => {
+    const shell = await onAt([
+      { id: "channel-view", strip: "ch1" },
+      { id: "ch.input", strip: "ch1" },
+    ]);
+    await tap(shell, ".input-source-btn");
+    expect([shell.root.querySelector(".source-sheet") !== null, ...mode(shell)], "the sheet up").toEqual([true, ...ON]);
+    await tap(shell, ".source-sheet .source-back");
+    expect([shell.root.querySelector(".source-sheet") !== null, ...mode(shell)], "left").toEqual([false, ...ON]);
+    await tap(shell, ".input-source-btn");
+    await tap(shell, ".source-sheet .source-btn");
+    expect([shell.root.querySelector(".source-sheet") !== null, where(shell), ...mode(shell)], "picked").toEqual([false, "ch.input ch1", ...ON]);
+  });
+
+  it("stays on under a pulldown's list and once it closes on a pick", async () => {
+    const shell = await onAt([{ id: "setup" }, { id: "setup.datetime" }]);
+    await tap(shell, ".pulldown", "Date: MM/DD/YYYY (3 options)");
+    expect([shell.root.querySelector(".dropdown-sheet") !== null, ...mode(shell)], "the list up").toEqual([true, ...ON]);
+    await tap(shell, ".dropdown-option", "DD/MM/YYYY");
+    expect([shell.root.querySelector(".dropdown-sheet") !== null, shell.ctx.store.str("setup.dateTime.dateFormat", ""), ...mode(shell)], "picked").toEqual([
+      false,
+      "DD/MM/YYYY",
+      ...ON,
+    ]);
+  });
+
+  it("stays on under the Sends destination sheet and once it closes", async () => {
+    const shell = await onAt();
+    await tap(shell, ".sends-btn");
+    expect([where(shell), ...mode(shell)], "the sheet up").toEqual(["sends-select", ...ON]);
+    await tap(shell, ".sends-btn");
+    expect([where(shell), ...mode(shell)], "closed").toEqual(["home", ...ON]);
+  });
+});
+
+describe("the USER DEFINED KNOBS bar under a sheet, a list or a dialog", () => {
+  const PHONES_1 = udkAssignment("Phones 1 Level").spec?.path ?? "";
+  /** Bank 1's two knobs and its page step, as the unit ships it. */
+  const BAR = ["Phones 1 Level", "Phones 2 Level", "User defined knobs page 2"];
+
+  /**
+   * The bar's controls, each live or out of reach. Out of reach is under an inert node, which a
+   * browser's hit test, Tab and focus() pass over; jsdom's do not, so this reads the attribute.
+   */
+  const reach = (shell: Shell): string[] =>
+    [...(shell.root.querySelector(".knob-strip")?.querySelectorAll(INTERACTIVE) ?? [])].map(
+      (n) => `${accessibleName(n)} ${n.closest("[inert]") === null ? "live" : "out of reach"}`,
+    );
+
+  /** Whether a key, the wheel and a drag on Phones 1's division each move its level. */
+  async function turns(shell: Shell): Promise<boolean[]> {
+    const level = (): number => shell.ctx.store.num(PHONES_1, Number.NaN);
+    const cell = (): HTMLElement | undefined =>
+      [...shell.root.querySelectorAll<HTMLElement>(".knob-strip .knob-cell")].find((c) => accessibleName(c) === "Phones 1 Level");
+    const inputs: ((c: HTMLElement) => void)[] = [
+      (c) => c.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true })),
+      (c) => c.dispatchEvent(new WheelEvent("wheel", { deltaY: -100, bubbles: true, cancelable: true })),
+      (c) => {
+        c.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientY: 250 }));
+        window.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientY: 200 }));
+        window.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, clientY: 200 }));
+      },
+    ];
+    const moved: boolean[] = [];
+    for (const input of inputs) {
+      const before = level();
+      const c = cell();
+      if (c) input(c);
+      await flush();
+      moved.push(level() > before);
+    }
+    return moved;
+  }
+
+  async function tap(shell: Shell, selector: string, label?: string): Promise<void> {
+    const node = [...shell.root.querySelectorAll<HTMLElement>(selector)].find((n) => label === undefined || accessibleName(n) === label);
+    if (!node) throw new Error(`nothing at ${selector} ${label ?? ""}`);
+    node.click();
+    await flush();
+  }
+  const escape = async (): Promise<void> => {
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    await flush();
+  };
+  const cancel = (shell: Shell): Promise<void> => tap(shell, ".pick-dialog-cancel");
+
+  /** What draws the bar dark while it is up: the full-glass sheet's own dark over the bar, the dark over the screen, or the layer over the glass. */
+  const dark = (shell: Shell): string | undefined =>
+    shell.root.matches(":has(> .main > .pick-dialog)")
+      ? "the sheet's dark over the bar"
+      : shell.root.classList.contains("is-dimmed")
+        ? "the dark over the screen"
+        : shell.root.querySelector(":scope > [data-overlay]")?.className;
+
+  const COVERS: {
+    name: string;
+    under: { id: string; strip?: string }[];
+    open: (shell: Shell) => Promise<void> | void;
+    close: (shell: Shell) => Promise<void>;
+    darkBy: string;
+  }[] = [
+    { name: "TIME ZONE", under: [{ id: "setup" }, { id: "setup.datetime" }], open: (s) => openTimeZone(s.ctx), close: cancel, darkBy: "the sheet's dark over the bar" },
+    { name: "[Date/Time]", under: [{ id: "setup" }, { id: "setup.datetime" }], open: (s) => openDateTimeSet(s.ctx), close: cancel, darkBy: "the sheet's dark over the bar" },
+    { name: "a scene's title sheet", under: [{ id: "scene" }], open: (s) => s.ctx.nav.push({ id: "scene.title" }), close: cancel, darkBy: "the sheet's dark over the bar" },
+    { name: "[Save as]'s name sheet", under: [{ id: "microsd" }, { id: "microsd.saveload" }], open: (s) => tap(s, ".btn", "Save as"), close: cancel, darkBy: "the sheet's dark over the bar" },
+    { name: "the knob assignment", under: [{ id: "setup" }, { id: "setup.udk" }], open: (s) => tap(s, ".udk-knob"), close: cancel, darkBy: "the sheet's dark over the bar" },
+    { name: "the Sends destination sheet", under: [], open: (s) => tap(s, ".sends-btn"), close: (s) => tap(s, ".sends-btn"), darkBy: "the dark over the screen" },
+    {
+      name: "the INPUT source sheet",
+      under: [
+        { id: "channel-view", strip: "ch1" },
+        { id: "ch.input", strip: "ch1" },
+      ],
+      open: (s) => tap(s, ".input-source-btn"),
+      close: (s) => tap(s, ".source-sheet .source-back"),
+      darkBy: "source-overlay",
+    },
+    { name: "the Date format list", under: [{ id: "setup" }, { id: "setup.datetime" }], open: (s) => tap(s, ".pulldown", "Date: MM/DD/YYYY (3 options)"), close: escape, darkBy: "dropdown-sheet" },
+    { name: "the eject dialog", under: [{ id: "microsd" }, { id: "microsd.saveload" }], open: (s) => tap(s, ".sd-eject"), close: escape, darkBy: "dialog-overlay" },
+  ];
+
+  for (const cover of COVERS) {
+    it(`draws the bar dark and holds it out of reach under ${cover.name}, and gives it back once it closes`, async () => {
+      const shell = await mount();
+      for (const route of cover.under) shell.ctx.nav.push(route);
+      await flush();
+      await tap(shell, ".udk-toggle");
+      expect([reach(shell), dark(shell)], "the bar answers before").toEqual([BAR.map((n) => `${n} live`), undefined]);
+
+      await cover.open(shell);
+      await flush();
+      expect([shell.ctx.store.bool("ui.userDefinedKnobs", false), reach(shell), dark(shell)], "up").toEqual([
+        true,
+        BAR.map((n) => `${n} out of reach`),
+        cover.darkBy,
+      ]);
+
+      await cover.close(shell);
+      expect([shell.ctx.nav.current.id, reach(shell), dark(shell)], "closed").toEqual([cover.under.at(-1)?.id ?? "home", BAR.map((n) => `${n} live`), undefined]);
+      expect(await turns(shell), "a key, the wheel and a drag turn Phones 1 again").toEqual([true, true, true]);
+    });
+  }
+
+  /**
+   * Where a touch on the bare screen around each sheet the shell draws leaves the glass. The title and name
+   * sheets stay up, as the unit's Volume Label, scene title and [Save as] name sheets stay up under a touch
+   * at their foot, and the others close. The picker sheets, the lists and the dialogs are layers over the
+   * whole glass, the bar's place included.
+   */
+  const BARE: Record<string, string> = {
+    "TIME ZONE": "setup.datetime",
+    "[Date/Time]": "setup.datetime",
+    "a scene's title sheet": "scene.title",
+    "[Save as]'s name sheet": "microsd.name",
+    "the knob assignment": "setup.udk",
+    "the Sends destination sheet": "home",
+  };
+  for (const cover of COVERS.filter((c) => c.name in BARE)) {
+    it(`takes a touch on the bar under ${cover.name} as one on the bare screen around it`, async () => {
+      // A browser's hit test passes a touch on a knob or the page step out of reach on to the bar itself.
+      const places = [".toolbar", ".knob-strip", ".knob-strip .knob-cell:not([role])"];
+      const after: string[] = [];
+      for (const place of places) {
+        const shell = await mount();
+        for (const route of cover.under) shell.ctx.nav.push(route);
+        await flush();
+        await tap(shell, ".udk-toggle");
+        await cover.open(shell);
+        await flush();
+        const node = shell.root.querySelector(place);
+        node?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+        node?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        await flush();
+        after.push(`${place} ${node ? shell.ctx.nav.current.id : "absent"}`);
+      }
+      expect(after).toEqual(places.map((place) => `${place} ${BARE[cover.name]}`));
+    });
+  }
+
+  it("hides the bar whole under the knob assignment and the title and name sheets, and leaves it in sight at the edge of [Date/Time] and TIME ZONE", async () => {
+    // On the unit the knob assignment and the Volume Label sheet cover the glass to their edges, while
+    // [Date/Time] and TIME ZONE leave the bar showing dark along their foot.
+    const hidden: Record<string, boolean> = {};
+    for (const cover of COVERS.filter((c) => c.darkBy === "the sheet's dark over the bar")) {
+      const shell = await mount();
+      for (const route of cover.under) shell.ctx.nav.push(route);
+      await flush();
+      await tap(shell, ".udk-toggle");
+      await cover.open(shell);
+      await flush();
+      hidden[cover.name] = shell.root.matches(":has(> .main > .pick-dialog.covers-bar)");
+    }
+    expect(hidden).toEqual({
+      "TIME ZONE": false,
+      "[Date/Time]": false,
+      "a scene's title sheet": true,
+      "[Save as]'s name sheet": true,
+      "the knob assignment": true,
+    });
+    expect(declarations(CSS, ".lcd:has(> .main > .pick-dialog.covers-bar) > .knob-strip")["visibility"]).toBe("hidden");
+  });
+
+  it("closes the INPUT source sheet on a touch on the dark around its panel, and not on the panel", async () => {
+    // On the unit a touch on the dark over the bar, or left of, right of or above the panel, takes the
+    // sheet down and leaves USER DEFINED KNOBS mode on. A browser's hit test lands every one of them on
+    // the layer over the glass.
+    const touch = (node: Element | null | undefined, from: Element | null | undefined = node): void => {
+      from?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+      node?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    };
+    const presses: Record<string, (layer: Element | null, panel: Element | null) => void> = {
+      "the dark": (layer) => touch(layer),
+      "the panel": (_layer, panel) => touch(panel),
+      "a press down on the panel, let go over the dark": (layer, panel) => touch(layer, panel),
+      // Assistive technology works a control with a click and no press.
+      "a click on the panel with no press": (_layer, panel) => panel?.dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    };
+    const after: string[] = [];
+    for (const [name, press] of Object.entries(presses)) {
+      const shell = await mount();
+      shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+      shell.ctx.nav.push({ id: "ch.input", strip: "ch1" });
+      await flush();
+      await tap(shell, ".udk-toggle");
+      await tap(shell, ".input-source-btn");
+      const layer = shell.root.querySelector(".source-overlay");
+      press(layer, shell.root.querySelector(".source-sheet"));
+      await flush();
+      const up = shell.root.querySelector(".source-overlay") !== null;
+      after.push(`${name}: ${up ? "up" : "down"}, mode ${shell.ctx.store.bool("ui.userDefinedKnobs", false) ? "on" : "off"}`);
+      // The press is spent on that click: a click on the dark after it takes the sheet down.
+      if (up) {
+        layer?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        await flush();
+        after.push(`then the dark: ${shell.root.querySelector(".source-overlay") ? "up" : "down"}`);
+      }
+    }
+    expect(after).toEqual([
+      "the dark: down, mode on",
+      "the panel: up, mode on",
+      "then the dark: down",
+      "a press down on the panel, let go over the dark: up, mode on",
+      "then the dark: down",
+      "a click on the panel with no press: up, mode on",
+      "then the dark: down",
+    ]);
   });
 });
 
@@ -5093,6 +5631,46 @@ describe("the control the knob turns", () => {
     await flush();
     expect(shell.ctx.store.str("ui.eqBand", "low"), "a grip picks no band").toBe(band);
     expect(shell.root.querySelectorAll(".is-focused, .is-held")).toHaveLength(1);
+  });
+
+  it("reads every value 1-knob holds still on the COMP and EQ screens as out of reach, the bar's included, and its level as live", async () => {
+    const shell = await mount();
+    /** Each value box and each division of the bar that turns a value, by name, with whether it reads as out of reach. */
+    const reach = (): string[] =>
+      [...shell.root.querySelectorAll<HTMLElement>(".value-box, .knob-cell[role='slider']")].map(
+        (n) => `${accessibleName(n)}: ${n.getAttribute("aria-disabled") ?? "live"}`,
+      );
+    await shell.ctx.store.set("ch.ch1.comp.oneKnob.on", true);
+    await shell.ctx.store.set("ch.ch1.eq.oneKnob.on", true);
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    shell.ctx.nav.push({ id: "ch.comp", strip: "ch1" });
+    await flush();
+    expect(reach(), "COMP").toEqual([
+      "1-knob: live",
+      "Attack: true",
+      "Release: true",
+      "Threshold: true",
+      "Ratio: true",
+      "Gain: true",
+      "Attack: true",
+    ]);
+    await shell.ctx.store.set("ch.ch1.comp.oneKnob.on", false);
+    await flush();
+    expect(reach(), "COMP with 1-knob off").toEqual([
+      "Attack: live",
+      "Release: live",
+      "Threshold: live",
+      "Ratio: live",
+      "Gain: live",
+      "Attack: live",
+    ]);
+
+    shell.ctx.nav.replace({ id: "ch.eq", strip: "ch1" });
+    await flush();
+    expect(reach(), "EQ").toEqual(["1-knob: live", "LOW Q: true", "LOW Freq.: true", "LOW Gain: true"]);
+    await shell.ctx.store.set("ch.ch1.eq.oneKnob.on", false);
+    await flush();
+    expect(reach(), "EQ with 1-knob off").toEqual(["LOW Q: live", "LOW Freq.: live", "LOW Gain: live"]);
   });
 
   it("rims only the touched column in the USER DEFINED KNOBS picker, and the input source sheet's bar", async () => {

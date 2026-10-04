@@ -1748,6 +1748,16 @@
   box-shadow: inset 0 -3px 0 #00000045;
 }
 
+/* A block's name that switches nothing is drawn on the block as the switch is:
+ * its words in the block's own type, centred on the face above the band. */
+.lcd span.badge.badge-switch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 6px 3px;
+  font: inherit;
+}
+
 .badge.badge-switch.badge-gate.is-on {
   background: var(--block-gate);
 }
@@ -2333,12 +2343,15 @@
 /* --- USER DEFINED KNOBS: picking what a knob is on ----------------------- */
 
 /* The dialog takes the whole glass rather than standing on a screen, so the
- * main area is what carries it, inset by the margin the sheet starts at. */
-.main:has(> .pick-dialog) {
+ * main area is what carries it, inset by the margin the sheet starts at. It
+ * lies over the USER DEFINED KNOBS bar, which stays drawn under it, and keeps
+ * those insets with either bar up. */
+.lcd .main:has(> .pick-dialog) {
   left: 4px;
   right: 4px;
   top: 4px;
   bottom: 4px;
+  z-index: 2;
   overflow: visible;
   background: var(--dialog-sheet);
   border-radius: var(--radius-lg);
@@ -6011,12 +6024,31 @@
   pointer-events: none;
 }
 
+/* A sheet over the whole glass leaves the knob bar under it in sight at its
+ * edges, taken down the same way. */
+.lcd:has(> .main > .pick-dialog) .knob-strip::before {
+  content: "";
+  position: absolute;
+  inset: -2px -2px 0;
+  background: transparent;
+  backdrop-filter: url(#lcd-scrim);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* One that covers the bar whole leaves none of it in sight, and a touch at its
+ * edge lands on the bare glass. */
+.lcd:has(> .main > .pick-dialog.covers-bar) > .knob-strip {
+  visibility: hidden;
+}
+
 /* The overlays darken what lies under them through the filter the shell puts
  * in the LCD (src/ui/scrim.ts). A browser without backdrop-filter gets a plain
  * black wash instead. */
 @supports not (backdrop-filter: none) {
   .dialog-overlay,
   .lcd.is-dimmed::after,
+  .lcd:has(> .main > .pick-dialog) .knob-strip::before,
   .source-overlay {
     background: var(--scrim);
   }

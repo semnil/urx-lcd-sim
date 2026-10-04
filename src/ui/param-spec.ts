@@ -214,6 +214,22 @@ export function formatValue(spec: NumericSpec, value: number): string {
   return text === OFF_MARK ? text : text + unitOf(spec.unit, value);
 }
 
+/**
+ * What a control that turns `spec` tells assistive technology at `value`: the
+ * value, the two ends and the reading. A travel whose last stop no number names
+ * (a compressor's Ratio at INF) reads out the stop under it as its top, a value
+ * past an end stands at that end, and the reading names the value itself.
+ */
+export function rangeAttrs(spec: NumericSpec, value: number): Record<string, string> {
+  const top = Number.isFinite(spec.max) || !spec.travel ? spec.max : spec.travel.step(spec.max, -1);
+  return {
+    "aria-valuenow": String(Number.isFinite(value) ? value : Math.min(Math.max(value, spec.min), top)),
+    "aria-valuemin": String(spec.min),
+    "aria-valuemax": String(top),
+    "aria-valuetext": formatValue(spec, value),
+  };
+}
+
 /** The suffix a unit comes to for a value. */
 export function unitOf(unit: NumericSpec["unit"], value: number): string {
   return typeof unit === "function" ? unit(value) : (unit ?? "");

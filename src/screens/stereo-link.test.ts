@@ -277,7 +277,7 @@ describe("the PAN / BAL choice a stereo pair carries", () => {
     expect(store.str("ch.ch1.signalType", "")).toBe("MONO x 2");
     const options = [...shell.root.querySelectorAll<HTMLElement>(".dropdown-option")];
     expect(options.map((o) => o.textContent)).toEqual(["MONO x 2", "STEREO"]);
-    expect(options[0]?.getAttribute("aria-pressed"), "the list shows where it stands").toBe("true");
+    expect(options[0]?.getAttribute("aria-selected"), "the list shows where it stands").toBe("true");
 
     const list = options[0]?.closest<HTMLElement>(".dropdown-list");
     expect([list?.style.left, list?.style.top], "the list is placed against its box").not.toContain("");

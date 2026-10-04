@@ -38,6 +38,7 @@ import {
   compResponse,
   dynMeters,
   dynSetting,
+  hidePlotDrawing,
   noChannel,
   plotCurve,
   plotHandle,
@@ -507,7 +508,7 @@ export const ssmcsScreen: ScreenDef = {
           knobPanel("ssmcs-morphing", "Morphing", morphing, [
             el("button", {
               class: "ssmcs-data",
-              onTap: () => ctx.overlay(sweetSpotSheet(ctx, b)),
+              onTap: () => void sweetSpotSheet(ctx, b),
               children: [el("span", { text: data }), el("span", { class: "ssmcs-data-mark", children: [Icons.copy()] })],
             }),
           ]),
@@ -547,6 +548,7 @@ function compFace(ctx: AppContext, route: Route, sideChain: boolean): ScreenBody
     plotHandle(ctx, svg, "D", plotX(driveDb), plotY(at(driveDb), STRIP_PLOT_H), "x", { spec: drive, sense: -1 });
     plotHandle(ctx, svg, "R", PLOT_W - 14.5, plotY(at(PLOT_MAX - 5), STRIP_PLOT_H), "y", { spec: ratio, sense: -1 });
   }
+  hidePlotDrawing(svg);
   const plot = el("div", { class: "dyn-plot", children: [svg as unknown as HTMLElement] });
 
   return {
@@ -575,7 +577,7 @@ function compFace(ctx: AppContext, route: Route, sideChain: boolean): ScreenBody
                 class: "dyn-row dyn-row-knee ssmcs-knee",
                 children: [
                   el("span", { class: "dyn-caption", text: "Knee" }),
-                  pulldown(ctx, ctx.store.str(`${b}.ssmcs.comp.knee`, SSMCS_DEFAULTS.knee), KNEES, (v) => void ctx.store.set(`${b}.ssmcs.comp.knee`, v)),
+                  pulldown(ctx, ctx.store.str(`${b}.ssmcs.comp.knee`, SSMCS_DEFAULTS.knee), KNEES, (v) => void ctx.store.set(`${b}.ssmcs.comp.knee`, v), { label: "Knee" }),
                 ],
               }),
               el("div", { class: "dyn-sets ssmcs-sets", children: [attack, release].map((s) => dynSetting(ctx, s)) }),

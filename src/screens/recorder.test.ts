@@ -193,6 +193,32 @@ describe("moving between the RECORDER tabs", () => {
     expect(dialogText(shell), "a tab that is not open waits").toBe("Loading...");
   });
 
+  it("holds the recorder out of reach while a tab loads, and stays on Record if recording mode comes on under it", async () => {
+    const shell = await mount();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      tab(shell, "Play")?.click();
+      for (let i = 0; i < 5; i++) await Promise.resolve();
+      expect(shell.root.querySelector(".dialog-text")?.textContent).toBe("Loading...");
+      const record = shell.root.querySelector<HTMLElement>('.rec-transport [aria-label="Record"]');
+      expect([record !== null, record?.closest("[inert]") !== null, tab(shell, "Edit")?.closest("[inert]") !== null], "[●] and the tabs are under it").toEqual([
+        true,
+        true,
+        true,
+      ]);
+
+      await shell.ctx.store.set("sd.rec", "armed");
+      for (let i = 0; i < 5; i++) await Promise.resolve();
+      vi.advanceTimersByTime(60_000);
+    } finally {
+      vi.useRealTimers();
+    }
+    await flush();
+    expect(shell.root.querySelector(".dialog-text"), "the modal takes itself down").toBeNull();
+    expect(shell.ctx.store.str("ui.sdTab", "Record"), "recording mode keeps the tab it came on in").toBe("Record");
+    expect(shell.root.querySelector(".rec-transport"), "with [■] there to leave it").not.toBeNull();
+  });
+
   it("goes straight to Record, which is the tab the screen opens on", async () => {
     const shell = await mount();
     tab(shell, "Play")?.click();
@@ -208,6 +234,36 @@ describe("moving between the RECORDER tabs", () => {
     await flush();
     expect(shell.root.querySelector(".dialog-text"), "no wait for it").toBeNull();
     expect(shell.ctx.store.str("ui.sdTab", "Play")).toBe("Record");
+  });
+});
+
+describe("the Record tab's transport", () => {
+  it("tells assistive technology what [●] and the middle button stand at, as the Play tab's [Play/Pause] does", async () => {
+    const shell = await mount();
+    const button = (cls: string): HTMLElement | null => shell.root.querySelector<HTMLElement>(`.rec-transport .${cls}`);
+    /** [●]'s pressed state, then the middle button's name and pressed state. */
+    const told = (): (string | null | undefined)[] => [
+      button("rec-rec")?.getAttribute("aria-pressed"),
+      button("rec-play")?.getAttribute("aria-label"),
+      button("rec-play")?.getAttribute("aria-pressed"),
+    ];
+    const press = async (cls: string): Promise<void> => {
+      button(cls)?.click();
+      await flush();
+    };
+    const seen = [[shell.ctx.store.str("sd.rec", "idle"), ...told()]];
+    for (const cls of ["rec-rec", "rec-play", "rec-play", "rec-play", "rec-stop"]) {
+      await press(cls);
+      seen.push([shell.ctx.store.str("sd.rec", "idle"), ...told()]);
+    }
+    expect(seen).toEqual([
+      ["idle", "false", "Play", "false"],
+      ["armed", "true", "Play", "false"],
+      ["recording", "true", "Pause", "false"],
+      ["paused", "true", "Pause", "true"],
+      ["recording", "true", "Pause", "false"],
+      ["idle", "false", "Play", "false"],
+    ]);
   });
 });
 

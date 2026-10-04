@@ -2,7 +2,7 @@
 
 import type { AppContext } from "../app/context";
 import { captureScene } from "../model/scene-state";
-import { el } from "../ui/dom";
+import { el, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { button } from "../ui/widgets";
 import type { ScreenBody, ScreenDef } from "./types";
@@ -85,6 +85,9 @@ const KEY_NAMES: Partial<Record<Action["kind"], string>> = { backspace: "Backspa
 /** What [OK] hands the name to, where the caller takes it itself. */
 let pendingOk: ((text: string) => void) | null = null;
 
+/** How many headings the sheet has drawn, so each heading the field is named by holds an id of its own. */
+let headingIds = 0;
+
 /** What the sheet is opened on. */
 export interface TitleDraft {
   /** Where [OK] writes what is typed; an empty path writes nowhere. */
@@ -139,8 +142,9 @@ export const titleEntryScreen: ScreenDef = {
   id: "scene.title",
   toolbar: "sub",
   shellExits: false,
+  leavesOnTouchAround: false,
   knobToggle: false,
-  build(ctx): ScreenBody {
+  build(ctx, route): ScreenBody {
     const text = ctx.store.str(`${DRAFT}.text`, "");
     const cursor = Math.min(Math.max(ctx.store.num(`${DRAFT}.cursor`, text.length), 0), text.length);
     const drafted = ctx.store.str(`${DRAFT}.layout`, "letters");
@@ -180,24 +184,45 @@ export const titleEntryScreen: ScreenDef = {
       }
     };
 
+    // A press on a key leaves the focus where it stands, and a tap with the focus
+    // outside the field puts it in the field, which takes the browser's keys.
+    const toField = (): void => {
+      if (!field.contains(document.activeElement)) field.focus({ preventScroll: true });
+    };
+    const holdFocus = (node: HTMLElement): HTMLElement => {
+      node.addEventListener("mousedown", (ev) => ev.preventDefault());
+      return node;
+    };
+
     const keyNode = (k: Key, row: number): HTMLElement => {
       // A letter's face follows Shift; the named keys keep theirs.
       const face = shift && k.action.kind === "type" && k.face.length === 1 ? k.face.toUpperCase() : k.face;
+      const tap = (): void => {
+        act(k.action);
+        toField();
+      };
       const node =
         k.action.kind === "backspace"
-          ? el("button", { class: "btn title-key", children: [Icons.backspace()], onTap: () => act(k.action) })
-          : button(face, () => act(k.action), `title-key${k.action.kind === "shift" && shift ? " is-on" : ""}`);
+          ? el("button", { class: "btn title-key", children: [Icons.backspace()], onTap: tap })
+          : button(face, tap, "title-key");
+      if (k.action.kind === "shift") setPressed(node, shift);
       const name = KEY_NAMES[k.action.kind];
       if (name) node.setAttribute("aria-label", name);
       node.style.gridColumn = `${k.col + 1} / span ${k.span}`;
       node.style.gridRow = String(row + 1);
       node.tabIndex = -1;
-      return node;
+      return holdFocus(node);
     };
 
+    // The field is named by the sheet's heading, and without one by what it takes:
+    // a name on the card, or a scene's title.
+    const head = heading ? el("h1", { class: "pick-dialog-title", text: heading }) : null;
+    if (head) head.id = `title-heading-${++headingIds}`;
     const field = el("div", {
       class: "title-field",
-      attrs: { role: "textbox", "aria-label": "Title" },
+      attrs: head
+        ? { role: "textbox", "aria-labelledby": head.id }
+        : { role: "textbox", "aria-label": route.id === "microsd.name" ? "Name" : "Title" },
       children: [
         el("span", {
           class: "title-text",
@@ -207,7 +232,17 @@ export const titleEntryScreen: ScreenDef = {
             document.createTextNode(text.slice(cursor)),
           ],
         }),
-        el("button", { class: "title-clear", attrs: { "aria-label": "Clear" }, children: [Icons.clear()], onTap: () => edit("", 0) }),
+        holdFocus(
+          el("button", {
+            class: "title-clear",
+            attrs: { "aria-label": "Clear" },
+            children: [Icons.clear()],
+            onTap: () => {
+              edit("", 0);
+              toField();
+            },
+          }),
+        ),
       ],
     });
     field.tabIndex = 0;
@@ -225,9 +260,9 @@ export const titleEntryScreen: ScreenDef = {
 
     return {
       main: el("div", {
-        class: "pick-dialog title-entry",
+        class: "pick-dialog title-entry covers-bar",
         children: [
-          ...(heading ? [el("h1", { class: "pick-dialog-title", text: heading })] : []),
+          head,
           button("Cancel", () => {
             pendingOk = null;
             ctx.nav.back();

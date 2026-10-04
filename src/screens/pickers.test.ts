@@ -8,6 +8,7 @@ import { unitById } from "../model/units";
 import type { Route } from "../app/navigator";
 import { refreshDateTime } from "./date-time";
 import { buildRegistry } from "./index";
+import { pulldown } from "../ui/widgets";
 
 // The buttons that carry the mark the guide's legend calls "Shows a separate
 // popup screen for making detailed settings." Each one has to drop a sheet, and
@@ -39,6 +40,12 @@ const pick = async (shell: Shell, label: string): Promise<void> => {
     ?.click();
   await flush();
 };
+/** The name assistive technology reads for `node`: the nodes it is labelled by, its label, or its words. */
+const nameOf = (shell: Shell, node: Element): string => {
+  const by = node.getAttribute("aria-labelledby");
+  if (by) return by.split(" ").map((id) => shell.root.querySelector(`#${id}`)?.textContent ?? `<missing ${id}>`).join(" ");
+  return node.getAttribute("aria-label") ?? node.textContent ?? "";
+};
 
 describe("the OUTPUT PATCH source buttons", () => {
   const open = (id: "URX44V" | "URX22" = "URX44V"): Promise<Shell> =>
@@ -50,6 +57,18 @@ describe("the OUTPUT PATCH source buttons", () => {
     await tap(shell, ".patch-btn");
     expect(title(shell)).toBe("MAIN OUT");
     expect(shell.ctx.store.str("setup.outputPatch.mainOut", ""), "the touch alone takes nothing").toBe("STEREO");
+  });
+
+  it("names each button by its output and the source it reads", async () => {
+    const shell = await open();
+    const names = (): string[] => [...shell.root.querySelectorAll(".patch-btn")].map((b) => nameOf(shell, b));
+    expect(names()).toEqual(["MAIN OUT: STEREO", "LINE OUT: MIX 1"]);
+    await tap(shell, ".patch-btn");
+    await pick(shell, "MONITOR 2");
+    expect(names(), "the name follows the source taken").toEqual(["MAIN OUT: MONITOR 2", "LINE OUT: MIX 1"]);
+    await shell.ctx.store.set("setup.outputPatch.tab", "USB");
+    await flush();
+    expect(names()).toEqual(["USB MAIN A: STEREO", "USB MAIN B: STEREO", "USB MAIN C: STEREO", "USB SUB: STEREO"]);
   });
 
   it("offers every analog source the unit offers, on both analog outputs", async () => {
@@ -338,6 +357,23 @@ describe("the DATE / TIME popup buttons", () => {
     expect(shell.ctx.store.num("ui.dateTimeDraft.day", 0), "a day that fits is left alone").toBe(28);
   });
 
+  it("names each box by its row and the value it reads, the clock's name running on with its reading", async () => {
+    const shell = await open();
+    const names = (): string[] => [...shell.root.querySelectorAll(".dt-value, .pulldown")].map((n) => nameOf(shell, n));
+    expect(names()).toEqual([
+      "Date / Time 01 / 01 / 2020 09 : 00",
+      "Time Zone Tokyo",
+      "Date: MM/DD/YYYY (3 options)",
+      "Time: 24h (2 options)",
+    ]);
+    vi.setSystemTime(NOW + 61_000);
+    refreshDateTime(shell.ctx.store, shell.root);
+    expect(names()[0], "a minute on, with no drawing in between").toBe("Date / Time 01 / 01 / 2020 09 : 01");
+    await shell.ctx.store.set("setup.dateTime.timeZone", "London");
+    await flush();
+    expect(names().slice(0, 2)).toEqual(["Date / Time 01 / 01 / 2020 00 : 01", "Time Zone London"]);
+  });
+
   it("brings 29 February down to the 28th as the Year turns to a year that is not a leap year", async () => {
     const shell = await open();
     await tap(shell, ".dt-value");
@@ -436,6 +472,241 @@ describe("the DATE / TIME popup buttons", () => {
     await flush();
     await press(shell, ".pick-dialog-cancel");
     expect(shell.ctx.store.str("setup.dateTime.timeZone", ""), "Cancel takes nothing").toBe("Auckland");
+  });
+});
+
+describe("the SOFTWARE INTEGRATION boxes", () => {
+  it("names each box by the FX it sends to, so the two are told apart", async () => {
+    const shell = await mount([{ id: "setup" }, { id: "setup.integration" }]);
+    const names = (): string[] => [...shell.root.querySelectorAll(".pulldown")].map((n) => nameOf(shell, n));
+    expect(names()).toEqual(["for FX1: MIX 1 (2 options)", "for FX2: MIX 1 (2 options)"]);
+    await shell.ctx.store.set("setup.integration.fx2Send", "MIX 2");
+    await flush();
+    expect(names()).toEqual(["for FX1: MIX 1 (2 options)", "for FX2: MIX 2 (2 options)"]);
+  });
+});
+
+describe("the pulldowns' names", () => {
+  /** The pulldowns on a screen that take the focus, by the names assistive technology reads. */
+  const names = (shell: Shell): string[] => [...shell.root.querySelectorAll(".pulldown[role='button']")].map((n) => nameOf(shell, n));
+  const screen = async (route: Route, state: Record<string, string | boolean> = {}): Promise<string[]> => {
+    const shell = await mount([]);
+    for (const [path, value] of Object.entries(state)) await shell.ctx.store.set(path, value);
+    shell.ctx.nav.push(route);
+    await flush();
+    return names(shell);
+  };
+
+  it("names each one by the setting it sets, as the caption beside it does, and no two alike on a screen", async () => {
+    const seen: Record<string, string[]> = {
+      "SETUP DATE / TIME": await screen({ id: "setup.datetime" }),
+      "SETUP SOFTWARE INTEGRATION": await screen({ id: "setup.integration" }),
+      "CH 1 CH SETTING": await screen({ id: "ch.setting", strip: "ch1" }),
+      "CH 1 COMP": await screen({ id: "ch.comp", strip: "ch1" }),
+      "CH 1 EQ, LOW": await screen({ id: "ch.eq", strip: "ch1" }, { "ui.eqBand": "low" }),
+      "CH 1 EQ, HIGH": await screen({ id: "ch.eq", strip: "ch1" }, { "ui.eqBand": "high" }),
+      "CH 1 EQ, 1-knob": await screen({ id: "ch.eq", strip: "ch1" }, { "ch.ch1.eq.oneKnob.on": true }),
+      "CH 1 SSMCS Comp": await screen({ id: "ch.ssmcs.comp", strip: "ch1" }),
+      "CH 5/6 DUCKER": await screen({ id: "ch.ducker", strip: "ch_5_6" }),
+      "MIX 1 CH SETTING": await screen({ id: "ch.setting", strip: "bus.mix1" }),
+    };
+    expect(seen).toEqual({
+      "SETUP DATE / TIME": ["Date: MM/DD/YYYY (3 options)", "Time: 24h (2 options)"],
+      "SETUP SOFTWARE INTEGRATION": ["for FX1: MIX 1 (2 options)", "for FX2: MIX 1 (2 options)"],
+      "CH 1 CH SETTING": ["Rec Point: PRE FADER (5 options)", "COMP / EQ: COMP->EQ (2 options)", "Signal Type: MONO x 2 (2 options)"],
+      "CH 1 COMP": ["Auto Makeup: Off (2 options)", "Knee: Medium (3 options)"],
+      "CH 1 EQ, LOW": ["LOW Shape: L.Shelf (3 options)"],
+      "CH 1 EQ, HIGH": ["HIGH Shape: H.Shelf (3 options)"],
+      "CH 1 EQ, 1-knob": ["1-knob type: Intensity (3 options)"],
+      "CH 1 SSMCS Comp": ["Knee: Medium (3 options)"],
+      "CH 5/6 DUCKER": ["Ducker Source: CH 1 (11 options)"],
+      "MIX 1 CH SETTING": ["BUS Type: VARI (2 options)"],
+    });
+    for (const [where, list] of Object.entries(seen)) {
+      expect(new Set(list.map((n) => n.split(": ")[0])).size, `${where}: one setting to a name`).toBe(list.length);
+    }
+  });
+});
+
+describe("a pulldown's list on the glass", () => {
+  /** The shells laid on the page, each let go when its test is over so no other answers the keys. */
+  const shown: Shell[] = [];
+  afterEach(() => {
+    for (const shell of shown.splice(0)) {
+      shell.destroy();
+      shell.root.remove();
+    }
+  });
+  /** CH 1's CH SETTING on the page, the focus on Rec Point's box. */
+  const open = async (): Promise<{ shell: Shell; box: () => HTMLElement | null }> => {
+    const shell = await mount([{ id: "channel-view", strip: "ch1" }, { id: "ch.setting", strip: "ch1" }]);
+    shown.push(shell);
+    document.body.appendChild(shell.root);
+    const box = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".chs-rec-field .pulldown");
+    box()?.focus();
+    return { shell, box };
+  };
+  /** A key going down where the focus stands, and the same key let go where the focus then stands. */
+  const down = (name: string, init: KeyboardEventInit = {}): void => {
+    (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent("keydown", { key: name, bubbles: true, cancelable: true, ...init }));
+  };
+  const up = async (name: string, init: KeyboardEventInit = {}): Promise<void> => {
+    (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent("keyup", { key: name, bubbles: true, cancelable: true, ...init }));
+    await flush();
+  };
+  const press = async (name: string, init: KeyboardEventInit = {}): Promise<void> => {
+    down(name, init);
+    await up(name, init);
+  };
+  const lists = (shell: Shell): number => shell.root.querySelectorAll(".dropdown-sheet").length;
+
+  it("puts the focus on the option the box holds as Enter opens it, so a second Enter takes that option and lays no second list", async () => {
+    const { shell, box } = await open();
+    expect(document.activeElement, "the box holds the focus").toBe(box());
+    await press("Enter");
+    expect(lists(shell)).toBe(1);
+    const at = document.activeElement as HTMLElement | null;
+    expect([at?.closest(".dropdown-sheet") !== null, at?.textContent, at?.getAttribute("aria-selected")], "on the option held").toEqual([true, "PRE FADER", "true"]);
+
+    down("Enter");
+    expect(lists(shell), "the second Enter goes down on the option, not on the box").toBe(1);
+    await up("Enter");
+    expect(lists(shell), "and the option it took closed the list").toBe(0);
+    expect(shell.ctx.store.str("ch.ch1.recPoint", ""), "the value held").toBe("PRE FADER");
+    expect(document.activeElement, "the focus back on the box").toBe(box());
+  });
+
+  it("marks each choice as an option of the list, the one the box holds selected", async () => {
+    const { shell, box } = await open();
+    box()?.click();
+    await flush();
+    const options = [...shell.root.querySelectorAll(".dropdown-list > *")];
+    expect(options.map((o) => o.textContent)).toEqual(["PRE GATE", "PRE COMP", "PRE EQ", "PRE INS FX", "PRE FADER"]);
+    expect(options.map((o) => o.getAttribute("role"))).toEqual(["option", "option", "option", "option", "option"]);
+    expect(options.map((o) => o.getAttribute("aria-selected"))).toEqual(["false", "false", "false", "false", "true"]);
+    expect(options.map((o) => o.getAttribute("aria-pressed")), "options, not switches").toEqual([null, null, null, null, null]);
+    expect(options.map((o) => o.classList.contains("is-on")), "the held one still lit").toEqual([false, false, false, false, true]);
+  });
+
+  it("opens with the focus on its first option where the box holds none of them", async () => {
+    const { shell } = await open();
+    const box = pulldown(shell.ctx, "Z", ["A", "B"], () => undefined, { label: "Letters" });
+    shell.root.querySelector(".main")?.appendChild(box);
+    box.focus();
+    await press("Enter");
+    expect([lists(shell), document.activeElement?.textContent, document.activeElement?.getAttribute("aria-selected")]).toEqual([1, "A", "false"]);
+  });
+
+  it("keeps Tab going round the list and the screen behind out of reach, until Escape gives the focus back to the box", async () => {
+    const { shell, box } = await open();
+    await press("Enter");
+    const main = shell.root.querySelector(".main");
+    expect(main?.hasAttribute("inert"), "the screen behind").toBe(true);
+    const focused = (): string | null | undefined => document.activeElement?.textContent;
+    down("Tab");
+    expect(focused(), "past the last option, the first").toBe("PRE GATE");
+    down("Tab", { shiftKey: true });
+    expect(focused(), "and Shift+Tab back round").toBe("PRE FADER");
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    await flush();
+    expect([lists(shell), main?.hasAttribute("inert"), document.activeElement === box()]).toEqual([0, false, true]);
+  });
+});
+
+describe("what a box tells assistive technology it opens", () => {
+  /** The shells laid on the page, each let go when its test is over so no other answers the keys. */
+  const shown: Shell[] = [];
+  afterEach(() => {
+    for (const shell of shown.splice(0)) {
+      shell.destroy();
+      shell.root.remove();
+    }
+  });
+  const onPage = async (stack: Route[]): Promise<Shell> => {
+    const shell = await mount(stack);
+    shown.push(shell);
+    document.body.appendChild(shell.root);
+    return shell;
+  };
+  const escape = async (): Promise<void> => {
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    await flush();
+  };
+  /** What a box says it opens, and whether it says that is open. */
+  const told = (node: Element | null): (string | null | undefined)[] => [node?.getAttribute("aria-haspopup"), node?.getAttribute("aria-expanded")];
+
+  it("names the list a pulldown opens on the glass, open while it is up", async () => {
+    const shell = await onPage([{ id: "channel-view", strip: "ch1" }, { id: "ch.setting", strip: "ch1" }]);
+    const box = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".chs-rec-field .pulldown");
+    const seen = [told(box())];
+    box()?.click();
+    await flush();
+    seen.push(told(box()));
+    await escape();
+    seen.push(told(box()));
+    box()?.click();
+    await flush();
+    [...shell.root.querySelectorAll<HTMLElement>(".dropdown-list > *")].find((o) => o.textContent === "PRE EQ")?.click();
+    await flush();
+    seen.push(told(box()));
+    expect(seen).toEqual([
+      ["listbox", "false"],
+      ["listbox", "true"],
+      ["listbox", "false"],
+      ["listbox", "false"],
+    ]);
+  });
+
+  it("names the sheet a pulldown with more choices than the glass shows opens, open while it is up", async () => {
+    const shell = await onPage([{ id: "channel-view", strip: "bus.stream" }, { id: "ch.delay", strip: "bus.stream" }]);
+    const box = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".delay-rate .pulldown");
+    const seen = [told(box())];
+    box()?.click();
+    await flush();
+    seen.push(told(box()), [shell.root.querySelector(".source-overlay")?.getAttribute("role"), String(shell.root.querySelectorAll(".source-sheet .source-btn").length)]);
+    shell.root.querySelector<HTMLElement>(".source-sheet .source-back")?.click();
+    await flush();
+    seen.push(told(box()));
+    expect(seen).toEqual([
+      ["dialog", "false"],
+      ["dialog", "true"],
+      ["dialog", "8"],
+      ["dialog", "false"],
+    ]);
+  });
+
+  it("names the list the RECORDER's Track Count box opens, open while it is up", async () => {
+    const shell = await onPage([{ id: "microsd.recorder" }]);
+    const box = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".dropdown-box");
+    const seen = [told(box())];
+    box()?.click();
+    await flush();
+    seen.push(told(box()));
+    await escape();
+    seen.push(told(box()));
+    expect(seen).toEqual([
+      ["listbox", "false"],
+      ["listbox", "true"],
+      ["listbox", "false"],
+    ]);
+  });
+
+  it("tells the channel-bank button open while the bank list is up, a list of switches it does not name a listbox", async () => {
+    const shell = await onPage([]);
+    const bank = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".bank-btn");
+    const seen = [told(bank())];
+    bank()?.click();
+    await flush();
+    seen.push(told(bank()), [shell.ctx.nav.current.id, String(shell.root.querySelectorAll("[role='listbox']").length)]);
+    bank()?.click();
+    await flush();
+    seen.push(told(bank()));
+    expect(seen).toEqual([
+      [null, "false"],
+      [null, "true"],
+      ["bank-select", "0"],
+      [null, "false"],
+    ]);
   });
 });
 

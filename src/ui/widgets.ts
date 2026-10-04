@@ -11,7 +11,7 @@ import { levelBarShare } from "../model/dynamics";
 import { OFF_MARK, drawnScale, el, fromInnerControl, makeTappable, setPressed } from "./dom";
 import { Icons } from "./icons";
 import type { NumericSpec } from "./param-spec";
-import { KNOB_SIZE, KNOB_START_DEG, KNOB_SWEEP_DEG, formatValue, unitOf } from "./param-spec";
+import { KNOB_SIZE, KNOB_START_DEG, KNOB_SWEEP_DEG, formatValue, rangeAttrs, unitOf } from "./param-spec";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -293,10 +293,12 @@ export function optionSheet(
   current: string,
   onPick: (value: string) => void,
   columns = SHEET_COLUMNS,
+  onClose?: () => void,
 ): HTMLElement {
   return pickerSheet(ctx, {
     title: label,
     label,
+    ...(onClose ? { onClose } : {}),
     build: (close) => {
       const rows: (HTMLElement | null)[][] = [];
       for (let i = 0; i < options.length; i += columns) {
@@ -326,14 +328,15 @@ export function drawFace(node: HTMLElement, value: string, face: OptionFace | un
   return node;
 }
 
-/** A box that shows its value and opens the list of values it can take. */
+/** A box that shows its value and opens the list of values it can take, named by the setting it sets and its value. */
 export function pulldown(
   ctx: AppContext,
   value: string,
   options: readonly string[],
   onPick: (v: string) => void,
   look: Pick<OptionListSpec, "render" | "optionClass" | "listClass" | "place"> & {
-    label?: string;
+    /** The setting the box sets, which leads the name a reader hears and names the sheet a long list opens on. */
+    label: string;
     open?: () => void;
     columns?: number;
     /** What the list marks as held, where the box prints the value by another name. */
@@ -343,11 +346,10 @@ export function pulldown(
      * tiles carry names alone, so a long list that draws marks gives itself a place.
      */
     face?: OptionFace;
-  } = {},
+  },
 ): HTMLElement {
   const node = el("div", {
     class: "pulldown",
-    attrs: { "aria-haspopup": "listbox" },
     children: [drawFace(el("span", { class: "pulldown-value", text: value }), value, look.face), el("span", { class: "pulldown-mark" })],
   });
   const { label, open, columns, current, face, ...list } = look;
@@ -357,23 +359,53 @@ export function pulldown(
   // tiles carry names alone, and so does one the caller has given a place.
   const onSheet = !open && !list.render && !list.listClass && options.length > OPTIONS_ON_THE_GLASS;
   const render = face ? (o: string): Node => face(o) ?? document.createTextNode(o) : undefined;
+  node.setAttribute("aria-haspopup", onSheet ? "dialog" : "listbox");
+  // The box stands expanded while the list or the sheet it opens is up.
+  const expand = (on: boolean): void => node.setAttribute("aria-expanded", String(on));
+  if (!open) expand(false);
   makeTappable(
     node,
     open ??
       (onSheet
-        ? () => optionSheet(ctx, label ?? value, options, held, onPick, columns)
-        : () =>
+        ? () => {
+            expand(true);
+            optionSheet(ctx, label, options, held, onPick, columns, () => expand(false));
+          }
+        : () => {
+            expand(true);
             openOptions(ctx, {
               value: held,
               options,
               onPick,
               anchor: node,
+              onClose: () => expand(false),
               ...(render ? { render } : {}),
               ...list,
-            })),
+            });
+          }),
   );
   node.setAttribute("aria-label", `${label ? `${label}: ` : ""}${value} (${options.length} options)`);
   return node;
+}
+
+/**
+ * What a dialog, a sheet, a pulldown's list or a loading modal is to the shell that lays it over the
+ * screen. While one is up the screen behind it takes no keys and no pointer, Tab
+ * goes round the controls in it wherever the focus stands, and Escape does its
+ * `cancel`.
+ */
+export interface Modal {
+  /** What Escape does while it is the top layer. */
+  cancel?: () => void;
+  /** Takes it down. The shell sets it when it lays the modal over the screen. */
+  close?: () => void;
+}
+
+const MODALS = new WeakMap<HTMLElement, Modal>();
+
+/** The modal `node` is, where it is one. */
+export function modalOf(node: HTMLElement): Modal | undefined {
+  return MODALS.get(node);
 }
 
 export interface PickerSheetSpec {
@@ -385,6 +417,8 @@ export interface PickerSheetSpec {
   sheetClass?: string;
   /** Builds what stands under the band. `close` shuts the sheet. */
   build: (close: () => void) => HTMLElement;
+  /** Runs once the sheet is down, however it was shut. */
+  onClose?: () => void;
   /** The well the bar runs in, for choices that do not all fit. */
   scroll?: { track: number; unit: number };
 }
@@ -393,7 +427,9 @@ export interface PickerSheetSpec {
  * The sheet the unit drops over a screen to choose a value on: a panel carrying
  * a name band, the way out in its top right corner, and the choices under them.
  * It covers the lower half of the toolbar, which the main area cannot reach, so
- * it hangs off the glass rather than off the screen it was opened from.
+ * it hangs off the glass rather than off the screen it was opened from. A touch
+ * on the dark around the panel shuts it, as its way out does; a press that went
+ * down on the panel is the panel's wherever it is let go.
  */
 export function pickerSheet(ctx: AppContext, spec: PickerSheetSpec): HTMLElement {
   // The shell hands back the way to shut it, and that is the only way it may be
@@ -421,13 +457,17 @@ export function pickerSheet(ctx: AppContext, spec: PickerSheetSpec): HTMLElement
     attrs: { role: "dialog", "aria-modal": "true", "aria-label": spec.label ?? spec.title },
     children: [panel],
   });
-  sheet.addEventListener("keydown", (ev) => {
-    if (ev.key !== "Escape") return;
-    ev.preventDefault();
-    ev.stopPropagation();
-    close();
+  let pressOnPanel = false;
+  sheet.addEventListener("pointerdown", (ev) => {
+    pressOnPanel = panel.contains(ev.target as Node);
   });
-  close = ctx.overlay(sheet);
+  sheet.addEventListener("click", (ev) => {
+    const onPanel = pressOnPanel || panel.contains(ev.target as Node);
+    pressOnPanel = false;
+    if (!onPanel) close();
+  });
+  MODALS.set(sheet, { cancel: () => close() });
+  close = ctx.overlay(sheet, spec.onClose);
   queueMicrotask(() => back.focus());
   return sheet;
 }
@@ -446,6 +486,8 @@ export interface PickDialogSpec {
   onOk: () => void;
   /** What stands under the title. */
   body: HTMLElement[];
+  /** Whether it hides the USER DEFINED KNOBS bar whole, leaving none of it in sight at its edge. */
+  coversBar?: boolean;
 }
 
 /**
@@ -455,7 +497,7 @@ export interface PickDialogSpec {
  */
 export function pickDialog(spec: PickDialogSpec): HTMLElement {
   return el("div", {
-    class: "pick-dialog",
+    class: spec.coversBar === true ? "pick-dialog covers-bar" : "pick-dialog",
     children: [
       button("Cancel", spec.onCancel, "pick-dialog-btn pick-dialog-cancel"),
       button("OK", spec.onOk, "pick-dialog-btn pick-dialog-ok"),
@@ -593,7 +635,7 @@ export function attachSpin(
  * A pinned focus leaves every other value on the screen still, the readout bar's included, and a value the unit is
  * holding itself stands still too. A value turned from off the screen turns whatever the screen pins.
  */
-function standsStill(ctx: AppContext, spec: NumericSpec): boolean {
+export function standsStill(ctx: AppContext, spec: NumericSpec): boolean {
   return spec.locked === true || (spec.pinFree !== true && !ctx.focus.turns(spec.focusKey ?? spec.path));
 }
 
@@ -698,17 +740,9 @@ export interface DragAxis {
   sense?: 1 | -1;
 }
 
-/**
- * Give `node` the range and the reading of `spec` at `value` as numbers. A travel
- * whose last stop no number names (a ratio of INF) reads out the stop before it
- * as its top, and the text names the value itself.
- */
+/** Give `node` the range and the reading of `spec` at `value` that `rangeAttrs` names. */
 export function setAriaValue(node: Element, spec: NumericSpec, value: number): void {
-  const top = Number.isFinite(spec.max) || !spec.travel ? spec.max : spec.travel.step(spec.max, -1);
-  node.setAttribute("aria-valuenow", String(Number.isFinite(value) ? value : clamp(value, spec.min, top)));
-  node.setAttribute("aria-valuemin", String(spec.min));
-  node.setAttribute("aria-valuemax", String(top));
-  node.setAttribute("aria-valuetext", formatValue(spec, value));
+  for (const [name, text] of Object.entries(rangeAttrs(spec, value))) node.setAttribute(name, text);
 }
 
 /**
@@ -724,8 +758,10 @@ export function valueBox(ctx: AppContext, spec: NumericSpec, extraClass = "", fr
       role: "spinbutton",
       "aria-label": spec.label,
       // A box the unit reads out but does not let the operator turn keeps its
-      // reading and its name, and takes no key and no drag.
-      ...(locked ? { "aria-disabled": "true" } : {}),
+      // reading and its name, and takes no key and no drag. A box held still
+      // by a focus pinned to another value, as 1-knob pins its level, or by
+      // the unit holding its value itself reads as out of reach as well.
+      ...(locked || standsStill(ctx, spec) ? { "aria-disabled": "true" } : {}),
     },
   });
   setAriaValue(node, spec, value);
@@ -890,18 +926,34 @@ export interface ListRow {
   cells: (string | HTMLElement)[];
   selected?: boolean;
   onTap?: () => void;
+  /** What the row's marks say, for a reader who cannot see them. */
+  description?: string | undefined;
 }
 
-export function listView(columns: string[], rows: ListRow[], extraClass = ""): HTMLElement {
+/**
+ * A list of rows under a head, named `name`. The arrow keys, Home and End move
+ * the focus along the rows and leave the selection where it is; Enter or Space
+ * takes the row, as a touch does.
+ */
+export function listView(name: string, columns: string[], rows: ListRow[], extraClass = ""): HTMLElement {
   const head = el("div", {
     class: "list-head",
     children: columns.map((c) => el("div", { class: "list-cell", text: c })),
   });
-  const body = el("div", { class: "list-body", attrs: { role: "listbox" } });
+  const body = el("div", { class: "list-body", attrs: { role: "listbox", "aria-label": name } });
+  body.addEventListener("keydown", (ev) => {
+    const all = [...body.children] as HTMLElement[];
+    const at = all.indexOf(ev.target as HTMLElement);
+    const to: Record<string, number> = { ArrowUp: at - 1, ArrowDown: at + 1, Home: 0, End: all.length - 1 };
+    const next = to[ev.key];
+    if (at < 0 || next === undefined) return;
+    ev.preventDefault();
+    all[next]?.focus();
+  });
   for (const r of rows) {
     const row = el("div", {
       class: `list-row${r.selected ? " is-selected" : ""}`,
-      attrs: { role: "option", "aria-selected": r.selected ? "true" : "false" },
+      attrs: { role: "option", "aria-selected": r.selected ? "true" : "false", ...(r.description ? { "aria-description": r.description } : {}) },
       children: r.cells.map((c) =>
         typeof c === "string" ? el("div", { class: "list-cell", text: c }) : el("div", { class: "list-cell", children: [c] }),
       ),
@@ -964,31 +1016,40 @@ interface OptionListSpec {
   disabled?: readonly string[];
   /** Where an option stands in the list's own grid, for a list the unit lays out. */
   place?: (option: string, index: number) => { row: number; column: number };
+  /** Runs once the list is down, however it was shut. */
+  onClose?: () => void;
+}
+
+/** A choice on a list: lit while it is the value held, which a reader hears as the option selected. */
+function listOption(label: string, held: boolean, onTap: () => void, extraClass: string): HTMLElement {
+  return el("button", {
+    class: `btn btn-toggle ${extraClass}${held ? " is-on" : ""}`.trim(),
+    text: label,
+    attrs: { role: "option", "aria-selected": String(held) },
+    onTap,
+  });
 }
 
 /**
  * The list of values a box can take, over the screen. It closes on a pick, on a
- * tap outside it, or on Escape.
+ * tap outside it, or on Escape. It opens with the focus on the value the box
+ * holds, or on its first option where it holds none of them.
  */
 function openOptions(ctx: AppContext, spec: OptionListSpec): void {
   const list = el("div", { class: `dropdown-list ${spec.listClass ?? ""}`.trim(), attrs: { role: "listbox" } });
   const sheet = el("div", { class: "dropdown-sheet", children: [list] });
-  // The screen under it can go away while it is open, so the key it holds is
-  // given up by the overlay rather than by the closer alone.
-  const close = ctx.overlay(sheet, () => window.removeEventListener("keydown", onKey));
-  function onKey(ev: KeyboardEvent): void {
-    if (ev.key !== "Escape") return;
-    ev.preventDefault();
-    close();
-  }
+  MODALS.set(sheet, { cancel: () => close() });
+  const close = ctx.overlay(sheet, spec.onClose);
+  let held: HTMLElement | null = null;
   for (const option of spec.options) {
     const out = spec.disabled?.includes(option) === true;
-    const node = toggle(option, option === spec.value, () => {
+    const node = listOption(option, option === spec.value, () => {
       if (out) return;
       close();
       spec.onPick(option);
     }, `dropdown-option ${spec.optionClass ?? ""}${out ? " is-disabled" : ""}`.trim());
     if (out) node.setAttribute("aria-disabled", "true");
+    if (option === spec.value) held = node;
     const at = spec.place?.(option, list.childElementCount);
     if (at) {
       node.style.gridRow = String(at.row);
@@ -1005,7 +1066,6 @@ function openOptions(ctx: AppContext, spec: OptionListSpec): void {
     if ((ev.target as HTMLElement).closest(".dropdown-list")) return;
     close();
   });
-  window.addEventListener("keydown", onKey);
 
   // A list with no place of its own opens under the box it belongs to, pulled
   // back onto the screen when it would run off an edge.
@@ -1019,16 +1079,21 @@ function openOptions(ctx: AppContext, spec: OptionListSpec): void {
     list.style.left = `${Math.max(2, Math.min(at.left, room.width - 2 - list.offsetWidth))}px`;
     list.style.top = `${Math.max(2, below > lowest ? (above >= 2 ? above : lowest) : below)}px`;
   }
+  (held ?? (list.firstElementChild as HTMLElement | null))?.focus();
 }
 
-/** A box that names a setting and opens the list of values it can take. */
+/** A box that names a setting and opens the list of values it can take, standing expanded while the list is up. */
 export function dropdown(ctx: AppContext, spec: DropdownSpec): HTMLElement {
-  return el("button", {
+  const node = el("button", {
     class: "dropdown-box",
-    attrs: { "aria-haspopup": "listbox", "aria-label": `${spec.label}: ${spec.value}` },
+    attrs: { "aria-haspopup": "listbox", "aria-expanded": "false", "aria-label": `${spec.label}: ${spec.value}` },
     children: [el("span", { text: spec.label }), el("span", { class: "dropdown-mark", text: "▼" })],
-    onTap: () => openOptions(ctx, spec),
+    onTap: () => {
+      node.setAttribute("aria-expanded", "true");
+      openOptions(ctx, { ...spec, onClose: () => node.setAttribute("aria-expanded", "false") });
+    },
   });
+  return node;
 }
 
 /**
@@ -1039,10 +1104,11 @@ export function dropdown(ctx: AppContext, spec: DropdownSpec): HTMLElement {
 /**
  * The modal the unit holds up while a screen loads: the dialog's frame with a
  * turning ring where the question mark goes, and no way to answer it. It is not
- * a focus trap — nothing in it can be operated, and it takes itself down.
+ * a focus trap and Escape does not cancel it — nothing in it can be operated,
+ * and it takes itself down. The screen behind it takes nothing until it does.
  */
 export function loadingDialog(message = "Loading..."): HTMLElement {
-  return el("div", {
+  const node = el("div", {
     class: "dialog-overlay",
     attrs: { role: "status", "aria-live": "polite" },
     children: [
@@ -1060,10 +1126,13 @@ export function loadingDialog(message = "Loading..."): HTMLElement {
       }),
     ],
   });
+  MODALS.set(node, {});
+  return node;
 }
 
 export function dialog(options: DialogOptions): HTMLElement {
-  const close = (): void => overlay.remove();
+  const modal: Modal = {};
+  const close = (): void => modal.close?.();
   const overlay = el("div", {
     class: "dialog-overlay",
     attrs: { role: "dialog", "aria-modal": "true", "aria-label": options.message },
@@ -1072,10 +1141,11 @@ export function dialog(options: DialogOptions): HTMLElement {
     close();
     options.onOk();
   });
-  const cancel = button(options.cancelLabel ?? "Cancel", () => {
+  modal.cancel = () => {
     close();
     options.onCancel?.();
-  });
+  };
+  const cancel = button(options.cancelLabel ?? "Cancel", modal.cancel);
   const focusable = options.okOnly === true ? [ok] : [cancel, ok];
   overlay.appendChild(
     el("div", {
@@ -1092,24 +1162,10 @@ export function dialog(options: DialogOptions): HTMLElement {
       ],
     }),
   );
-  // Focus trap: the guide's dialog blocks the screen behind it, so Tab has to
-  // stay inside and Escape has to be the same as Cancel.
-  overlay.addEventListener("keydown", (ev) => {
-    if (ev.key === "Escape") {
-      ev.preventDefault();
-      // A modal takes the key: whatever is behind it must not act on it too.
-      ev.stopPropagation();
-      close();
-      options.onCancel?.();
-      return;
-    }
-    if (ev.key !== "Tab") return;
-    const idx = focusable.indexOf(document.activeElement as HTMLElement);
-    ev.preventDefault();
-    const next = focusable[(idx + (ev.shiftKey ? -1 : 1) + focusable.length) % focusable.length];
-    next?.focus();
-  });
-  queueMicrotask(() => ok.focus());
+  // The guide's dialog blocks the screen behind it, and Escape is the same as Cancel.
+  MODALS.set(overlay, modal);
+  // The focus opens on [Cancel], or on [OK] where it is the only answer.
+  queueMicrotask(() => (options.okOnly === true ? ok : cancel).focus());
   return overlay;
 }
 

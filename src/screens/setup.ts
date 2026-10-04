@@ -304,6 +304,7 @@ export const udkAssignScreen: ScreenDef = {
       main: pickDialog({
         title: "USER DEFINED KNOBS",
         sub: `Bank ${bank}, Knob ${knob}`,
+        coversBar: true,
         onCancel: () => ctx.nav.back(),
         onOk: () => {
           void ctx.store.set(udkPath(bank, knob), picked.value);
@@ -353,7 +354,7 @@ export const outputPatchScreen: ScreenDef = {
             el("button", {
               class: "btn patch-btn",
               onTap: () => void patchSourceSheet(ctx, r.caption, r.path, tab),
-              attrs: { "aria-label": `${r.caption} output source` },
+              attrs: { "aria-label": `${r.caption}: ${ctx.store.str(r.path, "STEREO")}` },
               children: [
                 el("span", { text: ctx.store.str(r.path, "STEREO") }),
                 el("span", { class: "patch-copy", children: [Icons.copy()] }),
@@ -492,6 +493,15 @@ export const powerScreen: ScreenDef = {
   },
 };
 
+/** How many ids the DATE / TIME screen has handed out, so each node it names by id holds an id of its own. */
+let dateTimeIds = 0;
+
+/** Give `node` an id of its own, and return it. */
+function labelId(node: HTMLElement): string {
+  node.id = `dt-label-${++dateTimeIds}`;
+  return node.id;
+}
+
 export const dateTimeScreen: ScreenDef = {
   id: "setup.datetime",
   toolbar: "sub",
@@ -499,27 +509,29 @@ export const dateTimeScreen: ScreenDef = {
   build(ctx): ScreenBody {
     const row = (caption: string, node: HTMLElement): HTMLElement =>
       el("div", { class: "dt-row", children: [el("span", { class: "dt-caption", text: caption }), node] });
-    // The top pair open a popup screen; the pair under them are pulldowns.
-    const popup = (parts: HTMLElement[], label: string, open: () => void): HTMLElement =>
-      el("button", {
+    // The top pair open a popup screen; the pair under them are pulldowns. A
+    // popup is named by its row's caption and the parts it reads, and its name
+    // follows the reading as the clock runs.
+    const popupRow = (caption: string, parts: HTMLElement[], open: () => void): HTMLElement => {
+      const head = el("span", { class: "dt-caption", text: caption });
+      const node = el("button", {
         // One part stands in the middle of the box; two stand at its two ends.
         class: `btn dt-value${parts.length === 1 ? " dt-value-single" : ""}`,
         onTap: open,
-        attrs: { "aria-label": label },
+        attrs: { "aria-labelledby": [head, ...parts].map(labelId).join(" ") },
         children: [
           ...parts,
           el("span", { class: "dt-copy", children: [Icons.copy()] }),
         ],
       });
+      return el("div", { class: "dt-row", children: [head, node] });
+    };
     return {
       main: el("div", {
         class: "dt-screen",
         children: [
-          row("Date / Time", popup(dateTimeSpans(ctx), "Set the date and time", () => openDateTimeSet(ctx))),
-          row(
-            "Time Zone",
-            popup([el("span", { text: ctx.store.str("setup.dateTime.timeZone", TIME_ZONE_SHIPPED) })], "Select the time zone", () => openTimeZone(ctx)),
-          ),
+          popupRow("Date / Time", dateTimeSpans(ctx), () => openDateTimeSet(ctx)),
+          popupRow("Time Zone", [el("span", { text: ctx.store.str("setup.dateTime.timeZone", TIME_ZONE_SHIPPED) })], () => openTimeZone(ctx)),
           row(
             "Display Format",
             el("div", {
@@ -529,16 +541,16 @@ export const dateTimeScreen: ScreenDef = {
                   class: "dt-format",
                   children: [
                     el("span", { class: "dt-format-head", text: "Date" }),
-                    pulldown(ctx, ctx.store.str("setup.dateTime.dateFormat", "MM/DD/YYYY"), ["MM/DD/YYYY", "DD/MM/YYYY", "YYYY/MM/DD"], (v) =>
-                      void ctx.store.set("setup.dateTime.dateFormat", v),
-                    ),
+                    pulldown(ctx, ctx.store.str("setup.dateTime.dateFormat", "MM/DD/YYYY"), ["MM/DD/YYYY", "DD/MM/YYYY", "YYYY/MM/DD"], (v) => void ctx.store.set("setup.dateTime.dateFormat", v), {
+                      label: "Date",
+                    }),
                   ],
                 }),
                 el("div", {
                   class: "dt-format",
                   children: [
                     el("span", { class: "dt-format-head", text: "Time" }),
-                    pulldown(ctx, ctx.store.str("setup.dateTime.timeFormat", "24h"), ["24h", "12h"], (v) => void ctx.store.set("setup.dateTime.timeFormat", v)),
+                    pulldown(ctx, ctx.store.str("setup.dateTime.timeFormat", "24h"), ["24h", "12h"], (v) => void ctx.store.set("setup.dateTime.timeFormat", v), { label: "Time" }),
                   ],
                 }),
               ],
@@ -567,7 +579,7 @@ export const integrationScreen: ScreenDef = {
               class: "dt-row",
               children: [
                 el("span", { class: "dt-caption", text: `for FX${i + 1}` }),
-                pulldown(ctx, ctx.store.str(`setup.integration.${key}`, "MIX 1"), mixes, (v) => void ctx.store.set(`setup.integration.${key}`, v)),
+                pulldown(ctx, ctx.store.str(`setup.integration.${key}`, "MIX 1"), mixes, (v) => void ctx.store.set(`setup.integration.${key}`, v), { label: `for FX${i + 1}` }),
               ],
             }),
           ),

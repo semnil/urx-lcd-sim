@@ -359,3 +359,80 @@ describe("a recall puts back what the stored copy holds", () => {
     });
   }
 });
+
+describe("what SCENE LIST's rows tell assistive technology", () => {
+  it("describes each row by the marks it carries: the factory, the padlock and the recalled scene's glyph", async () => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    await s.set("scene.Standard.1.title", "Prot");
+    await s.set("scene.Standard.2.title", "Open");
+    shell.ctx.nav.push({ id: "scene" });
+    shell.ctx.nav.push({ id: "scene.list" });
+    await flush();
+    const rows = (): HTMLElement[] => [...shell.root.querySelectorAll<HTMLElement>(".scene-list .list-row")];
+    const described = (): (string | null)[] => rows().slice(0, 3).map((r) => r.getAttribute("aria-description"));
+    const button = (label: string): HTMLElement | undefined =>
+      [...shell.root.querySelectorAll<HTMLElement>(".scene-actions .btn")].find((b) => (b.getAttribute("aria-label") ?? b.textContent) === label);
+    const tap = async (node: HTMLElement | undefined): Promise<void> => {
+      node?.click();
+      await flush();
+    };
+    expect(described(), "00 ships with the unit and is the one recalled; 01 and 02 carry no mark").toEqual(["recalled, factory scene", null, null]);
+
+    await tap(rows()[1]);
+    await s.set("ui.sceneMenu", "Edit");
+    await flush();
+    expect(button("Protect")?.getAttribute("aria-pressed"), "[Protect] before it is pressed").toBe("false");
+    await tap(button("Protect"));
+    expect(s.num("scene.Standard.1.protect", 0)).toBe(1);
+    expect(button("Protect")?.getAttribute("aria-pressed"), "[Protect] once 01 is protected").toBe("true");
+    expect(described(), "the Edit tab draws no recalled glyph").toEqual(["factory scene", "protected", null]);
+
+    await s.set("ui.sceneMenu", "Store/Recall");
+    await flush();
+    await tap(rows()[2]);
+    await tap(button("Recall"));
+    await tap([...shell.root.querySelectorAll<HTMLElement>("[role=dialog] .btn")].find((b) => b.textContent === "OK"));
+    await flush();
+    expect(s.num("scene.current", -1)).toBe(2);
+    expect(described(), "02 recalled").toEqual(["factory scene", "protected", "recalled"]);
+  });
+
+  it("names the list, whose rows the arrow keys, Home and End step the focus along, the selection staying where it is", async () => {
+    const shell = await mount();
+    document.body.appendChild(shell.root);
+    try {
+      shell.ctx.nav.push({ id: "scene" });
+      shell.ctx.nav.push({ id: "scene.list" });
+      await flush();
+      const body = shell.root.querySelector(".scene-list .list-body");
+      const rows = [...shell.root.querySelectorAll<HTMLElement>(".scene-list .list-row")];
+      /** A key going down on the row holding the focus: whether the list took it, and the rows that hold the focus and the selection then. */
+      const key = (name: string): (boolean | number)[] => {
+        const ev = new KeyboardEvent("keydown", { key: name, bubbles: true, cancelable: true });
+        document.activeElement?.dispatchEvent(ev);
+        return [ev.defaultPrevented, rows.indexOf(document.activeElement as HTMLElement), shell.ctx.store.num("scene.selected", 0)];
+      };
+      expect([body?.getAttribute("role"), body?.getAttribute("aria-label"), rows.length]).toEqual(["listbox", "Scene List", 64]);
+      rows[0]?.focus();
+      const seen = ["ArrowDown", "ArrowDown", "ArrowUp", "End", "ArrowDown", "Home", "ArrowUp", "ArrowRight"].map((name) => [name, ...key(name)]);
+      expect(seen).toEqual([
+        ["ArrowDown", true, 1, 0],
+        ["ArrowDown", true, 2, 0],
+        ["ArrowUp", true, 1, 0],
+        ["End", true, 63, 0],
+        ["ArrowDown", true, 63, 0],
+        ["Home", true, 0, 0],
+        ["ArrowUp", true, 0, 0],
+        ["ArrowRight", false, 0, 0],
+      ]);
+      const selected = [...shell.root.querySelectorAll(".scene-list .list-row")].map((r) => r.getAttribute("aria-selected")).indexOf("true");
+      expect([shell.ctx.store.num("scene.selected", 0), selected], "the selection where it was").toEqual([0, 0]);
+      (body as HTMLElement | null)?.focus();
+      expect([document.activeElement === body, ...key("ArrowDown")], "the list itself leaves the key to its own scroll").toEqual([true, false, -1, 0]);
+    } finally {
+      shell.destroy();
+      shell.root.remove();
+    }
+  });
+});

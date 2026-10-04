@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { el, makeTappable } from "./dom";
+import { el, makeTappable, tappedControl } from "./dom";
 
 describe("a tappable area", () => {
   function area(): { node: HTMLElement; fired: () => number } {
@@ -66,6 +66,77 @@ describe("a tappable area", () => {
     counts.push(area2.fired());
     area2.node.remove();
     expect(counts).toEqual([0, 1, 0, 1, 0, 0]);
+  });
+
+  it("leaves Enter and Space on a control inside it to that control, as it leaves the control's tap", () => {
+    // The channel view's blocks open their screens and carry their own switches:
+    // without this, Enter on a switch would also open the block's screen.
+    const key = (node: HTMLElement, type: string, k: string): void => {
+      node.dispatchEvent(new KeyboardEvent(type, { key: k, bubbles: true, cancelable: true }));
+    };
+    const counts: number[] = [];
+    for (const k of ["Enter", " "]) {
+      const outer = area();
+      const inner = area();
+      outer.node.appendChild(inner.node);
+      key(inner.node, "keydown", k);
+      key(inner.node, "keyup", k);
+      counts.push(inner.fired(), outer.fired());
+    }
+
+    // The key went down on a control inside it and was let go on the area itself.
+    const outer = area();
+    const inner = area();
+    outer.node.appendChild(inner.node);
+    document.body.appendChild(outer.node);
+    inner.node.focus();
+    key(inner.node, "keydown", "Enter");
+    outer.node.focus();
+    key(outer.node, "keyup", "Enter");
+    counts.push(inner.fired(), outer.fired());
+    outer.node.remove();
+    expect(counts).toEqual([1, 0, 1, 0, 0, 0]);
+  });
+
+  it("is the control being answered while its handler runs, by a tap or a key, and none once its handler is done, a failed one included", () => {
+    const seen: (string | null | undefined)[] = [];
+    const tapped = (): string => tappedControl()?.getAttribute("aria-label") ?? "none";
+    const named = (name: string, then: () => void): HTMLElement =>
+      el("button", {
+        attrs: { "aria-label": name },
+        onTap: () => {
+          seen.push(tapped());
+          then();
+          seen.push(tapped());
+        },
+      });
+    const inner = named("inner", () => undefined);
+    const outer = named("outer", () => inner.click());
+    outer.click();
+    seen.push(tapped());
+    for (const type of ["keydown", "keyup"]) inner.dispatchEvent(new KeyboardEvent(type, { key: "Enter", bubbles: true, cancelable: true }));
+    seen.push(tapped());
+    expect(seen).toEqual(["outer", "inner", "inner", "outer", "none", "inner", "inner", "none"]);
+
+    const failing = el("button", {
+      attrs: { "aria-label": "failing" },
+      onTap: () => {
+        throw new Error("the handler failed");
+      },
+    });
+    // The failure is reported on the window rather than thrown out of the click.
+    const reported: unknown[] = [];
+    const onError = (ev: ErrorEvent): void => {
+      reported.push(ev.error);
+      ev.preventDefault();
+    };
+    window.addEventListener("error", onError);
+    try {
+      failing.click();
+    } finally {
+      window.removeEventListener("error", onError);
+    }
+    expect([reported.length, tapped()]).toEqual([1, "none"]);
   });
 });
 

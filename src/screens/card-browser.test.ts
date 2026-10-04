@@ -521,6 +521,56 @@ describe("the microSD card browser", () => {
     expect(marks(saveLoad), "SAVE/LOAD marks a file as a settings file").toEqual(["icon-folder", "icon-file", "icon-file"]);
   });
 
+  it("names its list by the screen, and steps the focus along the rows on the arrow keys, Home and End, the cursor staying where it is", async () => {
+    const seen: Record<string, unknown[]> = {};
+    for (const id of ["microsd.saveload", "microsd.recorder"]) {
+      const shell = await mount({ id });
+      if (id === "microsd.recorder") await pickTab(shell, "ui.sdTab", "Play");
+      document.body.appendChild(shell.root);
+      const list = rows(shell) as HTMLElement[];
+      const key = (name: string): (boolean | number)[] => {
+        const ev = new KeyboardEvent("keydown", { key: name, bubbles: true, cancelable: true });
+        document.activeElement?.dispatchEvent(ev);
+        return [ev.defaultPrevented, list.indexOf(document.activeElement as HTMLElement)];
+      };
+      list[0]?.focus();
+      seen[id] = [
+        shell.root.querySelector(".sd-list .list-body")?.getAttribute("aria-label"),
+        ...["ArrowDown", "End", "ArrowUp", "Home"].map((name) => key(name)),
+        shell.ctx.store.num("sd.selectedFile", 0),
+        rows(shell).findIndex((r) => r.getAttribute("aria-selected") === "true"),
+      ];
+      shell.destroy();
+      shell.root.remove();
+    }
+    expect(seen).toEqual({
+      "microsd.saveload": ["SAVE/LOAD files", [true, 1], [true, 2], [true, 1], [true, 0], 0, 0],
+      "microsd.recorder": ["RECORDER files", [true, 1], [true, 2], [true, 1], [true, 0], 0, 0],
+    });
+  });
+
+  it("describes a folder's row as a folder, and the row of the file playback holds as playing or paused", async () => {
+    const shell = await mount({ id: "microsd.recorder" }, [entry("dir", "folder"), entry("a.wav", "take", 30), entry("b.wav", "take", 30)]);
+    await pickTab(shell, "ui.sdTab", "Play");
+    const described = (target: Shell): (string | null)[] => rows(target).map((r) => r.getAttribute("aria-description"));
+    expect(described(shell), "nothing held: the folder alone").toEqual(["folder", null, null]);
+    rows(shell)[1]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+    shell.root.querySelector<HTMLElement>(".sd-actions > .rec-pause")?.click();
+    await flush();
+    expect(shell.ctx.store.num("sd.playingFile", -1)).toBe(1);
+    expect(described(shell), "a.wav playing").toEqual(["folder", "playing", null]);
+    shell.root.querySelector<HTMLElement>(".sd-actions > .rec-pause")?.click();
+    await flush();
+    expect(described(shell), "a.wav paused, still held").toEqual(["folder", "paused", null]);
+    shell.root.querySelector<HTMLElement>(".sd-actions > .rec-stop")?.click();
+    await flush();
+    expect(described(shell), "stopped").toEqual(["folder", null, null]);
+
+    const saveLoad = await mount({ id: "microsd.saveload" }, [entry("Recordings", "folder"), entry("20260430_data1.urxf", "data")]);
+    expect(described(saveLoad), "SAVE/LOAD").toEqual(["folder", null]);
+  });
+
   it("leaves a take recorded at another sampling frequency off Play and Edit and unplayed, until the unit runs at that frequency again", async () => {
     const shell = await mount({ id: "microsd.recorder" }, [
       entry("Recordings", "folder"),

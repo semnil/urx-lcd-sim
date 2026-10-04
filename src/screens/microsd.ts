@@ -112,6 +112,8 @@ function insertCardLine(ctx: AppContext): HTMLElement {
 
 /** What a card browser is made of, beyond the entries themselves. */
 interface BrowserOptions {
+  /** What the list is named for a reader who cannot see the screen. */
+  listName: string;
   /** The name over the column that follows the file names. */
   metaColumn: string;
   /** What that column reads for an entry. */
@@ -121,6 +123,8 @@ interface BrowserOptions {
   extraClass?: string;
   /** The mark a file's row carries; a folder always carries the folder mark. */
   fileIcon?: (entry: CardEntry, row: number) => Element;
+  /** What a file's mark says, for a reader who cannot see it; a folder's row says it is a folder. */
+  fileNote?: (entry: CardEntry, row: number) => string | undefined;
   /** Which entries the list shows; a row keeps its entry's place on the card. */
   listed?: (entry: CardEntry, row: number) => boolean;
 }
@@ -130,7 +134,7 @@ interface BrowserOptions {
  * open, its entries as list rows, and the actions of the tab under them.
  */
 function cardBrowser(ctx: AppContext, opts: BrowserOptions): HTMLElement {
-  const { metaColumn, meta, actions, extraClass = "", fileIcon = () => Icons.file(), listed = () => true } = opts;
+  const { listName, metaColumn, meta, actions, extraClass = "", fileIcon = () => Icons.file(), fileNote = () => undefined, listed = () => true } = opts;
   const entries = cardEntries(ctx);
   const selected = ctx.store.num("sd.selectedFile", 0);
   const path = cardPath(ctx);
@@ -138,6 +142,7 @@ function cardBrowser(ctx: AppContext, opts: BrowserOptions): HTMLElement {
     .map((entry, i) => ({
       key: String(i),
       selected: i === selected,
+      description: entry.kind === "folder" ? "folder" : fileNote(entry, i),
       // The first touch brings the cursor to the row; a folder already under it
       // opens on the next touch.
       onTap:
@@ -150,7 +155,7 @@ function cardBrowser(ctx: AppContext, opts: BrowserOptions): HTMLElement {
     }))
     .filter((_, i) => (entries[i] as CardEntry).dir === path && listed(entries[i] as CardEntry, i));
 
-  const list = listView(["", "File Name", metaColumn], rows, "list-carded sd-list");
+  const list = listView(listName, ["", "File Name", metaColumn], rows, "list-carded sd-list");
   const body = list.querySelector<HTMLElement>(".list-body");
   // The well the thumb runs in, between the rims at each end of the bar. The
   // list's padding and the gaps between its rows come to whole rows, so the bar
@@ -407,8 +412,8 @@ const REPLACE_ASK = "File alerady exists. Replace it?";
 const SETTINGS_SUFFIX = ".urxf";
 
 /** A transport button: the mark alone, named for the reader. */
-function iconButton(label: string, icon: SVGSVGElement, extraClass: string, onTap: () => void): HTMLElement {
-  return el("button", { class: `btn ${extraClass}`, attrs: { "aria-label": label }, onTap, children: [icon] });
+function iconButton(label: string, icon: SVGSVGElement, extraClass: string, onTap: () => void, attrs: Record<string, string> = {}): HTMLElement {
+  return el("button", { class: `btn ${extraClass}`, attrs: { "aria-label": label, ...attrs }, onTap, children: [icon] });
 }
 
 /**
@@ -550,11 +555,13 @@ export const recorderScreen: ScreenDef = {
       // tab lists a take recorded at another frequency than the unit is running.
       const playList = (entry: CardEntry): boolean => entry.kind === "folder" || (entry.tracks < MULTITRACK && recorderLists(ctx, entry));
       const browser = cardBrowser(ctx, {
+        listName: "RECORDER files",
         metaColumn: "Time",
         meta: (entry) => (entry.kind === "take" ? formatClock(entry.seconds) : ""),
         actions,
         extraClass: "rec-browser",
         fileIcon: recFileIcon(playingRow),
+        fileNote: (_, row) => (row === playingRow ? (playing ? "playing" : "paused") : undefined),
         listed: tab === "Play" ? playList : (entry: CardEntry) => recorderLists(ctx, entry),
       });
       browser.appendChild(outMeter(ctx, playing));
@@ -606,16 +613,17 @@ export const recorderScreen: ScreenDef = {
             class: "rec-transport",
             children: [
               iconButton("Stop", Icons.stop(), "rec-stop", () => stopTake(ctx.store)),
-              // While a take runs, the middle button pauses and resumes it, red while paused.
+              // While a take runs, the middle button pauses and resumes it, red and pressed while paused.
               // Stopped and not armed, it does nothing.
               iconButton(recording ? "Pause" : "Play", recording ? Icons.pause() : Icons.transportPlay(), `rec-play${rec === "paused" ? " is-paused" : ""}`, () => {
                 if (rec === "armed" || rec === "paused") recordTake(ctx.store);
                 else if (rec === "recording") pauseTake(ctx.store);
-              }),
+              }, { "aria-pressed": String(rec === "paused") }),
+              // [●] stands pressed in recording mode.
               iconButton("Record", Icons.record(), `rec-rec${rec === "armed" ? " is-armed" : ""}`, () => {
                 if (rec === "idle") void ctx.store.set("sd.rec", "armed");
                 else if (rec === "armed") stopTake(ctx.store);
-              }),
+              }, { "aria-pressed": String(busy) }),
             ],
           }),
         ],
@@ -668,7 +676,7 @@ export const saveLoadScreen: ScreenDef = {
             return markShut(button(label, () => (usable ? saveLoadAction(ctx, label) : undefined)), !usable);
           });
     return {
-      main: cardBrowser(ctx, { metaColumn: "Date/Time", meta: (entry) => entry.stamp, actions }),
+      main: cardBrowser(ctx, { listName: "SAVE/LOAD files", metaColumn: "Date/Time", meta: (entry) => entry.stamp, actions }),
       side: (["Save/\nLoad", "Edit"] as const).map((t) =>
         sideTab(t, tab === t, () => void ctx.store.set("ui.sdSaveTab", t), t === "Edit" ? Icons.edit() : Icons.save(), t === "Edit" ? "is-name-raised" : "is-name-apart"),
       ),
@@ -806,6 +814,8 @@ const SD_TAB_LOADING_MS = 2000;
 /**
  * Move to another RECORDER tab. Play and Edit read the card, so they come up
  * behind a loading modal; Record is the tab the screen opens on and needs none.
+ * A tab still loading when recording mode comes on does not open: recording
+ * mode holds the tab it is in.
  */
 function openSdTab(ctx: AppContext, from: string, to: string): void {
   if (to === from) return;
@@ -816,7 +826,7 @@ function openSdTab(ctx: AppContext, from: string, to: string): void {
   let close = (): void => undefined;
   const timer = window.setTimeout(() => {
     close();
-    void ctx.store.set("ui.sdTab", to);
+    if (!recordMode(ctx.store)) void ctx.store.set("ui.sdTab", to);
   }, SD_TAB_LOADING_MS);
   close = ctx.overlay(loadingDialog(), () => window.clearTimeout(timer));
 }

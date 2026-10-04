@@ -6,13 +6,14 @@ import { clamp, combineWriteRules } from "../device/store";
 import type { DeviceStore } from "../device/store";
 import type { UnitModel } from "../model/types";
 import { UDK_BANKS, UDK_KNOBS, UDK_UNASSIGNED, udkAssignment, udkPath } from "../model/udk";
-import { INTERACTIVE, clear, el, placeOf, setPressed } from "../ui/dom";
+import { INTERACTIVE, clear, el, setPressed, tappedControl } from "../ui/dom";
 import { FocusController } from "../ui/focus";
 import { Icons } from "../ui/icons";
 import { attachFocusRing } from "../ui/focus-ring";
 import type { Press } from "../ui/press";
 import { attachPress } from "../ui/press";
-import { PointerHolds, attachSpin, setAriaValue } from "../ui/widgets";
+import { PointerHolds, attachSpin, modalOf, setAriaValue, standsStill } from "../ui/widgets";
+import type { Modal } from "../ui/widgets";
 import type { NumericSpec } from "../ui/param-spec";
 import { BRIGHTNESS_MAX, formatValue } from "../ui/param-spec";
 import type { ScreenBody, ScreenRegistry } from "../screens/types";
@@ -27,6 +28,7 @@ import { panLinkWriteRule } from "../screens/mix-bus";
 import { bankSide, bankTotal, currentBank, stepBank } from "../screens/strip-state";
 import type { AppContext, KnobReadout } from "./context";
 import { Navigator } from "./navigator";
+import type { RouteChange } from "./navigator";
 import { scrimFilter } from "../ui/scrim";
 
 /** Divisions the multi-function readout bar has. */
@@ -53,8 +55,11 @@ export class Shell {
   private drawn: string | null = null;
   /** The strip of the screen the glass last drew. */
   private drawnStrip: string | undefined;
-  /** Closers for what is layered over the screen, so nothing is dropped unclosed. */
-  private readonly overlays = new Set<() => void>();
+  /** How the stack has moved since the glass last drew. */
+  private moves: RouteChange[] = [];
+  /** What is layered over the screen, by its closer and bottom first, so nothing is dropped unclosed. */
+  private readonly overlays = new Map<() => void, { node: HTMLElement; modal: Modal | undefined }>();
+  private readonly onTab: (ev: KeyboardEvent) => void;
   private readonly onEscape: (ev: KeyboardEvent) => void;
   private readonly offStore: () => void;
   private readonly press: Press;
@@ -84,13 +89,25 @@ export class Shell {
       overlay: (node, onClose) => {
         // Marked so the Escape handler knows something is layered over the screen.
         node.dataset["overlay"] = "";
+        // The control whose touch or key put it up, or else where the focus stood when it went up.
+        const tapped = tappedControl();
+        const opener = tapped?.isConnected === true ? tapped : document.activeElement;
+        const refocus = this.focusPlace(opener);
         this.lcd.appendChild(node);
         const close = (): void => {
           if (!this.overlays.delete(close)) return;
           node.remove();
+          this.shutBehind();
           onClose?.();
+          // A focus it leaves on nothing goes back there, or to the control drawn in that place since.
+          if (document.activeElement && document.activeElement !== document.body) return;
+          if (opener instanceof HTMLElement && opener !== document.body && opener.isConnected) opener.focus({ preventScroll: true });
+          else refocus();
         };
-        this.overlays.add(close);
+        const modal = modalOf(node);
+        if (modal) modal.close = close;
+        this.overlays.set(close, { node, modal });
+        this.shutBehind();
         return close;
       },
     };
@@ -107,9 +124,18 @@ export class Shell {
     });
     this.root = this.lcd;
 
-    nav.onChange(() => {
+    nav.onChange((route, change) => {
+      this.moves.push(change);
       focus.release();
       this.knobPage = 0;
+      // USER DEFINED KNOBS mode goes off on every jump to a top-level screen, on a
+      // step back onto a screen drawn without its toggle, and on the way into the
+      // channel-bank list; every other move keeps it.
+      const off =
+        change === "openTop" ||
+        (change === "back" && this.registry.get(route.id)?.knobToggle === false) ||
+        (change === "push" && route.id === "bank-select");
+      if (off) void store.set("ui.userDefinedKnobs", false);
       // A list or a dialog belongs to the screen that opened it.
       this.closeOverlays();
       this.scheduleRepaint();
@@ -137,6 +163,8 @@ export class Shell {
     this.attachBackdrop();
     this.press = attachPress(this.lcd);
     this.offFocusRing = attachFocusRing(this.lcd);
+    this.onTab = this.buildTabTrap();
+    window.addEventListener("keydown", this.onTab);
     this.onEscape = this.buildEscapeHandler();
     window.addEventListener("keydown", this.onEscape);
     this.render();
@@ -144,6 +172,7 @@ export class Shell {
 
   /** Give up the window and anything layered over the screen. */
   destroy(): void {
+    window.removeEventListener("keydown", this.onTab);
     window.removeEventListener("keydown", this.onEscape);
     this.offStore();
     this.ctx.store.setWriteRule(null);
@@ -154,7 +183,18 @@ export class Shell {
   }
 
   private closeOverlays(): void {
-    for (const close of [...this.overlays]) close();
+    for (const close of [...this.overlays.keys()]) close();
+  }
+
+  /** The layer over the screen that is on top, if anything is. */
+  private topLayer(): { node: HTMLElement; modal: Modal | undefined } | undefined {
+    return [...this.overlays.values()].at(-1);
+  }
+
+  /** The screen behind a modal takes no keys and no pointer while one is up. */
+  private shutBehind(): void {
+    const shut = [...this.overlays.values()].some((layer) => layer.modal !== undefined);
+    for (const node of [this.toolbarNode, this.mainNode, this.sideNode, this.knobStripNode]) node.toggleAttribute("inert", shut);
   }
 
   private scheduleRepaint(): void {
@@ -178,6 +218,7 @@ export class Shell {
     const repress = this.drawn === route.id && this.drawnStrip === route.strip ? this.press.carry() : () => undefined;
     this.dim();
     this.drawn = route.id;
+    this.moves = [];
     this.drawnStrip = route.strip;
     this.knobs = [];
     clear(this.mainNode);
@@ -211,14 +252,20 @@ export class Shell {
     this.toolbarNode.dataset.screen = route.id;
     const dims = def.dimsBehind === true;
     this.buildToolbar(def.toolbar, def.title?.(this.ctx, route), body, def.bankButton === true, exits || dims);
+    if (showStrip) this.buildKnobStrip(udkMode);
     if (dims && !exits) {
       for (const node of [this.toolbarNode, this.sideNode]) {
-        for (const control of node.querySelectorAll("button, [role='button']")) {
+        for (const control of node.querySelectorAll(INTERACTIVE)) {
           if (!control.classList.contains("is-lit")) control.toggleAttribute("inert", true);
         }
       }
     }
-    if (showStrip) this.buildKnobStrip(udkMode);
+    // A sheet over the screen, one that darkens it or one that takes the whole
+    // glass, holds the knob bar under it out of reach: its knobs turn nothing
+    // until the sheet goes.
+    if (dims || body.main.classList.contains("pick-dialog")) {
+      for (const control of this.knobStripNode.querySelectorAll(INTERACTIVE)) control.toggleAttribute("inert", true);
+    }
     repress();
     refocus();
   }
@@ -226,15 +273,47 @@ export class Shell {
   /**
    * The step that puts the page's focus back on the control it stood on once the
    * same screen is drawn again: the control of the same kind at the same place, or
-   * else the one control of that kind with the same words. A different screen
-   * leaves the focus where the rebuild left it.
+   * else the one control of that kind with the same words, or else, for a page step,
+   * the one step the other way, or else the control that now stands at that place.
+   * A screen put in place of this one takes the focus onto its one control of the
+   * same kind and name, or else, for a page step, its one step the other way. Any
+   * other screen leaves the focus where the rebuild left it. The control it starts
+   * from is `active`, the one holding the focus unless another is named.
    */
-  private focusPlace(): () => void {
-    const active = document.activeElement;
-    if (this.drawn !== this.ctx.nav.current.id || !active || active === this.root || !this.root.contains(active)) return () => undefined;
-    const find = placeOf(this.root, active);
+  private focusPlace(active: Element | null = document.activeElement): () => void {
+    if (!active || active === this.root || !this.root.contains(active)) return () => undefined;
+    // A control's kind is its tag and its classes, less the ones naming its state.
+    const kind = (node: Element): string => [node.tagName, ...[...node.classList].filter((c) => !c.startsWith("is-"))].join(" ");
+    const was = kind(active);
+    // A page step carries its way in its classes, as `-prev` or `-next`.
+    const turned = was.replace(/-(prev|next)\b/g, (_step, way: string) => (way === "prev" ? "-next" : "-prev"));
+    const otherWay = (): Element | undefined => {
+      if (turned === was) return undefined;
+      const steps = [...this.root.querySelectorAll(active.tagName)].filter((n) => kind(n) === turned);
+      return steps.length === 1 ? steps[0] : undefined;
+    };
+    if (this.drawn !== this.ctx.nav.current.id) {
+      if (this.moves.length === 0 || this.moves.some((move) => move !== "replace")) return () => undefined;
+      const name = (node: Element): string | null => node.getAttribute("aria-label") ?? node.textContent;
+      const said = name(active);
+      return () => {
+        const alike = [...this.root.querySelectorAll(active.tagName)].filter((n) => kind(n) === was && name(n) === said);
+        const node = alike.length === 1 ? alike[0] : otherWay();
+        if (node) (node as HTMLElement).focus({ preventScroll: true });
+      };
+    }
+    const path: number[] = [];
+    for (let node: Element = active; node !== this.root && node.parentElement; node = node.parentElement) {
+      path.unshift([...node.parentElement.children].indexOf(node));
+    }
     return () => {
-      const node = find();
+      let node: Element | undefined = this.root;
+      for (const i of path) node = node?.children[i];
+      const there = node !== this.root ? node : undefined;
+      if (!node || node === this.root || kind(node) !== was) {
+        const alike = [...this.root.querySelectorAll(active.tagName)].filter((n) => kind(n) === was && n.textContent === active.textContent);
+        node = alike.length === 1 ? alike[0] : (otherWay() ?? (there?.matches(INTERACTIVE) ? there : undefined));
+      }
       if (node && "focus" in node) (node as HTMLElement).focus({ preventScroll: true });
     };
   }
@@ -319,7 +398,7 @@ export class Shell {
       class: `bank-btn bank-${side}${this.ctx.nav.current.id === "bank-select" ? " is-lit" : ""}`,
       attrs: {
         "aria-label": `${side === "input" ? "INPUT" : "OUTPUT"} channel bank ${active + 1} of ${total}`,
-        "aria-haspopup": "listbox",
+        "aria-expanded": String(this.ctx.nav.current.id === "bank-select"),
       },
       onTap: () => {
         if (this.ctx.nav.current.id === "bank-select") this.ctx.nav.back();
@@ -365,7 +444,7 @@ export class Shell {
     cell.setAttribute("role", "slider");
     cell.setAttribute("aria-label", name);
     setAriaValue(cell, spec, v);
-    if (spec.locked === true) cell.setAttribute("aria-disabled", "true");
+    if (standsStill(this.ctx, spec)) cell.setAttribute("aria-disabled", "true");
     attachSpin(this.ctx, cell, spec, onEngage);
   }
 
@@ -452,29 +531,75 @@ export class Shell {
   }
 
   /**
-   * A tap on the bare screen leaves a screen the shell draws no exits for. The
-   * screen's own area and every button keep their taps.
+   * A tap on the bare screen leaves a screen the shell draws no exits for, unless
+   * the screen is left through its own controls alone. The
+   * screen's own area, every control and whatever is laid over the screen keep
+   * their taps. The knob bar is bare screen around its controls, and the whole
+   * of it is under a sheet that holds its controls out of reach. A press that
+   * went down on one of them is no tap on the bare screen wherever it is let go.
    */
   private attachBackdrop(): void {
+    const keeps = (target: EventTarget | null): boolean =>
+      (target as HTMLElement).closest(`${INTERACTIVE}, .main, [data-overlay]`) !== null;
+    let pressKept = false;
+    this.lcd.addEventListener(
+      "pointerdown",
+      (ev) => {
+        pressKept = keeps(ev.target);
+      },
+      true,
+    );
     this.lcd.addEventListener("click", (ev) => {
-      if (this.registry.get(this.ctx.nav.current.id)?.shellExits !== false) return;
-      if ((ev.target as HTMLElement).closest("button, [role='button'], .main")) return;
+      const fromKept = pressKept;
+      pressKept = false;
+      const def = this.registry.get(this.ctx.nav.current.id);
+      if (def?.shellExits !== false || def.leavesOnTouchAround === false) return;
+      if (fromKept || keeps(ev.target)) return;
       this.ctx.nav.back();
     });
   }
 
   /**
+   * Tab and Shift+Tab go round the controls of the modal on top, wherever the
+   * focus stands, so the keys cannot leave it. A modal with none in it leaves
+   * Tab to the page.
+   */
+  private buildTabTrap(): (ev: KeyboardEvent) => void {
+    return (ev) => {
+      if (ev.key !== "Tab") return;
+      const top = this.topLayer();
+      if (!top?.modal) return;
+      const stops = [...top.node.querySelectorAll<HTMLElement>("*")].filter((n) => n.tabIndex >= 0);
+      if (stops.length === 0) return;
+      ev.preventDefault();
+      const at = stops.indexOf(document.activeElement as HTMLElement);
+      const step = ev.shiftKey ? -1 : 1;
+      const next = at < 0 ? (ev.shiftKey ? stops.length - 1 : 0) : (at + step + stops.length) % stops.length;
+      stops[next]?.focus();
+    };
+  }
+
+  /**
    * Escape does what the toolbar's back arrow does, on every screen. Anything
-   * layered over the screen owns the key while it is up, and a field being typed
-   * into keeps it for the edit in hand — an IME composition included.
+   * layered over the screen owns the key while it is up: it cancels the dialog,
+   * the sheet or the list on top wherever on the glass the focus stands, or with
+   * nothing focused. A field being typed into keeps it for the edit in hand — an
+   * IME composition included. A control of the page around the glass keeps it whole.
    */
   private buildEscapeHandler(): (ev: KeyboardEvent) => void {
     // On the window: a screen that draws no exits leaves focus on the document.
     return (ev) => {
       if (ev.key !== "Escape" || ev.isComposing) return;
-      if (this.lcd.querySelector("[data-overlay]")) return;
       const target = ev.target instanceof HTMLElement ? ev.target : null;
-      if (target?.closest("input, textarea, [contenteditable]")) return;
+      if (target && target !== document.body && target !== document.documentElement && !this.lcd.contains(target)) return;
+      if (this.lcd.querySelector("[data-overlay]")) {
+        const cancel = this.topLayer()?.modal?.cancel;
+        if (!cancel) return;
+        ev.preventDefault();
+        cancel();
+        return;
+      }
+      if (target?.closest("input, textarea, [contenteditable], [role='textbox']")) return;
       ev.preventDefault();
       // A key held down goes back once, as the back arrow held down does.
       if (ev.repeat) return;

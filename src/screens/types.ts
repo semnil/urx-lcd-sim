@@ -37,9 +37,16 @@ export interface ScreenDef {
    */
   shellExits?: boolean;
   /**
+   * Whether a tap on the bare screen around a screen that draws no exits of its
+   * own leaves it. Left unset it does; a screen that sets this false is left
+   * through its own controls alone.
+   */
+  leavesOnTouchAround?: boolean;
+  /**
    * Whether the USER DEFINED KNOBS toggle stands at the foot of the side rail.
    * The three screens the toolbar icons open — SETUP, microSD and MONITOR —
-   * leave it out; the screens under them carry it.
+   * leave it out; the screens under them carry it. A step back onto a screen
+   * that leaves it out switches USER DEFINED KNOBS mode off.
    */
   knobToggle?: boolean;
   /**
@@ -51,9 +58,9 @@ export interface ScreenDef {
    * Whether the screen is a sheet over the one below it. The shell darkens
    * everything outside the main area, leaving the control the screen marks
    * `is-lit` — the button the sheet was opened from — at full strength. The
-   * toolbar's icons show through even where `shellExits` is false; there, every
-   * control under the dark but the lit one is inert, and a touch on it is a
-   * touch on the bare screen.
+   * knob bar under the dark is inert. The toolbar's icons show through even
+   * where `shellExits` is false; there, every control under the dark but the lit
+   * one is inert, and a touch on it is a touch on the bare screen.
    */
   dimsBehind?: boolean;
   /**

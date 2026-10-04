@@ -83,14 +83,17 @@ async function boot(modelId: ModelId, mount: HTMLElement): Promise<void> {
 
   // The unit as it ships, for a start from nothing: what the unit's own
   // Initialize All Memories does, on the simulator's chrome rather than a
-  // screen. It asks in place first, since it drops everything the unit holds.
+  // screen. It asks in place first, with the focus on [Cancel], since it drops
+  // everything the unit holds. [Cancel] and Escape on the question take it back
+  // and leave the focus on [Reset the unit].
   const resetBox = el("span", { class: "chrome-reset" });
-  const drawReset = (asking: boolean): void => {
+  const drawReset = (asking: boolean, refocus = false): void => {
     const ask = el("button", {
       class: "chrome-button",
       text: "Reset the unit",
       onTap: () => drawReset(true),
     });
+    const cancel = el("button", { class: "chrome-button", text: "Cancel", onTap: () => drawReset(false, true) });
     resetBox.replaceChildren(
       ...(asking
         ? [
@@ -99,12 +102,18 @@ async function boot(modelId: ModelId, mount: HTMLElement): Promise<void> {
               forget();
               void boot(modelId, mount);
             } }),
-            el("button", { class: "chrome-button", text: "Cancel", onTap: () => drawReset(false) }),
+            cancel,
           ]
         : [ask]),
     );
-    if (asking) resetBox.querySelector<HTMLElement>(".is-danger")?.focus();
+    if (asking) cancel.focus();
+    else if (refocus) ask.focus();
   };
+  resetBox.addEventListener("keydown", (ev) => {
+    if (ev.key !== "Escape" || ev.isComposing || !resetBox.querySelector(".chrome-reset-ask")) return;
+    ev.preventDefault();
+    drawReset(false, true);
+  });
   drawReset(false);
 
   const link = el("span", {
@@ -112,6 +121,11 @@ async function boot(modelId: ModelId, mount: HTMLElement): Promise<void> {
     text: store.kind === "sim" ? "Simulated device" : "Connected unit",
   });
 
+  // A control of the chrome that holds the focus as the chrome is drawn again
+  // hands it to the same control of the new one: a selector by its name, and
+  // [Reset] of the question to [Reset the unit].
+  const focused = document.activeElement;
+  const held = focused instanceof HTMLElement && mount.querySelector(".chrome")?.contains(focused) ? focused : null;
   mount.replaceChildren(
     el("header", {
       class: "chrome",
@@ -137,6 +151,8 @@ async function boot(modelId: ModelId, mount: HTMLElement): Promise<void> {
       ],
     }),
   );
+  if (held?.closest(".chrome-reset")) resetBox.querySelector("button")?.focus();
+  else if (held) [modelSelect, zoomSelect].find((s) => s.getAttribute("aria-label") === held.getAttribute("aria-label"))?.focus();
 
   // The meters, the recorder's counter and the DATE / TIME clock are the things
   // on screen that move without an input event. They are refreshed in place

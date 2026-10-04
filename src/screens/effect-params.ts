@@ -46,6 +46,7 @@ import {
   dynFrame,
   dynMeters,
   dynSetting,
+  hidePlotDrawing,
   noChannel,
   oneKnobButton,
   oneKnobPanel,
@@ -79,7 +80,7 @@ export interface EffectHolder {
   title: string;
   switches: boolean;
   onFallback: boolean;
-  /** Whether that switch does anything: the unit leaves it inert with nothing taken. */
+  /** Whether that switch switches anything: with nothing taken, the name opens the sheet the effect is chosen on. */
   switchable: boolean;
   /** What the name button offers, read when it is touched: working it out walks
    *  every strip on the unit, which no render needs. */
@@ -151,15 +152,19 @@ export function fxShutOut(ctx: AppContext, strip: Strip): boolean {
 function effectButton(ctx: AppContext, holder: EffectHolder): HTMLElement {
   return el("button", {
     class: "insfx-effect",
-    onTap: () =>
-      void effectSheet(ctx, {
-        current: holder.name,
-        choices: holder.choices(),
-        perRow: holder.perRow,
-        onPick: holder.pick,
-      }),
+    onTap: () => chooseEffect(ctx, holder),
     attrs: { "aria-label": "Select the inserted effect" },
     children: [el("span", { text: holder.name }), el("span", { class: "insfx-effect-copy", children: [Icons.copy()] })],
+  });
+}
+
+/** Drop the sheet the effect is chosen on. */
+function chooseEffect(ctx: AppContext, holder: EffectHolder): void {
+  void effectSheet(ctx, {
+    current: holder.name,
+    choices: holder.choices(),
+    perRow: holder.perRow,
+    onPick: holder.pick,
   });
 }
 
@@ -360,8 +365,8 @@ function bandsPanel(draw: (svg: SVGSVGElement) => void): HTMLElement {
   const svg = document.createElementNS(NS, "svg");
   svg.setAttribute("viewBox", `0 0 ${MBC_PLOT_W} ${PLOT_H}`);
   svg.setAttribute("class", "dyn-curve");
-  svg.setAttribute("aria-hidden", "true");
   draw(svg);
+  hidePlotDrawing(svg);
   return el("div", { class: "dyn-plot mbc-bands", children: [svg as unknown as HTMLElement] });
 }
 
@@ -732,13 +737,13 @@ function effectHeader(
   const headerLeft = el("div", { class: "param-header", children: [selector, effectButton(ctx, holder)] });
   if (!holder.switches) return { headerLeft, headerCenter: titleBox(holder.title) };
   const on = ctx.store.bool(holder.onPath, holder.onFallback);
-  return {
-    headerLeft,
-    headerCenter: titleBadge(holder.title, "insfx", on, () => {
-      if (!holder.switchable) return;
-      void ctx.store.set(holder.onPath, !on);
-    }),
-  };
+  // With nothing taken, the name is no switch: it opens the sheet the effect is chosen on.
+  const title = titleBadge(holder.title, "insfx", on, () => {
+    if (holder.switchable) void ctx.store.set(holder.onPath, !on);
+    else chooseEffect(ctx, holder);
+  });
+  if (!holder.switchable) title.removeAttribute("aria-pressed");
+  return { headerLeft, headerCenter: title };
 }
 
 /**

@@ -6,6 +6,7 @@ import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
+import { INTERACTIVE } from "../ui/dom";
 import { HANDLE_R, HANDLE_RING, PLOT_H, PLOT_MIN, PLOT_SPAN, PLOT_W } from "./channel";
 import { meterLevels, setMeterSource } from "./meters";
 import { buildRegistry } from "./index";
@@ -91,16 +92,22 @@ describe("taking an effect", () => {
     ]);
   });
 
-  it("leaves the block's switch alone while the channel has nothing inserted", async () => {
+  it("opens EFFECT TYPE from the block's name while the channel has nothing inserted, and switches the block once there is one", async () => {
     const shell = await openInsert("ch1");
+    const title = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".badge-title");
+    const sheet = (): string | null => shell.root.querySelector(".source-sheet .source-title")?.textContent ?? null;
+    expect(title()?.hasAttribute("aria-pressed"), "no switch to read while there is nothing to switch").toBe(false);
     await click(shell, ".badge-title");
-    expect(shell.ctx.store.bool("ch.ch1.insFx.on", true), "the unit's switch does nothing there").toBe(false);
+    expect([sheet(), shell.ctx.store.bool("ch.ch1.insFx.on", true)], "the sheet the effect is chosen on, the switch left off").toEqual([
+      "EFFECT TYPE",
+      false,
+    ]);
 
-    await click(shell, ".insfx-effect");
     await pick(shell, "Crunch");
     expect(shell.ctx.store.bool("ch.ch1.insFx.on", false)).toBe(true);
+    expect(title()?.getAttribute("aria-pressed"), "a switch once there is an effect").toBe("true");
     await click(shell, ".badge-title");
-    expect(shell.ctx.store.bool("ch.ch1.insFx.on", true), "and switches it once there is one").toBe(false);
+    expect([sheet(), shell.ctx.store.bool("ch.ch1.insFx.on", true)], "and switches it, opening nothing").toEqual([null, false]);
   });
 
   it("offers an effect on one channel at a time", async () => {
@@ -1182,23 +1189,38 @@ describe("a compander", () => {
 });
 
 describe("a channel view's insert block", () => {
-  it("leaves its own switch alone while the channel carries nothing", async () => {
+  it("takes a touch on its name as the whole block's while the channel carries nothing, and switches from it once there is one", async () => {
     const shell = await mount([{ id: "channel-view", strip: "ch1" }]);
-    const badge = (): HTMLElement | null =>
-      shell.root.querySelector<HTMLElement>('.cv-block[aria-label="INS FX"] .badge-switch');
-    badge()?.click();
-    await flush();
-    expect(shell.ctx.store.bool("ch.ch1.insFx.on", true), "the unit's switch does nothing there").toBe(false);
+    document.body.append(shell.root);
+    try {
+      const block = (): HTMLElement | null => shell.root.querySelector<HTMLElement>('.cv-block[aria-label="INS FX"]');
+      const badge = (): HTMLElement | null => block()?.querySelector<HTMLElement>(".badge-switch") ?? null;
+      expect([badge()?.textContent, badge()?.closest(INTERACTIVE) === block(), badge()?.hasAttribute("aria-pressed")], "the name is drawn on the block, no switch of its own").toEqual([
+        "INS FX",
+        true,
+        false,
+      ]);
+      // The page's stylesheet is not loaded here, so the bands are given inline.
+      for (const node of [block(), badge()]) node?.style.setProperty("box-shadow", "inset 0 -3px 0 rgb(0, 0, 0)");
+      badge()?.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true }));
+      const sunk = [block()?.classList.contains("is-pressed"), badge()?.classList.contains("is-pressed")];
+      window.dispatchEvent(new MouseEvent("pointerup"));
+      expect(sunk, "the whole block sinks under the name").toEqual([true, false]);
+      badge()?.click();
+      await flush();
+      expect([shell.ctx.nav.current.id, shell.ctx.store.bool("ch.ch1.insFx.on", true)], "and opens its screen, the switch left off").toEqual(["ch.insfx", false]);
 
-    shell.ctx.nav.push({ id: "ch.insfx", strip: "ch1" });
-    await flush();
-    await click(shell, ".insfx-effect");
-    await pick(shell, "Crunch");
-    shell.ctx.nav.back();
-    await flush();
-    badge()?.click();
-    await flush();
-    expect(shell.ctx.store.bool("ch.ch1.insFx.on", true), "and switches it once there is one").toBe(false);
+      await click(shell, ".insfx-effect");
+      await pick(shell, "Crunch");
+      shell.ctx.nav.back();
+      await flush();
+      expect([badge()?.closest(INTERACTIVE) === badge(), badge()?.getAttribute("aria-pressed")], "with an effect the name is the block's switch").toEqual([true, "true"]);
+      badge()?.click();
+      await flush();
+      expect([shell.ctx.nav.current.id, shell.ctx.store.bool("ch.ch1.insFx.on", true)], "and switches it once there is one").toEqual(["channel-view", false]);
+    } finally {
+      shell.root.remove();
+    }
   });
 
   it("draws the pair's insert on both halves while they are linked", async () => {
