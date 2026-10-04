@@ -48,7 +48,7 @@ import {
   routeStrip,
   titleBadge,
 } from "./channel";
-import { type GrSpec, blockReduction, markReduction, meterLevels } from "./meters";
+import { type GrSpec, blockReduction, drawnLevels, markReduction } from "./meters";
 import { ssmcsSpec, tapId } from "./signal-flow";
 import type { ScreenBody, ScreenDef } from "./types";
 
@@ -226,9 +226,9 @@ function transfer(ctx: AppContext, b: string): (db: number) => number {
   const ratio = ctx.store.num(`${b}.ssmcs.comp.ratio`, SSMCS_DEFAULTS.ratio);
   const knee = KNEE_REACH[ctx.store.str(`${b}.ssmcs.comp.knee`, SSMCS_DEFAULTS.knee)] ?? KNEE_REACH.Medium ?? [0, 0];
   const gain = ctx.store.num(`${b}.ssmcs.outGain`, SSMCS_DEFAULTS.outGain);
-  // A drive of nothing leaves the signal alone.
+  // A drive of nothing compresses nothing; Out Gain still lifts it.
   const curve = compResponse(thr, Number.isFinite(ratio) ? ratio : 1000, knee, gain);
-  return (db) => (drive === 0 ? db : curve(db));
+  return (db) => (drive === 0 ? db + gain : curve(db));
 }
 
 const bandState = (ctx: AppContext, b: string, band: (typeof SSMCS_BANDS)[number]): SsmcsBand => ssmcsBand(ctx.store, b, band.key);
@@ -350,14 +350,14 @@ function pageArrow(dir: "prev" | "next", onTap: () => void): HTMLElement {
 
 /**
  * The signal the compressor listens to, metered beside its curve: what goes into
- * the strip lifted by the side chain filter's own Gain, and its floor unless the
- * compressor, the morphing strip and the side chain are all on.
+ * the strip through the side chain's bell, and its floor unless the compressor,
+ * the morphing strip and the side chain are all on.
  */
 function sideChainMeter(ctx: AppContext, strip: Parameters<typeof dynMeters>[1]): HTMLElement {
   const source = tapId(strip.id, "sideChain");
   return el("div", {
     class: "ssmcs-sc-meter",
-    children: [meter({ levels: meterLevels(ctx.store, source, 1), source })],
+    children: [meter({ levels: drawnLevels(ctx.store, source, 1), source })],
   });
 }
 
@@ -494,7 +494,7 @@ export const ssmcsScreen: ScreenDef = {
             children: [
               blockSwitch(ctx, "COMP", "comp", `${b}.comp.on`, true),
               el("div", { class: "ssmcs-thumb ssmcs-comp-thumb", children: [compThumb as unknown as HTMLElement] }),
-              reductionMeter(ctx, ssmcsSpec(strip)),
+              reductionMeter(ctx, ssmcsSpec(ctx, strip)),
             ],
           }),
           el("div", {
@@ -558,7 +558,7 @@ function compFace(ctx: AppContext, route: Route, sideChain: boolean): ScreenBody
         blockSwitch(ctx, "Comp", "comp", `${b}.comp.on`),
         sideChainMeter(ctx, strip),
         plot,
-        reductionMeter(ctx, ssmcsSpec(strip)),
+        reductionMeter(ctx, ssmcsSpec(ctx, strip)),
         ...(sideChain
           ? [
               litSwitch("Side Chain", "ssmcs-sc-switch", scOn, () => void ctx.store.set(`${b}.ssmcs.sc.on`, !scOn)),

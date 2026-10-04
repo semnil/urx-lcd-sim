@@ -21,7 +21,7 @@ import { allStrips, channelPairs } from "../model/types";
 import { el, markShut, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { LIST_THUMB_MIN_PX, button, dialog, dropdown, listView, loadingDialog, menuButton, menuGrid, meter, pickerGrid, pickerSheet, scrollbar, sideTab, toggle } from "../ui/widgets";
-import { meterLevels, pairMeterId } from "./meters";
+import { drawnLevels, pairMeterId } from "./meters";
 import { PLAYBACK_METER, listenedTap } from "./signal-flow";
 import { dateText } from "./date-time";
 import { formatClock, holdsFile, pausePlayback, pauseTake, playedSeconds, recState, recordMode, recordTake, releaseOnRateChange, startPlayback, stopPlayback, stopTake, takeOpen, takeRoom, takeSeconds } from "./recording";
@@ -560,7 +560,7 @@ function sourceMeter(ctx: AppContext, source: string): string | undefined {
 /** What a record track's meter shows, kept moving with its source: silence for None. */
 function sourceMeterView(ctx: AppContext, source: string): HTMLElement {
   const id = sourceMeter(ctx, source);
-  return id ? meter({ levels: meterLevels(ctx.store, id, 2), source: id }) : meter({ levels: [-96, -96] });
+  return id ? meter({ levels: drawnLevels(ctx.store, id, 2), source: id }) : meter({ levels: [-96, -96] });
 }
 
 /**
@@ -568,7 +568,7 @@ function sourceMeterView(ctx: AppContext, source: string): HTMLElement {
  * after microSD Playback's D.Gain, kept moving; unlit while nothing plays.
  */
 function outMeter(ctx: AppContext): HTMLElement {
-  const levels = meterLevels(ctx.store, PLAYBACK_METER, 2);
+  const levels = drawnLevels(ctx.store, PLAYBACK_METER, 2);
   return el("div", {
     class: "dyn-io sd-out",
     children: [

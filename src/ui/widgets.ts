@@ -640,7 +640,13 @@ export function standsStill(ctx: AppContext, spec: NumericSpec): boolean {
 }
 
 function putValue(ctx: AppContext, spec: NumericSpec, v: number): void {
-  void ctx.store.set(spec.path, clamp(v, spec.min, spec.max));
+  void ctx.store.set(spec.path, spec.wraps ? wrapInto(v, spec) : clamp(v, spec.min, spec.max));
+}
+
+/** `v` brought into a wrapping range, whose top step is followed by its bottom. */
+function wrapInto(v: number, spec: NumericSpec): number {
+  const span = spec.max - spec.min + spec.step;
+  return spec.min + ((((v - spec.min) % span) + span) % span);
 }
 
 /**

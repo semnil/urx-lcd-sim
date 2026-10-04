@@ -645,6 +645,27 @@ describe("the meters after a fader", () => {
     expect(mono(store, tapId("ch3", "post"))).toBe(0);
     expect(read(store, tapId("bus.stereo", "sum"))).toEqual([SILENT, SILENT]);
   });
+
+  it("read over on the side whose input to the fader is over, and the other side at its own level", async () => {
+    const store = await unit();
+    await only(store, "ch3");
+    await store.set("ch.ch3.gain", 60);
+    await store.set("ch.ch3.pan", -63);
+    await store.set("ch.bus.stereo.level", -20);
+    const [sumL = SILENT] = read(store, tapId("bus.stereo", "preFader"));
+    expect(sumL, "the stereo bus's left goes into its fader over").toBeGreaterThanOrEqual(0);
+    expect(read(store, tapId("bus.stereo", "preIns")), "the stereo bus before its INS FX").toEqual([0, SILENT]);
+
+    const stereo = await unit();
+    await only(stereo, "ch_5_6");
+    await stereo.set("ch.ch_5_6.source", "MIC/LINE 1/2");
+    await stereo.set("ch.ch1.gain", 60);
+    await stereo.set("ch.ch2.gain", 40);
+    await stereo.set("ch.ch_5_6.level", -20);
+    const [preL = SILENT, preR = SILENT] = read(stereo, tapId("ch_5_6", "preFader"));
+    expect([preL >= 0, preR < 0], "only the left goes into the fader over").toEqual([true, true]);
+    expect(read(stereo, tapId("ch_5_6", "preDucker")), "the stereo channel before its DUCKER").toEqual([0, expect.closeTo(preR - 20, 6)]);
+  });
 });
 
 describe("the streaming bus", () => {
@@ -654,6 +675,88 @@ describe("the streaming bus", () => {
     await store.set("ch.bus.stream.delay.ms", 500);
     expect(read(store, tapId("bus.stream", "post"), AT)).toEqual(read(store, tapId("bus.stream", "input"), AT - 500));
     expect(read(store, tapId("bus.stream", "input"), AT)).toEqual(read(store, tapId("bus.stereo", "post"), AT));
+  });
+
+  it("puts out what it is fed its DELAY later while Clip Safe holds a connector down", async () => {
+    // At +60 the connector clips each time Clip Safe lets go; at +46 it reaches the
+    // clip level only now and then, and stands at its own level between the holds.
+    for (const gain of [60, 46]) {
+      const store = await unit();
+      await only(store, "ch1");
+      await store.set("ch.ch1.gain", gain);
+      await store.set("ch.ch1.clipSafe", true);
+      await store.set("ch.bus.stream.delay.on", true);
+      await store.set("ch.bus.stream.delay.ms", 1000);
+      // Read as the ticker reads every 100 ms: the stereo bus first, then STREAMING after its DELAY.
+      const stereo: number[][] = [];
+      const delayed: number[][] = [];
+      for (let k = 0; k < 160; k++) {
+        stereo.push(read(store, tapId("bus.stereo", "post"), AT + k * 100));
+        delayed.push(read(store, tapId("bus.stream", "post"), AT + k * 100));
+      }
+      const clips = stereo.flatMap((lanes, k) => (Math.max(...lanes) >= 0 ? [k] : []));
+      expect(clips.length, `+${gain}: the stereo bus clips more than once`).toBeGreaterThanOrEqual(2);
+      expect(clips.length, `+${gain}: and is held down after each clip`).toBeLessThan(20);
+      for (let k = 10; k < 160; k++) expect(delayed[k], `+${gain}, ${k * 100} ms`).toEqual(stereo[k - 10]);
+    }
+  });
+
+  it("shows each clip Clip Safe lets through once, its DELAY later, on a beat a few milliseconds off", async () => {
+    const store = await unit();
+    await only(store, "ch1");
+    await store.set("ch.ch1.gain", 60);
+    await store.set("ch.ch1.clipSafe", true);
+    await store.set("ch.bus.stream.delay.on", true);
+    await store.set("ch.bus.stream.delay.ms", 1000);
+    const late = [0, 7, -5, 3, -2, 6, -6, 1];
+    const moments = Array.from({ length: 320 }, (_, k) => AT + k * 100 + (late[k % late.length] ?? 0));
+    const fed: number[] = [];
+    const shown: number[] = [];
+    for (const t of moments) {
+      if (Math.max(...read(store, tapId("bus.stereo", "post"), t)) >= 0) fed.push(t);
+      if (Math.max(...read(store, tapId("bus.stream", "post"), t)) >= 0) shown.push(t - 1000);
+    }
+    // Past the first second, and short of the last, STREAMING shows what was fed while the stereo bus was read.
+    const end = (moments.at(-1) ?? AT) - 1100;
+    const inside = (t: number): boolean => t > AT + 1000 && t < end;
+    expect(fed.filter(inside).length, "the stereo bus clips each time Clip Safe lets go").toBeGreaterThanOrEqual(5);
+    expect(shown.filter(inside).map((t) => fed.find((f) => Math.abs(f - t) < 50))).toEqual(fed.filter(inside));
+  });
+
+  it("reads its DELAY back as Clip Safe held it then after a pause in the readings, on its LEVEL meter, DELAY's OUT and the cue bus alike", async () => {
+    const setUp = async (): Promise<DeviceStore> => {
+      const store = await unit();
+      await only(store, "ch1");
+      await store.set("ch.ch1.gain", 60);
+      await store.set("ch.ch1.clipSafe", true);
+      await store.set("ch.bus.stream.delay.on", true);
+      await store.set("ch.bus.stream.delay.ms", 1000);
+      await store.set("ch.bus.stream.cue", true);
+      return store;
+    };
+    // Each moment the stereo bus is read, then STREAMING's three meters.
+    const streaming = (store: DeviceStore, t: number): number[][] => {
+      read(store, tapId("bus.stereo", "post"), t);
+      return [read(store, "bus.stream", t), read(store, tapId("bus.stream", "post"), t), read(store, CUE_METER, t)];
+    };
+    // A clip at AT, then a pause past Clip Safe's 5 s hold; a clip at AT, then a pause inside it.
+    for (const { before, after } of [
+      { before: [AT, AT + 100], after: AT + 5_100 },
+      { before: [AT], after: AT + 1_500 },
+    ]) {
+      const steady = await setUp();
+      const stereo: number[][] = [];
+      for (let t = AT; t < after; t += 100) {
+        stereo.push(read(steady, tapId("bus.stereo", "post"), t));
+        streaming(steady, t);
+      }
+      const then = stereo[(after - 1000 - AT) / 100];
+      expect(Math.max(...(then ?? [])), `${after - AT} ms: held down a second before`).toBeLessThan(0);
+      expect(streaming(steady, after), `${after - AT} ms, read every 100 ms`).toEqual([then, then, then]);
+      const paused = await setUp();
+      for (const t of before) streaming(paused, t);
+      expect(streaming(paused, after), `${after - AT} ms, read after a pause`).toEqual([then, then, then]);
+    }
   });
 });
 

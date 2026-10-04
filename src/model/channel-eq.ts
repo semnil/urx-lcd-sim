@@ -1,6 +1,7 @@
-// The EQs a strip carries, read off the store: the 4-band EQ every strip has
-// and the 3-band EQ of the SSMCS strip. The screens draw their responses and the
-// synthetic signal takes their level through them.
+// The EQs a strip carries, read off the store: the 4-band EQ every strip has,
+// and the 3-band EQ of the SSMCS strip and the bell its compressor listens
+// through. The screens draw the EQs' responses and the synthetic signal takes
+// their level through them.
 
 import type { DeviceStore } from "../device/store";
 import { EQ_BAND_SHAPE_SHIPPED, SSMCS_DEFAULTS } from "./defaults";
@@ -81,6 +82,30 @@ export function ssmcsEqResponse(store: DeviceStore, b: string): (hz: number) => 
     return (hz: number) => biquadDb(filter, hz);
   });
   return (hz) => parts.reduce((sum, part) => sum + (part ? part(hz) : 0), 0);
+}
+
+/**
+ * The side chain's bell stands wider than the Q it shows: its biquad Q is the Q
+ * shown times this, times A to the power below, A being 10^(|gain| / 40).
+ */
+const SSMCS_SC_Q_SCALE = 0.238;
+const SSMCS_SC_Q_GAIN_POWER = 0.39;
+
+/** The SSMCS side chain's bell: its Q, Frequency and Gain. */
+export type SsmcsSideChain = Omit<SsmcsBand, "on">;
+
+/** The side chain's bell as the strip under `b` holds it. */
+export function ssmcsSideChain(store: DeviceStore, b: string): SsmcsSideChain {
+  const p = `${b}.ssmcs.sc`;
+  const factory = SSMCS_DEFAULTS.sc;
+  return { q: store.num(`${p}.q`, factory.q), freq: store.num(`${p}.freq`, factory.freq), gain: store.num(`${p}.gain`, factory.gain) };
+}
+
+/** The bell the SSMCS compressor listens through, in dB: a peak of its Gain at its Frequency, passing everything at no gain. */
+export function ssmcsSideChainResponse(sc: SsmcsSideChain): (hz: number) => number {
+  if (sc.gain === 0) return () => 0;
+  const filter = peakingBiquad(sc.freq, sc.q * SSMCS_SC_Q_SCALE * 10 ** ((Math.abs(sc.gain) / 40) * SSMCS_SC_Q_GAIN_POWER), sc.gain);
+  return (hz) => biquadDb(filter, hz);
 }
 
 /** The band pink noise is taken across, in Hz. */

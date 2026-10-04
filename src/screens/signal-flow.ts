@@ -12,7 +12,7 @@ import type { DeviceStore } from "../device/store";
 import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, GATE_DEFAULTS, SSMCS_DEFAULTS, faderShipped } from "../model/defaults";
 import { COMPANDER_EXPANSION, COMP_KNEE_WIDTH, OVER_REDUCTION_MAX_DB, SSMCS_CORNER_FLOOR_DB, compReductionDb, companderResponse, duckerReductionDb, gateReductionDb, ssmcsCorner } from "../model/dynamics";
 import { bandResponse } from "../model/eq-response";
-import { SSMCS_BAND_KEYS, fourBandResponse, fourBands, pinkGainDb, ssmcsBand, ssmcsEqResponse } from "../model/channel-eq";
+import { SSMCS_BAND_KEYS, fourBandResponse, fourBands, pinkGainDb, ssmcsBand, ssmcsEqResponse, ssmcsSideChain, ssmcsSideChainResponse } from "../model/channel-eq";
 import { type EffectOption, FX_EFFECTS, FX_EFFECT_DEFAULT, INPUT_INSERT_EFFECTS, NO_EFFECT, OUTPUT_INSERT_EFFECTS, effectParams, guitarOutputDb } from "../model/effects";
 import {
   DETECTOR_OFFSET,
@@ -56,7 +56,7 @@ export type Tap =
   | "preGate"
   /** After GATE: into COMP, or into the SSMCS strip. */
   | "preComp"
-  /** What the SSMCS compressor listens through; on COMP -> EQ the same as preComp. */
+  /** On SSMCS what the side chain's bell feeds the compressor, nothing while the chain or the compressor is off; on COMP -> EQ the same as preComp. */
   | "sideChain"
   /** Into the EQ: after COMP, and on a stereo channel after Φ. */
   | "preEq"
@@ -151,21 +151,37 @@ const CLIP_SAFE_REDUCTION_DB = 23;
 /** How long Clip Safe holds the signal down after the last clip it heard. */
 const CLIP_SAFE_HOLD_MS = 5000;
 
+/** The longest a STREAMING DELAY holds its signal back. */
+export const DELAY_MAX_MS = 1000;
+
+/** How often the meter ticker reads the meters. */
+export const METER_TICK_MS = 100;
+
 /** What the connector numbered `n` puts out before Clip Safe: its signal, raised by its A.Gain. */
 function jackRaw(store: DeviceStore, n: number, at: number): number {
   return MIC_LINE_SIGNAL_DB + store.num(jackParam(n, "gain"), -8) + wander(monoStripId(n), 0, at);
 }
 
-/** The moment each connector's Clip Safe last heard a clip, per store. */
-const clipSafeStates = new WeakMap<DeviceStore, Map<number, number>>();
+/**
+ * What each connector's Clip Safe has heard, per store: the moment of its last
+ * clip, the latest moment read, each moment read with how far it held the signal
+ * down then, and each stretch it held the signal down, from the clip that began it
+ * to CLIP_SAFE_HOLD_MS after the last clip in it, as far back as a reading after
+ * the longest DELAY looks.
+ */
+const clipSafeStates = new WeakMap<DeviceStore, Map<number, { last: number; latest: number; readings: { at: number; reduction: number }[]; holds: { from: number; to: number }[] }>>();
 
 /**
  * Clip Safe on the connector numbered `n` at `at`: whether it is engaged, and by
  * how many dB it is holding the signal down. A reading that finds the signal at
  * the clip level — held down or not — is a clip: that reading still shows it,
  * and after it the signal is held CLIP_SAFE_REDUCTION_DB down until
- * CLIP_SAFE_HOLD_MS after the last clip, engaged for as long. The A.Gain setting
- * stays where it is. Switched off, it forgets what it heard.
+ * CLIP_SAFE_HOLD_MS after the last clip, engaged for as long. A reading of a
+ * moment before the latest one read, up to DELAY_MAX_MS back, hears no clip of
+ * its own: within half a METER_TICK_MS of a moment read, it finds the signal held
+ * down as far as the nearest of those readings did, and further from any, as far
+ * as Clip Safe was holding it down at that moment. The A.Gain setting stays where
+ * it is. Switched off, it forgets what it heard.
  */
 export function clipSafe(store: DeviceStore, n: number, at = readingMoment()): { engaged: boolean; reduction: number } {
   let states = clipSafeStates.get(store);
@@ -174,10 +190,26 @@ export function clipSafe(store: DeviceStore, n: number, at = readingMoment()): {
     states.delete(n);
     return { engaged: false, reduction: 0 };
   }
-  const last = states.get(n) ?? -Infinity;
+  let state = states.get(n);
+  if (!state) states.set(n, (state = { last: -Infinity, latest: -Infinity, readings: [], holds: [] }));
+  const { last, readings, holds } = state;
+  if (at < state.latest) {
+    const near = readings.filter((r) => Math.abs(r.at - at) <= METER_TICK_MS / 2).sort((a, b) => Math.abs(a.at - at) - Math.abs(b.at - at))[0];
+    const held = holds.some((h) => h.from < at && at <= h.to) ? CLIP_SAFE_REDUCTION_DB : 0;
+    return { engaged: holds.some((h) => h.from <= at && at <= h.to), reduction: near ? near.reduction : held };
+  }
   const reduction = at > last && at - last <= CLIP_SAFE_HOLD_MS ? CLIP_SAFE_REDUCTION_DB : 0;
   const clip = jackRaw(store, n, at) - reduction >= CLIP_DB ? Math.max(last, at) : last;
-  states.set(n, clip);
+  if (clip !== last) {
+    const hold = holds.at(-1);
+    if (hold && clip <= hold.to) hold.to = clip + CLIP_SAFE_HOLD_MS;
+    else holds.push({ from: clip, to: clip + CLIP_SAFE_HOLD_MS });
+  }
+  if (at > state.latest) readings.push({ at, reduction });
+  while ((readings[0]?.at ?? Infinity) < at - DELAY_MAX_MS - METER_TICK_MS / 2) readings.shift();
+  while ((holds[0]?.to ?? Infinity) < at - DELAY_MAX_MS) holds.shift();
+  state.last = clip;
+  state.latest = at;
   return { engaged: at >= clip && at - clip <= CLIP_SAFE_HOLD_MS, reduction };
 }
 
@@ -253,6 +285,8 @@ export interface GrSpec {
   threshold?: { path: string; fallback: number };
   /** For `over`: where the switch that turns the block on is kept, and its value when unset. Without it the block is on. */
   on?: { path: string; fallback: boolean };
+  /** For `over`: where a switch that takes the block out is kept. While it is set the block is off. */
+  bypass?: string;
 }
 
 /** The detector a block's reduction is worked out through. A ducker's depends on whether its key is stereo. */
@@ -280,7 +314,7 @@ function blockOn(store: DeviceStore, spec: GrSpec): boolean {
   if (spec.kind === "comp") return store.bool(`${spec.base}.comp.on`, false);
   if (spec.kind === "ducker") return store.bool(`${spec.base}.ducker.on`, false);
   if (spec.kind === "ssmcs") return store.bool(`${spec.base}.comp.on`, false) && store.bool(`${spec.base}.ssmcs.on`, SSMCS_DEFAULTS.on);
-  if (spec.kind === "over") return spec.on ? store.bool(spec.on.path, spec.on.fallback) : true;
+  if (spec.kind === "over") return (spec.on ? store.bool(spec.on.path, spec.on.fallback) : true) && !(spec.bypass && store.bool(spec.bypass, false));
   return true;
 }
 
@@ -396,9 +430,11 @@ export function compSpec(fc: FlowCtx, strip: Strip): GrSpec {
   return { kind: "comp", base, level, makeup: fc.store.num(`${base}.comp.gain`, COMP_DEFAULTS.gain) };
 }
 
-/** The SSMCS compressor, which hears its own channel. */
-export function ssmcsSpec(strip: Strip): GrSpec {
-  return { kind: "ssmcs", base: `ch.${strip.id}`, level: tapId(strip.id, "preComp"), makeup: 0 };
+/** The SSMCS compressor, which hears its own channel through the side chain's bell, and what goes into the strip while the chain is open. */
+export function ssmcsSpec(fc: FlowCtx, strip: Strip): GrSpec {
+  const base = `ch.${strip.id}`;
+  const keyed = fc.store.bool(`${base}.ssmcs.sc.on`, SSMCS_DEFAULTS.sc.on);
+  return { kind: "ssmcs", base, level: tapId(strip.id, keyed ? "sideChain" : "preComp"), makeup: 0 };
 }
 
 /**
@@ -466,8 +502,8 @@ type Lanes = Lane[];
 
 interface Flow {
   taps: Map<string, Lanes>;
-  /** The meters just after a fader that read the level before it while that level is over. */
-  over: Set<string>;
+  /** The meters just after a fader, and which of their lanes read over while that lane going into the fader is over. */
+  over: Map<string, boolean[]>;
 }
 
 /** A fader's gain: its stored level, and nothing at the bottom of its travel. */
@@ -556,12 +592,19 @@ function ssmcsEqOf(store: DeviceStore, base: string): Eq {
   return { db: pinkGainOf(store, `${base}.ssmcsEq`, () => ["ssmcs", SSMCS_BAND_KEYS.map((key) => ssmcsBand(store, base, key))], response), response };
 }
 
+/** The bell the SSMCS compressor listens through. */
+function sideChainOf(store: DeviceStore, base: string): Eq {
+  const sc = ssmcsSideChain(store, base);
+  const response = () => ssmcsSideChainResponse(sc);
+  return { db: pinkGainOf(store, `${base}.ssmcsSc`, () => ["ssmcsSc", sc], response), response };
+}
+
 /** Whether an effect runs at the sampling frequency the unit is at. */
 const runs = (option: EffectOption | undefined, rate: number): boolean => option !== undefined && (option.maxRate === undefined || rate <= option.maxRate);
 
 class FlowBuilder {
   readonly taps = new Map<string, Lanes>();
-  readonly over = new Set<string>();
+  readonly over = new Map<string, boolean[]>();
   readonly rate: number;
   readonly osc: Lane;
 
@@ -598,10 +641,9 @@ class FlowBuilder {
     return insertGainDb(this.store, spec, heardOn(spec, this.read(spec.level)));
   }
 
-  /** Mark the meter after a fader as reading over while what goes into the fader is over. */
+  /** Mark each lane of the meter after a fader as reading over while that lane going into the fader is over. */
   carryOver(stripId: string, into: Lanes, tap: Tap): void {
-    if (into.some((lane) => levelDb(lane) >= CLIP_DB)) this.over.add(tapId(stripId, tap));
-    else this.over.delete(tapId(stripId, tap));
+    this.over.set(tapId(stripId, tap), into.map((lane) => levelDb(lane) >= CLIP_DB));
   }
 
   on(strip: Strip): boolean {
@@ -688,9 +730,9 @@ function monoChannels(f: FlowBuilder, sums: Sums): void {
     if (store.str(`${b}.compEqOrder`, "COMP->EQ") === "SSMCS") {
       const strip = store.bool(`${b}.ssmcs.on`, SSMCS_DEFAULTS.on);
       const keyed = store.bool(`${b}.comp.on`, false) && strip && store.bool(`${b}.ssmcs.sc.on`, SSMCS_DEFAULTS.sc.on);
-      f.put(s.id, "sideChain", [keyed ? gain(into, store.num(`${b}.ssmcs.sc.gain`, SSMCS_DEFAULTS.sc.gain)) : []]);
+      f.put(s.id, "sideChain", [keyed ? through(into, sideChainOf(store, b)) : []]);
       const made = strip ? store.num(`${b}.ssmcs.outGain`, SSMCS_DEFAULTS.outGain) : 0;
-      f.put(s.id, "preIns", [gain(through(into, strip ? ssmcsEqOf(store, b) : FLAT), made - f.reduction(ssmcsSpec(s)))]);
+      f.put(s.id, "preIns", [gain(through(into, strip ? ssmcsEqOf(store, b) : FLAT), made - f.reduction(ssmcsSpec(fc, s)))]);
       continue;
     }
     f.put(s.id, "sideChain", [into]);
@@ -898,7 +940,7 @@ function resolve(id: string): { strip: string; tap: Tap } {
   return cut < 0 ? { strip: id, tap: "post" } : { strip: id.slice(0, cut), tap: id.slice(cut + 1) as Tap };
 }
 
-/** Each lane a meter reads at `at`, in dB: a meter just after a fader reads over while what goes into the fader is. */
+/** Each lane a meter reads at `at`, in dB: a lane of a meter just after a fader reads over while that lane going into the fader is. */
 export function flowLevels(fc: FlowCtx, id: string, at: number): number[] {
   if (id === OSC_METER) return [oscillatorLevel(fc.store, at)];
   if (id === CUE_METER) return cueBus(fc, at).map(levelDb);
@@ -915,8 +957,8 @@ export function flowLevels(fc: FlowCtx, id: string, at: number): number[] {
   if (tap === "input" && (strip?.kind === "monoIn" || strip?.kind === "stIn")) return inputLanes(fc.store, strip, at).map(levelDb);
   const flow = flowAt(fc, at);
   const lanes = flow.taps.get(tapId(stripId, tap)) ?? [];
-  const over = flow.over.has(tapId(stripId, tap));
-  return lanes.map((lane) => (over ? Math.max(CLIP_DB, levelDb(lane)) : levelDb(lane)));
+  const over = flow.over.get(tapId(stripId, tap));
+  return lanes.map((lane, i) => (over?.[i] ? Math.max(CLIP_DB, levelDb(lane)) : levelDb(lane)));
 }
 
 /** The lanes a meter reads at `at`, for a detector to hear. */

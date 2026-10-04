@@ -363,7 +363,7 @@ const MBC_FACES: readonly EffectFace[] = [
 ];
 
 /** The band gains the multi-band compressor's first page draws its bands up, from its lowest step to its highest. */
-export const MBC_GAIN_RANGE: readonly [number, number] = [mbcGainDb(1), mbcGainDb(56)];
+export const MBC_GAIN_RANGE: readonly [number, number] = [mbcGainDb(1), mbcGainDb(55)];
 
 /** The frequencies that page runs across, which the crossovers stand at. */
 export const MBC_PLOT_HZ: readonly [number, number] = [20, 20000];

@@ -5,7 +5,10 @@ import { SimTransport } from "../device/sim-transport";
 import { SSMCS_DEFAULTS, factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
+import { ssmcsSideChainResponse } from "../model/channel-eq";
+import { biquadDb, peakingBiquad } from "../model/eq-response";
 import { compResponse } from "./channel";
+import { meterLevels } from "./meters";
 import { declarations, px, readStyle, styleRules, subject } from "../style/css-read";
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
@@ -194,6 +197,27 @@ describe("the compressor the strip runs", () => {
       expect(at?.[0], `${db} dB across`).toBeCloseTo(((db + 80) / 100) * 198, 1);
       expect(at?.[1], `${db} dB up`).toBeCloseTo(((20 - db) / 100) * 130, 1);
     }
+  });
+
+  it("lifts the drawn curve by the Out Gain at a Comp Drive of nothing as at the next step up", async () => {
+    const shell = await strip("ch.ssmcs.comp");
+    await shell.ctx.store.set("ch.ch1.comp.on", true);
+    await shell.ctx.store.set("ch.ch1.ssmcs.outGain", 6);
+    // The curve is drawn a decibel at a time from -80 dB, on a plot 198x130 that
+    // reads -80..+20 dB both ways.
+    const outAt = (db: number): number => {
+      const points = (shell.root.querySelector(".dyn-plot .dyn-curve-line")?.getAttribute("points") ?? "").split(" ");
+      const [, y = Number.NaN] = (points[db + 80] ?? "").split(",").map(Number);
+      return 20 - (y / 130) * 100;
+    };
+    for (const drive of [0, 0.05]) {
+      await shell.ctx.store.set("ch.ch1.ssmcs.compDrive", drive);
+      await flush();
+      expect(outAt(-60), `Comp Drive ${drive}`).toBeCloseTo(-54, 1);
+    }
+    await shell.ctx.store.set("ch.ch1.ssmcs.compDrive", 0);
+    await flush();
+    expect(outAt(10), "a drive of nothing compresses nothing over 0 dB either").toBeCloseTo(16, 1);
   });
 
   it("draws the same curve on the side chain screen, without the two handles", async () => {
@@ -632,8 +656,69 @@ describe("the side chain's own meter", () => {
     await flush();
     expect(Number.parseFloat(bar()), "and the filter's gain lifts it").toBeLessThan(Number.parseFloat(lit));
 
+    // The bar falls 30 dB a second, so it is read four seconds on.
+    vi.setSystemTime(Date.now() + 4000);
     await shell.ctx.store.set("ch.ch1.ssmcs.sc.on", false);
     await flush();
     expect(bar(), "an open side chain feeds nothing").toBe("100%");
+  });
+
+  it("keys the compressor on what the side chain's bell feeds it, and on the strip's input while the chain is open", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(1_700_000_000_000);
+    const shell = await mount();
+    const store = shell.ctx.store;
+    await store.set("ch.ch1.compEqOrder", "SSMCS");
+    await store.set("ch.ch1.source", "USB MAIN A");
+    await store.set("ch.ch1.comp.on", true);
+    await store.set("ch.ch1.ssmcs.compDrive", 10);
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    shell.ctx.nav.push({ id: "ch.ssmcs.sc", strip: "ch1" });
+    await flush();
+    const reading = (): { reduction: number; output: number; key: number } => ({
+      reduction: Number.parseFloat(shell.root.querySelector<HTMLElement>(".ssmcs-gr i")?.style.height ?? ""),
+      output: meterLevels(store, "ch1@preIns", 1)[0] ?? -96,
+      key: meterLevels(store, "ch1@sideChain", 1)[0] ?? -96,
+    });
+    const at = async (scGain: number): Promise<ReturnType<typeof reading>> => {
+      await store.set("ch.ch1.ssmcs.sc.gain", scGain);
+      await flush();
+      return reading();
+    };
+    const [into = -96] = meterLevels(store, "ch1@preComp", 1);
+    const flat = await at(0);
+    expect(flat.key, "a bell of no gain passes the strip's input").toBeCloseTo(into, 6);
+    expect(flat.reduction, "the compressor is holding the strip down").toBeGreaterThan(0);
+    const up = await at(18);
+    expect(up.key, "a boost lifts the key").toBeGreaterThan(flat.key);
+    expect(up.reduction, "and the compressor takes more off").toBeGreaterThan(flat.reduction);
+    expect(up.output).toBeLessThan(flat.output);
+    expect(up.key, "a noise only across the bell's band").toBeLessThan(flat.key + 18);
+    const down = await at(-18);
+    expect(down.key, "a cut lowers the key").toBeLessThan(flat.key);
+    expect(down.reduction, "and the compressor takes less off").toBeLessThan(flat.reduction);
+    expect(down.output).toBeGreaterThan(flat.output);
+
+    tap(shell.root.querySelector(".ssmcs-sc-switch"));
+    await flush();
+    expect(store.bool("ch.ch1.ssmcs.sc.on", true), "the switch opens the chain").toBe(false);
+    const open = reading();
+    expect([open.reduction, open.output], "an open chain keys on the strip's input, the cut left out").toEqual([flat.reduction, flat.output]);
+  });
+
+  it("stands the side chain's bell as wide as the unit's, narrowing as its gain grows", () => {
+    // The biquad Q the unit's side chain runs at Q 1.00, by the gain set on it.
+    for (const [gain, q] of [
+      [18, 0.3585],
+      [12, 0.3085],
+      [6, 0.275],
+      [-6, 0.27],
+    ] as const) {
+      const unit = peakingBiquad(1000, q, gain);
+      const bell = ssmcsSideChainResponse({ q: 1, freq: 1000, gain });
+      expect(bell(1000), `${gain} dB at its frequency`).toBeCloseTo(gain, 6);
+      for (const hz of [250, 500, 2000, 4000]) expect(Math.abs(bell(hz) - biquadDb(unit, hz)), `${gain} dB at ${hz} Hz`).toBeLessThan(0.1);
+    }
+    expect(ssmcsSideChainResponse({ q: 1, freq: 1000, gain: 0 })(1000), "no gain passes everything").toBe(0);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDb, formatGain, formatPan } from "./dom";
+import { formatDb, formatGain, formatHz, formatPan } from "./dom";
 import { FocusController } from "./focus";
 import { dbSpec, faderSpec, formatValue, freqSpec, intSpec, panSpec } from "./param-spec";
 import { fractionOf } from "./widgets";
@@ -70,6 +70,13 @@ describe("value formatting", () => {
     expect(formatValue(spec, 1000)).toBe("1.00kHz");
     expect(formatValue(spec, 11800)).toBe("11.8kHz");
     expect(spec.format(80), "the box beside a caption prints the number alone").toBe("80.0");
+    for (const hz of [9996, 9997, 9998, 9999]) expect(formatHz(hz), `${hz} Hz rounds to ten kilohertz`).toBe("10.0");
+    expect(formatHz(9995), "the last frequency that rounds under it").toBe("9.99");
+    expect(formatHz(10000)).toBe("10.0");
+    const figures = (text: string): number => text.replace(".", "").length;
+    const off: number[] = [];
+    for (let hz = 20; hz <= 20000; hz++) if (figures(formatHz(hz)) !== 3) off.push(hz);
+    expect(off, "every whole hertz from 20 Hz to 20 kHz prints to three figures").toEqual([]);
   });
 });
 

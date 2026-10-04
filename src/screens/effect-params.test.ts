@@ -8,7 +8,7 @@ import { factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
 import { INTERACTIVE } from "../ui/dom";
 import { HANDLE_R, HANDLE_RING, PLOT_H, PLOT_MIN, PLOT_SPAN, PLOT_W } from "./channel";
-import { meterLevels, setMeterSource } from "./meters";
+import { blockReduction, meterLevels, readGrSpec, setMeterSource } from "./meters";
 import { buildRegistry } from "./index";
 
 // Taking an effect, setting it, and the states the unit will not let a channel
@@ -533,7 +533,8 @@ describe("the screen an effect is set on", () => {
     expect(shell.root.querySelector(".efx-page-prev"), "nothing before the first page").toBeNull();
     expect(named(), "no band is named on it").toBe("");
     // 125 Hz and 3.35 kHz stand about a quarter and three quarters across a
-    // 20 Hz..20 kHz log axis, and +2 dB about 78% of the way up a -60..+19 dB one.
+    // 20 Hz..20 kHz log axis, and +2 dB about 79% of the way up a -60..+18 dB one,
+    // the Gain's lowest step to its highest.
     const fills = [...shell.root.querySelectorAll(".mbc-fill")].map((r) => ({
       x: Number(r.getAttribute("x")),
       width: Number(r.getAttribute("width")),
@@ -541,7 +542,17 @@ describe("the screen an effect is set on", () => {
     }));
     expect(fills.map((f) => Math.round(f.x))).toEqual([0, 70, 195]);
     expect(fills.map((f) => Math.round(f.x + f.width)), "each band reaches the next crossover").toEqual([70, 195, 263]);
-    expect(fills.map((f) => Math.round(f.y)), "and stands as high as its own gain").toEqual([37, 37, 37]);
+    const low = async (step: number): Promise<number[]> => {
+      await shell.ctx.store.set("ch.bus.stereo.insFx.lowGain", step);
+      await flush();
+      const fill = shell.root.querySelector(".mbc-fill-low");
+      return [Number(fill?.getAttribute("y")), Number(fill?.getAttribute("height"))];
+    };
+    const plotH = Number(shell.root.querySelector(".mbc-fill-low")?.closest("svg")?.getAttribute("viewBox")?.split(" ")[3]);
+    expect(await low(55), "the Gain's top step fills the plot to its top").toEqual([0, plotH]);
+    expect(await low(1), "and its lowest leaves it empty").toEqual([plotH, 0]);
+    await low(39);
+    expect(fills.map((f) => Math.round(f.y)), "and stands as high as its own gain").toEqual([35, 35, 35]);
     expect(shell.root.querySelector(".efx-cell .value-box.is-focused")?.textContent, "Out Gain opens framed").toBe("4");
 
     for (const band of ["Low", "Mid", "High"]) {
@@ -1142,6 +1153,51 @@ describe("a compander", () => {
       const bars = (): string[] => [...shell.root.querySelectorAll<HTMLElement>(".mbc-gr-bars .dyn-gr i")].map((n) => n.style.height);
       // Every band's threshold ships at -20 dB, 14 dB under the level.
       expect(bars()).toEqual(Array(3).fill(`${grBarShare(14) * 100}%`));
+    } finally {
+      setMeterSource(null);
+    }
+  });
+
+  /** The M.B.Comp bands' reduction bars: their heights, and what the ticker works each out again as. */
+  const mbcBars = (shell: Shell): { heights: string[]; ticked: number[]; switched: boolean[] } => {
+    const nodes = [...shell.root.querySelectorAll<HTMLElement>(".mbc-gr-bars .dyn-gr")];
+    return {
+      heights: nodes.map((n) => n.querySelector<HTMLElement>("i")?.style.height ?? ""),
+      ticked: nodes.map((n) => {
+        const spec = readGrSpec(n);
+        return spec ? blockReduction(shell.ctx.store, spec) : NaN;
+      }),
+      switched: nodes.map((n) => n.dataset["grOn"] !== undefined),
+    };
+  };
+
+  it("holds no M.B.Comp band down while the INS FX is switched off", async () => {
+    setMeterSource(() => [-6]);
+    try {
+      const shell = await openParams("bus.mix1", "M.B.Comp");
+      const held = `${grBarShare(14) * 100}%`;
+      expect(mbcBars(shell).heights, "on, every band is held 14 dB down").toEqual([held, held, held]);
+      await click(shell, ".badge-title");
+      expect(shell.ctx.store.bool("ch.bus.mix1.insFx.on", true), "the title switches the INS FX off").toBe(false);
+      expect(mbcBars(shell)).toEqual({ heights: ["0%", "0%", "0%"], ticked: [0, 0, 0], switched: [true, true, true] });
+    } finally {
+      setMeterSource(null);
+    }
+  });
+
+  it("holds a bypassed M.B.Comp band down by nothing, and leaves the other bands as they were", async () => {
+    setMeterSource(() => [-6]);
+    try {
+      const shell = await openParams("bus.mix1", "M.B.Comp");
+      const share = (db: number): string => `${grBarShare(db) * 100}%`;
+      await shell.ctx.store.set("ch.bus.mix1.insFx.lowThreshold", -40);
+      await flush();
+      expect(mbcBars(shell).heights, "Low's threshold 34 dB under the level").toEqual([share(34), share(14), share(14)]);
+      await click(shell, ".efx-page-next");
+      expect(shell.root.querySelector(".mbc-band-name")?.textContent).toBe("Low");
+      await click(shell, ".mbc-bypass");
+      expect(shell.ctx.store.bool("ch.bus.mix1.insFx.lowBypass", false), "Low's [Bypass] is in").toBe(true);
+      expect(mbcBars(shell)).toEqual({ heights: ["0%", share(14), share(14)], ticked: [0, 14, 14], switched: [true, true, true] });
     } finally {
       setMeterSource(null);
     }

@@ -207,8 +207,8 @@ Dynamics threshold and range are integer dB (`-33dB` / `-20dB`, p099-1 / p103-1)
 has one decimal place (`18.0dB`). A time is spelled differently for the same value: `34.58m` in the
 panel's value box and `34.58ms` on the readout bar (p099-1 / p103-1). A time that can go past one
 second switches to seconds from 1000 ms (`4.8s`, p114-1). No space goes before the unit. Frequency
-has one decimal place and switches to kHz from 1 kHz, and a value box that has a caption shows no
-unit (`80.0` and `80.0Hz`, p100-1).
+is read to three figures (`80.0Hz` / `440Hz` / `1.00kHz` / `11.8kHz`) and switches to kHz from 1 kHz, and a value
+box that has a caption shows no unit (`80.0` and `80.0Hz`, p100-1).
 
 HI-Z belongs to the input jack, not to every MIC/LINE connector: MIC/LINE 3 and 4 on the URX44 and
 URX44V, MIC/LINE 2 on the URX22. On a channel that is not on one of those, that cell of the head amp
@@ -479,9 +479,12 @@ bars (x209..224 / y86..100 in p096-2), and keeps `--accent-focus-fill` whether o
 (x305..320 / y87..101 and x350..376 / y89..98 in p096-4), its curve and the area under it in `--eq-focus-edge`,
 `--eq-focus-line` and `--eq-focus-fill` whether or not the block holds the focus.
 
-The GATE lamps light by comparing the input level with the threshold (p95): the middle one yellow
-while the level is below it, the right one green when above, and the left one red when the gain
-reduction has reached RANGE and the gate is fully closed. No lamp lights while GATE is off.
+The GATE lamps light by the gain reduction (p95): the left one red when it has reached RANGE and the
+gate is fully closed, the middle one yellow while the gate is opening or closing, and the right one
+green when the reduction is 0 dB and the gate is fully open. This simulator's GATE closes to RANGE as
+soon as the input is at or under the threshold and opens as soon as it is over, so the yellow one does
+not light ([known-issues.md](known-issues.md)). Silence at the shipped Threshold -50 dB and Range -56 dB
+lights the left one. No lamp lights while GATE is off.
 
 A DUCKER can listen to every input channel, mono and stereo alike, and to the STEREO, MIX 1 and MIX 2
 buses. The list names a channel by its numbers alone (`1`, `5/6`), the stereo bus `ST`, and a MIX bus
@@ -798,7 +801,8 @@ M.B.Comp sets out no panels: like the companders it is drawn in the frame the ch
 arrows the other effects use.
 
 The first page carries the bands themselves. The plot runs frequency across it (20 Hz to 20 kHz,
-logarithmic) and band gain up it. Each band is filled from the crossover beside it to the next, as high as
+logarithmic) and band gain up it, from the Gain's lowest step, -60 dB, to its highest, +18 dB. Each
+band is filled from the crossover beside it to the next, as high as
 its gain: Low in the transfer curve's own line colour, Mid and High in theirs. Five grips stand on it — L,
 M and H at the middle of their band, moved up and down for its gain, and LM and MH where two bands meet,
 moved across for the crossover. Out Gain stands to the right on a panel of its own (caption, value box and
@@ -1293,19 +1297,21 @@ and URX44 run the same laws, bar the number of channels.
 - The detectors of GATE, COMP, DUCKER, the SSMCS compressor and M.B.Comp hear
   a set distance off the meter's reading, set by the block and by whether the signal is a tone or a noise
   (`DETECTOR_OFFSET`). A DUCKER keyed by a stereo source (a stereo channel or a bus) hears from the two
-  sides summed. A channel key is taken at that channel's Rec Point.
+  sides summed. A channel key is taken at that channel's Rec Point. The SSMCS compressor hears the SSMCS input taken through
+  the side chain's bell (SC-Q, SC-Freq., SC-Gain) as the EQ takes a signal while the side chain is on, and the input
+  itself while it is off.
 
 ### What each meter reads
 
 | Meter | What it reads |
 | --- | --- |
-| A HOME strip's meter | On a channel, MIX and STEREO, after the EQ and INS FX and before [ON] and the fader; on FX, the effect's output; on STREAMING, before its DELAY |
+| A HOME strip's meter | On a channel, after the EQ and INS FX and before [ON] and the fader; on MIX and STEREO, after the EQ and before [ON], the fader and the INS FX; on FX, the effect's output; on STREAMING, before its DELAY |
 | The two dots in a HOME strip's indicator block | On a channel, its input; on FX, the effect's output; on MIX and STEREO, the sum (before the EQ) |
 | HOME's STEREO/CUE meter | The stereo bus after its INS FX; the cue while anything is cued |
 | The channel view's LEVEL meter | After the fader (on MIX and STEREO, after the INS FX; on STREAMING, after its DELAY) |
 | The channel view's input area and the INPUT screen's meters | On a channel, its input; on FX, what its bus brings (one bar); on MIX and STEREO, the sum (before the EQ); on STREAMING, before its DELAY |
 | A block screen's IN / OUT | The block's own input and output; the three SSMCS screens the whole strip's, DELAY's OUT after the delay |
-| The COMP Side Chain screen's SC meter | The SSMCS input plus the SC-Gain |
+| The COMP Side Chain screen's SC meter | The SSMCS input through the side chain's bell (SC-Q, SC-Freq., SC-Gain) |
 | The MONITOR screen's meter | After the LEVEL |
 | A RECORDER track's meter | A channel at its Rec Point, a bus as it goes out |
 | OUT on RECORDER's Play and Edit tabs | What the file playing puts out (after microSD Playback's D.Gain); silent while stopped or paused (after [■] and paused, URX44V, the operator, 2026-10-03) |
@@ -1314,8 +1320,8 @@ and URX44 run the same laws, bar the number of channels.
   The right dot lights only while the level clips (0 dB).
 - While the level just ahead of a fader clips, the meter just after the fader reads the clip even with [ON]
   off and the fader down (on MONO IN and FX the LEVEL meter, on a stereo channel the one before DUCKER, on
-  MIX and STEREO the one before the INS FX). The meters after DUCKER and the INS FX do not, and nothing of
-  it goes on.
+  MIX and STEREO the one before the INS FX). The two sides read apart: a side that does not clip reads its
+  own level. The meters after DUCKER and the INS FX do not, and nothing of it goes on.
 - Bars, clip marks and the indicator dots rise at once and fall at 30 dB a second. Reduction bars carry
   no tail.
 
@@ -1451,13 +1457,18 @@ and the format lists' values at 12.5px, and stands the `Date` / `Time` headings 
 them (p064-1). The [Time Zone] box stands a pixel right of the [Date/Time] box (x145..366 and x144..365 in p064-1).
 
 The clock keeps a moment that runs with the computer's clock and shows it in the time zone [Time Zone] is set to,
-so a new zone moves the date and time on the button; a unit as it ships is on Tokyo. A zone keeps its standard
-time all year, with no summer time, as the unit does ([known-issues.md](known-issues.md)). [OK] on the
+so a new zone moves the date and time on the button; a unit as it ships is on Tokyo. A city keeps one time ahead of
+or behind UTC, the same all year and in every year, with no summer time, as the unit does
+([known-issues.md](known-issues.md)). [OK] on the
 [Date/Time] dialog sets the clock to the start of the minute the dialog holds, in that zone, and it runs on from
 there. The dialog's Day stops at the last day of the month its Year and Month hold (28 in February 2026), and a
-Day past it comes down to that day as the Year or Month turns (both confirmed on the unit). The clock keeps
-running through a reload, and a settings file does not carry it (it carries the time zone and the display
-formats).
+Day past it comes down to that day as the Year or Month turns (both confirmed on the unit). The dialog's Year runs
+from 2000 to 2099 and turns round: the step after 2099 is 2000, and the one before 2000 is 2099. The clock itself runs
+on out of that range (past the end of 2099, or back before the start of 2000 under a zone further west), and the button
+and the dialog read the year it is in; a step of the dialog's Year takes that year into the range, which repeats every
+hundred years (from 2100, up to 2001 and down to 2099). What the unit's screens read across those turns of the year is in
+[known-issues.md](known-issues.md). The clock keeps running through a reload, and a settings file does not carry it (it
+carries the time zone and the display formats).
 
 SOFTWARE INTEGRATION sets `Post Fader Send for FX` at 13px in the middle of the band's width (x18..401) and `for FX1` /
 `for FX2` at 12.5px from x136, both in `--peripheral-text`, and sets its toolbar title at 12.5px (p065-1).

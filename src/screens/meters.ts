@@ -9,12 +9,12 @@
 
 import type { AppContext } from "../app/context";
 import type { DeviceStore } from "../device/store";
-import { grBarShare, levelBarShare } from "../model/dynamics";
+import { gateReductionDb, grBarShare, levelBarShare } from "../model/dynamics";
 import { DETECTOR_OFFSET, type DetectorKind, METER_FALL_DB_PER_S, SIGNAL_LAMP_DB } from "../model/levels";
 import { SILENT_DB } from "../model/signal";
 import type { Strip } from "../model/types";
 import { GATE_DEFAULTS } from "../model/defaults";
-import { CLIP_DB, type GrSpec, type Tap, clipSafe, flowCtx, flowLanes, flowLevels, heardOn, pairMembers, readingMoment, reductionAt, tapId } from "./signal-flow";
+import { CLIP_DB, type GrSpec, METER_TICK_MS, type Tap, clipSafe, flowCtx, flowLanes, flowLevels, heardOn, pairMembers, readingMoment, reductionAt, tapId } from "./signal-flow";
 
 export { CUE_METER, type GrSpec, clipSafe, oscillatorLevel, pairMeterId, tapId } from "./signal-flow";
 
@@ -44,9 +44,10 @@ export function setMeterSource(next: MeterSource | null): void {
 export const inputMeterId = (stripId: string): string => tapId(stripId, "input");
 
 /**
- * Where a strip's meter on HOME reads: a channel and a bus after its EQ and
- * insert and before its [ON] and fader, an FX channel off its effect, STREAMING
- * before its DELAY.
+ * Where a strip's meter on HOME reads: a channel after its EQ and insert and
+ * before its [ON] and fader, a MIX or STEREO bus after its EQ and before its
+ * [ON], fader and insert, an FX channel off its effect, STREAMING before its
+ * DELAY.
  */
 export function homeMeterTap(strip: Strip): Tap {
   if (strip.kind === "fx") return "effect";
@@ -64,16 +65,11 @@ export function lampTap(strip: Strip): Tap {
   return "input";
 }
 
-/** Meter values in dB for one strip at `tap`: one entry for mono, two for stereo. */
+/** Meter values in dB for one strip at `tap` as a screen draws them: one entry for mono, two for stereo. */
 export function simulatedLevel(ctx: AppContext, strip: Strip | undefined, stereo: boolean, tap: Tap = "post"): number[] {
   const channels = stereo ? 2 : 1;
   if (!strip) return Array.from({ length: channels }, () => SILENT);
-  return meterLevels(ctx.store, tapId(strip.id, tap), channels);
-}
-
-/** A channel's level as it arrives, before anything on it: what the INPUT screen and the channel view's input meter read. */
-export function simulatedInput(ctx: AppContext, strip: Strip, stereo: boolean): number[] {
-  return meterLevels(ctx.store, inputMeterId(strip.id), stereo ? 2 : 1);
+  return drawnLevels(ctx.store, tapId(strip.id, tap), channels);
 }
 
 /** Draw `node`, a Clip Safe switch, as holding the gain down or not. */
@@ -96,7 +92,9 @@ export function markClipSafe(store: DeviceStore, node: HTMLElement, connector: S
  * tap id (a bare strip id reads what the strip puts out), a monitor bus as
  * `monitor.<n>`, the cue bus, the oscillator, the card's playback, or two of
  * them side by side. `at` is the moment the synthetic signal is read at, so two
- * readings can be taken of the same instant.
+ * readings can be taken of the same instant. A device's reading that is not a
+ * number reads as nothing, and one over 0 dB, +Infinity included, as a clip at
+ * 0 dB.
  */
 export function meterLevels(store: DeviceStore, id: string, channels: number, at = readingMoment()): number[] {
   const members = pairMembers(id);
@@ -106,7 +104,7 @@ export function meterLevels(store: DeviceStore, id: string, channels: number, at
       return member === undefined ? SILENT : (meterLevels(store, member, 1, at)[0] ?? SILENT);
     });
   }
-  if (source) return source(id, channels);
+  if (source) return source(id, channels).map((db) => (Number.isNaN(db) ? SILENT : Math.min(db, CLIP_DB)));
   const levels = flowLevels(flowCtx(store), id, at);
   return Array.from({ length: channels }, (_, c) => levels[c] ?? SILENT);
 }
@@ -124,11 +122,28 @@ export function shownLevels(store: DeviceStore, id: string, channels: number, at
   return meterLevels(store, id, channels, at).map((db, lane) => {
     const key = `${id}#${lane}`;
     const was = seen.get(key);
-    const fallen = was ? was.db - (METER_FALL_DB_PER_S * Math.max(0, at - was.at)) / 1000 : SILENT;
+    const fell = was ? was.db - (METER_FALL_DB_PER_S * Math.max(0, at - was.at)) / 1000 : SILENT;
+    // A held level that is not a finite number holds nothing.
+    const fallen = Number.isFinite(fell) ? fell : SILENT;
     const now = Math.max(db, fallen, SILENT);
     seen.set(key, { db: now, at });
     return now;
   });
+}
+
+/** Whether the ticker moves the meters: under reduced motion they stand as drawn. */
+function metersMove(): boolean {
+  return !(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false);
+}
+
+/**
+ * Meter values as a screen draws them when it is built: where the ticker has the
+ * bar at that moment, so a bar falling when the screen is drawn again goes on
+ * falling from where it stood. While the meters stand still under reduced
+ * motion, what the meter reads.
+ */
+export function drawnLevels(store: DeviceStore, id: string, channels: number, at = readingMoment()): number[] {
+  return metersMove() ? shownLevels(store, id, channels, at) : meterLevels(store, id, channels, at);
 }
 
 /**
@@ -155,8 +170,8 @@ export type LampState = "off" | "open" | "holding" | "shut";
 
 /**
  * How the lamps of the block named by `spec` stand: GATE opens over its threshold
- * and shuts a range under it, DUCKER opens under its threshold on its key and
- * shuts a range over it. A block that is off lights none.
+ * and shuts once it takes off its whole range, DUCKER opens under its threshold on
+ * its key and shuts a range over it. A block that is off lights none.
  */
 export function blockLampState(store: DeviceStore, spec: GrSpec, at = readingMoment()): LampState {
   const level = detectorLevel(store, spec, at);
@@ -165,7 +180,8 @@ export function blockLampState(store: DeviceStore, spec: GrSpec, at = readingMom
     if (!store.bool(`${b}.gate.on`, false)) return "off";
     const threshold = store.num(`${b}.gate.threshold`, GATE_DEFAULTS.threshold);
     const range = store.num(`${b}.gate.range`, GATE_DEFAULTS.range);
-    return level > threshold ? "open" : level <= threshold + range ? "shut" : "holding";
+    if (level > threshold) return "open";
+    return gateReductionDb(level, threshold, range) >= -range ? "shut" : "holding";
   }
   if (spec.kind === "ducker") {
     if (!store.bool(`${b}.ducker.on`, false)) return "off";
@@ -199,7 +215,7 @@ export function markLevelBar(node: HTMLElement, store: DeviceStore, source: stri
 
 function showLevelBar(node: HTMLElement, store: DeviceStore, at?: number): void {
   const id = node.dataset["levelBar"] ?? "";
-  const level = (at === undefined ? meterLevels(store, id, 1) : shownLevels(store, id, 1, at))[0] ?? SILENT;
+  const level = (at === undefined ? drawnLevels(store, id, 1) : shownLevels(store, id, 1, at))[0] ?? SILENT;
   const lit = node.querySelector<HTMLElement>("i");
   if (lit) lit.style.width = `${levelBarShare(level) * 100}%`;
 }
@@ -214,6 +230,7 @@ export function markReduction(node: HTMLElement, spec: GrSpec): void {
   if (spec.detector) node.dataset["grDetector"] = spec.detector;
   if (spec.threshold) node.dataset["grThreshold"] = `${spec.threshold.fallback} ${spec.threshold.path}`;
   if (spec.on) node.dataset["grOn"] = `${spec.on.fallback ? 1 : 0} ${spec.on.path}`;
+  if (spec.bypass) node.dataset["grBypass"] = spec.bypass;
 }
 
 const isDetector = (v: string | undefined): v is DetectorKind => v !== undefined && v in DETECTOR_OFFSET;
@@ -233,6 +250,7 @@ export function readGrSpec(node: HTMLElement): GrSpec | null {
     ...(isDetector(node.dataset["grDetector"]) ? { detector: node.dataset["grDetector"] } : {}),
     ...(threshold ? { threshold: { fallback: Number(threshold[0]), path: threshold[1] ?? "" } } : {}),
     ...(on ? { on: { fallback: on[0] === "1", path: on[1] ?? "" } } : {}),
+    ...(node.dataset["grBypass"] ? { bypass: node.dataset["grBypass"] } : {}),
   };
 }
 
@@ -243,8 +261,7 @@ export function readGrSpec(node: HTMLElement): GrSpec | null {
  * tag, and whether each Clip Safe switch marked by `markClipSafe` is holding the
  * gain down.
  */
-export function startMeterTicker(store: DeviceStore, root: HTMLElement, intervalMs = 100): () => void {
-  const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+export function startMeterTicker(store: DeviceStore, root: HTMLElement, intervalMs = METER_TICK_MS): () => void {
   const showClipSafes = (): void => {
     for (const node of root.querySelectorAll<HTMLElement>("[data-clip-safe]")) {
       showClipSafe(node, clipSafe(store, Number(node.dataset["clipSafe"])).engaged);
@@ -252,7 +269,7 @@ export function startMeterTicker(store: DeviceStore, root: HTMLElement, interval
   };
   const id = window.setInterval(() => {
     // Clip Safe's colour is a state rather than motion, so it keeps up with reduced motion as well.
-    if (reduceMotion) return showClipSafes();
+    if (!metersMove()) return showClipSafes();
     const at = Date.now();
     for (const node of root.querySelectorAll<HTMLElement>("[data-gr-kind]")) {
       const spec = readGrSpec(node);

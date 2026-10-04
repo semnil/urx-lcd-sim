@@ -125,6 +125,8 @@ export const dateTimeSetScreen: ScreenDef = {
             {
               ...intSpec(`${DRAFT}.${f.key}`, f.label, f.min, f.key === "day" ? lastDay : f.max, f.fallback),
               format: (v) => pad(v, f.width),
+              // The Year runs on from 2099 to 2000 and back, and a year the clock has run out of the range into turns into it.
+              ...(f.key === "year" ? { wraps: true } : {}),
             },
             "dt-box",
             // A popup's own fields wear no border.

@@ -26,6 +26,7 @@ describe("the meter ticker", () => {
   afterEach(() => {
     setMeterSource(null);
     vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 
   it("lights the clip dots when the level reaches the top, and puts them out below it", () => {
@@ -51,6 +52,26 @@ describe("the meter ticker", () => {
     level = 0;
     vi.advanceTimersByTime(60);
     expect([unlit(root), dots(root)], "the top of the bar lights the dot").toEqual([["0%"], [true]]);
+    stop();
+  });
+
+  it("stands the meters still once reduced motion is switched on while it runs, and moves them again once it is off", () => {
+    const reduce = { matches: false, media: "(prefers-reduced-motion: reduce)" };
+    vi.stubGlobal("matchMedia", (query: string) => (query === reduce.media ? reduce : { matches: false, media: query }));
+    level = -18;
+    const { root, stop } = run(meter({ levels: [-18], source: "probe" }));
+    const mark = (): void => root.querySelector<HTMLElement>(".meter-bar")?.style.setProperty("--unlit", "12.345%");
+    const moving = (11 / 21) * 100;
+    mark();
+    vi.advanceTimersByTime(60);
+    expect(Number.parseFloat(unlit(root)[0] ?? ""), "redrawn while the meters move").toBeCloseTo(moving, 9);
+    reduce.matches = true;
+    mark();
+    vi.advanceTimersByTime(60);
+    expect(unlit(root), "left as it stood once reduced motion is on").toEqual(["12.345%"]);
+    reduce.matches = false;
+    vi.advanceTimersByTime(60);
+    expect(Number.parseFloat(unlit(root)[0] ?? ""), "redrawn again once it is off").toBeCloseTo(moving, 9);
     stop();
   });
 });
@@ -262,6 +283,54 @@ describe("a channel on a MIC/LINE connector", () => {
     await store.set("ch.ch3.gain", 80);
     expect(input(store, "ch3", at + 8_000)[0], "a clip through the hold shows").toBeGreaterThanOrEqual(0);
     expect(clipSafe(store, 3, at + 12_000), "past 5 s from the clip at 5.1 s, within 5 s of the one at 8 s").toEqual({ engaged: true, reduction: 23 });
+  });
+
+  it("holds a past moment down as it held it then, read back after a pause in the readings", async () => {
+    // At +60 the moment it is let back up clips again; at 0 it does not.
+    for (const after of [60, 0]) {
+      const store = await unit();
+      await store.set("ch.ch3.gain", 60);
+      await store.set("ch.ch3.clipSafe", true);
+      expect(clipSafe(store, 3, at).reduction, `${after}: the clip`).toBe(0);
+      await store.set("ch.ch3.gain", after);
+      expect(clipSafe(store, 3, at + 100).reduction, `${after}: held down after it`).toBe(23);
+      expect(clipSafe(store, 3, at + 5_100).reduction, `${after}: let back up, read after a pause of 5 s`).toBe(0);
+      expect(clipSafe(store, 3, at + 4_100), `${after}: 4.1 s, inside the hold`).toEqual({ engaged: true, reduction: 23 });
+      expect(clipSafe(store, 3, at + 5_050), `${after}: 5.05 s, past it`).toEqual({ engaged: false, reduction: 0 });
+    }
+    // Paused at the clip itself: the hold the pauses pass over, and the moment after it.
+    const store = await unit();
+    await store.set("ch.ch3.gain", 60);
+    await store.set("ch.ch3.clipSafe", true);
+    expect(clipSafe(store, 3, at).reduction).toBe(0);
+    expect(clipSafe(store, 3, at + 700).reduction, "held down, read after a pause of 0.7 s").toBe(23);
+    expect(clipSafe(store, 3, at + 40).reduction, "40 ms, within half a tick of the clip, as that reading found it").toBe(0);
+    expect(clipSafe(store, 3, at + 70).reduction, "70 ms, further from it, inside the hold").toBe(23);
+    expect(clipSafe(store, 3, at + 1_500).reduction, "held down, read after a pause of 0.8 s").toBe(23);
+    expect(clipSafe(store, 3, at + 600).reduction, "0.6 s, inside the hold").toBe(23);
+    expect(clipSafe(store, 3, at + 6_000).reduction, "let back up, read after a pause of 4.5 s").toBe(0);
+    expect(clipSafe(store, 3, at + 5_000).reduction, "5 s, the hold's last moment").toBe(23);
+    expect(clipSafe(store, 3, at + 5_001).reduction, "and just past it").toBe(0);
+    // At +80 a clip read while it is held down holds it down 5 s after that one.
+    const held = await unit();
+    await held.set("ch.ch3.gain", 80);
+    await held.set("ch.ch3.clipSafe", true);
+    expect(clipSafe(held, 3, at).reduction).toBe(0);
+    expect(clipSafe(held, 3, at + 100).reduction, "a clip through the hold").toBe(23);
+    expect(clipSafe(held, 3, at + 5_200).reduction, "let back up, read after a pause of 5.1 s").toBe(0);
+    expect(clipSafe(held, 3, at + 5_050), "5.05 s, inside the hold the clip at 0.1 s lengthened").toEqual({ engaged: true, reduction: 23 });
+  });
+
+  it("takes a past moment's reduction from the nearest moment read within half a tick of it", async () => {
+    const store = await unit();
+    await store.set("ch.ch3.gain", 60);
+    await store.set("ch.ch3.clipSafe", true);
+    // The clip, and a reading between the ticks 30 ms after it, such as a screen drawn then.
+    expect(clipSafe(store, 3, at).reduction).toBe(0);
+    expect(clipSafe(store, 3, at + 30).reduction).toBe(23);
+    expect(clipSafe(store, 3, at + 500).reduction).toBe(23);
+    expect(clipSafe(store, 3, at + 10).reduction, "nearer the clip").toBe(0);
+    expect(clipSafe(store, 3, at + 20).reduction, "nearer the reading after it").toBe(23);
   });
 
   it("forgets what it heard when Clip Safe is switched off", async () => {

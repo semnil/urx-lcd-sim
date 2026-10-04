@@ -42,7 +42,7 @@ const zoneOf = (store: DeviceStore): string => store.str("setup.dateTime.timeZon
 /** The unit's clock at `at`, as its time zone reads it. */
 export function clockParts(store: DeviceStore, at = Date.now()): ClockParts {
   const instant = at + store.num(CLOCK_OFFSET, 0);
-  const d = new Date(instant + zoneOffsetMs(zoneOf(store), instant));
+  const d = new Date(instant + zoneOffsetMs(zoneOf(store)));
   return {
     year: d.getUTCFullYear(),
     month: d.getUTCMonth() + 1,
@@ -61,7 +61,6 @@ export function setClock(store: DeviceStore, time: ClockTime, at = Date.now()): 
   const zone = zoneOf(store);
   const day = Math.min(time.day, daysInMonth(time.year, time.month));
   const wall = Date.UTC(time.year, time.month - 1, day, time.hour, time.minute, 0, 0);
-  const guess = wall - zoneOffsetMs(zone, wall);
-  const instant = wall - zoneOffsetMs(zone, guess);
+  const instant = wall - zoneOffsetMs(zone);
   return store.set(CLOCK_OFFSET, instant - at);
 }

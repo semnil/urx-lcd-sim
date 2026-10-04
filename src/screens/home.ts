@@ -36,7 +36,7 @@ import {
   stripLane,
   stripLanes,
 } from "./strip-state";
-import { CUE_METER, homeMeterTap, lampState, lampTap, meterLevels, simulatedLevel, tapId } from "./meters";
+import { CUE_METER, drawnLevels, homeMeterTap, lampState, lampTap, simulatedLevel, tapId } from "./meters";
 import { sceneNumber, sceneTitle } from "./scene";
 
 /**
@@ -388,7 +388,7 @@ export function homeSide(ctx: AppContext): HTMLElement[] {
     class: `master-meter${cueActive ? " is-cue" : ""}`,
     children: [
       ...(cueActive ? [el("div", { class: "cue-label", text: "CUE" })] : []),
-      meter({ levels: meterLevels(ctx.store, masterMeterId, 2), source: masterMeterId }),
+      meter({ levels: drawnLevels(ctx.store, masterMeterId, 2), source: masterMeterId }),
       ...(cueActive
         ? [
             el("button", {

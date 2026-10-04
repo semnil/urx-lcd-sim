@@ -684,8 +684,10 @@ describe("the pair of lamps at the top of a strip's indicator block", () => {
     };
   };
 
+  /** The lamps once they have come to rest on `db`: they fall 30 dB a second, so four seconds on. */
   const atLevel = async (shell: Shell, db: number): Promise<{ signal: boolean; clip: boolean }> => {
     setMeterSource((_, channels) => Array.from({ length: channels }, () => db));
+    vi.setSystemTime(Date.now() + 4000);
     shell.ctx.repaint();
     await flush();
     return lamps(shell);
@@ -693,6 +695,7 @@ describe("the pair of lamps at the top of a strip's indicator block", () => {
 
   it("lights the left one green from -40 dB up and the right one where the meter clips, the left one staying lit", async () => {
     const shell = await mount();
+    vi.useFakeTimers({ toFake: ["Date"] });
     try {
       expect(await atLevel(shell, -20)).toEqual({ signal: true, clip: false });
       expect(await atLevel(shell, -39), "just over -40 dB is signal").toEqual({ signal: true, clip: false });
@@ -702,6 +705,7 @@ describe("the pair of lamps at the top of a strip's indicator block", () => {
       expect(await atLevel(shell, -96), "a silent channel lights neither").toEqual({ signal: false, clip: false });
     } finally {
       setMeterSource(null);
+      vi.useRealTimers();
     }
   });
 
@@ -728,6 +732,48 @@ describe("the pair of lamps at the top of a strip's indicator block", () => {
       await flush();
       const stream = [...shell.root.querySelectorAll(".strip")].find((n) => n.getAttribute("aria-label")?.startsWith("STREAMING"));
       expect(stream?.querySelector<HTMLElement>(".strip-mid .meter")?.dataset["meterSource"], "STREAMING before its DELAY").toBe("bus.stream@input");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("read a MIX bus's meter on HOME after its EQ, before its fader and the INS FX that follows the fader", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(1_700_000_000_000);
+    try {
+      const shell = await mount();
+      const store = shell.ctx.store;
+      for (const [path, value] of [
+        ["osc.on", true],
+        ["osc.assign.stereoL", false],
+        ["osc.assign.stereoR", false],
+        ["osc.assign.mix1L", true],
+        ["osc.assign.mix1R", true],
+        ["ui.bankSide", "output"],
+      ] as const) {
+        await store.set(path, value);
+      }
+      await flush();
+      const mix1 = [...shell.root.querySelectorAll(".strip")].find((n) => n.getAttribute("aria-label")?.startsWith("MIX 1"));
+      const source = mix1?.querySelector<HTMLElement>(".strip-mid .meter")?.dataset["meterSource"] ?? "";
+      const home = (): number[] => meterLevels(store, source, 2);
+      const output = (): number[] => meterLevels(store, "bus.mix1@post", 2);
+      const shipped = home();
+      const [level = -96] = shipped;
+      expect(level, "the tone reaches the meter").toBeGreaterThan(-40);
+      await store.set("ch.bus.mix1.insFx.effect", "M.B.Comp");
+      await store.set("ch.bus.mix1.insFx.on", true);
+      await store.set("ch.bus.mix1.insFx.outGain", 12);
+      expect(output()[0], "the INS FX lifts what the bus puts out").toBeGreaterThan(level + 6);
+      expect(home(), "and leaves HOME's meter where it was").toEqual(shipped);
+      await store.set("ch.bus.mix1.insFx.outGain", -12);
+      expect(home(), "the other way too").toEqual(shipped);
+      await store.set("ch.bus.mix1.level", store.num("ch.bus.mix1.level", 0) - 20);
+      expect(output()[0], "the fader takes the output down").toBeLessThan(level - 20);
+      expect(home(), "and not HOME's meter").toEqual(shipped);
+      await store.set("ch.bus.mix1.eq.low.shape", "HPF");
+      await store.set("ch.bus.mix1.eq.low.freq", 2000);
+      expect(home()[0], "the bus's EQ moves HOME's meter").toBeLessThan(level - 6);
     } finally {
       vi.useRealTimers();
     }
@@ -1295,8 +1341,9 @@ describe("what a channel view's blocks draw", () => {
     expect([firstPoint(curves[0])[0], lastX], "across the whole panel").toEqual([0, 78]);
     expect(firstPoint(curves[1])[1]! - firstPoint(curves[0])[1]!, "the lighter row half a pixel down").toBe(0.5);
 
-    // The lamps read the signal against the threshold and the range: shut, held
-    // under the threshold, or passing. A gate that is off lights none of them.
+    // The lamps read what the gate takes off: shut once it takes off its whole
+    // range, which it does at once at or under the threshold, and passing over
+    // it. A gate that is off lights none of them.
     const lamps = (): string[] =>
       [...shell.root.querySelectorAll(".block-lamp")].map((l) =>
         l.classList.contains("is-on")
@@ -1317,7 +1364,7 @@ describe("what a channel view's blocks draw", () => {
     await shell.ctx.store.set("ch.ch1.gate.on", true);
     await shell.ctx.store.set("ch.ch1.gate.range", -60);
     await flush();
-    expect(lamps(), "under the threshold but not yet down to the range").toEqual(["", "hold", ""]);
+    expect(lamps(), "under the threshold, shut to a range deeper than the level").toEqual(["shut", "", ""]);
 
     await shell.ctx.store.set("ch.ch1.gate.range", -10);
     await flush();
@@ -1326,6 +1373,35 @@ describe("what a channel view's blocks draw", () => {
     await shell.ctx.store.set("ch.ch1.gate.threshold", -96);
     await flush();
     expect(lamps(), "over the threshold").toEqual(["", "", "on"]);
+  });
+
+  it("shuts the gate's lamps on silence at its factory threshold and range, while its reduction bar reads the whole range", async () => {
+    const shell = await mount();
+    const store = shell.ctx.store;
+    expect([store.num("ch.ch1.gate.threshold", 0), store.num("ch.ch1.gate.range", 0)], "the factory values").toEqual([-50, -56]);
+    await store.set("ch.ch1.source", "None");
+    await store.set("ch.ch1.gate.on", true);
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    await flush();
+    const lamps = (): string[] =>
+      [...shell.root.querySelectorAll(".block-lamp")].map((l) =>
+        l.classList.contains("is-on") ? "on" : l.classList.contains("is-holding") ? "hold" : l.classList.contains("is-shut") ? "shut" : "",
+      );
+    expect(lamps(), "the left lamp red").toEqual(["shut", "", ""]);
+    // A level at the threshold itself has the gate take off its whole range, and one just over it none.
+    for (const [db, lit] of [[-50, ["shut", "", ""]], [-49, ["", "", "on"]]] as const) {
+      setMeterSource(() => [db]);
+      try {
+        shell.ctx.repaint();
+        await flush();
+        expect(lamps(), `at ${db} dB`).toEqual(lit);
+      } finally {
+        setMeterSource(null);
+      }
+    }
+    shell.ctx.nav.push({ id: "ch.gate", strip: "ch1" });
+    await flush();
+    expect(shell.root.querySelector<HTMLElement>(".dyn-gr i")?.style.height, "the bar at 56 dB").toBe(`${grBarShare(56) * 100}%`);
   });
 
   it("lights the ducker's lamps for its source against the threshold and the range", async () => {
@@ -6060,6 +6136,50 @@ describe("the head amp belongs to the connector a channel is on", () => {
         shell.ctx.nav.replace({ id: "channel-view", strip });
         await flush();
         expect(unlit(".cv-gain-row"), `${strip} reads what it takes in there, on one bar`).toEqual([`${(1 - levelBarShare(-30)) * 100}%`]);
+      }
+    } finally {
+      setMeterSource(null);
+    }
+  });
+
+  it("reads on INPUT's two bars what the channel view reads: the side in view, and a bus's sum", async () => {
+    // Every strip's left side arrives at -50 dB and its right side at -10 dB; a bus's sum reads -24 dB.
+    setMeterSource((id, channels) =>
+      id.endsWith("@input") ? [-50, -10].slice(0, channels) : Array.from({ length: channels }, () => (id.endsWith("@sum") ? -24 : -96)),
+    );
+    try {
+      const shell = await mount();
+      const unlit = (selector: string): string[] =>
+        [...shell.root.querySelectorAll<HTMLElement>(`${selector} .meter-bar`)].map((b) => b.style.getPropertyValue("--unlit"));
+      const at = (db: number): string => `${(1 - levelBarShare(db)) * 100}%`;
+      /** INPUT's two bars as drawn, and again once the meters have moved. */
+      const inputBars = (): string[][] => {
+        const drawn = unlit(".input-meter");
+        vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
+        try {
+          const stop = startMeterTicker(shell.ctx.store, shell.root, 50);
+          vi.advanceTimersByTime(60);
+          stop();
+        } finally {
+          vi.useRealTimers();
+        }
+        return [drawn, unlit(".input-meter")];
+      };
+      await shell.ctx.store.set("ui.lane.ch_5_6", 1);
+      shell.ctx.nav.push({ id: "channel-view", strip: "ch_5_6" });
+      await flush();
+      expect(unlit(".cv-gain-row"), "CH 6's channel view reads CH 6").toEqual([at(-10)]);
+      shell.ctx.nav.push({ id: "ch.input", strip: "ch_5_6" });
+      await flush();
+      expect(inputBars(), "and so do both of CH 6's INPUT bars").toEqual(Array(2).fill([at(-10), at(-10)]));
+      await shell.ctx.store.set("ui.lane.bus.stream", 1);
+      for (const [strip, db] of [["bus.mix1", -24], ["bus.stereo", -24], ["bus.stream", -10]] as const) {
+        shell.ctx.nav.replace({ id: "channel-view", strip });
+        await flush();
+        expect(unlit(".cv-gain-row"), `${strip}'s channel view`).toEqual([at(db)]);
+        shell.ctx.nav.push({ id: "ch.input", strip });
+        await flush();
+        expect(inputBars(), `${strip}'s INPUT reads the same`).toEqual(Array(2).fill([at(db), at(db)]));
       }
     } finally {
       setMeterSource(null);

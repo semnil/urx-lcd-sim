@@ -184,11 +184,12 @@ export function hzUnit(hz: number): string {
   return hz >= HZ_IN_KHZ ? "kHz" : "Hz";
 }
 
-/** A frequency the way the unit prints one, to one decimal in whichever unit. */
 /** A frequency to three significant figures, in kHz from a kilohertz up. */
 export function formatHz(hz: number): string {
   const v = hz >= HZ_IN_KHZ ? hz / HZ_IN_KHZ : hz;
-  return v.toFixed(v >= 100 ? 0 : v >= 10 ? 1 : 2);
+  const decimals = (x: number): number => (x >= 100 ? 0 : x >= 10 ? 1 : 2);
+  // A value that rounds up to 10 or 100 takes one decimal fewer.
+  return v.toFixed(decimals(Number(v.toFixed(decimals(v)))));
 }
 
 const HZ_IN_KHZ = 1000;
