@@ -8,6 +8,10 @@
 // part of that: those come back stopped, as they do on a unit that has been
 // switched off. Nor is the result of a card test, which such a unit no longer
 // shows.
+//
+// A unit connected through a BridgeTransport holds its own values: nothing the
+// browser kept is written to it, and what it holds is kept under a key of its
+// own, leaving the simulated unit stored as it was.
 
 import type { ParamPath, ParamValue } from "../device/path";
 import type { DeviceStore } from "../device/store";
@@ -38,6 +42,14 @@ const LEFT = "urx-lcd-sim.left.";
 
 /** Where tabs tell each other the token of a write. */
 const CHANNEL = "urx-lcd-sim.state";
+
+/** Where the browser keeps a connected unit, in the shape the record keeps the unit in. */
+const CONNECTED_KEY = "urx-lcd-sim.bridge.state";
+
+/** Whether `store` is on a connected unit. */
+function onConnectedUnit(store: DeviceStore): boolean {
+  return store.kind === "bridge";
+}
 
 /** What a reload does not carry over. */
 const IN_FLIGHT = [
@@ -438,9 +450,11 @@ export function modelOf(kept: Kept): string | null {
 
 /**
  * Put the unit `kept` holds for `model` back, one value after another. A GATE,
- * COMP or DUCKER time off its stops comes back on the stop nearest it.
+ * COMP or DUCKER time off its stops comes back on the stop nearest it. A
+ * connected unit is left as it is.
  */
 export async function restore(store: DeviceStore, model: UnitModel["id"], kept: Kept): Promise<void> {
+  if (onConnectedUnit(store)) return;
   const saved = readUnit(kept, model);
   if (!saved) return;
   const values = onDynamicsTimeStops(saved);
@@ -548,7 +562,11 @@ export interface From {
  *
  * A page that is going cannot wait for a write, so `leave` writes what is
  * still to be stored where the next start takes it in, on the same terms.
- * Returns the steps that end it.
+ *
+ * While the store is on a connected unit, its mirror is written under a key of
+ * its own instead, and the record keeps the simulated unit as it was. A start
+ * that stores the whole unit over what is stored ([Reset the unit]) lets that
+ * key go. Returns the steps that end it.
  */
 export function startSaving(
   store: DeviceStore,
@@ -582,9 +600,19 @@ export function startSaving(
     const saved: Saved = { version: VERSION, model, ...pack(snapshot(store)) };
     return toJson(saved);
   };
+  /** Write the connected unit under its own key, taking in every change made so far. */
+  const writeConnected = (): void => {
+    if (ended) return;
+    written = changes;
+    try {
+      window.localStorage.setItem(CONNECTED_KEY, text());
+    } catch {
+      // A browser that refuses to store it leaves the connected unit holding its own values.
+    }
+  };
   const write = (): void => {
     if (ended || !keeper || writing) return;
-    const unitDue = changes > written;
+    const unitDue = changes > written && !onConnectedUnit(store);
     if (!unitDue && !modelDue) return;
     const upTo = changes;
     const next: Kept = { token: unitDue ? newToken() : basis, model, unit: unitDue ? text() : unit };
@@ -616,7 +644,8 @@ export function startSaving(
   };
   const due = (): void => {
     timer = 0;
-    write();
+    if (onConnectedUnit(store)) writeConnected();
+    else write();
   };
   const off = store.onChange(() => {
     changes++;
@@ -643,6 +672,13 @@ export function startSaving(
   channel?.addEventListener("message", (ev: MessageEvent) => {
     if (ev.data !== basis && ev.data !== inFlight) elsewhere();
   });
+  if (over) {
+    try {
+      window.localStorage.removeItem(CONNECTED_KEY);
+    } catch {
+      // A browser that refuses to touch it keeps it, and nothing reads it back.
+    }
+  }
   if (over || from.carried) changes++;
   write();
   return {
@@ -652,6 +688,7 @@ export function startSaving(
       for (;;) {
         if (timer) window.clearTimeout(timer);
         timer = 0;
+        if (onConnectedUnit(store) && changes > written) writeConnected();
         write();
         if (!writing) break;
         await flight;
@@ -662,8 +699,10 @@ export function startSaving(
       return settled;
     },
     leave: () => {
-      if (ended || !keeper) return;
-      const unitDue = changes > written || inFlight !== null;
+      if (ended) return;
+      if (onConnectedUnit(store) && changes > written) writeConnected();
+      if (!keeper) return;
+      const unitDue = !onConnectedUnit(store) && (changes > written || inFlight !== null);
       if (!unitDue && !modelDue) return;
       try {
         window.localStorage.setItem(leftKey, JSON.stringify({ basis, inFlight, model, unit: unitDue ? text() : null, at: Date.now() } satisfies Left));

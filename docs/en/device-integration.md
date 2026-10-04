@@ -86,8 +86,15 @@ sequenceDiagram
    number reads as silence, and one over 0 dB, +Infinity included, as a clip at 0 dB. Until one is
    passed, the simulator's internal synthetic signal is shown.
 
-The `chrome-link` indicator in `src/main.ts` reads `store.kind`, so the connection state shows at the
-top of the screen as it is.
+The `chrome-link` indicator at the top of the screen (`src/ui/link-indicator.ts`) reads `store.kind`
+again on every change to the store, so the connection state shows as it is, also when the
+`BridgeTransport` is passed to `store.attach()` after the simulator has started.
+
+While the store is on a unit (`store.kind` is `bridge`), nothing the browser kept ("What survives a
+reload" in [architecture.md](architecture.md)) is written to the unit. `restore()` does nothing, and
+`startSaving()` writes the mirror to `localStorage` under `urx-lcd-sim.bridge.state` rather than to the
+IndexedDB record that holds the simulator. The simulated unit stored there, its scenes, card and settings
+files included, stays as it was stored.
 
 ## Running partly unbound
 

@@ -24,6 +24,19 @@ describe("DeviceStore", () => {
     expect(store.str("ch.ch1.name")).toBe("VocalMic");
   });
 
+  it("tells its listeners of the values a transport it moves onto does not hold", async () => {
+    const store = new DeviceStore();
+    await store.attach(new SimTransport([["a", 1], ["b", 2]]));
+    const changed: ParamPath[] = [];
+    store.onChange((paths) => changed.push(...paths));
+
+    await store.attach(new SimTransport([]));
+    store.flush();
+
+    expect(store.has("a")).toBe(false);
+    expect([...changed].sort()).toEqual(["a", "b"]);
+  });
+
   it("returns the fallback for a path the device never reported", async () => {
     const { store, transport } = simStore();
     await store.attach(transport);

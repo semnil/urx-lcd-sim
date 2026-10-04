@@ -83,7 +83,12 @@ sequenceDiagram
    `playback` (カードの再生が出すもの。microSD Playback の D.Gain の後) を受け取り、レベルを dB で返す。数でない値は無音、
    0 dB を超える値は +Infinity も含めて 0 dB のクリップとして読む。渡さない間はシミュレーター内部の合成信号が表示される。
 
-`src/main.ts` の `chrome-link` 表示は `store.kind` を読むので、接続状態がそのまま画面上部に出る。
+画面上部の `chrome-link` 表示 (`src/ui/link-indicator.ts`) は store が変わるたびに `store.kind` を読み直すので、
+起動した後で `BridgeTransport` を `store.attach()` に渡しても、接続状態がそのまま出る。
+
+実機につないでいる間 (`store.kind` が `bridge`) は、ブラウザに残した値 ([architecture.md](architecture.md)「残る値」) を
+実機へ書かない。`restore()` は何もせず、`startSaving()` はミラーを、シミュレーターを持つ IndexedDB の記録ではなく
+`localStorage` の `urx-lcd-sim.bridge.state` に書く。シミュレーターの本体 (シーン・カード・設定ファイルを含む) は保存したまま残る。
 
 ## 未束縛のまま動くこと
 

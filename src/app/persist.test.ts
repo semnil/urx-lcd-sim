@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { BindingTable, scaledCodec } from "../device/binding";
+import { BridgeTransport, type DeviceLink } from "../device/bridge-transport";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
@@ -846,5 +848,154 @@ describe("the room a unit takes in the browser", () => {
     const next = await unit();
     await bring(next);
     expect([next.str(filePath(file), ""), next.str("scene.Standard.5.state", "")]).toEqual([text, scene]);
+  });
+});
+
+/** A unit behind a BridgeTransport holding CH 1's A.Gain at 40 dB, and every write that reaches it. */
+function connected(): { transport: BridgeTransport; writes: [string, number][] } {
+  const held = new Map<string, number>([["A1", 400]]);
+  const writes: [string, number][] = [];
+  const link: DeviceLink = {
+    get: (addr) => Promise.resolve(held.get(addr) ?? 0),
+    set: (addr, raw) => {
+      writes.push([addr, raw]);
+      held.set(addr, raw);
+      return Promise.resolve();
+    },
+    getStr: () => Promise.resolve(""),
+    setStr: () => Promise.resolve(),
+    subscribe: () => Promise.resolve(() => {}),
+  };
+  const bindings = new BindingTable();
+  bindings.bind("ch.ch1.gain", { addr: "A1", codec: scaledCodec(10) });
+  return { transport: new BridgeTransport(link, bindings), writes };
+}
+
+const CONNECTED_KEY = "urx-lcd-sim.bridge.state";
+
+/** The values the browser keeps for a connected unit, or nothing where it keeps none. */
+function connectedValues(): unknown {
+  const kept = JSON.parse(window.localStorage.getItem(CONNECTED_KEY) ?? "null") as { values?: unknown } | null;
+  return kept?.values;
+}
+
+describe("a unit connected through a BridgeTransport", () => {
+  it("is not written to from what the browser kept", async () => {
+    await keeper.write(null, {
+      token: "stored",
+      model: MODEL,
+      unit: toJson({ version: 1, model: MODEL, values: { "ch.ch1.gain": 20, "ch.ch1.level": -4 } }),
+    });
+    const other = connected();
+    const store = new DeviceStore();
+    await store.attach(other.transport);
+    await bring(store);
+    expect(other.writes, "nothing reached the unit").toEqual([]);
+    expect(store.num("ch.ch1.gain", 0), "the screen shows what the unit holds").toBe(40);
+  });
+
+  it("is stored apart, leaving the simulated unit as it was stored", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = await unit();
+    await start(store);
+    await store.set("ch.ch1.gain", 20);
+    await store.set("scene.Standard.1.state", '{"ch.ch1.gain":20}');
+    vi.advanceTimersByTime(20);
+    await settle();
+    const simulated = await stored();
+    expect(simulated?.["scene.Standard.1.state"], "the simulated unit holds a scene").toBe('{"ch.ch1.gain":20}');
+
+    const other = connected();
+    await store.attach(other.transport);
+    vi.advanceTimersByTime(20);
+    await store.set("ch.ch1.gain", 30);
+    vi.advanceTimersByTime(20);
+    await settle();
+
+    expect(await stored(), "the simulated unit stays as it was stored").toEqual(simulated);
+    expect(connectedValues(), "the connected unit is kept under a key of its own").toEqual({ "ch.ch1.gain": 30 });
+    expect(other.writes, "and only the edit reached the unit").toEqual([["A1", 300]]);
+  });
+
+  it("leaves the record as it was when it starts over what is stored on a connected unit", async () => {
+    const shipped = await unit();
+    await shipped.set("ch.ch1.level", -4);
+    const first = await start(shipped, MODEL, { first: "unit" });
+    await first.saving.settle();
+    first.saving.stop();
+    const before = await keeper.read();
+    const store = new DeviceStore();
+    await store.attach(connected().transport);
+
+    const { saving } = await start(store, MODEL, { first: "unit" });
+    await saving.settle();
+
+    expect(await keeper.read()).toEqual(before);
+  });
+
+  it("settles on kept once a change on it made while a write of the simulated unit was under way is under its own key", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = await unit();
+    const { saving } = await start(store);
+    idb.hold();
+    await store.set("ch.ch1.level", -9);
+    vi.advanceTimersByTime(20);
+    await store.attach(connected().transport);
+    const settled = saving.settle();
+    await store.set("ch.ch1.gain", 30);
+    idb.release();
+
+    expect(await settled).toBe("kept");
+    expect([(await stored())?.["ch.ch1.level"], connectedValues()]).toEqual([-9, { "ch.ch1.gain": 30 }]);
+  });
+
+  it("leaves nothing of it for the record when the page goes while a write of the simulated unit is under way", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = await unit();
+    const { saving } = await start(store);
+    idb.hold();
+    await store.set("ch.ch1.level", -9);
+    vi.advanceTimersByTime(20);
+    await store.attach(connected().transport);
+    saving.leave();
+    saving.stop();
+    idb.release();
+    await settle();
+
+    const next = await unit();
+    const shipped = next.num("ch.ch1.gain", 0);
+    await bring(next);
+    expect([next.num("ch.ch1.level", 0), next.num("ch.ch1.gain", 0)], "the simulated unit, not the connected one").toEqual([-9, shipped]);
+  });
+
+  it("writes a change on it under its own key when it settles and when the page is left", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = new DeviceStore();
+    await store.attach(connected().transport);
+    const { saving } = await start(store);
+
+    await store.set("ch.ch1.gain", 30);
+    expect(await saving.settle()).toBe("kept");
+    expect(connectedValues(), "on a settle").toEqual({ "ch.ch1.gain": 30 });
+    await store.set("ch.ch1.gain", 35);
+    saving.leave();
+    expect(connectedValues(), "on leaving").toEqual({ "ch.ch1.gain": 35 });
+    const left = Object.keys(window.localStorage).filter((key) => key.startsWith("urx-lcd-sim.left."));
+    expect(left, "and nothing left for the record").toEqual([]);
+  });
+
+  it("is let go when the unit starts again as it ships", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const store = new DeviceStore();
+    await store.attach(connected().transport);
+    const { saving } = await start(store);
+    await store.set("ch.ch1.gain", 30);
+    vi.advanceTimersByTime(20);
+    saving.stop();
+    expect(window.localStorage.getItem(CONNECTED_KEY), "the connected unit was stored").not.toBeNull();
+
+    await start(await unit(), MODEL, { first: "unit" });
+
+    expect(window.localStorage.getItem(CONNECTED_KEY)).toBeNull();
   });
 });

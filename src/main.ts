@@ -23,6 +23,7 @@ import { startMeterTicker } from "./screens/meters";
 import { startRecorderClock } from "./screens/recording";
 import { el } from "./ui/dom";
 import { Icons } from "./ui/icons";
+import { buildLinkIndicator } from "./ui/link-indicator";
 import { buildPanel } from "./ui/panel";
 
 const MODEL_IDS: ModelId[] = ["URX44V", "URX44", "URX22"];
@@ -259,10 +260,7 @@ async function boot(
   });
   drawReset(false);
 
-  const link = el("span", {
-    class: `chrome-link chrome-link-${store.kind}`,
-    text: store.kind === "sim" ? "Simulated device" : "Connected unit",
-  });
+  const link = buildLinkIndicator(store);
 
   // A control of the chrome that holds the focus as the chrome is drawn again
   // hands it to the same control of the new one: a selector by its name, and
@@ -274,7 +272,7 @@ async function boot(
       class: "chrome",
       children: [
         el("h1", { class: "chrome-title", text: "URX LCD Simulator" }),
-        el("div", { class: "chrome-controls", children: [modelSelect, zoomSelect, resetBox, link] }),
+        el("div", { class: "chrome-controls", children: [modelSelect, zoomSelect, resetBox, link.root] }),
         notice,
       ],
     }),
@@ -311,6 +309,7 @@ async function boot(
   disposeMounted = (): void => {
     saving.stop();
     offNotice();
+    link.stop();
     stopMeters();
     stopClock();
     stopDateTime();

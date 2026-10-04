@@ -137,6 +137,11 @@ JSON で書く。JSON には無限大の数が無いので、無限大 (SSMCS �
 ブラウザが断ったために書かれなかったときは、選んだ機種の起動がその旨を出す。帯は、起動より前に失われた変更のことと、
 今の保存の状態のことを並べて出す。同時に起動した 2 つのタブは、タブが残したものを 1 回だけ取り込む。
 
+`BridgeTransport` で実機につないでいる間 (`store.kind` が `bridge`、[device-integration.md](device-integration.md)) は、
+ミラーを記録ではなく `localStorage` の別のキー `urx-lcd-sim.bridge.state` に書き、起動したときも何も戻さない。
+ブラウザに残した値は実機へ書かれず、記録はシミュレーターの本体を保存したまま残す。機種を切り替える前の書き込みと
+ページを離れるときの書き込みも、このキーへ書く。[Reset the unit] は工場出荷状態を書くときにこのキーを消す。
+
 ```mermaid
 flowchart LR
   ST["DeviceStore"] -->|"変更のたびに 400 ms でまとめて、記録が読んだときのままなら"| DB["IndexedDB<br/>urx-lcd-sim / unit / state"]
@@ -144,6 +149,8 @@ flowchart LR
   ST -->|"ページを離れるとき"| LEFT["localStorage<br/>urx-lcd-sim.left.*"]
   LEFT -->|"次の起動で、記録がそのタブの読んだときのままなら"| DB
   RS["[Reset the unit]"] -->|"確認の後に工場出荷状態で起動し直して書く"| DB
+  ST -->|"実機につないでいる間はこちらへ"| LB["localStorage<br/>urx-lcd-sim.bridge.state"]
+  RS -->|"同時に消す"| LB
 ```
 
 ## パラメータのアドレス指定

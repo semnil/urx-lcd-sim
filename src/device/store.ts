@@ -50,6 +50,7 @@ export class DeviceStore {
   /**
    * Point the store at a transport and load its snapshot. Replaces any previous
    * transport (that is how the simulator is switched onto a real unit and back).
+   * Every path the snapshot holds, and every path it drops, is a change.
    */
   async attach(transport: DeviceTransport): Promise<void> {
     this.detachTransport?.();
@@ -61,8 +62,10 @@ export class DeviceStore {
       this.markChanged(n.path);
     });
     const snap = await transport.snapshot();
+    const before = this.mirror;
     this.mirror = new Map(snap);
     for (const p of snap.keys()) this.markChanged(p);
+    for (const p of before.keys()) if (!snap.has(p)) this.markChanged(p);
   }
 
   /** A count that moves on every change to the mirror, for whatever keeps what it worked out from the values. */

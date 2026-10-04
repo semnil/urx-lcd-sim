@@ -153,6 +153,13 @@ left unwritten at a switch of model, because another tab stored the unit first o
 the picked model's start. What the banner says of changes lost before a start stands beside what it says of how storing
 stands now. Two tabs starting at the same time take what a tab left in once.
 
+While the store is on a unit connected through a `BridgeTransport` (`store.kind` is `bridge`,
+[device-integration.md](device-integration.md)), the mirror is written to `localStorage` under a key of its own,
+`urx-lcd-sim.bridge.state`, instead of the record, and nothing is put back on start. Nothing the browser kept is
+written to the unit, and the record keeps the simulated unit as it was stored. The write before a switch of model
+and the one on leaving the page go under that key too. [Reset the unit] lets the key go as it stores the unit as
+it ships.
+
 ```mermaid
 flowchart LR
   ST["DeviceStore"] -->|"on change, 400 ms after the last, where the record holds what the tab read"| DB["IndexedDB<br/>urx-lcd-sim / unit / state"]
@@ -160,6 +167,8 @@ flowchart LR
   ST -->|"leaving the page"| LEFT["localStorage<br/>urx-lcd-sim.left.*"]
   LEFT -->|"the next start, where the record holds what that tab read"| DB
   RS["[Reset the unit]"] -->|"ask, start again and store the unit as it ships"| DB
+  ST -->|"here instead while on a unit"| LB["localStorage<br/>urx-lcd-sim.bridge.state"]
+  RS -->|"lets it go"| LB
 ```
 
 ## Addressing parameters
