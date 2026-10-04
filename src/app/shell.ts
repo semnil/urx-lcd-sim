@@ -6,7 +6,7 @@ import { clamp, combineWriteRules } from "../device/store";
 import type { DeviceStore } from "../device/store";
 import type { UnitModel } from "../model/types";
 import { UDK_BANKS, UDK_KNOBS, UDK_UNASSIGNED, udkAssignment, udkPath } from "../model/udk";
-import { INTERACTIVE, clear, el, setPressed } from "../ui/dom";
+import { INTERACTIVE, clear, el, setPressed, tappedControl } from "../ui/dom";
 import { FocusController } from "../ui/focus";
 import { Icons } from "../ui/icons";
 import { attachFocusRing } from "../ui/focus-ring";
@@ -81,9 +81,10 @@ export class Shell {
       overlay: (node, onClose) => {
         // Marked so the Escape handler knows something is layered over the screen.
         node.dataset["overlay"] = "";
-        // Where the focus stood when it went up.
-        const opener = document.activeElement;
-        const refocus = this.focusPlace();
+        // The control whose touch or key put it up, or else where the focus stood when it went up.
+        const tapped = tappedControl();
+        const opener = tapped?.isConnected === true ? tapped : document.activeElement;
+        const refocus = this.focusPlace(opener);
         this.lcd.appendChild(node);
         const close = (): void => {
           if (!this.overlays.delete(close)) return;
@@ -263,10 +264,10 @@ export class Shell {
    * the one step the other way, or else the control that now stands at that place.
    * A screen put in place of this one takes the focus onto its one control of the
    * same kind and name, or else, for a page step, its one step the other way. Any
-   * other screen leaves the focus where the rebuild left it.
+   * other screen leaves the focus where the rebuild left it. The control it starts
+   * from is `active`, the one holding the focus unless another is named.
    */
-  private focusPlace(): () => void {
-    const active = document.activeElement;
+  private focusPlace(active: Element | null = document.activeElement): () => void {
     if (!active || active === this.root || !this.root.contains(active)) return () => undefined;
     // A control's kind is its tag and its classes, less the ones naming its state.
     const kind = (node: Element): string => [node.tagName, ...[...node.classList].filter((c) => !c.startsWith("is-"))].join(" ");

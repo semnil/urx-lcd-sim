@@ -165,7 +165,8 @@ takes drag, wheel and arrow keys in one place). A 192px drag covers the whole ra
 and the wheel and arrow keys move one detent (`fastStep` with Shift). While a dialog, a picker sheet, a pulldown's
 list or a loading modal is up, the screen behind it answers neither the keys nor the pointer (`inert`). Wherever the focus
 stands, Tab goes round the controls of a dialog, a picker sheet or a list, and Escape cancels it unless the focus is on a
-control off the glass; once it closes, the focus is back on the control that opened it. A confirmation dialog on the glass that holds
+control off the glass; once it closes, the focus is back on the control a tap or a key opened it from, even where the tap
+left the focus elsewhere (`tappedControl`), or on the control drawn in its place since. A confirmation dialog on the glass that holds
 [Cancel] and [OK] opens with the focus on [Cancel], so an Enter pressed after the key that opened it does not carry out what
 the dialog asks; a dialog whose only button is [OK] opens with the focus on [OK]. A list opens with the focus on the value its box holds, or on its first choice where it holds none of them, and its choices
 are `role="option"`, the one held `aria-selected`. A loading modal holds nothing to operate, and Escape does not take it

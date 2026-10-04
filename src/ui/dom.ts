@@ -41,6 +41,16 @@ export function el<K extends keyof HTMLElementTagNameMap>(
 /** Anything that answers a pointer for itself. */
 export const INTERACTIVE = "button, [role='button'], [role='slider'], [role='spinbutton']";
 
+let tapping: HTMLElement | null = null;
+
+/**
+ * The control whose touch or key is being answered, while its handler runs,
+ * wherever the touch left the page's focus.
+ */
+export function tappedControl(): HTMLElement | null {
+  return tapping;
+}
+
 /**
  * Turn any element into an activatable control. The unit's screen is a touch
  * panel with no keyboard, but the simulator runs in a browser, so every touch
@@ -55,9 +65,18 @@ export function makeTappable(node: HTMLElement, handler: (ev: Event) => void): v
     const inner = (ev.target as HTMLElement).closest(INTERACTIVE);
     return inner !== null && inner !== node;
   };
+  const fire = (ev: Event): void => {
+    const outer = tapping;
+    tapping = node;
+    try {
+      handler(ev);
+    } finally {
+      tapping = outer;
+    }
+  };
   node.addEventListener("click", (ev) => {
     if (forInner(ev)) return;
-    handler(ev);
+    fire(ev);
   });
   // A key acts where a finger would: the control answers when the key is let go,
   // not when it goes down, and only where the same control took the key.
@@ -71,7 +90,7 @@ export function makeTappable(node: HTMLElement, handler: (ev: Event) => void): v
     if ((ev.key !== "Enter" && ev.key !== " ") || !taken) return;
     ev.preventDefault();
     taken = false;
-    handler(ev);
+    fire(ev);
   });
   node.addEventListener("blur", () => {
     taken = false;

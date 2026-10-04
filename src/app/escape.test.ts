@@ -208,6 +208,13 @@ describe("a dialog or a sheet over the screen", () => {
     return shell;
   }
 
+  /** A shell taken off the page before the next goes on, so one shell at a time answers the keys. */
+  function drop(shell: Shell): void {
+    alive.splice(alive.indexOf(shell), 1);
+    shell.destroy();
+    shell.root.remove();
+  }
+
   /** A key pressed and let go where the focus stands, and whether its press was taken. */
   async function press(key: string, init: KeyboardEventInit = {}): Promise<boolean> {
     const node = document.activeElement ?? document.body;
@@ -296,6 +303,86 @@ describe("a dialog or a sheet over the screen", () => {
       after.push(document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.tagName);
     }
     expect(after).toEqual(["Monitor 1 source", "Monitor 1 source", "Monitor 1 source"]);
+  });
+
+  it("gives the focus back to the control a touch opened a dialog, a sheet or a list from, though the touch left the focus elsewhere, and to the one drawn in its place since", async () => {
+    // A touch on a button moves no focus here, as in WebKit; the keys open each from the control holding it.
+    const kinds: { name: string; routes: Route[]; state?: Record<string, string>; opener: string; closer: string }[] = [
+      { name: "dialog", routes: [{ id: "setup" }, { id: "setup.patch" }], opener: ".patch-default", closer: ".dialog-actions .btn" },
+      { name: "sheet", routes: [{ id: "monitor" }, { id: "monitor.level" }], state: { "ui.monitorTab": "Setting" }, opener: '[aria-label="Monitor 1 source"]', closer: ".source-back" },
+      { name: "list", routes: [{ id: "channel-view", strip: "ch1" }, { id: "ch.setting", strip: "ch1" }], opener: ".chs-rec-field .pulldown", closer: ".dropdown-sheet" },
+    ];
+    const seen: string[] = [];
+    for (const kind of kinds) {
+      for (const from of ["keys", "a touch, the focus on HOME", "a touch, the focus on nothing"]) {
+        for (const redrawn of [false, true]) {
+          const shell = await onPage(...kind.routes);
+          for (const [path, value] of Object.entries(kind.state ?? {})) await shell.ctx.store.set(path, value);
+          await flush();
+          const opener = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(kind.opener);
+          const home = shell.root.querySelector<HTMLElement>('.toolbar [aria-label="HOME"]');
+          const touched = from !== "keys";
+          if (!touched) await enter(opener());
+          else {
+            if (from.endsWith("HOME")) home?.focus();
+            else letGo();
+            opener()?.click();
+            await flush();
+          }
+          const first = opener();
+          if (redrawn) {
+            await shell.ctx.store.set("setup.brightness", 5);
+            await flush();
+            expect(first?.isConnected, `${kind.name}: the redraw put another opener in its place`).toBe(false);
+          }
+          const closer = shell.root.querySelector<HTMLElement>(kind.closer);
+          if (touched) {
+            closer?.click();
+            await flush();
+          } else if (kind.name === "list") await press("Escape");
+          else await enter(closer);
+          expect(shell.root.querySelector("[data-overlay]"), `${kind.name} from ${from} is down`).toBeNull();
+          const at = document.activeElement;
+          const where = at === opener() ? "the opener" : at === document.body ? "nothing" : (at?.getAttribute("aria-label") ?? at?.className);
+          seen.push(`${kind.name} from ${from}${redrawn ? ", redrawn" : ""}: ${where}`);
+          drop(shell);
+        }
+      }
+    }
+    expect(seen).toEqual(
+      kinds.flatMap((kind) =>
+        ["keys", "a touch, the focus on HOME", "a touch, the focus on nothing"].flatMap((from) => [
+          `${kind.name} from ${from}: the opener`,
+          `${kind.name} from ${from}, redrawn: the opener`,
+        ]),
+      ),
+    );
+  });
+
+  it("gives the focus back to the control under a sheet once the question a button on the sheet asks in its place is answered", async () => {
+    const seen: string[] = [];
+    for (const from of ["keys", "a touch"]) {
+      for (const answer of ["Cancel", "OK"]) {
+        const shell = await onPage({ id: "channel-view", strip: "ch1" }, { id: "ch.input", strip: "ch1" });
+        const source = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".input-source-btn");
+        const byText = (selector: string, text: string) => (): HTMLElement | undefined =>
+          [...shell.root.querySelectorAll<HTMLElement>(selector)].find((b) => b.textContent === text);
+        const steps = [source, byText(".source-btn", "All USB DAW"), byText(".dialog-actions .btn", answer)];
+        if (from === "keys") for (const step of steps) await enter(step());
+        else {
+          letGo();
+          for (const step of steps) {
+            step()?.click();
+            await flush();
+          }
+        }
+        expect(shell.root.querySelector("[data-overlay]"), `${from}, ${answer}: the question is down`).toBeNull();
+        const at = document.activeElement;
+        seen.push(`${from}, ${answer}: ${at === source() ? "the source button" : (at?.getAttribute("aria-label") ?? at?.tagName)}`);
+        drop(shell);
+      }
+    }
+    expect(seen).toEqual(["keys, Cancel", "keys, OK", "a touch, Cancel", "a touch, OK"].map((run) => `${run}: the source button`));
   });
 
   it("leaves Tab and Escape alone under the loading modal, which has nothing to answer with", async () => {
