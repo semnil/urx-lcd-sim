@@ -643,9 +643,11 @@ describe("what a redraw lets go of", () => {
 
   for (const [name, route, opener] of [
     ["the Input Source sheet", "ch.input", ".input-source-btn"],
+    ["the Sweet Spot Data sheet", "ch.ssmcs", ".ssmcs-data"],
   ] as const) {
     it(`lets go of ${name} as it shuts, with nothing drawn again`, async () => {
       const shell = await mount();
+      await shell.ctx.store.set("ch.ch1.compEqOrder", "SSMCS");
       shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
       shell.ctx.nav.push({ id: route, strip: "ch1" });
       await flush();
