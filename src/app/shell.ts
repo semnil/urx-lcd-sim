@@ -517,7 +517,8 @@ export class Shell {
   }
 
   /**
-   * A tap on the bare screen leaves a screen the shell draws no exits for. The
+   * A tap on the bare screen leaves a screen the shell draws no exits for, unless
+   * the screen is left through its own controls alone. The
    * screen's own area, every control and whatever is laid over the screen keep
    * their taps. The knob bar is bare screen around its controls, and the whole
    * of it is under a sheet that holds its controls out of reach. A press that
@@ -537,7 +538,8 @@ export class Shell {
     this.lcd.addEventListener("click", (ev) => {
       const fromKept = pressKept;
       pressKept = false;
-      if (this.registry.get(this.ctx.nav.current.id)?.shellExits !== false) return;
+      const def = this.registry.get(this.ctx.nav.current.id);
+      if (def?.shellExits !== false || def.leavesOnTouchAround === false) return;
       if (fromKept || keeps(ev.target)) return;
       this.ctx.nav.back();
     });

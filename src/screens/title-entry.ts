@@ -142,6 +142,7 @@ export const titleEntryScreen: ScreenDef = {
   id: "scene.title",
   toolbar: "sub",
   shellExits: false,
+  leavesOnTouchAround: false,
   knobToggle: false,
   build(ctx, route): ScreenBody {
     const text = ctx.store.str(`${DRAFT}.text`, "");

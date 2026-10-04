@@ -2897,15 +2897,16 @@ describe("the USER DEFINED KNOBS bar under a sheet, a list or a dialog", () => {
   }
 
   /**
-   * Where a touch on the bare screen around each sheet the shell draws leaves the glass: every one of them
-   * closes. The picker sheets, the lists and the dialogs are layers over the whole glass, the bar's place
-   * included.
+   * Where a touch on the bare screen around each sheet the shell draws leaves the glass. The title and name
+   * sheets stay up, as the unit's Volume Label, scene title and [Save as] name sheets stay up under a touch
+   * at their foot, and the others close. The picker sheets, the lists and the dialogs are layers over the
+   * whole glass, the bar's place included.
    */
   const BARE: Record<string, string> = {
     "TIME ZONE": "setup.datetime",
     "[Date/Time]": "setup.datetime",
-    "a scene's title sheet": "scene",
-    "[Save as]'s name sheet": "microsd.saveload",
+    "a scene's title sheet": "scene.title",
+    "[Save as]'s name sheet": "microsd.name",
     "the knob assignment": "setup.udk",
     "the Sends destination sheet": "home",
   };

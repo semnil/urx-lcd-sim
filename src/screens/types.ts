@@ -37,6 +37,12 @@ export interface ScreenDef {
    */
   shellExits?: boolean;
   /**
+   * Whether a tap on the bare screen around a screen that draws no exits of its
+   * own leaves it. Left unset it does; a screen that sets this false is left
+   * through its own controls alone.
+   */
+  leavesOnTouchAround?: boolean;
+  /**
    * Whether the USER DEFINED KNOBS toggle stands at the foot of the side rail.
    * The three screens the toolbar icons open — SETUP, microSD and MONITOR —
    * leave it out; the screens under them carry it. A step back onto a screen
