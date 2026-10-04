@@ -80,16 +80,28 @@ Change notifications are batched per microtask and fire once (`markChanged` → 
 
 ## What survives a reload
 
-The store's mirror is written to the browser's `localStorage` and read back when the simulator opens
-on the same model (`src/app/persist.ts`). A burst of changes is written once, 400 ms after the last
-of them, under the key `urx-lcd-sim.state`; a stored unit of another model or another version is not
-read.
+The store's mirror is written to the browser's IndexedDB as one record (database `urx-lcd-sim`, object store
+`unit`, key `state`) and read back when the simulator opens on the same model (`src/app/persist.ts`). A burst of
+changes is written once, 400 ms after the last of them; a stored unit of another model or another version is not
+read. Switching the model writes every change made up to it, a change made while a write was under way included,
+before the picked model starts. Leaving the page cannot wait
+for a write, so a change still waiting is left in `localStorage` under `urx-lcd-sim.left.` and the tab's own name,
+and the next start takes it in on the terms below. A page the browser keeps and brings back on [Back] runs on as it
+was left, and its next write lets go of what it left. The record keeps the model the simulator opens on: the model of the unit stored
+last, or a model picked after it (where the record keeps none, it opens on the stored unit's model). There is one
+stored unit across the models: after the model selector switches to another model, the first change replaces what
+the previous model stored. A unit stored by a version before IndexedDB, under `localStorage`'s `urx-lcd-sim.state`
+and `urx-lcd-sim.model`, is read while the record holds nothing, and let go once the record holds the unit.
 
 What is left out is **what the unit was doing** at that moment: a take or a playback running
 (`sd.rec` and the rest) and a name half typed (`ui.titleEntry.`, `ui.dateTimeDraft.`) come back
 stopped, as they do on a unit that has been switched off. The result of TOOLS' card test (`sd.tested`)
 is left out too, as a unit switched off no longer shows it. [Reset the unit], outside the screen, asks
-in place and then forgets what was stored and starts again from the unit as it ships.
+first, then starts again from the unit as it ships and stores it at once over what was stored. The card in the
+slot stays as it stands, with its takes, settings files and volume label ([Format microSD] on TOOLS
+empties it). The question sits on a panel laid over the page under the button, so the other controls
+and the glass stay where they are, and a click on its [Reset] does not answer as the second click of a
+double click or within 500 ms of the question appearing.
 
 A value stored in an earlier form is brought to the current one as it is read. A state stored while
 the channel view's [SAFE] was a switch apart from [Clip Safe] comes back with a [SAFE] that was on as
@@ -112,11 +124,42 @@ they are kept with it. The browser's storage, the scene memories and the setting
 no number for infinity, so an infinite value (the top of the SSMCS Ratio, INF) is written as a marker carrying its
 sign and read back as the number (`src/device/value-json.ts`).
 
+In the browser's storage, a settings file is written as its values rather than as text, and each scene memory's
+mixer (`scene.*.state`) is written once under `shared` and named by its place wherever the unit or a settings file
+holds it. A stored unit without `shared` is read with its settings files and scene memories as they were written,
+and takes this shape the next time it is written. When the browser refuses a write (it is full, or stores nothing),
+it keeps the unit it last took; for as long as that lasts, a banner over the top centre of the page says the
+browser is not keeping the unit, and it goes once a write is taken again. Where the browser has no IndexedDB or
+refuses to open it, the banner says so from the start, and nothing is written. The banner lies over the page, so it
+moves no other control and not the glass. [Close] (`×`) or Escape closes it, and the next write the browser refuses
+brings it back.
+
+Each write of the unit gives the record a new token. A tab's start reads the record once and puts the unit back
+from that read, and the tab writes only where the record still holds the token of that read or of its own last
+write. The look at the record and the write are one readwrite transaction, which the browser runs whole before any
+other tab's, so no tab writes over a unit another tab stored after what it read, even while it is still putting the
+unit back. A tab tells the others the token of each write on a `BroadcastChannel` named `urx-lcd-sim.state`. A model
+picked is kept with the record's token as it was, so it stops no other tab, and each unit stored carries its own
+model. [Reset the unit] writes the unit as it ships over whatever the record holds.
+
+A tab that hears of another tab's write, or finds at its own write that the record has moved on, stops writing, so as
+not to write over the other tab's unit, and says so on the same banner, which, once closed, comes back at the next
+change to the unit. It writes again once it starts again, on a reload, a switch of model or [Reset the unit]. What a
+tab left on leaving the page is taken in by the next start only where the record still holds the token that tab read
+or wrote last, or the token of its write still under way; otherwise it is dropped, and that start says on the banner
+that the last changes made before it were not kept. Where the browser refuses to take it in, it stays where it was left,
+the start shows it, and the banner says it is not stored yet until the next write the browser takes stores it. A change
+left unwritten at a switch of model, because another tab stored the unit first or the browser refused it, is told on
+the picked model's start. What the banner says of changes lost before a start stands beside what it says of how storing
+stands now. Two tabs starting at the same time take what a tab left in once.
+
 ```mermaid
 flowchart LR
-  ST["DeviceStore"] -->|"on change, 400 ms after the last"| LS["localStorage<br/>urx-lcd-sim.state"]
-  LS -->|"opening on the same model"| ST
-  RS["[Reset the unit]"] -->|"ask, forget and start again"| LS
+  ST["DeviceStore"] -->|"on change, 400 ms after the last, where the record holds what the tab read"| DB["IndexedDB<br/>urx-lcd-sim / unit / state"]
+  DB -->|"opening on the same model"| ST
+  ST -->|"leaving the page"| LEFT["localStorage<br/>urx-lcd-sim.left.*"]
+  LEFT -->|"the next start, where the record holds what that tab read"| DB
+  RS["[Reset the unit]"] -->|"ask, start again and store the unit as it ships"| DB
 ```
 
 ## Addressing parameters

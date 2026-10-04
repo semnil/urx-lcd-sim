@@ -22,7 +22,8 @@ Security problems go through [SECURITY.md](SECURITY.md), not the issue tracker.
 The toolchain and the commands are in the README ([Running it](README.md#running-it)).
 
 The simulated unit is kept in the browser between visits. To start from the unit as it ships,
-use [Reset the unit] above the screen.
+use [Reset the unit] above the screen. It leaves the card in the slot as it is; to start from an
+empty card, use [Format microSD] on TOOLS.
 
 ## Conventions
 

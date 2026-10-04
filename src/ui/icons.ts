@@ -378,6 +378,8 @@ export const Icons = {
       ], true),
       "icon-backspace",
     ),
+  /** Close the notice over the page: a cross. */
+  close: (): SVGSVGElement => sized(svg("0 0 14 14", ["M2 2L12 12M12 2L2 12"]), "icon-close"),
   /** Clear a field: a disc, a cross cut out of it, drawn at its own size. */
   clear: (): SVGSVGElement =>
     sized(

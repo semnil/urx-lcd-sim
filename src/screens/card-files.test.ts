@@ -9,7 +9,7 @@ import { unitById } from "../model/units";
 import { freeBytes, readCard, writeCard } from "../model/card";
 import type { CardEntry } from "../model/card";
 import { buildRegistry } from "./index";
-import { forget, restore } from "../app/persist";
+import { restore } from "../app/persist";
 import { pausePlayback, playedSeconds, recordTake, startPlayback, startRecorderClock, stopPlayback, stopTake } from "./recording";
 import { openTitleEntry } from "./title-entry";
 
@@ -966,6 +966,103 @@ describe("what the card's own actions do to it", () => {
     expect(held(), "the file's 192 kHz carries two").toEqual([192_000, 2]);
   });
 
+  it("leaves the screens' tabs where they stand when settings come back", async () => {
+    // The file is written with OUTPUT PATCH on USB, PERIPHERAL on HDMI and SCENE LIST on Simple; all are moved back before loading.
+    const shell = await mount({ id: "microsd.saveload" }, card);
+    const store = shell.ctx.store;
+    const tabs = (): unknown[] => [store.str("setup.outputPatch.tab", ""), store.str("setup.peripheral.tab", ""), store.str("scene.bank", "")];
+    await store.set("setup.outputPatch.tab", "USB");
+    await store.set("setup.peripheral.tab", "HDMI");
+    await store.set("scene.bank", "Simple");
+    await store.set("ch.ch1.level", -10);
+    await flush();
+    action(shell, "Save as")?.click();
+    await flush();
+    await typeTitle(shell, "mine");
+
+    await store.set("setup.outputPatch.tab", "Analog");
+    await store.set("setup.peripheral.tab", "Main");
+    await store.set("scene.bank", "Standard");
+    await store.set("ch.ch1.level", 0);
+    await store.set("sd.selectedFile", 1);
+    await flush();
+    action(shell, "Load")?.click();
+    await okDialog(shell);
+    await flush();
+    expect(tabs(), "where they were moved before loading").toEqual(["Analog", "Main", "Standard"]);
+    expect(store.num("ch.ch1.level", 0), "the settings the file was saved with").toBe(-10);
+  });
+
+  it("puts SCENE LIST's cursor back where it stood when the file was saved", async () => {
+    const shell = await mount({ id: "microsd.saveload" }, card);
+    const store = shell.ctx.store;
+    await store.set("scene.selected", 5);
+    await store.set("ch.ch1.level", -10);
+    await flush();
+    action(shell, "Save as")?.click();
+    await flush();
+    await typeTitle(shell, "mine");
+
+    await store.set("scene.selected", 0);
+    await store.set("ch.ch1.level", 0);
+    await store.set("sd.selectedFile", 1);
+    await flush();
+    action(shell, "Load")?.click();
+    await okDialog(shell);
+    await flush();
+    expect(store.num("ch.ch1.level", 0), "the file is loaded").toBe(-10);
+    expect(store.num("scene.selected", -1), "Standard's 05").toBe(5);
+  });
+
+  for (const [row, opens, why] of [
+    [102, "Simple", "a row only Simple lists opens Simple"],
+    [9, "Standard", "a row Standard lists too leaves Standard open"],
+  ] as const) {
+    it(`puts the cursor back on Simple's ${row === 102 ? "P02" : "09"} with Standard open: ${why}`, async () => {
+      const shell = await mount({ id: "microsd.saveload" }, card);
+      const store = shell.ctx.store;
+      await store.set("scene.bank", "Simple");
+      await store.set("scene.selected", row);
+      await store.set("ch.ch1.level", -10);
+      await flush();
+      action(shell, "Save as")?.click();
+      await flush();
+      await typeTitle(shell, "mine");
+
+      await store.set("scene.bank", "Standard");
+      await store.set("scene.selected", 0);
+      await store.set("ch.ch1.level", 0);
+      await store.set("sd.selectedFile", 1);
+      await flush();
+      action(shell, "Load")?.click();
+      await okDialog(shell);
+      await flush();
+      expect(store.num("ch.ch1.level", 0), "the file is loaded").toBe(-10);
+      expect([store.str("scene.bank", ""), store.num("scene.selected", -1)]).toEqual([opens, row]);
+    });
+  }
+
+  it("brings back the bank USER DEFINED KNOBS stood on when the file was saved", async () => {
+    // As on the unit: saved on bank 2, switched to bank 1, loaded, back on bank 2 (URX44V, 2026-10-03).
+    const shell = await mount({ id: "microsd.saveload" }, card);
+    const store = shell.ctx.store;
+    await store.set("setup.udk.bank", 2);
+    await store.set("ch.ch1.level", -10);
+    await flush();
+    action(shell, "Save as")?.click();
+    await flush();
+    await typeTitle(shell, "mine");
+
+    await store.set("setup.udk.bank", 1);
+    await store.set("ch.ch1.level", 0);
+    await store.set("sd.selectedFile", 1);
+    await flush();
+    action(shell, "Load")?.click();
+    await flush();
+    expect(store.num("ch.ch1.level", 0), "the settings the file was saved with").toBe(-10);
+    expect(store.num("setup.udk.bank", 0), "the bank the file was saved on").toBe(2);
+  });
+
   it("keeps what a settings file holds when it is renamed", async () => {
     const shell = await mount({ id: "microsd.saveload" }, card);
     const store = shell.ctx.store;
@@ -1078,7 +1175,7 @@ describe("what the card's own actions do to it", () => {
       const model = unitById("URX44V");
       const store = new DeviceStore();
       await store.attach(new SimTransport(factoryState(model)));
-      await restore(store, "URX44V");
+      await restore(store, "URX44V", { token: null, model: null, unit: window.localStorage.getItem("urx-lcd-sim.state") });
       const shell = new Shell(buildRegistry(), store, model);
       shell.ctx.nav.push({ id: "microsd.saveload" });
       await flush();
@@ -1094,7 +1191,7 @@ describe("what the card's own actions do to it", () => {
         expect(store.num("ch.ch1.level", 99), dir).toBe(-12);
       }
     } finally {
-      forget();
+      window.localStorage.removeItem("urx-lcd-sim.state");
     }
   });
 

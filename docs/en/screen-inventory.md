@@ -1687,9 +1687,16 @@ that is open, asks `File already exists. Replace it?` first; loading asks nothin
 the folder as it is and writes nothing, as the unit does. A [Save as] name that differs from a settings file's in the folder
 that is open in case alone asks nothing and writes over that file, which keeps its name as it was spelt, as the unit does; one
 that differs from a folder's in case alone asks nothing and writes nothing. [Save] and [Load] stand out of reach until a settings file is under the
-cursor. A settings file carries every value but the screen's own state (`ui.`) and the card itself
-(`sd.`). A source the file holds no D.Gain for comes back to 0 dB when it is loaded, and a scene number
-the file holds nothing under comes back empty.
+cursor. A settings file carries every value but the screen's own state (`ui.`, and the tabs OUTPUT
+PATCH, PERIPHERAL and SCENE LIST's Standard / Simple stand on) and the card itself (`sd.`), so a load
+leaves those tabs where they stand, as on the unit (URX44V, the operator, 2026-10-04). SCENE LIST's
+cursor is in the file, and a load puts it back on the row it stood on when the file was saved, as on
+the unit (URX44V, the operator, 2026-10-04, on Standard's list). Where the tab standing open does not
+list that row, SCENE LIST opens the tab that does; a row both tabs list leaves the open tab where it
+stands (URX44V, the operator, 2026-10-04, for Simple's P02 and 09 loaded with Standard open, and Standard's 00 loaded with Simple open). The bank USER DEFINED KNOBS
+stands on is in the file, and a load brings back the bank the file was saved on, as on the unit
+(URX44V, the operator, 2026-10-03). A source the file holds no D.Gain for comes back to 0 dB when it
+is loaded, and a scene number the file holds nothing under comes back empty.
 
 A playback runs against the take's length, writing the counter and the bar in place once a second.
 At the end of the file playback lets the file go, as [■] does: the triangle leaves the microSD icon, and RECORDER's card-eject
@@ -1801,9 +1808,9 @@ title's keyboard.
 
 Of the controls the unit's knob turns, only the one touched holds the focus, shown in magenta (`--accent-focus`). None
 holds it when a screen opens or after moving to another screen, with three exceptions: EQ opens holding the band picked
-last (LOW at first), one band shared by every channel's EQ, until the power goes off (a reload); the COMP and EQ
-screens with 1-knob on open with the focus pinned on the level (below); and BRIGHTNESS, whose only turnable value is
-Screen, opens holding it.
+last (LOW at first), one band shared by every channel's EQ, which a reload keeps and [Reset the unit] brings back to
+LOW; the COMP and EQ screens with 1-knob on open with the focus pinned on the level (below); and BRIGHTNESS, whose only
+turnable value is Screen, opens holding it.
 
 - Value boxes: a frame and a fill (`--accent-focus-fill`). A popup's values (DATE / TIME's date and time), HOME's strip
   levels and the knob readout along the bottom of the screen take none.

@@ -14,9 +14,16 @@ import { withEverySourceGain } from "./source-gain";
 /** What stays behind when a settings file is written. */
 const NOT_SAVED = ["ui.", "sd.", "pair."];
 
+/**
+ * The screen's own state kept outside `ui.`, which a load leaves where it stands:
+ * the tabs OUTPUT PATCH, PERIPHERAL and SCENE LIST stand on. SCENE LIST's cursor
+ * is carried, and a load puts it back.
+ */
+const SCREEN_STATE = new Set<ParamPath>(["setup.outputPatch.tab", "setup.peripheral.tab", "scene.bank"]);
+
 /** Whether a settings file carries the value at this path. */
 export function inSettingsFile(path: ParamPath): boolean {
-  return !NOT_SAVED.some((p) => path.startsWith(p)) && !isClockPath(path);
+  return !NOT_SAVED.some((p) => path.startsWith(p)) && !SCREEN_STATE.has(path) && !isClockPath(path);
 }
 
 /** The unit as it stands, ready to be written to the card. */

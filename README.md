@@ -21,7 +21,8 @@ front of you. It is a standalone project, and it talks to no hardware by itself.
 - Display scale of 50% / 75% / 100% / 150% / 200% (also `?zoom=150`)
 - Full keyboard operation (Tab to move, Enter / Space to activate, arrows to turn a value)
 - Scene memories, a microSD card holding takes and settings files, and the whole unit kept in the
-  browser between visits; [Reset the unit] starts again from the unit as it ships
+  browser between visits; [Reset the unit] starts again from the unit as it ships, leaving the card in
+  its slot as it is
 
 The unit's physical controls are not reproduced. Every value is reached on the glass: drag it,
 turn the wheel over it, or use the arrow keys. The knob strip along the bottom of the screen is a
