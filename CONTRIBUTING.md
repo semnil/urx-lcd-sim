@@ -79,6 +79,8 @@ address that was not verified against a connected unit
 - Include before/after crops for changes on screen, taken with the same model, display scale
   and crop.
 - The GitHub Pages workflow runs `pnpm test` and `pnpm build` on every pull request to `main`.
+  The CI workflow runs `pnpm typecheck` and `pnpm test:coverage` on the same pull requests and
+  uploads the coverage report to Codecov.
 - A release is a pull request that changes nothing but `version` in `package.json`; see the
   README ("Hosting").
 
