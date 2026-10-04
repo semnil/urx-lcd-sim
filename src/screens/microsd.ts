@@ -10,6 +10,7 @@ import type { ParamValue } from "../device/path";
 import type { CardEntry } from "../model/card";
 import { CARD_ROOT, cardStamp, folderPath, formatFree, formatRate, freeBytes, parentPath, readCard, takeRate, writeCard } from "../model/card";
 import { applySettings, captureSettings } from "../model/settings-file";
+import { onDynamicsTimeStops } from "../model/dynamics-times";
 import { TRACK_COUNTS, dropTracksOverRate, trackCountCeiling } from "../model/track-count";
 import { dropInsertsOverRate } from "./insert-fx";
 import { followRecall, pairStates } from "./stereo-link";
@@ -387,13 +388,13 @@ function saveLoadAction(ctx: AppContext, label: string): void {
   ctx.overlay(dialog({ message: REPLACE_ASK, onOk: () => saveSettings(ctx, entry.name) }));
 }
 
-/** Put a settings file back on the unit. */
+/** Put a settings file back on the unit, a GATE, COMP or DUCKER time off its stops on the stop nearest it. */
 function loadSettings(ctx: AppContext, name: string): void {
   const held = ctx.store.str(filePath(name), "");
   if (!held) return;
   const before = ctx.store.num("setup.samplingFrequency", 48000);
   const pairs = pairStates(ctx);
-  void applySettings(ctx.store, fromJson(held) as Record<string, ParamValue>).then(() => {
+  void applySettings(ctx.store, onDynamicsTimeStops(fromJson(held) as Record<string, ParamValue>)).then(() => {
     followRecall(ctx, pairs);
     settlePanLink(ctx);
     const rate = ctx.store.num("setup.samplingFrequency", 48000);
@@ -807,8 +808,8 @@ const SD_TAB_ICON: Record<string, () => SVGSVGElement> = {
   Edit: Icons.edit,
 };
 
-/** How long the recorder holds its loading modal up before the tab appears. */
-const SD_TAB_LOADING_MS = 3000;
+/** How long the recorder holds its loading modal up before the tab appears, the same each time. */
+const SD_TAB_LOADING_MS = 2000;
 
 /**
  * Move to another RECORDER tab. Play and Edit read the card, so they come up

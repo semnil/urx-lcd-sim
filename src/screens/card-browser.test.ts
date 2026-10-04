@@ -65,6 +65,16 @@ async function pickTab(shell: Shell, path: string, tab: string): Promise<void> {
   await flush();
 }
 
+/** Tap the side tab named `label`, as a finger would. */
+async function tapSideTab(shell: Shell, label: string): Promise<void> {
+  [...shell.root.querySelectorAll<HTMLElement>(".side-tab")].find((t) => t.querySelector(".side-tab-label")?.textContent === label)?.click();
+  await flush();
+}
+
+/** The name of the side tab drawn lit. */
+const litSideTab = (shell: Shell): string | null | undefined =>
+  shell.root.querySelector('.side-tab[aria-pressed="true"] .side-tab-label')?.textContent;
+
 describe("the microSD card browser", () => {
   it("lists what is on the card, an icon beside each name", async () => {
     const shell = await mount({ id: "microsd.saveload" });
@@ -115,6 +125,109 @@ describe("the microSD card browser", () => {
     expect(picked()).toBe(1);
   });
 
+  it("moves the list and its thumb as far on the screen as the pointer moves, however large the glass is drawn", async () => {
+    const card = Array.from({ length: 20 }, (_, i) => entry(`take${i}.wav`, "take", 10));
+    const shell = await mount({ id: "microsd.saveload" }, card);
+    // The glass drawn at twice its own size, as the page's default 100% draws it.
+    const glass = shell.root;
+    const drawn = { left: 0, top: 0, right: 960, bottom: 544, width: 960, height: 544, x: 0, y: 0 };
+    glass.getBoundingClientRect = () => ({ ...drawn, toJSON: () => drawn }) as DOMRect;
+    Object.defineProperty(glass, "offsetWidth", { value: 480, configurable: true });
+    const list = shell.root.querySelector<HTMLElement>(".sd-list .scroll-host") as HTMLElement;
+    const thumb = shell.root.querySelector<HTMLElement>(".sd-scrollbar .scroll-thumb") as HTMLElement;
+    let scrolled = 0;
+    Object.defineProperty(list, "scrollHeight", { value: 20 * 38, configurable: true });
+    Object.defineProperty(list, "clientHeight", { value: 114, configurable: true });
+    Object.defineProperty(list, "scrollTop", {
+      configurable: true,
+      get: () => scrolled,
+      set: (v: number) => {
+        scrolled = Math.max(0, Math.min(20 * 38 - 114, v));
+        list.dispatchEvent(new Event("scroll"));
+      },
+    });
+    const at = (type: string, y: number): MouseEvent => new MouseEvent(type, { bubbles: true, clientY: y });
+
+    list.scrollTop = 200;
+    list.dispatchEvent(at("pointerdown", 100));
+    window.dispatchEvent(at("pointermove", 97));
+    expect(list.scrollTop, "a move inside the slop is still a tap").toBe(200);
+    window.dispatchEvent(at("pointermove", 94));
+    expect(list.scrollTop, "the slop is measured on the page").toBe(203);
+    window.dispatchEvent(at("pointermove", 80));
+    window.dispatchEvent(at("pointerup", 80));
+    expect(list.scrollTop - 200, "20 page px up is 10 of the glass's own px").toBe(10);
+    await flush();
+
+    list.scrollTop = 100;
+    const top = (): number => Number.parseFloat(thumb.style.top);
+    const from = top();
+    thumb.dispatchEvent(at("pointerdown", 100));
+    window.dispatchEvent(at("pointermove", 110));
+    window.dispatchEvent(at("pointerup", 110));
+    expect(top() - from, "10 page px down is 5 of the glass's own px").toBeCloseTo(5, 6);
+  });
+
+  it("scrolls the list by the main button's drag, and by the pointer that took it alone", async () => {
+    const card = Array.from({ length: 20 }, (_, i) => entry(`take${i}.wav`, "take", 10));
+    const shell = await mount({ id: "microsd.saveload" }, card);
+    const list = shell.root.querySelector<HTMLElement>(".sd-list .scroll-host") as HTMLElement;
+    const thumb = shell.root.querySelector<HTMLElement>(".sd-scrollbar .scroll-thumb") as HTMLElement;
+    let scrolled = 0;
+    Object.defineProperty(list, "scrollHeight", { value: 20 * 38, configurable: true });
+    Object.defineProperty(list, "clientHeight", { value: 114, configurable: true });
+    Object.defineProperty(list, "scrollTop", {
+      configurable: true,
+      get: () => scrolled,
+      set: (v: number) => {
+        scrolled = Math.max(0, Math.min(20 * 38 - 114, v));
+        list.dispatchEvent(new Event("scroll"));
+      },
+    });
+    const pe = (type: string, init: PointerEventInit): PointerEvent => new PointerEvent(type, { bubbles: true, ...init });
+
+    // The right button scrolls nothing, on the rows or on the thumb.
+    for (const part of [list, thumb]) {
+      list.scrollTop = 200;
+      part.dispatchEvent(pe("pointerdown", { pointerId: 1, pointerType: "mouse", button: 2, buttons: 2, clientY: 100 }));
+      window.dispatchEvent(pe("pointermove", { pointerId: 1, pointerType: "mouse", buttons: 2, clientY: 60 }));
+      window.dispatchEvent(pe("pointerup", { pointerId: 1, pointerType: "mouse", button: 2, clientY: 60 }));
+      expect(list.scrollTop, `the right button on ${part.className}`).toBe(200);
+    }
+
+    // A second finger neither scrolls the list the first holds nor ends its drag.
+    list.dispatchEvent(pe("pointerdown", { pointerId: 1, pointerType: "touch", buttons: 1, clientY: 100 }));
+    window.dispatchEvent(pe("pointermove", { pointerId: 2, pointerType: "touch", buttons: 1, clientY: 60 }));
+    window.dispatchEvent(pe("pointercancel", { pointerId: 2, pointerType: "touch" }));
+    expect(list.scrollTop, "a second finger's move and cancel").toBe(200);
+    window.dispatchEvent(pe("pointermove", { pointerId: 1, pointerType: "touch", buttons: 1, clientY: 80 }));
+    expect(list.scrollTop, "the first finger goes on scrolling it").toBe(220);
+    // A second finger pressed on the rows or on the thumb while the first holds the list scrolls nothing.
+    for (const part of [list, thumb]) {
+      part.dispatchEvent(pe("pointerdown", { pointerId: 2, pointerType: "touch", button: 0, buttons: 1, clientY: 100 }));
+      window.dispatchEvent(pe("pointermove", { pointerId: 2, pointerType: "touch", buttons: 1, clientY: 140 }));
+      window.dispatchEvent(pe("pointerup", { pointerId: 2, pointerType: "touch", clientY: 140 }));
+      expect(list.scrollTop, `a second finger pressed on ${part.className}`).toBe(220);
+    }
+    window.dispatchEvent(pe("pointermove", { pointerId: 1, pointerType: "touch", buttons: 1, clientY: 70 }));
+    expect(list.scrollTop, "the first finger still holds it").toBe(230);
+    window.dispatchEvent(pe("pointerup", { pointerId: 1, pointerType: "touch", clientY: 70 }));
+    await flush();
+    // Once the first finger is let go, the next finger takes the list.
+    list.dispatchEvent(pe("pointerdown", { pointerId: 3, pointerType: "touch", button: 0, buttons: 1, clientY: 100 }));
+    window.dispatchEvent(pe("pointermove", { pointerId: 3, pointerType: "touch", buttons: 1, clientY: 90 }));
+    expect(list.scrollTop, "the next finger").toBe(240);
+    window.dispatchEvent(pe("pointerup", { pointerId: 3, pointerType: "touch", clientY: 90 }));
+    await flush();
+
+    // A mouse that comes back with no button held was let go where the page did not hear it.
+    list.scrollTop = 200;
+    list.dispatchEvent(pe("pointerdown", { pointerId: 1, pointerType: "mouse", button: 0, buttons: 1, clientY: 100 }));
+    window.dispatchEvent(pe("pointermove", { pointerId: 1, pointerType: "mouse", buttons: 0, clientY: 60 }));
+    window.dispatchEvent(pe("pointermove", { pointerId: 1, pointerType: "mouse", buttons: 1, clientY: 40 }));
+    expect(list.scrollTop, "a hover with no button held").toBe(200);
+  });
+
   it("carries the path bar and how much of the card is left", async () => {
     const shell = await mount({ id: "microsd.saveload" });
     expect(shell.root.querySelector(".sd-path-field")?.textContent).toBe("/");
@@ -139,6 +252,35 @@ describe("the microSD card browser", () => {
     await pickTab(shell, "ui.sdSaveTab", "Edit");
     expect(actions(shell)).toEqual(["icon-new-folder", "icon-trash", "icon-rename"]);
     expect(rows(shell).map((r) => cellsOf(r)[1]), "the same list under both").toEqual(before);
+  });
+
+  it("moves SAVE/LOAD between its tabs on a tap of the side tab", async () => {
+    const shell = await mount({ id: "microsd.saveload" });
+    const names = (): string[] =>
+      [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].map((n) => n.getAttribute("aria-label") ?? n.textContent ?? "");
+    expect(names()).toEqual(["Save", "Save as", "Load"]);
+
+    await tapSideTab(shell, "Edit");
+    expect([shell.ctx.store.str("ui.sdSaveTab", ""), litSideTab(shell)]).toEqual(["Edit", "Edit"]);
+    expect(names()).toEqual(["New folder", "Delete", "Rename"]);
+
+    await tapSideTab(shell, "Save/\nLoad");
+    expect([shell.ctx.store.str("ui.sdSaveTab", ""), litSideTab(shell)]).toEqual(["Save/\nLoad", "Save/\nLoad"]);
+    expect(names()).toEqual(["Save", "Save as", "Load"]);
+  });
+
+  it("moves TOOLS between Format and Test on a tap of the side tab", async () => {
+    const shell = await mount({ id: "microsd.tools" });
+    const job = (): string | null | undefined => shell.root.querySelector(".tools-screen > .btn")?.textContent;
+    expect(job()).toBe("Format microSD");
+
+    await tapSideTab(shell, "Test");
+    expect([shell.ctx.store.str("ui.sdToolsTab", ""), litSideTab(shell)]).toEqual(["Test", "Test"]);
+    expect(job()).toBe("Test microSD");
+
+    await tapSideTab(shell, "Format");
+    expect([shell.ctx.store.str("ui.sdToolsTab", ""), litSideTab(shell)]).toEqual(["Format", "Format"]);
+    expect(job()).toBe("Format microSD");
   });
 
   it("gives RECORDER a track layout on Record and the card on Play and Edit", async () => {
@@ -774,10 +916,21 @@ describe("USB Storage Mode", () => {
     expect(btn()?.classList.contains("is-on"), "the button lights").toBe(true);
   });
 
-  it("asks a different question on the way out, and [Cancel] leaves the mode on", async () => {
+  it("asks a different question on the way out, [Cancel] leaves the mode on and [OK] takes it off", async () => {
     const shell = await mount({ id: "microsd" });
     await shell.ctx.store.set("sd.usbStorage", true);
     await flush();
+    /** The mode, the button's light, the entries out of reach, and the card-eject button in the toolbar. */
+    const state = (): [boolean, boolean | undefined, number, boolean] => [
+      shell.ctx.store.bool("sd.usbStorage", false),
+      shell.root.querySelector(".usb-storage")?.classList.contains("is-on"),
+      shell.root.querySelectorAll(".menu-grid-sd .menu-btn.is-disabled").length,
+      shell.root.querySelector(".toolbar .sd-eject") !== null,
+    ];
+    const answer = async (label: string): Promise<void> => {
+      [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === label)?.click();
+      await flush();
+    };
 
     shell.root.querySelector<HTMLElement>(".usb-storage")?.click();
     await flush();
@@ -786,17 +939,35 @@ describe("USB Storage Mode", () => {
       "Please make sure that the microSD storage\ndrive of the URX unit has been removed from\nthe computer.",
     );
 
-    [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === "Cancel")?.click();
+    await answer("Cancel");
+    expect(state(), "[Cancel]: the mode on, Recorder, Save/Load and Tools out of reach, no card to take out").toEqual([true, true, 3, false]);
+
+    shell.root.querySelector<HTMLElement>(".usb-storage")?.click();
     await flush();
-    expect(shell.ctx.store.bool("sd.usbStorage", false)).toBe(true);
+    await answer("OK");
+    expect(shell.root.querySelector(".dialog-text"), "the question answered").toBeNull();
+    expect(state(), "[OK]: the mode off, the three entries and the card-eject button back").toEqual([false, false, 0, true]);
   });
 
   it("stays on the microSD screen either way", async () => {
     const shell = await mount({ id: "microsd" });
     const depth = shell.ctx.nav.depth;
-    shell.root.querySelector<HTMLElement>(".usb-storage")?.click();
-    await flush();
-    expect(shell.ctx.nav.depth, "the dialog is not a screen").toBe(depth);
-    expect(shell.root.querySelector(".menu-grid-sd"), "the menu is still under it").not.toBeNull();
+    for (const [way, answer] of [
+      ["in", "Cancel"],
+      ["in", "OK"],
+      ["out", "Cancel"],
+      ["out", "OK"],
+    ]) {
+      shell.root.querySelector<HTMLElement>(".usb-storage")?.click();
+      await flush();
+      expect(shell.root.querySelector(".dialog-text"), `${way}: asked`).not.toBeNull();
+      expect(shell.ctx.nav.depth, `${way}: the dialog is not a screen`).toBe(depth);
+      [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === answer)?.click();
+      await flush();
+      expect(shell.root.querySelector(".dialog-text"), `${way}, ${answer}: answered`).toBeNull();
+      expect([shell.ctx.nav.current.id, shell.ctx.nav.depth], `${way}, ${answer}`).toEqual(["microsd", depth]);
+      expect(shell.root.querySelector(".menu-grid-sd"), `${way}, ${answer}: the menu is still there`).not.toBeNull();
+    }
+    expect(shell.ctx.store.bool("sd.usbStorage", true), "in and out again").toBe(false);
   });
 });

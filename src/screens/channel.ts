@@ -8,6 +8,7 @@ import type { DeviceStore, WriteRule } from "../device/store";
 import { clamp } from "../device/store";
 import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, GATE_DEFAULTS, compEqBankDefaults, faderShipped, sendShipsOn, ssmcsBankDefaults } from "../model/defaults";
 import { COMP_KNEE_WIDTH, compResponse, grBarShare, levelBarShare } from "../model/dynamics";
+import { DYNAMICS_TIME_STOPS, type DynamicsTime } from "../model/dynamics-times";
 import { EQ_SHAPES, eqBandOn, eqBandShape, fourBandResponse } from "../model/channel-eq";
 import type { Strip } from "../model/types";
 import { findStrip, sendsTo } from "../model/types";
@@ -16,8 +17,8 @@ import { el, makeTappable, setPressed } from "../ui/dom";
 import { inkOn } from "../ui/color";
 import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
-import { compRatioSpec, dbSpec, faderSpec, freqSpec, intSpec, logFreqSpec, msSpec, panSpec, rangeAttrs } from "../ui/param-spec";
-import { attachDrag, attachSpin, followFocus, knobControl, markFocus, meter, panSlider, pickerSheet, pulldown, sideTab, toggle, unbuilt, valueBox } from "../ui/widgets";
+import { compRatioSpec, dbSpec, faderSpec, fineGainSpec, freqSpec, intSpec, logFreqSpec, msSpec, panSpec, stoppedMsSpec } from "../ui/param-spec";
+import { attachDrag, attachSpin, followFocus, knobControl, markFocus, meter, panSlider, pickerSheet, pulldown, setAriaValue, sideTab, toggle, unbuilt, valueBox } from "../ui/widgets";
 import { type GrSpec, type LampState, blockReduction, inputMeterId, markBlockLamps, markClipSafe, markLevelBar, markReduction, meterLevels, showBlockLamps, simulatedInput, simulatedLevel } from "./meters";
 import { type Tap, compSpec, duckerSources, duckerSpec, gateSpec, stripTap, tapId } from "./signal-flow";
 import { PAN_BAL, SIGNAL_TYPES, carriesStereo, enterSsmcs, setPanBal, setSignalType, signalType, stripPosition } from "./stereo-link";
@@ -337,6 +338,9 @@ const clampFraction = (v: number): number => Math.min(1, Math.max(0, v));
 const gateThreshold = (b: string): NumericSpec => dbSpec(`${b}.gate.threshold`, "Threshold", -72, 0, GATE_DEFAULTS.threshold, 1, 0);
 const compThreshold = (b: string): NumericSpec => dbSpec(`${b}.comp.threshold`, "Threshold", COMP_THRESHOLD_MIN, 0, COMP_DEFAULTS.threshold, 1, 0);
 const duckerThreshold = (b: string): NumericSpec => dbSpec(`${b}.ducker.threshold`, "Threshold", -60, 0, -40, 1, 0);
+/** One of GATE's, COMP's and DUCKER's times, on its own stops, read to `digits` places under 100 ms. */
+const dynTime = (b: string, time: DynamicsTime, label: string, fallback: number, digits?: number): NumericSpec =>
+  stoppedMsSpec(`${b}.${time}`, label, DYNAMICS_TIME_STOPS[time], fallback, digits);
 const delayTime = (b: string): NumericSpec => ({ ...msSpec(`${b}.delay.ms`, "ms", 1, 1000, 1), step: 0.01, unit: "", boxUnit: "", sweep: DELAY_SWEEP_DEG });
 /** How deep [1-knob] works COMP or EQ, in percent. */
 const oneKnobDepth = (path: string): NumericSpec => intSpec(path, "1-knob", 0, 100, 0, "%");
@@ -641,6 +645,42 @@ function colorSheet(ctx: AppContext, strip: Strip): void {
   });
 }
 
+/** Whether a pointer is going down on the page in the task under way. */
+let pressStarting = false;
+let pressesWatched = false;
+
+/** Note each pointer going down on the page, from the first call on. */
+function watchPresses(): void {
+  if (pressesWatched) return;
+  pressesWatched = true;
+  const starting = (): void => {
+    pressStarting = true;
+    setTimeout(() => {
+      pressStarting = false;
+    }, 0);
+  };
+  // A finger's tap takes the focus at the mouse press that follows its lift.
+  for (const type of ["pointerdown", "mousedown"]) document.addEventListener(type, starting, true);
+}
+
+/**
+ * Run `write` now, or, where a pointer going down is what made it due, once
+ * that press has let go and its click has been handed out, so the control it
+ * pressed is still on the glass for the click.
+ */
+function afterPress(write: () => void): void {
+  if (!pressStarting) {
+    write();
+    return;
+  }
+  const ends = ["pointerup", "mouseup", "click", "pointercancel"];
+  const done = (): void => {
+    for (const type of ends) document.removeEventListener(type, done, true);
+    setTimeout(write, 0);
+  };
+  for (const type of ends) document.addEventListener(type, done, true);
+}
+
 export const chSettingScreen: ScreenDef = {
   id: "ch.setting",
   toolbar: "sub",
@@ -667,8 +707,13 @@ export const chSettingScreen: ScreenDef = {
     }) as HTMLInputElement;
     nameInput.value = ctx.store.str(`${base}.name`, "");
     // Committing on change rather than on every keystroke keeps an IME
-    // composition from writing half-formed text to the device.
-    nameInput.addEventListener("change", () => void ctx.store.set(`${base}.name`, nameInput.value));
+    // composition from writing half-formed text to the device. A press elsewhere
+    // that takes the focus commits the name once that press has acted.
+    watchPresses();
+    nameInput.addEventListener("change", () => {
+      const name = nameInput.value;
+      afterPress(() => void ctx.store.set(`${base}.name`, name));
+    });
 
     const colorBox = box("color", "copy", [el("span", { class: "chs-color", style: { background: stripColor(ctx, strip) } })]);
     makeTappable(colorBox, () => colorSheet(ctx, strip));
@@ -988,17 +1033,18 @@ export function plotHandle(
   const value = ctx.store.num(turns.spec.path, turns.spec.fallback);
   grp.setAttribute("role", "slider");
   grp.setAttribute("tabindex", "0");
-  for (const [name, text] of Object.entries(rangeAttrs(turns.spec, value))) grp.setAttribute(name, text);
+  setAriaValue(grp, turns.spec, value);
+  // Every handle's marks go in the one layer, kept after the last handle drawn.
+  // The grip stands on its plot before it takes the drag, so a finger on it holds the plot.
+  const layer = [...svg.children].find((n) => n.classList.contains("dyn-handle-marks")) ?? document.createElementNS(NS, "g");
+  layer.setAttribute("class", "dyn-handle-marks");
+  layer.appendChild(marks);
+  svg.append(grp, layer);
   const node = grp as unknown as HTMLElement;
   makeTappable(node, () => ctx.focus.take(turns.spec));
   attachSpin(ctx, node, turns.spec, () => ctx.focus.take(turns.spec), { axis, ...(turns.sense ? { sense: turns.sense } : {}) });
   markFocus(ctx, grp, held, "is-held");
   markFocus(ctx, marks, held, "is-held");
-  // Every handle's marks go in the one layer, kept after the last handle drawn.
-  const layer = [...svg.children].find((n) => n.classList.contains("dyn-handle-marks")) ?? document.createElementNS(NS, "g");
-  layer.setAttribute("class", "dyn-handle-marks");
-  layer.appendChild(marks);
-  svg.append(grp, layer);
 }
 
 /** A caption over a value box, as the dynamics screens stack them down the right. */
@@ -1089,9 +1135,9 @@ export const gateScreen: ScreenDef = {
     const b = `ch.${strip.id}`;
     const threshold = gateThreshold(b);
     const range = dbSpec(`${b}.gate.range`, "Range", -73, 0, GATE_DEFAULTS.range, 1, 0);
-    const attack = msSpec(`${b}.gate.attack`, "Attack", 0.092, 80, GATE_DEFAULTS.attack);
-    const hold = msSpec(`${b}.gate.hold`, "Hold", 0.02, 1960, GATE_DEFAULTS.hold, 1, 1);
-    const decay = msSpec(`${b}.gate.decay`, "Decay", 9.3, 999, GATE_DEFAULTS.decay, 1);
+    const attack = dynTime(b, "gate.attack", "Attack", GATE_DEFAULTS.attack);
+    const hold = dynTime(b, "gate.hold", "Hold", GATE_DEFAULTS.hold, 1);
+    const decay = dynTime(b, "gate.decay", "Decay", GATE_DEFAULTS.decay);
     ctx.setKnobs([threshold, range, attack, hold, decay]);
     const on = ctx.store.bool(`${b}.gate.on`, false);
     const t = ctx.store.num(threshold.path, threshold.fallback);
@@ -1140,7 +1186,7 @@ export const compScreen: ScreenDef = {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
     const b = `ch.${strip.id}`;
-    // While 1-knob is on, its level holds the focus and no other value turns.
+    // While 1-knob is on, its level holds the focus and no other value on the screen turns.
     const oneKnob = ctx.store.bool(`${b}.comp.oneKnob.on`, false);
     const level = oneKnobDepth(`${b}.comp.oneKnob.level`);
     if (oneKnob) ctx.focus.pin(level);
@@ -1150,9 +1196,9 @@ export const compScreen: ScreenDef = {
     // The unit works the makeup gain out itself while Auto Makeup is on, so the
     // division reads it and does not turn it.
     const autoMakeup = ctx.store.bool(`${b}.comp.autoMakeup`, false);
-    const gain = { ...dbSpec(`${b}.comp.gain`, "Gain", 0, 18, COMP_DEFAULTS.gain, 0.5, 1), ...(autoMakeup ? { locked: true } : {}) };
-    const attack = msSpec(`${b}.comp.attack`, "Attack", 0.092, 80, COMP_DEFAULTS.attack);
-    const release = msSpec(`${b}.comp.release`, "Release", 9.3, 999, COMP_DEFAULTS.release, 1);
+    const gain = { ...fineGainSpec(`${b}.comp.gain`, "Gain", 0, 18, COMP_DEFAULTS.gain), ...(autoMakeup ? { locked: true } : {}) };
+    const attack = dynTime(b, "comp.attack", "Attack", COMP_DEFAULTS.attack);
+    const release = dynTime(b, "comp.release", "Release", COMP_DEFAULTS.release);
     // Five parameters over four divisions: the bar carries a step to the rest.
     ctx.setKnobs([threshold, ratio, gain, attack, release]);
 
@@ -1238,8 +1284,8 @@ export const duckerScreen: ScreenDef = {
     const b = `ch.${strip.id}`;
     const threshold = duckerThreshold(b);
     const range = dbSpec(`${b}.ducker.range`, "Range", -70, 0, -24, 1, 0);
-    const attack = msSpec(`${b}.ducker.attack`, "Attack", 0.092, 80, 20.17);
-    const decay = msSpec(`${b}.ducker.decay`, "Decay", 1.3, 5000, 1000, 1, 1);
+    const attack = dynTime(b, "ducker.attack", "Attack", 20.17);
+    const decay = dynTime(b, "ducker.decay", "Decay", 1000, 1);
     ctx.setKnobs([range, attack, decay, threshold]);
     const on = ctx.store.bool(`${b}.ducker.on`, false);
     const rangeDb = ctx.store.num(range.path, range.fallback);
@@ -1449,8 +1495,8 @@ export const eqScreen: ScreenDef = {
     const base = `ch.${strip.id}`;
     const bandKey = ctx.store.str("ui.eqBand", "low");
     const band = EQ_BANDS.find((b) => b.key === bandKey) ?? EQ_BANDS[0];
-    // While 1-knob is on, its level holds the focus, no other value turns, and the
-    // grips shrink to marks that pick nothing.
+    // While 1-knob is on, its level holds the focus, no other value on the screen
+    // turns, and the grips shrink to marks that pick nothing.
     const oneKnob = ctx.store.bool(`${base}.eq.oneKnob.on`, false);
     const level = oneKnobDepth(`${base}.eq.oneKnob.level`);
     if (oneKnob) ctx.focus.pin(level);
@@ -1611,7 +1657,7 @@ function eqBandSpecs(base: string, band: (typeof EQ_BANDS)[number]): NumericSpec
   return [
     { ...intSpec(`${base}.eq.${band.key}.q`, `${band.box} Q`, 0.5, 16, 0.71), format: (v: number) => v.toFixed(2), step: 0.1 },
     logFreqSpec(`${base}.eq.${band.key}.freq`, `${band.box} Freq.`, EQ_HZ_MIN, EQ_HZ_MAX, 1000),
-    { ...dbSpec(`${base}.eq.${band.key}.gain`, `${band.box} Gain`, -18, 18, 0, 0.5), format: (v: number) => v.toFixed(1) },
+    { ...fineGainSpec(`${base}.eq.${band.key}.gain`, `${band.box} Gain`, -18, 18, 0), format: (v: number) => v.toFixed(1) },
   ];
 }
 

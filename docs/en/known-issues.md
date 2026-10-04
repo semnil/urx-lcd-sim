@@ -64,6 +64,10 @@ is built is in [screen-inventory.md](screen-inventory.md).
   ships takes the output down as well, by an amount that follows the input's level and whether it is a tone
   or noise (0 to 10 dB at a quarter of its travel; URX44V, measured on 2026-09-28). This simulator leaves the
   output where the effect's table puts it for every Master value but the bottom.
+- **A swipe on HOME steps one bank, however hard it is.** On the unit a gentle swipe across about half the
+  screen stepped one bank, while a quick one across the whole screen went from CH 1 - 4 to FX 1 - 2 and back
+  (URX44V, read by the operator on 2026-10-04). This simulator steps one bank a swipe, and stops at the INPUT
+  side's first and last bank as the unit does.
 
 ## What the unit itself does not do
 

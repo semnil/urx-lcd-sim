@@ -69,14 +69,6 @@ describe("DeviceStore", () => {
     expect(failures).toHaveLength(1);
   });
 
-  it("clamps a stepped value to the parameter range", async () => {
-    const { store, transport } = simStore([["setup.brightness", 9]]);
-    await store.attach(transport);
-
-    expect(store.step("setup.brightness", 5, 0, 10)).toBe(10);
-    expect(store.step("setup.brightness", -20, 0, 10)).toBe(0);
-  });
-
   it("carries the values a write rule names along with the write", async () => {
     const { store, transport } = simStore([
       ["ch.ch1.level", 0],

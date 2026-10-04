@@ -8,7 +8,7 @@
 import type { AppContext } from "../app/context";
 import { clamp } from "../device/store";
 import { levelBarShare } from "../model/dynamics";
-import { OFF_MARK, el, makeTappable, setPressed } from "./dom";
+import { OFF_MARK, drawnScale, el, fromInnerControl, makeTappable, setPressed } from "./dom";
 import { Icons } from "./icons";
 import type { NumericSpec } from "./param-spec";
 import { KNOB_SIZE, KNOB_START_DEG, KNOB_SWEEP_DEG, formatValue, rangeAttrs, unitOf } from "./param-spec";
@@ -88,6 +88,78 @@ export function followFocus(ctx: AppContext, node: Element, apply: () => void): 
   });
 }
 
+/**
+ * Follow the pointer that pressed in `start` on the window until it is let go or
+ * cancelled, calling `move` on each of its moves and `end` at the end with the
+ * event that ended it. Other pointers are not heard, and a mouse that moves with
+ * no button held has been let go where the page did not hear it. The returned
+ * function ends it early, with no event.
+ */
+function followPointer(start: PointerEvent, move: (m: PointerEvent) => void, end: (last?: PointerEvent) => void): () => void {
+  const onMove = (m: PointerEvent): void => {
+    if (m.pointerId !== start.pointerId) return;
+    if (m.pointerType === "mouse" && m.buttons === 0) stop(m);
+    else move(m);
+  };
+  const onUp = (u: PointerEvent): void => {
+    if (u.pointerId === start.pointerId) stop(u);
+  };
+  const stop = (last?: PointerEvent): void => {
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    window.removeEventListener("pointercancel", onUp);
+    end(last);
+  };
+  window.addEventListener("pointermove", onMove);
+  window.addEventListener("pointerup", onUp);
+  window.addEventListener("pointercancel", onUp);
+  return () => stop();
+}
+
+/**
+ * Gestures each held by one pointer, from the press that takes it until that
+ * pointer is let go or cancelled. A gesture holds the keys it is taken with, and
+ * a press by another pointer on any key held meanwhile takes nothing.
+ */
+export class PointerHolds<K> {
+  private readonly held = new Map<K, { pointerId: number; stop: () => void }>();
+
+  /**
+   * Whether the pointer that pressed in `ev` may take `keys`: not while another
+   * pointer holds one of them. A pointer that presses while it holds one was let
+   * go where the page did not hear it, and what it held ends here.
+   */
+  take(ev: PointerEvent, keys: readonly K[]): boolean {
+    const holders = new Set(keys.flatMap((k) => this.held.get(k) ?? []));
+    for (const h of holders) if (h.pointerId !== ev.pointerId) return false;
+    for (const h of holders) h.stop();
+    return true;
+  }
+
+  /** Follow `start`'s pointer as `followPointer` does, holding `keys` until it ends. Returns what ends it early. */
+  follow(start: PointerEvent, keys: readonly K[], move: (m: PointerEvent) => void, end: (last?: PointerEvent) => void): () => void {
+    const held = { pointerId: start.pointerId, stop: (): void => undefined };
+    held.stop = followPointer(start, move, (last) => {
+      for (const k of keys) if (this.held.get(k) === held) this.held.delete(k);
+      end(last);
+    });
+    for (const k of keys) this.held.set(k, held);
+    return held.stop;
+  }
+}
+
+/** The values held by a drag, by path, for each store that holds them. */
+const valueHolds = new WeakMap<AppContext["store"], PointerHolds<string>>();
+
+function valueHoldsOf(ctx: AppContext): PointerHolds<string> {
+  let holds = valueHolds.get(ctx.store);
+  if (!holds) {
+    holds = new PointerHolds();
+    valueHolds.set(ctx.store, holds);
+  }
+  return holds;
+}
+
 export function scrollbar(
   target: HTMLElement,
   track: number,
@@ -133,8 +205,16 @@ export function scrollbar(
   // directly. The gesture is followed on the window so it survives the pointer
   // leaving the list, and a drag that passed the slop swallows the click the
   // list would otherwise end it in, so a row under the finger does not fire.
+  // The list and the thumb move as far on the screen as the pointer does, at
+  // whatever scale the glass is drawn; the slop is measured on the page.
+  // One pointer at a time drags the list, by its rows or by its thumb.
+  const holds = new PointerHolds<HTMLElement>();
   const drag = (start: PointerEvent, reach: (moved: number) => number): void => {
+    // The main button drags, as a finger and a pen's tip do; the other buttons do not.
+    if (start.button !== 0 || !holds.take(start, [target])) return;
     const from = target.scrollTop;
+    const glass = target.closest<HTMLElement>(".lcd");
+    const scale = glass ? drawnScale(glass) : 1;
     let dragged = false;
     const swallow = (ev: Event): void => {
       ev.stopPropagation();
@@ -144,21 +224,19 @@ export function scrollbar(
       const moved = m.clientY - start.clientY;
       if (!dragged && Math.abs(moved) < DRAG_SLOP_PX) return;
       dragged = true;
-      target.scrollTop = from + reach(moved);
+      target.scrollTop = from + reach(moved / scale);
     };
     const up = (): void => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-      window.removeEventListener("pointercancel", up);
       if (!dragged) return;
       target.addEventListener("click", swallow, true);
       setTimeout(() => target.removeEventListener("click", swallow, true), 0);
     };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-    window.addEventListener("pointercancel", up);
+    holds.follow(start, [target], move, up);
   };
 
+  // A finger on the rows or on the thumb scrolls the list and leaves the page where it is.
+  target.style.touchAction = "none";
+  thumb.style.touchAction = "none";
   target.addEventListener("pointerdown", (ev) => {
     target.focus({ preventScroll: true });
     drag(ev, (moved) => -moved);
@@ -483,18 +561,22 @@ export function pickerGrid(rows: (HTMLElement | null)[][]): HTMLElement {
 /** Set on the page while a value is being dragged. */
 const TURNING = "is-turning";
 
-/** Pointer travel that covers a control's whole range, in pixels. */
+/** Pointer travel past the slop that covers a control's whole range, in pixels. */
 const DRAG_FULL_RANGE_PX = 192;
 
 /** How much of the range a drag covers while Shift is held. */
 const DRAG_FINE = 0.2;
 
 /**
- * Make `node` turn `spec`. A vertical drag runs the whole range in
- * DRAG_FULL_RANGE_PX, or a fifth of it with Shift held; the wheel and the arrow
- * keys move one detent, or `fastStep` with Shift. `onEngage` runs when a pointer
- * or a key starts a turn. The value box, the rotaries and the HOME strip level
- * share this, so a parameter behaves the same wherever it is reachable.
+ * Make `node` turn `spec`. A drag along `drag`'s axis (up the screen by default)
+ * counts from DRAG_SLOP_PX off the press and runs the whole range in
+ * DRAG_FULL_RANGE_PX from there, or a fifth of it with Shift held;
+ * the wheel and the arrow keys move one detent, or with Shift the spec's
+ * `fastStep` where it has one, and Home and End go to either end; a key
+ * held with Alt, Cmd or Ctrl is left to the browser. `onEngage` runs
+ * when a pointer or a key starts a turn. The value box, the rotaries and the
+ * HOME strip level share this, so a parameter behaves the same wherever it is
+ * reachable.
  */
 export function attachSpin(
   ctx: AppContext,
@@ -510,11 +592,11 @@ export function attachSpin(
   const nudge = (steps: number, fast: boolean): void => {
     const travel = spec.travel;
     if (travel) {
-      put(travel.step(value(), steps * (fast ? 4 : 1)));
+      put(travel.step(value(), steps));
       return;
     }
     const size = fast ? (spec.fastStep ?? spec.step) : spec.step;
-    ctx.store.step(spec.path, steps * size, spec.min, spec.max, spec.fallback);
+    put(onStep(spec, value() + steps * size));
   };
 
   // A control whose touch does something else of its own turns by the wheel and the keys alone.
@@ -523,6 +605,8 @@ export function attachSpin(
   node.addEventListener(
     "wheel",
     (ev) => {
+      // A wheel turned sideways turns nothing and scrolls the page.
+      if (ev.deltaY === 0) return;
       ev.preventDefault();
       if (still()) return;
       nudge(ev.deltaY < 0 ? 1 : -1, ev.shiftKey);
@@ -531,19 +615,28 @@ export function attachSpin(
   );
 
   node.addEventListener("keydown", (ev) => {
+    // A control inside this one, such as a block's switch, keeps the keys it takes.
+    if (fromInnerControl(ev, node)) return;
+    if (ev.altKey || ev.metaKey || ev.ctrlKey) return;
     const map: Record<string, number> = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 };
+    const ends: Record<string, number> = { Home: 0, End: 1 };
     const dir = map[ev.key];
-    if (dir === undefined) return;
+    const end = ends[ev.key];
+    if (dir === undefined && end === undefined) return;
     ev.preventDefault();
     onEngage?.();
     if (still()) return;
-    nudge(dir, ev.shiftKey);
+    if (dir !== undefined) nudge(dir, ev.shiftKey);
+    else if (end !== undefined) put(spec.travel ? spec.travel.valueAt(end) : end === 0 ? spec.min : spec.max);
   });
 }
 
-/** A pinned focus leaves every other value still, the knobs under the screen included, and so does a value the unit is holding itself. */
+/**
+ * A pinned focus leaves every other value on the screen still, the readout bar's included, and a value the unit is
+ * holding itself stands still too. A value turned from off the screen turns whatever the screen pins.
+ */
 export function standsStill(ctx: AppContext, spec: NumericSpec): boolean {
-  return spec.locked === true || !ctx.focus.turns(spec.focusKey ?? spec.path);
+  return spec.locked === true || (spec.pinFree !== true && !ctx.focus.turns(spec.focusKey ?? spec.path));
 }
 
 function putValue(ctx: AppContext, spec: NumericSpec, v: number): void {
@@ -551,8 +644,18 @@ function putValue(ctx: AppContext, spec: NumericSpec, v: number): void {
 }
 
 /**
- * Make a drag of `node` along one axis turn `spec`, the whole range in
- * DRAG_FULL_RANGE_PX or a fifth of it with Shift held. A grip that sets two
+ * `v` on the nearest of `spec`'s steps, the finer of `step` and `fastStep`, where a drag, the wheel and the keys all
+ * leave a value.
+ */
+function onStep(spec: NumericSpec, v: number): number {
+  const step = Math.min(spec.step, spec.fastStep ?? spec.step);
+  return Number((Math.round(v / step) * step).toFixed(6));
+}
+
+/**
+ * Make a drag of `node` along one axis turn `spec`, counted from DRAG_SLOP_PX
+ * off the press: the whole range in DRAG_FULL_RANGE_PX from there, or a fifth of
+ * it with Shift held. A press that moves less turns nothing. A grip that sets two
  * values takes one of these for each axis.
  */
 export function attachDrag(ctx: AppContext, node: HTMLElement, spec: NumericSpec, onEngage: (() => void) | undefined, drag: DragAxis): void {
@@ -562,7 +665,18 @@ export function attachDrag(ctx: AppContext, node: HTMLElement, spec: NumericSpec
   const sense = (drag.sense ?? 1) * (axis === "x" ? -1 : 1);
   const along = (ev: { clientX: number; clientY: number }): number => (axis === "x" ? ev.clientX : ev.clientY) * sense;
   const put = (v: number): void => putValue(ctx, spec, v);
+  // A finger turns the value and leaves the page where it is. A grip drawn in an
+  // SVG holds its whole drawing still under the finger.
+  node.style.touchAction = "none";
+  if (node instanceof SVGElement) node.ownerSVGElement?.style.setProperty("touch-action", "none");
   node.addEventListener("pointerdown", (ev) => {
+    // The main button turns the value, as a finger and a pen's tip do; the other buttons do not.
+    if (ev.button !== 0) return;
+    // One pointer at a time turns a value, and each value a turn of it writes as
+    // well, such as a linked pair's other channel, on whatever control turns them.
+    const holds = valueHoldsOf(ctx);
+    const held = [spec.path, ...ctx.store.carries(spec.path, ctx.store.num(spec.path, spec.fallback))];
+    if (!holds.take(ev, held)) return;
     onEngage?.();
     if (standsStill(ctx, spec)) return;
     // A drag sweeps the pointer across whatever is in its way; marking the page
@@ -570,8 +684,19 @@ export function attachDrag(ctx: AppContext, node: HTMLElement, spec: NumericSpec
     document.documentElement.classList.add(TURNING);
     let anchorAt = along(ev);
     let anchorValue = ctx.store.num(spec.path, spec.fallback);
-    let fine = ev.shiftKey;
+    let fine = false;
+    let dragged = false;
     const move = (m: PointerEvent): void => {
+      // A pointer within DRAG_SLOP_PX of the press along the axis is a tap and
+      // turns nothing; a drag counts from the edge of the slop it passed, as
+      // fine as Shift makes it there.
+      if (!dragged) {
+        const moved = along(m) - anchorAt;
+        if (Math.abs(moved) < DRAG_SLOP_PX) return;
+        dragged = true;
+        anchorAt += Math.sign(moved) * DRAG_SLOP_PX;
+        fine = m.shiftKey;
+      }
       // Taking Shift up or down mid-drag re-anchors, so the value does not jump
       // to where the coarse gesture would have put it.
       if (m.shiftKey !== fine) {
@@ -583,24 +708,28 @@ export function attachDrag(ctx: AppContext, node: HTMLElement, spec: NumericSpec
       // has to follow the pointer rather than the dB.
       const travel = spec.travel;
       const reach = ((anchorAt - along(m)) / DRAG_FULL_RANGE_PX) * (fine ? DRAG_FINE : 1);
+      // At the anchor the value goes back to the one it was anchored at, on its
+      // steps or not, and a value that reads that already is left unwritten.
+      if (reach === 0) {
+        if (ctx.store.num(spec.path, spec.fallback) !== anchorValue) put(anchorValue);
+        return;
+      }
       if (travel) {
         put(travel.valueAt(clamp(travel.position(anchorValue) + reach, 0, 1)));
         return;
       }
       const raw = anchorValue + reach * (spec.max - spec.min);
-      put(Number((Math.round(raw / spec.step) * spec.step).toFixed(6)));
+      put(onStep(spec, raw));
     };
     const up = (): void => {
       document.documentElement.classList.remove(TURNING);
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-      window.removeEventListener("pointercancel", up);
+      leave();
     };
     // The first turn repaints the screen and this node is replaced, so the rest
     // of the gesture is followed on the window rather than on the node.
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-    window.addEventListener("pointercancel", up);
+    const stop = holds.follow(ev, held, move, up);
+    // The drag ends with the screen it started on.
+    const leave = ctx.nav.onChange(stop);
   });
 }
 
@@ -609,6 +738,11 @@ export interface DragAxis {
   axis: "x" | "y";
   /** -1 where the control stands at the value's mirror, as a boundary under a threshold does. */
   sense?: 1 | -1;
+}
+
+/** Give `node` the range and the reading of `spec` at `value` that `rangeAttrs` names. */
+export function setAriaValue(node: Element, spec: NumericSpec, value: number): void {
+  for (const [name, text] of Object.entries(rangeAttrs(spec, value))) node.setAttribute(name, text);
 }
 
 /**
@@ -623,7 +757,6 @@ export function valueBox(ctx: AppContext, spec: NumericSpec, extraClass = "", fr
     attrs: {
       role: "spinbutton",
       "aria-label": spec.label,
-      ...rangeAttrs(spec, value),
       // A box the unit reads out but does not let the operator turn keeps its
       // reading and its name, and takes no key and no drag. A box held still
       // by a focus pinned to another value, as 1-knob pins its level, or by
@@ -631,6 +764,7 @@ export function valueBox(ctx: AppContext, spec: NumericSpec, extraClass = "", fr
       ...(locked || standsStill(ctx, spec) ? { "aria-disabled": "true" } : {}),
     },
   });
+  setAriaValue(node, spec, value);
   if (locked) return node;
   node.tabIndex = 0;
   if (framed) markFocus(ctx, node, spec.focusKey ?? spec.path);

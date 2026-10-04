@@ -2,6 +2,8 @@
 // like it, so the simulator draws it itself, in a layer over the glass: no control
 // can cover it, and it holds the shape of the control the focus is on.
 
+import { drawnScale } from "./dom";
+
 /** How far the ring stands off the control, and how thick its own line is. */
 const GAP = 1;
 const LINE = 1;
@@ -129,7 +131,7 @@ function placeOf(node: Element, root: HTMLElement): Place | null {
   if (!node.getClientRects().length) return null;
   const rootBox = root.getBoundingClientRect();
   // The glass is drawn scaled; the ring lives inside it, in the glass's own pixels.
-  const scale = rootBox.width / root.offsetWidth || 1;
+  const scale = drawnScale(root);
   const box = node.getBoundingClientRect();
   const style = getComputedStyle(node);
   // A control held down stands the depth of its band lower; the ring stays where the control is.

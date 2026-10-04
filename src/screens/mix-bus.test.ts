@@ -235,6 +235,22 @@ describe("a MIX bus's BUS Type and Pan Link", () => {
     expect(sends(), "and off, where Pan Link put them").toEqual([-20, 30]);
   });
 
+  it("switches Pan Link on and off at each press while the bus takes a variable level", async () => {
+    const { shell, store } = await mount();
+    await open(shell, "ch.setting", "bus.mix1");
+    const btn = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".chs-panlink .btn");
+    const seen = (): (boolean | string | null | undefined)[] => [store.bool("ch.bus.mix1.panLink", true), btn()?.getAttribute("aria-pressed")];
+    expect(store.str("ch.bus.mix1.busType", ""), "the bus as it ships").toBe("VARI");
+    expect(btn()?.hasAttribute("aria-disabled"), "in reach").toBe(false);
+    expect(seen()).toEqual([false, "false"]);
+    btn()?.click();
+    await flush();
+    expect(seen(), "on").toEqual([true, "true"]);
+    btn()?.click();
+    await flush();
+    expect(seen(), "and off again").toEqual([false, "false"]);
+  });
+
   it("switches Pan Link off and out of reach while the bus is fixed, and leaves it off back on VARI", async () => {
     // URX44V: taking FIXED on the unit's screen switched Pan Link off and shut its button, and it
     // stayed off when the bus went back to VARI.

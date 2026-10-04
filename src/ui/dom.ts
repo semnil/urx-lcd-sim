@@ -51,6 +51,40 @@ export function tappedControl(): HTMLElement | null {
   return tapping;
 }
 
+/** Whether `ev` comes from a control inside `node`, which answers it for itself. */
+export function fromInnerControl(ev: Event, node: Element): boolean {
+  const inner = (ev.target as HTMLElement).closest(INTERACTIVE);
+  return inner !== null && inner !== node;
+}
+
+/**
+ * The step that finds, once `root` is drawn again, the control drawn in the place of `node`, which stands inside
+ * `root` now: the control of the same kind at the same place, or else the one control of that kind with the same
+ * words. A control's kind is its tag and its classes, less the ones naming its state.
+ */
+export function placeOf(root: Element, node: Element): () => Element | undefined {
+  const kind = (n: Element): string => [n.tagName, ...[...n.classList].filter((c) => !c.startsWith("is-"))].join(" ");
+  const was = kind(node);
+  const path: number[] = [];
+  for (let n: Element = node; n !== root && n.parentElement; n = n.parentElement) {
+    path.unshift([...n.parentElement.children].indexOf(n));
+  }
+  return () => {
+    let found: Element | undefined = root;
+    for (const i of path) found = found?.children[i];
+    if (!found || found === root || kind(found) !== was) {
+      const alike = [...root.querySelectorAll(node.tagName)].filter((n) => kind(n) === was && n.textContent === node.textContent);
+      found = alike.length === 1 ? alike[0] : undefined;
+    }
+    return found;
+  };
+}
+
+/** How many page pixels each of the glass's own pixels is drawn across. */
+export function drawnScale(glass: HTMLElement): number {
+  return glass.getBoundingClientRect().width / glass.offsetWidth || 1;
+}
+
 /**
  * Turn any element into an activatable control. The unit's screen is a touch
  * panel with no keyboard, but the simulator runs in a browser, so every touch
@@ -59,12 +93,6 @@ export function tappedControl(): HTMLElement | null {
 export function makeTappable(node: HTMLElement, handler: (ev: Event) => void): void {
   if (!node.hasAttribute("role") && node.tagName !== "BUTTON") node.setAttribute("role", "button");
   if (!node.hasAttribute("tabindex")) node.tabIndex = 0;
-  // A control inside a tappable area owns its own clicks and keys: without this,
-  // a button or a value box would also fire whatever the area does.
-  const forInner = (ev: Event): boolean => {
-    const inner = (ev.target as HTMLElement).closest(INTERACTIVE);
-    return inner !== null && inner !== node;
-  };
   const fire = (ev: Event): void => {
     const outer = tapping;
     tapping = node;
@@ -75,14 +103,16 @@ export function makeTappable(node: HTMLElement, handler: (ev: Event) => void): v
     }
   };
   node.addEventListener("click", (ev) => {
-    if (forInner(ev)) return;
+    // A control inside a tappable area owns its own clicks and keys: without this,
+    // a button or a value box would also fire whatever the area does.
+    if (fromInnerControl(ev, node)) return;
     fire(ev);
   });
   // A key acts where a finger would: the control answers when the key is let go,
   // not when it goes down, and only where the same control took the key.
   let taken = false;
   node.addEventListener("keydown", (ev) => {
-    if ((ev.key !== "Enter" && ev.key !== " ") || forInner(ev)) return;
+    if ((ev.key !== "Enter" && ev.key !== " ") || fromInnerControl(ev, node)) return;
     ev.preventDefault();
     taken = true;
   });

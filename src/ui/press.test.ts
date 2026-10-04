@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import type { Press } from "./press";
 import { attachPress, bandDepth } from "./press";
 
 describe("the band a control's shadow draws", () => {
@@ -26,7 +27,7 @@ describe("a pressed control", () => {
     document.body.innerHTML = "";
   });
 
-  const mount = (): { root: HTMLElement; banded: HTMLButtonElement; plain: HTMLButtonElement; off: HTMLButtonElement } => {
+  const mount = (): { root: HTMLElement; banded: HTMLButtonElement; plain: HTMLButtonElement; off: HTMLButtonElement; press: Press } => {
     const root = document.createElement("div");
     const button = (shadow: string): HTMLButtonElement => {
       const b = document.createElement("button");
@@ -41,8 +42,9 @@ describe("a pressed control", () => {
     const off = button("inset 0 -3px 0 rgb(49, 57, 58)");
     off.setAttribute("aria-disabled", "true");
     document.body.appendChild(root);
-    cleanups.push(attachPress(root));
-    return { root, banded, plain, off };
+    const press = attachPress(root);
+    cleanups.push(() => press.off());
+    return { root, banded, plain, off, press };
   };
 
   const down = (node: Element | null): void => {
@@ -193,5 +195,140 @@ describe("a pressed control", () => {
     down(banded);
     down(second);
     expect([banded.classList.contains("is-pressed"), second.classList.contains("is-pressed"), second.style.getPropertyValue("--press")]).toEqual([false, true, "4px"]);
+  });
+
+  it("keeps each finger's control down until that finger is let go", () => {
+    const { banded, root } = mount();
+    const second = document.createElement("button");
+    second.style.boxShadow = "inset 0 -4px 0 rgb(0, 0, 0)";
+    root.appendChild(second);
+    const finger = (type: string, node: EventTarget, pointerId: number): void => {
+      node.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId, pointerType: "touch" }));
+    };
+    const sunk = (): boolean[] => [banded, second].map((b) => b.classList.contains("is-pressed"));
+
+    finger("pointerdown", banded, 1);
+    finger("pointerdown", second, 2);
+    expect(sunk(), "a second finger on another control").toEqual([true, true]);
+    finger("pointerup", window, 2);
+    expect(sunk(), "the second finger let go").toEqual([true, false]);
+
+    // Two fingers on one control: it sinks once, and rises when the last of them is let go.
+    finger("pointerdown", banded, 3);
+    expect(banded.style.translate, "sunk once").toBe("2px calc(-1px + 3px)");
+    finger("pointercancel", window, 1);
+    expect(sunk(), "the first finger cancelled").toEqual([true, false]);
+    finger("pointerup", window, 3);
+    expect([...sunk(), banded.style.translate], "both let go").toEqual([false, false, ""]);
+  });
+
+  it("leaves the control the key holds down while a pointer presses another and lets go", () => {
+    const { banded, root } = mount();
+    const second = document.createElement("button");
+    second.style.boxShadow = "inset 0 -4px 0 rgb(0, 0, 0)";
+    root.appendChild(second);
+    banded.focus();
+    banded.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    second.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 1, pointerType: "mouse" }));
+    const pressing = [banded.classList.contains("is-pressed"), second.classList.contains("is-pressed")];
+    window.dispatchEvent(new PointerEvent("pointerup", { pointerId: 1, pointerType: "mouse" }));
+    const released = [banded.classList.contains("is-pressed"), second.classList.contains("is-pressed")];
+    window.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter" }));
+    expect({ pressing, released, keyUp: banded.classList.contains("is-pressed") }).toEqual({
+      pressing: [true, true],
+      released: [true, false],
+      keyUp: false,
+    });
+  });
+
+  it("keeps each pointer's control down in the control drawn in its place, until that pointer is let go", () => {
+    const { banded, root, press } = mount();
+    const second = document.createElement("button");
+    second.className = "second";
+    second.style.boxShadow = "inset 0 -4px 0 rgb(0, 0, 0)";
+    root.appendChild(second);
+    const finger = (type: string, node: EventTarget, pointerId: number): void => {
+      node.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId, pointerType: "touch" }));
+    };
+    // A control of the same kind drawn anew in the place of `old`, as the screen draws it.
+    const redraw = (old: HTMLButtonElement, shadow: string, translate = ""): HTMLButtonElement => {
+      const next = document.createElement("button");
+      next.className = old.className.replace(/\bis-\S+/g, "").trim();
+      next.style.boxShadow = shadow;
+      if (translate) next.style.translate = translate;
+      old.replaceWith(next);
+      return next;
+    };
+
+    finger("pointerdown", banded, 1);
+    finger("pointerdown", second, 2);
+    const both = press.carry();
+    const first = redraw(banded, "inset 0 -3px 0 rgb(49, 57, 58)", "2px -1px");
+    const other = redraw(second, "inset 0 -4px 0 rgb(0, 0, 0)");
+    both();
+    const sunk = (): boolean[] => [first, other].map((b) => b.classList.contains("is-pressed"));
+    expect([...sunk(), first.style.translate], "drawn again under two fingers").toEqual([true, true, "2px calc(-1px + 3px)"]);
+    expect([first, other].map((b) => b.classList.contains("is-carried")), "down already, so they do not slide down again").toEqual([true, true]);
+    finger("pointerup", window, 2);
+    expect([...sunk(), other.classList.contains("is-carried")], "the second finger let go").toEqual([true, false, false]);
+
+    const one = press.carry();
+    const again = redraw(first, "inset 0 -3px 0 rgb(49, 57, 58)");
+    one();
+    expect(again.classList.contains("is-pressed"), "drawn again under one finger").toBe(true);
+    finger("pointercancel", window, 1);
+    expect(again.classList.contains("is-pressed"), "the finger cancelled").toBe(false);
+  });
+
+  it("sinks nothing in the place of a held control drawn again as a control of another kind", () => {
+    const { banded, press } = mount();
+    banded.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 1, pointerType: "touch" }));
+    const carried = press.carry();
+    const next = document.createElement("button");
+    next.className = "another";
+    next.style.boxShadow = "inset 0 -3px 0 rgb(49, 57, 58)";
+    banded.replaceWith(next);
+    carried();
+    expect(next.classList.contains("is-pressed")).toBe(false);
+    window.dispatchEvent(new PointerEvent("pointerup", { pointerId: 1, pointerType: "touch" }));
+  });
+
+  it("keeps a held control down in its place only inside a box of the same name", () => {
+    const { root, press } = mount();
+    // A strip named for its channel, its [ON] carrying no name of its own.
+    const strip = (name: string): HTMLButtonElement => {
+      const box = document.createElement("div");
+      box.setAttribute("aria-label", name);
+      const on = document.createElement("button");
+      on.style.boxShadow = "inset 0 -4px 0 rgb(0, 0, 0)";
+      box.append(on);
+      return on;
+    };
+    const first = strip("CH 1");
+    root.prepend(first.parentElement as HTMLElement);
+    first.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 1, pointerType: "touch" }));
+    const redraw = (old: HTMLButtonElement, name: string): HTMLButtonElement => {
+      const carried = press.carry();
+      const next = strip(name);
+      old.parentElement?.replaceWith(next.parentElement as HTMLElement);
+      carried();
+      return next;
+    };
+    const same = redraw(first, "CH 1");
+    const sameDown = same.classList.contains("is-pressed");
+    const other = redraw(same, "CH 5/6");
+    expect({ sameDown, otherDown: other.classList.contains("is-pressed") }).toEqual({ sameDown: true, otherDown: false });
+    window.dispatchEvent(new PointerEvent("pointerup", { pointerId: 1, pointerType: "touch" }));
+  });
+
+  it("lets every control rise when the window loses the focus", () => {
+    const { banded, root } = mount();
+    const second = document.createElement("button");
+    second.style.boxShadow = "inset 0 -4px 0 rgb(0, 0, 0)";
+    root.appendChild(second);
+    banded.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 1, pointerType: "touch" }));
+    second.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 2, pointerType: "touch" }));
+    window.dispatchEvent(new Event("blur"));
+    expect([banded.classList.contains("is-pressed"), second.classList.contains("is-pressed")]).toEqual([false, false]);
   });
 });

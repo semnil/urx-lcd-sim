@@ -10,11 +10,12 @@ import { INTERACTIVE, clear, el, setPressed, tappedControl } from "../ui/dom";
 import { FocusController } from "../ui/focus";
 import { Icons } from "../ui/icons";
 import { attachFocusRing } from "../ui/focus-ring";
+import type { Press } from "../ui/press";
 import { attachPress } from "../ui/press";
-import { attachSpin, modalOf, standsStill } from "../ui/widgets";
+import { PointerHolds, attachSpin, modalOf, setAriaValue, standsStill } from "../ui/widgets";
 import type { Modal } from "../ui/widgets";
 import type { NumericSpec } from "../ui/param-spec";
-import { BRIGHTNESS_MAX, formatValue, rangeAttrs } from "../ui/param-spec";
+import { BRIGHTNESS_MAX, formatValue } from "../ui/param-spec";
 import type { ScreenBody, ScreenRegistry } from "../screens/types";
 import { recordMode } from "../screens/recording";
 import { drawAtOneMoment } from "../screens/signal-flow";
@@ -52,6 +53,8 @@ export class Shell {
   private repaintScheduled = false;
   /** The screen the glass last drew. */
   private drawn: string | null = null;
+  /** The strip of the screen the glass last drew. */
+  private drawnStrip: string | undefined;
   /** How the stack has moved since the glass last drew. */
   private moves: RouteChange[] = [];
   /** What is layered over the screen, by its closer and bottom first, so nothing is dropped unclosed. */
@@ -59,8 +62,9 @@ export class Shell {
   private readonly onTab: (ev: KeyboardEvent) => void;
   private readonly onEscape: (ev: KeyboardEvent) => void;
   private readonly offStore: () => void;
-  private readonly offPress: () => void;
+  private readonly press: Press;
   private readonly offFocusRing: () => void;
+  private readonly offSwipe: () => void;
 
   constructor(
     private readonly registry: ScreenRegistry,
@@ -77,6 +81,10 @@ export class Shell {
       repaint: () => this.scheduleRepaint(),
       setKnobs: (specs) => {
         this.knobs = specs;
+      },
+      rewindKnobs: () => {
+        this.knobPage = 0;
+        this.scheduleRepaint();
       },
       overlay: (node, onClose) => {
         // Marked so the Escape handler knows something is layered over the screen.
@@ -151,9 +159,9 @@ export class Shell {
         panLinkWriteRule({ store, model }),
       ),
     );
-    this.attachSwipe();
+    this.offSwipe = this.attachSwipe();
     this.attachBackdrop();
-    this.offPress = attachPress(this.lcd);
+    this.press = attachPress(this.lcd);
     this.offFocusRing = attachFocusRing(this.lcd);
     this.onTab = this.buildTabTrap();
     window.addEventListener("keydown", this.onTab);
@@ -168,8 +176,9 @@ export class Shell {
     window.removeEventListener("keydown", this.onEscape);
     this.offStore();
     this.ctx.store.setWriteRule(null);
-    this.offPress();
+    this.press.off();
     this.offFocusRing();
+    this.offSwipe();
     this.closeOverlays();
   }
 
@@ -205,9 +214,12 @@ export class Shell {
       return;
     }
     const refocus = this.focusPlace();
+    // The same screen of the same strip drawn again keeps down what is held down.
+    const repress = this.drawn === route.id && this.drawnStrip === route.strip ? this.press.carry() : () => undefined;
     this.dim();
     this.drawn = route.id;
     this.moves = [];
+    this.drawnStrip = route.strip;
     this.knobs = [];
     clear(this.mainNode);
     clear(this.sideNode);
@@ -254,6 +266,7 @@ export class Shell {
     if (dims || body.main.classList.contains("pick-dialog")) {
       for (const control of this.knobStripNode.querySelectorAll(INTERACTIVE)) control.toggleAttribute("inert", true);
     }
+    repress();
     refocus();
   }
 
@@ -430,7 +443,7 @@ export class Shell {
     cell.tabIndex = 0;
     cell.setAttribute("role", "slider");
     cell.setAttribute("aria-label", name);
-    for (const [name, value] of Object.entries(rangeAttrs(spec, v))) cell.setAttribute(name, value);
+    setAriaValue(cell, spec, v);
     if (standsStill(this.ctx, spec)) cell.setAttribute("aria-disabled", "true");
     attachSpin(this.ctx, cell, spec, onEngage);
   }
@@ -445,8 +458,9 @@ export class Shell {
         const spec = assign.spec;
         const value = spec ? formatValue(spec, this.ctx.store.num(spec.path, spec.fallback)) : "---";
         const cell = this.knobCell(value, spec ? assign.short : "", "is-udk");
-        // A knob with something on it turns that, as a division does in the ordinary bar.
-        if (spec) this.turnCell(cell, spec, assign.value);
+        // A knob with something on it turns that, as a division does in the ordinary bar,
+        // and goes on turning it while a screen's 1-knob pins the focus.
+        if (spec) this.turnCell(cell, { ...spec, pinFree: true }, assign.value);
         this.knobStripNode.appendChild(cell);
       }
       // The page number sits astride the bar's top edge, and each end of the bar
@@ -587,23 +601,39 @@ export class Shell {
       }
       if (target?.closest("input, textarea, [contenteditable], [role='textbox']")) return;
       ev.preventDefault();
+      // A key held down goes back once, as the back arrow held down does.
+      if (ev.repeat) return;
       this.ctx.nav.back();
     };
   }
 
-  /** Swiping the main area left or right steps the channel bank. */
-  private attachSwipe(): void {
-    let startX: number | null = null;
+  /** Swiping the main area left or right steps the channel bank. Returns the step that lets the window go. */
+  private attachSwipe(): () => void {
+    // On HOME a sideways finger steps the bank, and one up or down still scrolls the page.
+    const swipes = (): boolean => this.ctx.nav.current.id === "home";
+    const takeTouch = (): void => {
+      this.mainNode.style.touchAction = swipes() ? "pan-y" : "";
+    };
+    takeTouch();
+    this.ctx.nav.onChange(takeTouch);
+    // A swipe is a press on the main area, off any control, let go over the main
+    // area; a press let go anywhere else, or cancelled, steps nothing. Where it is
+    // let go is where the pointer stands, not where its release is sent: a finger's
+    // release is sent to the element it pressed on. A second finger neither takes
+    // the swipe nor ends it.
+    const holds = new PointerHolds<HTMLElement>();
+    let stop = (): void => undefined;
     this.mainNode.addEventListener("pointerdown", (ev) => {
-      if ((ev.target as HTMLElement).closest(INTERACTIVE)) return;
-      startX = ev.clientX;
+      if (!holds.take(ev, [this.mainNode]) || (ev.target as HTMLElement).closest(INTERACTIVE)) return;
+      const startX = ev.clientX;
+      stop = holds.follow(ev, [this.mainNode], () => undefined, (last) => {
+        if (last?.type !== "pointerup" || !swipes()) return;
+        const dx = last.clientX - startX;
+        const over = document.elementFromPoint(last.clientX, last.clientY);
+        if (Math.abs(dx) < 40 || over === null || !this.mainNode.contains(over)) return;
+        stepBank(this.ctx, dx < 0 ? 1 : -1);
+      });
     });
-    this.mainNode.addEventListener("pointerup", (ev) => {
-      if (startX === null) return;
-      const dx = ev.clientX - startX;
-      startX = null;
-      if (this.ctx.nav.current.id !== "home" || Math.abs(dx) < 40) return;
-      stepBank(this.ctx, dx < 0 ? 1 : -1);
-    });
+    return () => stop();
   }
 }

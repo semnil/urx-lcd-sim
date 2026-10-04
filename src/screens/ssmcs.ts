@@ -25,7 +25,7 @@ import { type SsmcsBand, ssmcsBand, ssmcsEqResponse } from "../model/channel-eq"
 import { el, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
-import { compRatioSpec, dbSpec, freqSpec, round, steps, stopsTravel } from "../ui/param-spec";
+import { compRatioSpec, fineGainSpec, freqSpec, round, steps, stopsTravel } from "../ui/param-spec";
 import { attachDrag, knobControl, markFocus, meter, pickerGrid, pickerSheet, pulldown, toggle, valueBox } from "../ui/widgets";
 import {
   NS,
@@ -56,8 +56,6 @@ import type { ScreenBody, ScreenDef } from "./types";
 const DRIVE_STOPS = steps(201, (i) => round(i / 20, 2));
 /** The Sweet Spot Data's own scale: one stop per point between its five settings. */
 const MORPHING_STOPS = steps(121, (i) => i);
-/** Every gain the strip sets — a band's, the side chain's and the strip's own output. */
-const GAIN_STOPS = steps(361, (i) => round(-18 + i / 10, 1));
 /** The bell's width, from wide open to its narrowest. */
 const Q_STOPS = steps(61, (i) => round(0.5 * 32 ** (i / 60), 2));
 /** A twelfth of an octave a stop, 20 Hz to 20 kHz. */
@@ -130,7 +128,6 @@ const driveSpec = (b: string): NumericSpec =>
       min: 0,
       max: 10,
       step: 0.05,
-      fastStep: 0.5,
       fallback: SSMCS_DEFAULTS.compDrive,
       travel: stopsTravel(DRIVE_STOPS),
     },
@@ -145,21 +142,18 @@ const morphingSpec = (b: string): NumericSpec =>
       min: 0,
       max: 120,
       step: 1,
-      fastStep: 5,
       fallback: SSMCS_DEFAULTS.morphing,
       travel: stopsTravel(MORPHING_STOPS),
     },
     (v) => String(Math.round(v)),
   );
 
-const gainSpec = (path: string, label: string, fallback: number): NumericSpec => ({
-  ...dbSpec(path, label, -18, 18, fallback, 0.1, 1),
-  travel: stopsTravel(GAIN_STOPS),
-});
+/** Every gain the strip sets — a band's, the side chain's and the strip's own output. */
+const gainSpec = (path: string, label: string, fallback: number): NumericSpec => fineGainSpec(path, label, -18, 18, fallback);
 
 const qSpec = (path: string, label: string, fallback: number): NumericSpec =>
   spec(
-    { path, label, min: 0.5, max: 16, step: 0.01, fastStep: 0.1, fallback, travel: stopsTravel(Q_STOPS) },
+    { path, label, min: 0.5, max: 16, step: 0.01, fallback, travel: stopsTravel(Q_STOPS) },
     (v) => v.toFixed(2),
   );
 
@@ -177,7 +171,6 @@ const timeSpec = (path: string, label: string, stops: readonly number[], fallbac
       min: stops[0] ?? 0,
       max: stops[stops.length - 1] ?? 0,
       step: 0.001,
-      fastStep: 0.01,
       fallback,
       travel: stopsTravel(stops),
       unit: "ms",

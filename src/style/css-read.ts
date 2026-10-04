@@ -44,6 +44,41 @@ export function declarations(css: string, selector: string): Record<string, stri
   return out;
 }
 
+/**
+ * The declarations of every rule with a selector ending on an element that carries
+ * each class `target` ends on, whatever stands before it: `.lcd .a.b` lands on `.a.b`
+ * as `.a.b` does. A pseudo-element in `target` keeps it to that pseudo-element's rules,
+ * and none keeps it to the element's own.
+ */
+export function declarationsOn(css: string, target: string): Record<string, string> {
+  const want = subject(target);
+  const out: Record<string, string> = {};
+  for (const rule of styleRules(css)) {
+    const lands = rule.selectors.some((selector) => {
+      const got = subject(selector);
+      return got.pseudo === want.pseudo && want.classes.every((c) => got.classes.includes(c));
+    });
+    if (lands) Object.assign(out, rule.body);
+  }
+  return out;
+}
+
+/** The classes and the pseudo-element the last compound of a selector names outside parentheses. */
+export function subject(selector: string): { classes: string[]; pseudo: string } {
+  let depth = 0;
+  let last = "";
+  for (const ch of selector) {
+    if (ch === "(" || ch === "[") depth++;
+    else if (ch === ")" || ch === "]") depth--;
+    else if (depth === 0) last = /[\s>+~]/.test(ch) ? "" : last + ch;
+  }
+  const pseudo = /::([\w-]+)|:(before|after)\b/.exec(last);
+  return {
+    classes: [...last.matchAll(/\.([\w-]+)/g)].map((m) => m[1] ?? ""),
+    pseudo: pseudo?.[1] ?? pseudo?.[2] ?? "",
+  };
+}
+
 /** A rule's declarations, later ones over earlier ones. */
 function readBody(body: string): Record<string, string> {
   const out: Record<string, string> = {};

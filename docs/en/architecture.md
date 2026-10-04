@@ -97,7 +97,8 @@ names a pair the current frequency cannot hold drops it, as a change of frequenc
 stored as parts that stood still is not put back: the clock runs with the computer's. A guitar
 amp's Type or Amp Type stored by its name comes back at the place on its knob that reads that name,
 and a name the amp does not have is not put back. A state stored while Pan Link left each send's own placing where
-it was, or kept Pan Link on over a FIXED bus, comes back with Pan Link where the unit's screen leaves it.
+it was, or kept Pan Link on over a FIXED bus, comes back with Pan Link where the unit's screen leaves it. A GATE,
+COMP or DUCKER time stored off its stops comes back on the stop nearest it.
 
 What is on the card, the scene memories and the settings files are values in the same mirror, and
 they are kept with it. The browser's storage, the scene memories and the settings files are written as JSON, which has
@@ -151,7 +152,10 @@ it. The scaling is one transform because an outer `zoom` over an inner `transfor
 the parts drawn pixel by pixel by one screen pixel at some scales.
 
 Dragging a value looks only at the difference in the pointer's movement on the page, so the same
-physical distance moves the value by the same amount at any scale.
+physical distance moves the value by the same amount at any scale. Dragging a list or its
+scrollbar's thumb divides the pointer's movement by the scale the glass is drawn at, turning it into
+the glass's own pixels, so the list and the thumb move as far on the screen as the pointer at any
+scale.
 
 ## Accessibility
 
@@ -161,9 +165,14 @@ below. As a finger acts when it leaves the glass, a key acts when it is let go, 
 down on is the one it is let go on. A tap or a key on a control inside a pressable area works that control alone
 (`makeTappable`). Value boxes are `role="spinbutton"`
 and HOME's level readouts are `role="slider"`; both move by drag, wheel or arrow keys (`attachSpin`
-takes drag, wheel and arrow keys in one place). A 192px drag covers the whole range (1/5 of that with Shift),
-and the wheel and arrow keys move one detent (`fastStep` with Shift). While a dialog, a picker sheet, a pulldown's
-list or a loading modal is up, the screen behind it answers neither the keys nor the pointer (`inert`). Wherever the focus
+takes drag, wheel and arrow keys in one place). A drag moves the value not at all over its first 4px and
+covers the whole range by 196px from where it is pressed (1/5 of that with Shift), and the wheel and arrow
+keys move one detent (with Shift, the finer `fastStep` of a value the unit's knob turns finer while it is
+pushed in as it turns, such as EQ's, COMP's and SSMCS's gains, and the same detent on any other value); Home
+and End take the value to
+either end of its range. These keys held with Alt, Cmd or Ctrl are left to the browser. While a dialog, a
+picker sheet, a pulldown's list or a loading modal is up, the screen behind it answers neither the keys nor
+the pointer (`inert`). Wherever the focus
 stands, Tab goes round the controls of a dialog, a picker sheet or a list, and Escape cancels it unless the focus is on a
 control off the glass; once it closes, the focus is back on the control a tap or a key opened it from, even where the tap
 left the focus elsewhere (`tappedControl`), or on the control drawn in its place since. A confirmation dialog on the glass that holds
@@ -202,7 +211,8 @@ of the same face do, and nothing goes in while an IME is composing (`isComposing
 
 `Escape` does the same as the back arrow. A screen that shows no back arrow in its toolbar is left
 with the same key. While a dialog, a picker sheet or a pulldown's list is open, cancelling it takes precedence, and while a text
-input has focus (IME composition included) the input receives the key. While a control off the glass has focus (the
+input has focus (IME composition included) the input receives the key. Held down, the key acts once, as
+the back arrow held down does: a press that cancels a dialog leaves the screen behind it where it is. While a control off the glass has focus (the
 model and display scale selectors at the top of the page, [Reset the unit]) that control receives it, and the screen
 stays. `Escape` takes [Reset the unit]'s question back as [Cancel] does, and the focus returns to [Reset the unit].
 Once [Reset] starts the unit again, or the model selector changes the model, the focus stands on the same control

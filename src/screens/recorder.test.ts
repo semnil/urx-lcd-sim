@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { Shell } from "../app/shell";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
@@ -153,15 +153,44 @@ describe("moving between the RECORDER tabs", () => {
   const tab = (shell: Shell, name: string): HTMLElement | undefined =>
     [...shell.root.querySelectorAll<HTMLElement>(".side-tab")].find((t) => t.textContent === name);
 
+  const dialogText = (shell: Shell): string | null => shell.root.querySelector(".dialog-text")?.textContent ?? null;
+  const lit = (shell: Shell): string | null =>
+    shell.root.querySelector('.side-tab[aria-pressed="true"] .side-tab-label')?.textContent ?? null;
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("holds a loading modal up before the tab that reads the card appears", async () => {
     const shell = await mount();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     tab(shell, "Play")?.click();
-    await flush();
+    await vi.advanceTimersByTimeAsync(0);
 
-    expect(shell.root.querySelector(".dialog-text")?.textContent).toBe("Loading...");
+    expect(dialogText(shell)).toBe("Loading...");
     expect(shell.root.querySelector(".dialog-actions"), "there is nothing to answer").toBeNull();
     expect(shell.root.querySelector(".dialog-spinner"), "it waits on a ring").not.toBeNull();
     expect(shell.ctx.store.str("ui.sdTab", "Record"), "the tab has not moved yet").toBe("Record");
+
+    await vi.advanceTimersByTimeAsync(1999);
+    expect([shell.ctx.store.str("ui.sdTab", "Record"), dialogText(shell), lit(shell)], "at 1999 ms").toEqual(["Record", "Loading...", "Record"]);
+    await vi.advanceTimersByTimeAsync(1);
+    expect([shell.ctx.store.str("ui.sdTab", "Record"), dialogText(shell), lit(shell)], "at 2000 ms").toEqual(["Play", null, "Play"]);
+  });
+
+  it("loads nothing when the tab already open is tapped", async () => {
+    const shell = await mount();
+    await shell.ctx.store.set("ui.sdTab", "Play");
+    await flush();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+
+    tab(shell, "Play")?.click();
+    await vi.advanceTimersByTimeAsync(0);
+    expect([shell.ctx.store.str("ui.sdTab", "Record"), dialogText(shell)], "Play is already open").toEqual(["Play", null]);
+
+    tab(shell, "Edit")?.click();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(dialogText(shell), "a tab that is not open waits").toBe("Loading...");
   });
 
   it("holds the recorder out of reach while a tab loads, and stays on Record if recording mode comes on under it", async () => {
@@ -238,13 +267,13 @@ describe("the Record tab's transport", () => {
   });
 });
 
-describe("the bar beside a list that does not fit", () => {
-  it("keeps its pink rim off until the list is the thing being turned", async () => {
+describe("the record-source sheet", () => {
+  it("draws no scroll bar, its ten choices fitting its twelve cells", async () => {
     const shell = await mount();
     shell.root.querySelector<HTMLElement>(".rec-slot-src")?.click();
     await flush();
-    // The record-source sheet holds ten items in twelve cells, so it draws none.
-    expect(shell.root.querySelector(".scrollbar")?.hasAttribute("hidden")).not.toBe(false);
+    expect(shell.root.querySelector('[role="dialog"][aria-label="REC Track 1/2 source"]'), "the sheet is open").not.toBeNull();
+    expect(shell.root.querySelector(".scrollbar")).toBeNull();
   });
 });
 

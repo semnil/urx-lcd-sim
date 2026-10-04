@@ -400,12 +400,23 @@ stands on its output's sunk panel at x350..389 / y99..138 and turns its corners 
 On the unit the bar is a readout, and values are turned by the physical knobs below it. There are no
 physical knobs here, so a cell holding a value is itself the knob (drag, wheel, arrow keys). An empty
 cell turns nothing. USER DEFINED KNOBS mode is the same: a cell with an assignment turns that parameter,
-and a `---` cell turns nothing. On a screen with 1-knob on, the USER DEFINED KNOBS cells do not turn either
-(confirmed by the operator on 2026-09-24: with 1-knob on in CH 1's EQ screen, knob A's Phones 1 does not turn).
+and a `---` cell turns nothing. 1-knob does not stop USER DEFINED KNOBS mode: on every screen, with 1-knob
+on or off, a cell with an assignment turns that parameter, as on the unit.
+The unit's knob turns EQ's, COMP's and SSMCS's gains 1.0 dB a detent, and turns finer while it is pushed
+in as it turns, 0.1 dB a detent (URX44V, the operator, 2026-10-03: a detent on CH 1's four EQ bands,
+STEREO's EQ LOW, CH 1's COMP and CH 2's SSMCS SC, Low, Mid, High and Out Gain; pushed in on CH 1's EQ LOW
+and COMP and CH 2's SSMCS Low and Out Gain). A detent of the unit's knob keeps the tenths a gain holds
+(URX44V, the operator, 2026-10-03: CH 1's EQ L-MID from 1.5 dB to 2.5 dB, and CH 2's SSMCS SC, Low, Mid and
+High Gain, SC from 5.3 dB to 6.3 dB). Here a detent turns EQ's, COMP's and SSMCS's gains 1.0 dB and
+a detent with Shift 0.1 dB, keeping the tenths, from a cell, a value box or COMP's G handle, and a drag,
+an EQ grip's included, stops on the tenths. The knob on the DELAY block of STREAMING's channel view does not
+push in (URX44V, the operator, 2026-10-03), and the channel view's values turn the same detent with Shift as
+without it.
 
 There are four cells, so when a screen passes five or more parameters they are shown four at a time,
 and `‹` / `›` appears at the end of the label band on the side where more follow (COMP in p099-1).
-Pressing it swaps in the next four. Changing screens returns to the first page.
+Pressing it swaps in the next four. Changing screens, stepping an effect's screen to another of its
+pages and taking another effect return to the first page.
 
 ## Head amp column in the channel view
 
@@ -578,6 +589,13 @@ On a stereo-linked pair, what each block's detector hears differs by block (conf
 The settings panels (x250..418 / 36px high / 8px apart) stack up from the bottom of the screen. The
 bottom one is level with the foot of the curve panel: DUCKER has one (Threshold), COMP two (Attack /
 Release), GATE three (Attack / Hold / Decay). Value boxes are 52x22, 7px in from the right edge.
+
+The times stop on the unit's own settings, one a detent of its knob, and go no further at either end
+(URX44V, the operator, 2026-10-03): Attack 0.092..80.00 ms over 227 stops, the same on GATE, COMP and
+DUCKER; GATE's Hold 0.02 ms..1.96 s over 214; GATE's Decay and COMP's Release 9.3..999.0 ms over the
+same 277; and DUCKER's Decay 1.3 ms..5.0 s over 122. A detent of the arrow keys or the wheel moves one
+stop, with Shift held or not, and a drag runs evenly over the stops. A time that a browser save, a settings file
+or a scene holds off these stops comes back on the stop nearest it, and the next save holds that stop.
 
 The handles (G / T / R / A / D) are 32px in diameter (face `--handle-face`, a 3px `--handle-ring`
 rim), pulled in from the left and right ends of the panel by their radius. The handle touched takes the focus,
@@ -985,7 +1003,7 @@ frame the EQ screen uses, and the bands are the three L, M and H. LOW and HIGH a
 bell. Dragging a handle moves its frequency across the graph and its gain up it (c under the SSMCS EQ screen in
 the user guide).
 
-The ranges: Comp Drive 0.00..10.00 in steps of 0.05, Morphing 0..120, Out Gain ±18.0 dB in 0.1,
+The ranges: Comp Drive 0.00..10.00 in steps of 0.05, Morphing 0..120, Out Gain ±18.0 dB in 0.1 (1.0 a detent),
 Ratio 1.00:1..INF:1 (sixty stops of 0.05 from 1.00:1 to 4.00:1; from there 4.00..4.90 in 0.1, 5.00..6.80 in 0.2, 7.00..9.50 in 0.5,
 10.0..20.0 in 1 and 22.0..38.0 in 2, then 40.0, 45.0, 50.0, 55.0, 60.0, 65.0, 70.0, 80.0, 90.0, 100, 150, 200, 300,
 500 and INF; every stop URX44V, the operator, 2026-09-22 and 23; read to three figures: two places under 10, one under
@@ -1502,6 +1520,12 @@ rounded by the browser has the cut rounded at its four corners as the face is. W
 stays where the control stands. When the screen is drawn again while the key is down, the control the focus comes back to sinks in
 its place. When the focus moves elsewhere while the control the key went down on is still on the screen (a dialog the
 key opened taking the focus to its [Cancel], say), that control comes back up and the one the focus moved to does not sink.
+Each pointer holds down the control it pressed until that pointer is let go or cancelled: a second finger on another
+control sinks that one too and leaves the first finger's down, and a control two fingers hold comes up when the last of
+them is let go. When the same screen of the same channel is drawn again while a control is held down, the control drawn
+in its place stands down at once, with no slide (`is-carried`), until the pointers holding it are let go, where it and
+the boxes around it carry the same names: HOME stepping to another bank under a finger on CH 1's [ON] leaves the [ON]
+drawn there, another channel's, up.
 The shell reads which control has a band from its computed `box-shadow` at the moment it is pressed
 (`src/ui/press.ts`), so a control given a band sinks with nothing more to do. A control out of reach does not sink.
 Under `prefers-reduced-motion` the slide is not animated.
@@ -1726,7 +1750,8 @@ Screen, opens holding it.
   under 1-knob takes a frame a pixel clear of its panel (x300..381 / y83..128 in p096-4). Touching another value moves the
   focus away, and no more than one frame stands on the screen.
 - The level on the COMP and EQ screens while 1-knob is on: framed from the moment the screen opens until it changes.
-  Touching another control moves nothing, and no other value turns, the knobs along the bottom included.
+  Touching another control moves nothing, and no other value turns, the knobs along the bottom included. The USER
+  DEFINED KNOBS cells still turn their assignments.
 
 ## Button corners
 

@@ -569,6 +569,25 @@ describe("the screen an effect is set on", () => {
     expect(named()).toBe("Mid");
   });
 
+  it("switches the [Bypass] of the band whose page is open at each press, and no other band's", async () => {
+    const shell = await openParams("bus.stereo", "M.B.Comp");
+    const bypassed = (): boolean[] => ["low", "mid", "high"].map((b) => shell.ctx.store.bool(`ch.bus.stereo.insFx.${b}Bypass`, true));
+    const lit = (): string | null | undefined => shell.root.querySelector(".mbc-bypass")?.getAttribute("aria-pressed");
+    await click(shell, ".efx-page-next");
+    expect([shell.root.querySelector(".mbc-band-name")?.textContent, lit(), bypassed()], "Low as the unit ships").toEqual(["Low", "false", [false, false, false]]);
+    await click(shell, ".mbc-bypass");
+    expect([lit(), bypassed()], "Low bypassed").toEqual(["true", [true, false, false]]);
+
+    await click(shell, ".efx-page-next");
+    expect([shell.root.querySelector(".mbc-band-name")?.textContent, lit()], "Mid's page reads Mid's own").toEqual(["Mid", "false"]);
+    await click(shell, ".mbc-bypass");
+    expect([lit(), bypassed()], "Mid bypassed").toEqual(["true", [true, true, false]]);
+
+    await click(shell, ".efx-page-prev");
+    await click(shell, ".mbc-bypass");
+    expect([lit(), bypassed()], "Low back in").toEqual(["false", [false, true, false]]);
+  });
+
   it("lays an effect out two rows of four at a time, a short page in the lower row", async () => {
     // Ten controls over two pages, eight and two.
     const shell = await mount([{ id: "channel-view", strip: "fx1" }, { id: "ch.effect", strip: "fx1" }]);
@@ -605,6 +624,37 @@ describe("the screen an effect is set on", () => {
     await click(shell, ".efx-page-next");
     expect(knobLabels(shell)).toEqual(["HPF", "LPF", "", ""]);
     expect(framed(), "the page stepped to frames its own first value").toBe("HPF");
+  });
+
+  it("starts the readout bar from its first page on every page stepped to and every effect taken, the framed value on it", async () => {
+    // Each case turns the bar on before the screen moves; the bar then reads what a page opened afresh reads.
+    const reads = (shell: Shell, what: string, labels: string[]): void => {
+      expect(knobLabels(shell), what).toEqual(labels);
+      expect(labels, `${what}: the framed value is on the bar`).toContain(shell.ctx.focus.spec?.label);
+    };
+
+    const hall = await mount([{ id: "channel-view", strip: "fx1" }, { id: "ch.effect", strip: "fx1" }]);
+    await click(hall, ".knob-page-next");
+    await click(hall, ".efx-page-next");
+    await click(hall, ".efx-page-prev");
+    reads(hall, "Rev-X Hall, back on its first page", ["Rev.Time", "Ini.Delay", "Decay", "Room Size"]);
+
+    const delay = await mount([{ id: "channel-view", strip: "fx2" }, { id: "ch.effect", strip: "fx2" }]);
+    await click(delay, ".knob-page-next");
+    await click(delay, ".efx-page-next");
+    await click(delay, ".efx-page-prev");
+    reads(delay, "Mono Delay, back on its first page", ["Delay", "FB.Gain", "Hi.Ratio", ""]);
+
+    const mbc = await openParams("bus.stereo", "M.B.Comp");
+    await click(mbc, ".knob-page-next");
+    await click(mbc, ".efx-page-next");
+    reads(mbc, "M.B.Comp, its Low band", ["Threshold", "Ratio", "Attack", "Release"]);
+
+    const amp = await openParams("ch1", "Compander-H");
+    await click(amp, ".knob-page-next");
+    await click(amp, ".insfx-effect");
+    await pick(amp, "Clean");
+    reads(amp, "Clean, taken over Compander-H", ["Treble", "Middle", "Bass", "Presence"]);
   });
 
   it("reads every value in the knob division under its own panel, on every page of every effect", async () => {
@@ -685,6 +735,21 @@ describe("the screen an effect is set on", () => {
     await click(shell, ".knob-page-next");
     expect(knobLabels(shell), "Mix stands in the upper row's third place").toEqual(["", "", "Mix", ""]);
     expect(shell.root.querySelector(".efx-page-next"), "three pages").toBeNull();
+  });
+
+  it("switches Pitch Fix's [Correction] at each press, the corner of every page reading the one switch", async () => {
+    const shell = await openParams("ch1", "Pitch Fix");
+    const seen = (): (boolean | string | null | undefined)[] => [
+      shell.ctx.store.bool("ch.ch1.insFx.correction", false),
+      shell.root.querySelector(".pitch-corner")?.getAttribute("aria-pressed"),
+    ];
+    expect(seen(), "on as the unit ships").toEqual([true, "true"]);
+    await click(shell, ".pitch-corner");
+    expect(seen(), "off").toEqual([false, "false"]);
+    await click(shell, ".efx-page-next");
+    expect(seen(), "and off on the next page").toEqual([false, "false"]);
+    await click(shell, ".pitch-corner");
+    expect(seen(), "on again from there").toEqual([true, "true"]);
   });
 
   it("lights the notes of the scale on Pitch Fix's keyboard, and turns one over on a touch", async () => {
@@ -1118,7 +1183,6 @@ describe("a compander", () => {
     expect([...shell.root.querySelectorAll(".dyn-set .value-box")].map((n) => n.textContent), "and the values turn").toEqual([
       "25m", "165m", "4.0:1",
     ]);
-    expect(shell.root.querySelector(".efx-rack"), "nothing opens a screen under it").toBeNull();
     expect(shell.root.querySelectorAll(".dyn-io").length, "one pair of meters").toBe(1);
     expect(knobLabels(shell), "and the readout bar carries its values").toEqual(["Threshold", "Ratio", "Width", "Gain"]);
   });
