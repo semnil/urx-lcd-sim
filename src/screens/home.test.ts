@@ -2042,17 +2042,85 @@ describe("the SCENE menu the scene box opens", () => {
     expect([body?.scrollTop, thumb()?.style.top]).toEqual([30 * 38, "48px"]);
   });
 
-  it("names the recalled scene on HOME the way the list names it", async () => {
+  it("names on HOME the scene picked on SCENE LIST, not the one recalled, and blinks its number while the two differ", async () => {
     const shell = await mount();
     const box = (): string[] => [...(shell.root.querySelector(".scene-box")?.children ?? [])].map((c) => c.textContent ?? "");
+    const number = (): DOMTokenList | undefined => shell.root.querySelector(".scene-box .scene-no")?.classList;
+    const described = (): string | null | undefined => shell.root.querySelector(".scene-box")?.getAttribute("aria-description");
+    const pickOnList = async (bank: string, row: number): Promise<void> => {
+      shell.ctx.nav.openTop({ id: "scene" });
+      shell.ctx.nav.push({ id: "scene.list" });
+      await flush();
+      [...shell.root.querySelectorAll<HTMLElement>(".scene-bank")].find((b) => b.textContent === bank)?.click();
+      await flush();
+      shell.root.querySelectorAll<HTMLElement>(".scene-list .list-row")[row]?.click();
+      await flush();
+      shell.ctx.nav.home();
+      await flush();
+    };
     expect(box(), "a factory unit").toEqual(["00", "Initial Data"]);
+    expect(number()?.contains("is-pending"), "on the scene recalled").toBe(false);
+    expect(described(), "and told so to assistive technology").toBe("recalled");
+
     await shell.ctx.store.set("scene.Standard.3.title", "Band");
+    await pickOnList("Standard", 3);
+    expect(box(), "the row picked").toEqual(["03", "Band"]);
+    expect(number()?.contains("is-pending"), "blinking while it is not the scene recalled").toBe(true);
+    expect(described(), "and not told it is").toBeNull();
+    expect(number()?.contains("is-preset"), "green only for a preset").toBe(false);
     await shell.ctx.store.set("scene.current", 3);
     await flush();
-    expect(box()).toEqual(["03", "Band"]);
-    await shell.ctx.store.set("scene.current", 101);
+    expect(number()?.contains("is-pending"), "and still once it is").toBe(false);
+    expect(described()).toBe("recalled");
+
+    await pickOnList("Simple", 0);
+    expect(box(), "a preset picked on the Simple tab").toEqual(["P01", "Live Music 0"]);
+    expect([number()?.contains("is-preset"), number()?.contains("is-pending")]).toEqual([true, true]);
+  });
+
+  it("marks the recalled scene with the list's mark in the scene box on HOME, the bank list, the Sends sheet and SCENE LIST, and not a scene picked and not recalled", async () => {
+    const shell = await mount();
+    const screens: [string, () => void][] = [
+      ["HOME", () => {}],
+      ["the bank list", () => shell.ctx.nav.push({ id: "bank-select" })],
+      ["the Sends sheet", () => shell.ctx.nav.push({ id: "sends-select" })],
+      ["SCENE LIST", () => {
+        shell.ctx.nav.openTop({ id: "scene" });
+        shell.ctx.nav.push({ id: "scene.list" });
+      }],
+    ];
+    const read = async (): Promise<unknown[][]> => {
+      const out: unknown[][] = [];
+      for (const [name, open] of screens) {
+        open();
+        await flush();
+        const boxes = [...shell.root.querySelectorAll(".scene-box")];
+        const no = boxes[0]?.querySelector(".scene-no");
+        out.push([name, boxes.length, !!no?.querySelector(":scope > .icon-recalled"), no?.classList.contains("is-pending"), boxes[0]?.getAttribute("aria-description") ?? null]);
+        shell.ctx.nav.home();
+        await flush();
+      }
+      return out;
+    };
+    expect(await read(), "on the scene recalled").toEqual(screens.map(([name]) => [name, 1, true, false, "recalled"]));
+    await shell.ctx.store.set("scene.selected", 3);
     await flush();
-    expect(box(), "a preset").toEqual(["P01", "Live Music 0"]);
+    expect(await read(), "on a scene picked and not recalled").toEqual(screens.map(([name]) => [name, 1, false, true, null]));
+  });
+
+  it("names on HOME the row SCENE LIST's box names where the open tab no longer lists the selection", async () => {
+    const shell = await mount();
+    await shell.ctx.store.set("scene.bank", "Simple");
+    await shell.ctx.store.set("scene.selected", 5);
+    await shell.ctx.store.set("scene.Standard.5.title", "Band");
+    await flush();
+    const home = [...(shell.root.querySelector(".scene-box")?.children ?? [])].map((c) => c.textContent ?? "");
+    shell.ctx.nav.openTop({ id: "scene" });
+    shell.ctx.nav.push({ id: "scene.list" });
+    await flush();
+    const list = [...(shell.root.querySelector(".scene-box-static")?.children ?? [])].map((c) => c.textContent ?? "");
+    expect(list, "SCENE LIST's box on the Simple tab's first row").toEqual(["P01", "Live Music 0"]);
+    expect(home).toEqual(list);
   });
 
   it("names the scene picked on the list in SCENE LIST's box, not the one recalled", async () => {
@@ -2067,12 +2135,14 @@ describe("the SCENE menu the scene box opens", () => {
     expect(box(), "the first row, picked on opening").toEqual(["00", "Initial Data"]);
     expect(shell.root.querySelector(".scene-box-static .scene-no.is-preset"), "green only for a preset").toBeNull();
     expect(pending(), "its number blinks while the scene picked is not the one recalled").toBe(true);
+    expect(shell.root.querySelector(".scene-box-static")?.getAttribute("aria-description"), "and is not told to be the one recalled").toBeNull();
     shell.root.querySelectorAll<HTMLElement>(".scene-list .list-row")[2]?.click();
     await flush();
     expect(box()).toEqual(["02", "Band"]);
     await shell.ctx.store.set("scene.current", 2);
     await flush();
     expect(pending(), "and stays lit on the recalled scene's row").toBe(false);
+    expect(shell.root.querySelector(".scene-box-static")?.getAttribute("aria-description"), "told to assistive technology").toBe("recalled");
     expect(box()).toEqual(["02", "Band"]);
   });
 

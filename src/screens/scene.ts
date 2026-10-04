@@ -132,6 +132,38 @@ function readOnlyBank(ctx: AppContext, bank: string): boolean {
   return bank === "Simple" && ctx.store.str("setup.operationMode", "Standard") === "Standard";
 }
 
+/** The bank SCENE LIST lists: Simple's alone in Simple Mode, else the tab last picked. */
+function openBank(ctx: AppContext): string {
+  return ctx.store.str("setup.operationMode", "Standard") === "Simple" ? "Simple" : ctx.store.str("scene.bank", "Standard");
+}
+
+/** The row SCENE LIST's cursor stands on. A selection the bank does not list falls to its first row. */
+function pickedRow(ctx: AppContext, listed: number[]): number {
+  const picked = ctx.store.num("scene.selected", 0);
+  return listed.includes(picked) ? picked : (listed[0] ?? 0);
+}
+
+/**
+ * Fill a scene box, HOME's or SCENE LIST's, with the number and title of the
+ * scene on SCENE LIST's cursor rather than the scene recalled. A preset's number
+ * is green, the number blinks while the scene on the cursor is not the one
+ * recalled, and while it is, the box is described as recalled and carries the
+ * list's recalled mark, which stands in for the blink where motion is reduced.
+ */
+export function nameCursorScene<T extends HTMLElement>(ctx: AppContext, box: T): T {
+  const selected = pickedRow(ctx, sceneRows(ctx, openBank(ctx)));
+  const current = ctx.store.num("scene.current", 0);
+  box.append(
+    el("span", {
+      class: `scene-no${isPreset(selected) ? " is-preset" : ""}${selected === current ? "" : " is-pending"}`,
+      children: [selected === current && Icons.recalled(), document.createTextNode(sceneNumber(selected))],
+    }),
+    el("span", { class: "scene-title", text: sceneTitle(ctx, selected) }),
+  );
+  if (selected === current) box.setAttribute("aria-description", "recalled");
+  return box;
+}
+
 /** A button on the Edit tab named by a glyph. One that cannot be used does nothing. One that switches something on and off says which it stands at. */
 function glyphButton(label: string, glyph: SVGSVGElement, enabled: boolean, onTap: () => void, pressed?: boolean): HTMLElement {
   const node = el("button", {
@@ -162,11 +194,9 @@ export const sceneScreen: ScreenDef = {
   build(ctx): ScreenBody {
     // In Simple Mode only Simple's list opens, and the Standard tab cannot be used.
     const simpleMode = ctx.store.str("setup.operationMode", "Standard") === "Simple";
-    const bank = simpleMode ? "Simple" : ctx.store.str("scene.bank", "Standard");
+    const bank = openBank(ctx);
     const listed = sceneRows(ctx, bank);
-    // A selection the bank does not list falls to its first row.
-    const picked = ctx.store.num("scene.selected", 0);
-    const selected = listed.includes(picked) ? picked : (listed[0] ?? 0);
+    const selected = pickedRow(ctx, listed);
     const current = ctx.store.num("scene.current", 0);
     const readOnly = readOnlyBank(ctx, bank);
     // A list that cannot be edited stands on the Store/Recall tab.
@@ -292,15 +322,7 @@ export const sceneScreen: ScreenDef = {
         );
         return markShut(tab, m === "Edit" && readOnly);
       }),
-      // The box names the scene picked on the list, not the one recalled, and
-      // blinks its number while the two differ.
-      headerLeft: el("div", {
-        class: "scene-box scene-box-static",
-        children: [
-          el("span", { class: `scene-no${isPreset(selected) ? " is-preset" : ""}${selected === current ? "" : " is-pending"}`, text: sceneNumber(selected) }),
-          el("span", { class: "scene-title", text: sceneTitle(ctx, selected) }),
-        ],
-      }),
+      headerLeft: nameCursorScene(ctx, el("div", { class: "scene-box scene-box-static" })),
     };
   },
 };
