@@ -2930,6 +2930,52 @@ describe("the USER DEFINED KNOBS bar under a sheet, a list or a dialog", () => {
       expect(after).toEqual(places.map((place) => `${place} ${BARE[cover.name]}`));
     });
   }
+
+  it("closes the INPUT source sheet on a touch on the dark around its panel, and not on the panel", async () => {
+    // On the unit a touch on the dark over the bar, or left of, right of or above the panel, takes the
+    // sheet down and leaves USER DEFINED KNOBS mode on. A browser's hit test lands every one of them on
+    // the layer over the glass.
+    const touch = (node: Element | null | undefined, from: Element | null | undefined = node): void => {
+      from?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+      node?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    };
+    const presses: Record<string, (layer: Element | null, panel: Element | null) => void> = {
+      "the dark": (layer) => touch(layer),
+      "the panel": (_layer, panel) => touch(panel),
+      "a press down on the panel, let go over the dark": (layer, panel) => touch(layer, panel),
+      // Assistive technology works a control with a click and no press.
+      "a click on the panel with no press": (_layer, panel) => panel?.dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    };
+    const after: string[] = [];
+    for (const [name, press] of Object.entries(presses)) {
+      const shell = await mount();
+      shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+      shell.ctx.nav.push({ id: "ch.input", strip: "ch1" });
+      await flush();
+      await tap(shell, ".udk-toggle");
+      await tap(shell, ".input-source-btn");
+      const layer = shell.root.querySelector(".source-overlay");
+      press(layer, shell.root.querySelector(".source-sheet"));
+      await flush();
+      const up = shell.root.querySelector(".source-overlay") !== null;
+      after.push(`${name}: ${up ? "up" : "down"}, mode ${shell.ctx.store.bool("ui.userDefinedKnobs", false) ? "on" : "off"}`);
+      // The press is spent on that click: a click on the dark after it takes the sheet down.
+      if (up) {
+        layer?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        await flush();
+        after.push(`then the dark: ${shell.root.querySelector(".source-overlay") ? "up" : "down"}`);
+      }
+    }
+    expect(after).toEqual([
+      "the dark: down, mode on",
+      "the panel: up, mode on",
+      "then the dark: down",
+      "a press down on the panel, let go over the dark: up, mode on",
+      "then the dark: down",
+      "a click on the panel with no press: up, mode on",
+      "then the dark: down",
+    ]);
+  });
 });
 
 describe("a dedicated channel screen's toolbar", () => {

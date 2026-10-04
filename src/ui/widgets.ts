@@ -349,7 +349,9 @@ export interface PickerSheetSpec {
  * The sheet the unit drops over a screen to choose a value on: a panel carrying
  * a name band, the way out in its top right corner, and the choices under them.
  * It covers the lower half of the toolbar, which the main area cannot reach, so
- * it hangs off the glass rather than off the screen it was opened from.
+ * it hangs off the glass rather than off the screen it was opened from. A touch
+ * on the dark around the panel shuts it, as its way out does; a press that went
+ * down on the panel is the panel's wherever it is let go.
  */
 export function pickerSheet(ctx: AppContext, spec: PickerSheetSpec): HTMLElement {
   // The shell hands back the way to shut it, and that is the only way it may be
@@ -376,6 +378,15 @@ export function pickerSheet(ctx: AppContext, spec: PickerSheetSpec): HTMLElement
     class: "source-overlay",
     attrs: { role: "dialog", "aria-modal": "true", "aria-label": spec.label ?? spec.title },
     children: [panel],
+  });
+  let pressOnPanel = false;
+  sheet.addEventListener("pointerdown", (ev) => {
+    pressOnPanel = panel.contains(ev.target as Node);
+  });
+  sheet.addEventListener("click", (ev) => {
+    const onPanel = pressOnPanel || panel.contains(ev.target as Node);
+    pressOnPanel = false;
+    if (!onPanel) close();
   });
   MODALS.set(sheet, { cancel: () => close() });
   close = ctx.overlay(sheet, spec.onClose);
