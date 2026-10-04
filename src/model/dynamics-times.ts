@@ -1,6 +1,7 @@
 // The times GATE, COMP and DUCKER stop on. Each turns one stop a detent through
 // a table of its own and stops at either end. Attack takes the same stops on all
-// three blocks, and GATE's Decay the same as COMP's Release.
+// three blocks, and GATE's Decay the same as COMP's Release. The SSMCS strip's
+// Attack and Release take COMP's.
 
 import type { ParamPath, ParamValue } from "../device/path";
 import { type Travel, stopsTravel } from "../ui/param-spec";

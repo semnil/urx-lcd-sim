@@ -22,6 +22,7 @@ import type { ParamPath, ParamValue } from "../device/path";
 import { clamp } from "../device/store";
 import { SSMCS_DEFAULTS } from "../model/defaults";
 import { grBarShare, ssmcsCorner } from "../model/dynamics";
+import { DYNAMICS_TIME_STOPS } from "../model/dynamics-times";
 import { type SsmcsBand, ssmcsBand, ssmcsEqResponse } from "../model/channel-eq";
 import { el, formatHz, hzUnit, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
@@ -71,38 +72,11 @@ const R40 = [
 /** A fortieth of a decade a stop, about a twelfth of an octave, 20 Hz to 20 kHz, each on the R40 series. */
 const FREQ_STOPS = steps(121, (i) => Number(((R40[(i + 12) % 40] ?? 1) * 10 ** (1 + Math.floor((i + 12) / 40))).toPrecision(3)));
 
-/**
- * A table of `count` stops that takes the values `at` names at those stops, and
- * between two of them rises evenly in log. Each value is held to the places
- * `digits` gives it.
- */
-function namedStops(count: number, at: readonly (readonly [number, number])[], digits: (v: number) => number): number[] {
-  return steps(count, (i) => {
-    let k = 0;
-    while (k < at.length - 2 && i > (at[k + 1]?.[0] ?? 0)) k++;
-    const [i0, v0] = at[k] ?? [0, 1];
-    const [i1, v1] = at[k + 1] ?? [count - 1, 1];
-    const v = v0 * (v1 / v0) ** ((i - i0) / (i1 - i0));
-    return round(v, digits(v));
-  });
-}
-
-/** Attack in ms at these of its 227 stops. */
-const ATTACK_AT = [
-  [0, 0.092], [12, 0.131], [24, 0.188], [36, 0.27], [48, 0.387], [60, 0.554], [72, 0.793], [84, 1.137], [96, 1.628],
-  [108, 2.333], [113, 2.71], [120, 3.342], [126, 4], [127, 4.122], [132, 4.788], [144, 6.859], [156, 9.826],
-  [168, 14.08], [180, 20.17], [192, 28.89], [204, 41.39], [216, 59.29], [226, 80],
-] as const;
-/** Release in ms at these of its 277 stops. */
-const RELEASE_AT = [
-  [0, 9.3], [12, 11.4], [24, 14], [36, 17.2], [48, 21.1], [60, 25.8], [72, 31.7], [84, 38.8], [96, 47.5], [108, 58.2],
-  [120, 71.3], [132, 87.4], [134, 90.4], [135, 92], [136, 93.5], [144, 107.1], [156, 131.2], [168, 160.7], [180, 196.9],
-  [192, 241.2], [204, 295.5], [216, 362.1], [228, 443.5], [240, 543.4], [252, 665.6], [264, 815.4], [276, 999],
-] as const;
 /** Attack's three places under 10 ms and two from there. */
 const attackPlaces = (ms: number): number => (ms < 10 ? 3 : 2);
-const ATTACK_STOPS = namedStops(227, ATTACK_AT, attackPlaces);
-const RELEASE_STOPS = namedStops(277, RELEASE_AT, () => 1);
+/** Attack and Release stop where the COMP's own Attack and Release do. */
+const ATTACK_STOPS = DYNAMICS_TIME_STOPS["comp.attack"];
+const RELEASE_STOPS = DYNAMICS_TIME_STOPS["comp.release"];
 
 /** The three bands, in the order the graph lays them out. */
 export const SSMCS_BANDS = [
