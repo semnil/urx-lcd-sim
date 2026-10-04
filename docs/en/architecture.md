@@ -80,15 +80,17 @@ Change notifications are batched per microtask and fire once (`markChanged` → 
 
 ## What survives a reload
 
-The store's mirror is written to the browser's `localStorage` and read back when the simulator opens
-on the same model (`src/app/persist.ts`). A burst of changes is written once, 400 ms after the last
-of them, under the key `urx-lcd-sim.state`; a stored unit of another model or another version is not
-read. Leaving the page and switching the model write a change still waiting to be written there and
-then. A page the browser keeps and brings back on [Back] runs on as it was left. The simulator opens
-on the model kept under the key `urx-lcd-sim.model`: the model of the unit stored last, or a model
-picked after it (where that key is missing, it opens on the stored unit's model). There is one stored
-unit across the models: after the model selector switches to another model, the first change replaces
-what the previous model stored.
+The store's mirror is written to the browser's IndexedDB as one record (database `urx-lcd-sim`, object store
+`unit`, key `state`) and read back when the simulator opens on the same model (`src/app/persist.ts`). A burst of
+changes is written once, 400 ms after the last of them; a stored unit of another model or another version is not
+read. Switching the model writes a change still waiting to be written there and then. Leaving the page cannot wait
+for a write, so a change still waiting is left in `localStorage` under `urx-lcd-sim.left.` and the tab's own name,
+and the next start takes it in on the terms below. A page the browser keeps and brings back on [Back] runs on as it
+was left and takes back what it left. The record keeps the model the simulator opens on: the model of the unit stored
+last, or a model picked after it (where the record keeps none, it opens on the stored unit's model). There is one
+stored unit across the models: after the model selector switches to another model, the first change replaces what
+the previous model stored. A unit stored by a version before IndexedDB, under `localStorage`'s `urx-lcd-sim.state`
+and `urx-lcd-sim.model`, is read while the record holds nothing, and let go once the record holds the unit.
 
 What is left out is **what the unit was doing** at that moment: a take or a playback running
 (`sd.rec` and the rest) and a name half typed (`ui.titleEntry.`, `ui.dateTimeDraft.`) come back
@@ -126,31 +128,35 @@ mixer (`scene.*.state`) is written once under `shared` and named by its place wh
 holds it. A stored unit without `shared` is read with its settings files and scene memories as they were written,
 and takes this shape the next time it is written. When the browser refuses a write (it is full, or stores nothing),
 it keeps the unit it last took; for as long as that lasts, a banner over the top centre of the page says the
-browser is not keeping the unit, and it goes once a write is taken again. The banner lies over the page, so it moves
-no other control and not the glass. [Close] (`×`) or Escape closes it, and the next write the browser refuses brings it
-back.
+browser is not keeping the unit, and it goes once a write is taken again. Where the browser has no IndexedDB or
+refuses to open it, the banner says so from the start, and nothing is written. The banner lies over the page, so it
+moves no other control and not the glass. [Close] (`×`) or Escape closes it, and the next write the browser refuses
+brings it back.
 
-One tab of the browser at a time writes the unit: the tab holding a Web Lock (`navigator.locks`) under the name
-`urx-lcd-sim.state`. A tab that starts while no tab holds the lock holds it from the start. Another tab takes it with
-its first change or with [Reset the unit], and only while the stored unit is the one it read when it started. Before
-each write, a tab asks the browser's lock manager whether it still holds the lock, since a tab the lock was taken from
-in the middle of a write has not heard yet, and looks again at whether the stored unit is the one it read or last
-wrote. Leaving the page cannot wait for the lock manager's answer, so the change still waiting is written at once by
-the tab holding the lock. A model picked is kept where the tab holds the lock or no tab does, and each unit stored
-keeps its own model under `urx-lcd-sim.model`.
+Each write of the unit gives the record a new token. A tab's start reads the record once and puts the unit back
+from that read, and the tab writes only where the record still holds the token of that read or of its own last
+write. The look at the record and the write are one readwrite transaction, which the browser runs whole before any
+other tab's, so no tab writes over a unit another tab stored after what it read, even while it is still putting the
+unit back. A tab tells the others the token of each write on a `BroadcastChannel` named `urx-lcd-sim.state`. A model
+picked is kept with the record's token as it was, so it stops no other tab, and each unit stored carries its own
+model. [Reset the unit] writes the unit as it ships over whatever the record holds.
 
-A tab that finds another tab has stored or removed the unit, or taken the lock, stops writing, so as not to write over
-the other tab's unit, and says so on the same banner, which, once closed, comes back at the next change to the unit.
-It writes again once it starts again, on a reload, a switch of
-model or [Reset the unit]. Where the browser has no Web Locks (outside a secure context, such as a page served over
-plain http from an address other than `localhost`), the look at the stored unit before each write is all that keeps
-two tabs apart.
+A tab that hears of another tab's write, or finds at its own write that the record has moved on, stops writing, so as
+not to write over the other tab's unit, and says so on the same banner, which, once closed, comes back at the next
+change to the unit. It writes again once it starts again, on a reload, a switch of model or [Reset the unit]. What a
+tab left on leaving the page is taken in by the next start only where the record still holds the token that tab read
+or wrote last, or the token of its write still under way; otherwise it is dropped, and that start says on the banner
+that the last changes made before it were not kept. A change made just before a switch of model and left unwritten
+because another tab stored the unit first is told the same way. Two tabs starting at the same time take what a tab
+left in once.
 
 ```mermaid
 flowchart LR
-  ST["DeviceStore"] -->|"on change, 400 ms after the last"| LS["localStorage<br/>urx-lcd-sim.state"]
-  LS -->|"opening on the same model"| ST
-  RS["[Reset the unit]"] -->|"ask, start again and store the unit as it ships"| LS
+  ST["DeviceStore"] -->|"on change, 400 ms after the last, where the record holds what the tab read"| DB["IndexedDB<br/>urx-lcd-sim / unit / state"]
+  DB -->|"opening on the same model"| ST
+  ST -->|"leaving the page"| LEFT["localStorage<br/>urx-lcd-sim.left.*"]
+  LEFT -->|"the next start, where the record holds what that tab read"| DB
+  RS["[Reset the unit]"] -->|"ask, start again and store the unit as it ships"| DB
 ```
 
 ## Addressing parameters

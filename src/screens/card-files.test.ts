@@ -1175,7 +1175,7 @@ describe("what the card's own actions do to it", () => {
       const model = unitById("URX44V");
       const store = new DeviceStore();
       await store.attach(new SimTransport(factoryState(model)));
-      await restore(store, "URX44V");
+      await restore(store, "URX44V", { token: null, model: null, unit: window.localStorage.getItem("urx-lcd-sim.state") });
       const shell = new Shell(buildRegistry(), store, model);
       shell.ctx.nav.push({ id: "microsd.saveload" });
       await flush();

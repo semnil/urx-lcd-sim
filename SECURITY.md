@@ -4,8 +4,9 @@
 
 urx-lcd-sim is a static web page served by GitHub Pages. There is no server component, no
 account system, and no telemetry, and the page makes no network requests of its own beyond
-loading its own files. What the simulated unit holds is kept in the browser's `localStorage`
-under a single key, and the only input the page reads from its URL is `?zoom=`.
+loading its own files. What the simulated unit holds is kept in the browser's IndexedDB as a
+single record, a change still waiting when the page is left is kept in its `localStorage`, and
+the only input the page reads from its URL is `?zoom=`.
 
 ## Supported versions
 
@@ -45,6 +46,6 @@ about a week. You will be credited in the advisory unless you prefer otherwise.
 - A host application that puts its own device link behind `BridgeTransport` — report those to
   that application
 - Findings that require an attacker who already runs script on the site's origin or code on
-  your machine, including writing its `localStorage`
+  your machine, including writing its IndexedDB or `localStorage`
 - GitHub Pages itself — report that to GitHub
 - Scanner output with no demonstrated impact

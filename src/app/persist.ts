@@ -21,14 +21,23 @@ import { unitById } from "../model/units";
 import { settlePanLink } from "../screens/mix-bus";
 import { fromJson, toJson } from "../device/value-json";
 
-/** Where the browser keeps it. */
-const KEY = "urx-lcd-sim.state";
+/** Where the browser keeps it: one record of one IndexedDB object store. */
+const DB_NAME = "urx-lcd-sim";
+const DB_STORE = "unit";
+const RECORD = "state";
 
-/** The shape written under that key; anything else is read as nothing. */
+/** The shape the unit is written in; anything else is read as nothing. */
 const VERSION = 1;
 
-/** Where the browser keeps the model the simulator was last used as. */
+/** Where a version before IndexedDB kept the unit and the model, read while IndexedDB holds no record. */
+const KEY = "urx-lcd-sim.state";
 const MODEL_KEY = "urx-lcd-sim.model";
+
+/** Where a tab leaving the page writes what it had still to store, under a key of its own. */
+const LEFT = "urx-lcd-sim.left.";
+
+/** Where tabs tell each other the token of a write. */
+const CHANNEL = "urx-lcd-sim.state";
 
 /** What a reload does not carry over. */
 const IN_FLIGHT = [
@@ -146,18 +155,240 @@ function unpack(values: Saved["values"], shared: unknown): Record<string, ParamV
   return out;
 }
 
-/** The unit the browser holds, as it was written; nothing where it holds none or refuses to read it. */
-function storedUnit(): string | null {
+/**
+ * What the browser holds: the unit as written, the model the simulator opens
+ * as, and the token naming the write that left the unit as it is. A write of
+ * the unit gives the record a new token; keeping a model alone keeps it. A token
+ * of null is no unit written yet: nothing kept, a model kept alone, or what a
+ * version before IndexedDB kept.
+ */
+export interface Kept {
+  token: string | null;
+  model: string | null;
+  unit: string | null;
+}
+
+/** How a write ended: taken, not made because another write came first, or refused by the browser. */
+export type Outcome = "written" | "moved" | "refused";
+
+/** Where the record is kept. */
+export interface Keeper {
+  /** The record, or nothing where none is kept. */
+  read: () => Promise<Kept | null>;
+  /**
+   * Put `next` in the record's place in one step with looking at it: only
+   * where its token is still `basis` (null: no record), or over whatever it
+   * holds where `basis` is undefined.
+   */
+  write: (basis: string | null | undefined, next: Kept) => Promise<Outcome>;
+}
+
+function isKept(value: unknown): value is Kept {
+  const kept = value as Partial<Kept> | null;
+  return (
+    typeof kept === "object" &&
+    kept !== null &&
+    (kept.token === null || typeof kept.token === "string") &&
+    (kept.model === null || typeof kept.model === "string") &&
+    (kept.unit === null || typeof kept.unit === "string")
+  );
+}
+
+/**
+ * The browser's IndexedDB as the keeper, or nothing where the browser has
+ * none. A write looks at the record and puts its own in one readwrite
+ * transaction, which the browser runs whole before any other tab's.
+ */
+export function openKeeper(factory: IDBFactory | undefined = window.indexedDB): Keeper | null {
+  if (!factory) return null;
+  let opened: Promise<IDBDatabase> | null = null;
+  const open = (): Promise<IDBDatabase> =>
+    (opened ??= new Promise<IDBDatabase>((resolve, reject) => {
+      const request = factory.open(DB_NAME, 1);
+      request.onupgradeneeded = () => {
+        request.result.createObjectStore(DB_STORE);
+      };
+      request.onsuccess = () => {
+        request.result.onversionchange = () => request.result.close();
+        resolve(request.result);
+      };
+      request.onerror = () => {
+        opened = null;
+        reject(request.error);
+      };
+    }));
+  return {
+    read: async () => {
+      const db = await open();
+      return new Promise<Kept | null>((resolve, reject) => {
+        const tx = db.transaction(DB_STORE, "readonly");
+        const got = tx.objectStore(DB_STORE).get(RECORD);
+        tx.oncomplete = () => resolve(isKept(got.result) ? got.result : null);
+        tx.onabort = () => reject(tx.error);
+      });
+    },
+    write: async (basis, next) => {
+      let db: IDBDatabase;
+      try {
+        db = await open();
+      } catch {
+        return "refused";
+      }
+      return new Promise<Outcome>((resolve) => {
+        let outcome: Outcome = "written";
+        const tx = db.transaction(DB_STORE, "readwrite");
+        const records = tx.objectStore(DB_STORE);
+        const got = records.get(RECORD);
+        got.onsuccess = () => {
+          const now = isKept(got.result) ? got.result.token : null;
+          if (basis !== undefined && now !== basis) outcome = "moved";
+          else records.put(next, RECORD);
+        };
+        tx.oncomplete = () => resolve(outcome);
+        tx.onabort = () => resolve("refused");
+      });
+    },
+  };
+}
+
+/** What a version before IndexedDB kept, as a record not yet written. */
+function legacy(): Kept {
   try {
-    return window.localStorage.getItem(KEY);
+    return { token: null, model: window.localStorage.getItem(MODEL_KEY), unit: window.localStorage.getItem(KEY) };
   } catch {
-    return null;
+    return { token: null, model: null, unit: null };
   }
 }
 
-/** What is stored for `model`, or nothing where the browser holds none of it. */
-export function readSaved(model: string): Record<string, ParamValue> | null {
-  return unitFor(storedUnit(), model);
+/** Let go of what a version before IndexedDB kept, once the record holds the unit. */
+function dropLegacy(): void {
+  try {
+    window.localStorage.removeItem(KEY);
+    window.localStorage.removeItem(MODEL_KEY);
+  } catch {
+    // A browser that refuses to touch it leaves it under the record, which is read first.
+  }
+}
+
+/** A token for a write. */
+function newToken(): string {
+  return crypto.randomUUID();
+}
+
+/** Tell the other tabs the token of a write. */
+function announce(token: string): void {
+  if (typeof BroadcastChannel !== "function") return;
+  const channel = new BroadcastChannel(CHANNEL);
+  channel.postMessage(token);
+  channel.close();
+}
+
+/** What a tab leaving the page had still to store. */
+interface Left {
+  /** The token of the record it last read or wrote, and of its write still under way. */
+  basis: string | null;
+  inFlight: string | null;
+  model: string;
+  /** The unit as it stood, where a change to it was still to be stored. */
+  unit: string | null;
+  at: number;
+}
+
+function isLeft(value: unknown): value is Left {
+  const left = value as Partial<Left> | null;
+  return (
+    typeof left === "object" &&
+    left !== null &&
+    (left.basis === null || typeof left.basis === "string") &&
+    (left.inFlight === null || typeof left.inFlight === "string") &&
+    typeof left.model === "string" &&
+    (left.unit === null || typeof left.unit === "string") &&
+    typeof left.at === "number"
+  );
+}
+
+/** What tabs left on leaving the page, under each one's key, the latest first. */
+function leftBehind(): [string, Left][] {
+  const found: [string, Left][] = [];
+  try {
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const key = window.localStorage.key(i);
+      if (!key?.startsWith(LEFT)) continue;
+      try {
+        const left: unknown = JSON.parse(window.localStorage.getItem(key) ?? "");
+        if (isLeft(left)) found.push([key, left]);
+      } catch {
+        // Not what a tab leaves; nothing is taken in from it.
+      }
+    }
+  } catch {
+    return [];
+  }
+  return found.sort(([, a], [, b]) => b.at - a.at);
+}
+
+function forget(key: string): void {
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // A browser that refuses to touch it hands it to the next start, which finds it taken in or dropped.
+  }
+}
+
+/** What the browser holds as the simulator opens. */
+export interface Opened {
+  kept: Kept;
+  /** Whether a tab's changes left on leaving were dropped, the record having been written after what that tab read. */
+  dropped: boolean;
+  /** Whether the browser refused to read what it holds. */
+  refused: boolean;
+}
+
+/**
+ * What the browser holds as the simulator opens, with what tabs left on
+ * leaving the page taken in: each where nothing was written after what that
+ * tab had read, or after the write it still had under way. Two tabs opening at
+ * once take one in under the same token, so it goes in once.
+ */
+export async function openKept(keeper: Keeper | null): Promise<Opened> {
+  let kept: Kept;
+  try {
+    kept = (keeper && (await keeper.read())) ?? legacy();
+  } catch {
+    return { kept: legacy(), dropped: false, refused: true };
+  }
+  let dropped = false;
+  if (!keeper) return { kept, dropped, refused: false };
+  for (const [key, left] of leftBehind()) {
+    const token = `${key}.${left.at}`;
+    if (kept.token === token) {
+      forget(key);
+      continue;
+    }
+    if (kept.token !== left.basis && (left.inFlight === null || kept.token !== left.inFlight)) {
+      dropped = true;
+      forget(key);
+      continue;
+    }
+    const next: Kept = { token: left.unit === null ? kept.token : token, model: left.model, unit: left.unit ?? kept.unit };
+    const outcome = await keeper.write(kept.token, next);
+    if (outcome === "refused") continue;
+    forget(key);
+    if (outcome === "written") {
+      if (next.token !== null && next.token !== kept.token) announce(next.token);
+      kept = next;
+    } else {
+      const now = await keeper.read().catch(() => null);
+      if (now?.token !== next.token) dropped = true;
+      if (now) kept = now;
+    }
+  }
+  return { kept, dropped, refused: false };
+}
+
+/** The values the record holds for `model`, or nothing where it holds none of them. */
+export function readUnit(kept: Kept | null, model: string): Record<string, ParamValue> | null {
+  return unitFor(kept?.unit ?? null, model);
 }
 
 /** The values `text` holds for `model`, or nothing where it holds none of them. */
@@ -173,37 +404,26 @@ function unitFor(text: string | null, model: string): Record<string, ParamValue>
 }
 
 /**
- * The model the simulator was last used as: the one kept for it, or where none
- * is kept, the model of the stored unit. Nothing where the browser holds neither.
+ * The model the simulator opens as: the one the record keeps, or where it
+ * keeps none, the model of its unit. Nothing where it holds neither.
  */
-export function lastModel(): string | null {
+export function modelOf(kept: Kept): string | null {
+  if (kept.model) return kept.model;
+  if (!kept.unit) return null;
   try {
-    const kept = window.localStorage.getItem(MODEL_KEY);
-    if (kept) return kept;
-    const text = window.localStorage.getItem(KEY);
-    if (!text) return null;
-    const saved = fromJson(text) as Partial<Saved>;
+    const saved = fromJson(kept.unit) as Partial<Saved>;
     return saved.version === VERSION && typeof saved.model === "string" ? saved.model : null;
   } catch {
     return null;
   }
 }
 
-/** Keep `model` as the one the simulator opens as next time. */
-function keepModel(model: string): void {
-  try {
-    window.localStorage.setItem(MODEL_KEY, model);
-  } catch {
-    // A browser that refuses to store it opens the simulator next time on the model `lastModel` finds.
-  }
-}
-
 /**
- * Put a stored unit back, one value after another. A GATE, COMP or DUCKER time
- * off its stops comes back on the stop nearest it.
+ * Put the unit `kept` holds for `model` back, one value after another. A GATE,
+ * COMP or DUCKER time off its stops comes back on the stop nearest it.
  */
-export async function restore(store: DeviceStore, model: UnitModel["id"]): Promise<void> {
-  const saved = readSaved(model);
+export async function restore(store: DeviceStore, model: UnitModel["id"], kept: Kept): Promise<void> {
+  const saved = readUnit(kept, model);
   if (!saved) return;
   const values = onDynamicsTimeStops(saved);
   for (const [path, value] of Object.entries(values)) {
@@ -259,142 +479,46 @@ export function cardInSlot(store: DeviceStore): Record<string, ParamValue> {
   return values;
 }
 
-/** The Web Lock held by the tab that stores the unit. */
-const HOLD_LOCK = "urx-lcd-sim.state";
-
-/**
- * A tab's hold on storing the unit. One tab of the browser holds it at a time,
- * and only the tab holding it writes. A tab keeps it across its own restarts (a
- * switch of model, [Reset the unit]) and lets it go when the page goes, when
- * another tab takes it, or once another tab has stored the unit.
- */
-export interface Hold {
-  /** Whether this tab holds it. */
-  readonly held: boolean;
-  /**
-   * Take it: from the tab holding it where `steal`, otherwise only where no tab
-   * holds it. Resolves whether this tab holds it.
-   */
-  take: (steal: boolean) => Promise<boolean>;
-  /**
-   * Whether this tab still holds it, as the browser's lock manager has it now:
-   * a tab it has been taken from may not have heard yet. Answered at once in a
-   * browser without Web Locks.
-   */
-  confirm: () => boolean | Promise<boolean>;
-  /** Let it go. */
-  release: () => void;
-  /** Told when another tab takes it from this one. */
-  onTaken: () => void;
-}
-
-/** A hold on storing the unit, not yet held, kept by `locks` (the browser's Web Locks). */
-export function openHold(locks: LockManager | undefined = window.navigator.locks): Hold {
-  let held = false;
-  let letGo: (() => void) | null = null;
-  let asking: Promise<boolean> | null = null;
-  /** A lock only this tab asks for, held while the page lives, by which the lock manager names this tab. */
-  const self = locks ? `${HOLD_LOCK}.tab.${crypto.randomUUID()}` : "";
-  const selfHeld = locks
-    ? new Promise<void>((granted) => {
-        locks
-          .request(self, () => {
-            granted();
-            return new Promise<void>(() => {});
-          })
-          .catch(() => granted());
-      })
-    : Promise.resolve();
-  const hold: Hold = {
-    get held() {
-      return held;
-    },
-    onTaken: () => {},
-    take: (steal) => {
-      if (asking) return steal ? asking.then((got) => got || hold.take(true)) : asking;
-      if (!locks) {
-        // A browser without Web Locks: the tab writes while what the browser
-        // holds is what it last read or wrote.
-        held = true;
-        return Promise.resolve(true);
-      }
-      asking = selfHeld
-        .then(
-          () =>
-            new Promise<boolean>((resolve) => {
-              locks
-                .request(HOLD_LOCK, steal ? { steal: true } : { ifAvailable: true }, (lock) => {
-                  if (!lock) {
-                    resolve(false);
-                    return undefined;
-                  }
-                  held = true;
-                  resolve(true);
-                  return new Promise<void>((done) => {
-                    letGo = done;
-                  });
-                })
-                .catch(() => {
-                  // Another tab took it, or the browser refused it.
-                  const had = held;
-                  held = false;
-                  letGo = null;
-                  resolve(false);
-                  if (had) hold.onTaken();
-                });
-            }),
-        )
-        .finally(() => {
-          asking = null;
-        });
-      return asking;
-    },
-    confirm: () => {
-      if (!locks || !held) return held;
-      return locks.query().then(({ held: now = [] }) => {
-        const me = now.find((lock) => lock.name === self)?.clientId;
-        return held && now.some((lock) => lock.name === HOLD_LOCK && lock.clientId === me);
-      });
-    },
-    release: () => {
-      held = false;
-      letGo?.();
-      letGo = null;
-    },
-  };
-  return hold;
-}
-
 /** The steps that end the writing `startSaving` starts. */
 export interface Saving {
-  /** Write a change still waiting now, rather than when it falls due. */
-  flush: () => void;
+  /**
+   * Write a change still waiting now, and resolve once it is written or will
+   * not be: false where a change is left unwritten because another tab stored the unit.
+   */
+  settle: () => Promise<boolean>;
+  /** Leave what is still to be stored for the next start to take in, for a page that is going. */
+  leave: () => void;
+  /** Take back what `leave` left, for a page the browser brings back. */
+  resume: () => void;
   /** Stop writing, dropping a change still waiting. */
   stop: () => void;
 }
 
 /** How a start of the unit stands to what the browser holds. */
 export interface From {
-  /** The tab's hold on storing the unit; one of its own where none is given. */
-  hold?: Hold;
-  /** What to store at once: the model picked, or the whole unit as it stands ([Reset the unit]). */
+  /** Where the record is kept; nothing is written without one. */
+  keeper: Keeper | null;
+  /** The record this start read; each write is made only while the record still holds what it names. */
+  kept: Kept;
+  /** What to store at once: the model picked, or the whole unit as it stands ([Reset the unit]) over whatever is stored. */
   first?: "model" | "unit";
+  /** Names what this tab leaves on leaving the page. */
+  tab?: string;
 }
 
 /**
  * Write the unit to storage whenever it changes, and no more often than
  * `delayMs`, telling `onWrite` after each write whether the browser took it.
  *
- * Only the tab holding `from.hold` writes. A tab that starts while no tab holds
- * it holds it from the start. Otherwise a tab takes it with its first change,
- * or with [Reset the unit], from whichever tab holds it, and only while what
- * the browser holds is what it held when this saving started or what this tab
- * last wrote; each write looks at that again first. Once another tab has
- * stored the unit, forgotten it or taken the hold, this tab stops writing, so
- * as not to write over it, lets the hold go and tells `onElsewhere`.
+ * Each write is made only where the record still holds what this start read
+ * or what this tab last wrote, in one step with looking at it. Once another tab
+ * has written the unit, this tab stops writing, so as not to write over it,
+ * and tells `onElsewhere`: at the first write that finds the record moved on,
+ * or as soon as the other tab says it wrote. A write carries the model, which
+ * the simulator opens as next time; a model picked is kept the same way.
  *
- * A stored unit keeps its own model as the one the simulator opens as. A model
- * picked is kept where this tab holds the hold or no tab does.
+ * A page that is going cannot wait for a write, so `leave` writes what is
+ * still to be stored where the next start takes it in, on the same terms.
  * Returns the steps that end it.
  */
 export function startSaving(
@@ -403,70 +527,67 @@ export function startSaving(
   delayMs = 400,
   onWrite: (kept: boolean) => void = () => {},
   onElsewhere: () => void = () => {},
-  from: From = {},
+  from: From = { keeper: null, kept: { token: null, model: null, unit: null } },
 ): Saving {
-  const hold = from.hold ?? openHold();
-  /** What the browser holds, as it was when this started or as this tab last wrote it. */
-  let seen = storedUnit();
+  const { keeper } = from;
+  /** The token of the record as this start read it or this tab last wrote it, and the unit it holds. */
+  let basis = from.kept.token;
+  let unit = from.kept.unit;
   let timer = 0;
   /** The changes made since the start, and how many of them the last write took in. */
   let changes = 0;
   let written = 0;
-  let taking = false;
+  /** Whether a write is under way, and the token of the unit it writes. */
+  let writing = false;
+  let inFlight: string | null = null;
+  let flight: Promise<void> = Promise.resolve();
+  let modelDue = from.first === "model";
+  let over = from.first === "unit";
   let ended = false;
-  /** The unit as it stands, as it is written, with the changes it takes in. */
-  const prepare = (): { text: string; upTo: number } => {
+  /** Whether it stopped because another tab stored the unit. */
+  let away = false;
+  const leftKey = `${LEFT}${from.tab ?? "tab"}`;
+  const channel = keeper && typeof BroadcastChannel === "function" ? new BroadcastChannel(CHANNEL) : null;
+  const text = (): string => {
     const saved: Saved = { version: VERSION, model, ...pack(snapshot(store)) };
-    return { text: toJson(saved), upTo: changes };
+    return toJson(saved);
   };
-  const commit = ({ text, upTo }: { text: string; upTo: number }): void => {
-    // A later write has taken these changes in already.
-    if (ended || upTo <= written) return;
-    if (storedUnit() !== seen) {
-      elsewhere();
-      return;
-    }
-    let kept = true;
-    try {
-      window.localStorage.setItem(KEY, text);
-      seen = text;
-      written = upTo;
-      keepModel(model);
-    } catch {
-      // A browser that is full or refuses to store anything keeps what it held
-      // before, and the unit runs on.
-      kept = false;
-    }
-    onWrite(kept);
-  };
-  // Writes once the lock manager answers that this tab still holds the hold: a
-  // tab the hold is taken from while it writes the unit out has not heard yet.
-  const save = (): void => {
-    const write = prepare();
-    const still = hold.confirm();
-    if (still === true) commit(write);
-    else void Promise.resolve(still).then((yes) => (yes ? commit(write) : elsewhere()));
-  };
-  const takeOver = (): void => {
-    if (taking || hold.held) return;
-    if (storedUnit() !== seen) {
-      elsewhere();
-      return;
-    }
-    taking = true;
-    void hold.take(true).then((got) => {
-      taking = false;
-      if (!got) elsewhere();
-      else if (changes > written && !timer) save();
+  const write = (): void => {
+    if (ended || !keeper || writing) return;
+    const unitDue = changes > written;
+    if (!unitDue && !modelDue) return;
+    const upTo = changes;
+    const next: Kept = { token: unitDue ? newToken() : basis, model, unit: unitDue ? text() : unit };
+    const first = basis === null;
+    writing = true;
+    inFlight = unitDue ? next.token : null;
+    flight = keeper.write(over ? undefined : basis, next).then((outcome) => {
+      writing = false;
+      inFlight = null;
+      if (ended) return;
+      if (outcome === "moved") {
+        elsewhere();
+        return;
+      }
+      if (outcome === "written") {
+        if (next.token !== basis) channel?.postMessage(next.token);
+        basis = next.token;
+        unit = next.unit;
+        written = upTo;
+        modelDue = false;
+        over = false;
+        if (first) dropLegacy();
+      }
+      onWrite(outcome === "written");
+      if (changes > written && !timer) timer = window.setTimeout(due, delayMs);
     });
   };
   const due = (): void => {
     timer = 0;
-    if (hold.held) save();
+    write();
   };
   const off = store.onChange(() => {
     changes++;
-    if (!hold.held) takeOver();
     if (!timer && !ended) timer = window.setTimeout(due, delayMs);
   });
   const stop = (): void => {
@@ -474,40 +595,39 @@ export function startSaving(
     if (timer) window.clearTimeout(timer);
     timer = 0;
     off();
-    window.removeEventListener("storage", heard);
+    channel?.close();
   };
   const elsewhere = (): void => {
     if (ended) return;
+    away = true;
     stop();
-    hold.release();
     onElsewhere();
   };
-  // A storage event reaches a tab only for a write another tab made.
-  const heard = (ev: StorageEvent): void => {
-    if (ev.key === KEY) elsewhere();
-  };
-  window.addEventListener("storage", heard);
-  hold.onTaken = elsewhere;
-  if (from.first === "unit") {
-    changes++;
-    if (hold.held) save();
-    else takeOver();
-  } else if (hold.held) {
-    if (from.first === "model") keepModel(model);
-  } else {
-    // A tab that starts while no tab holds the hold holds it from the start.
-    void hold.take(false).then((got) => {
-      if (got && !ended && from.first === "model") keepModel(model);
-    });
-  }
+  // Every other tab's write reaches this one; this tab's own never does.
+  channel?.addEventListener("message", (ev: MessageEvent) => {
+    if (ev.data !== basis && ev.data !== inFlight) elsewhere();
+  });
+  if (over) changes++;
+  write();
   return {
-    // A page that is going cannot wait for the lock manager, so this writes at once.
-    flush: () => {
-      if (ended || !hold.held || changes <= written) return;
+    settle: async () => {
       if (timer) window.clearTimeout(timer);
       timer = 0;
-      commit(prepare());
+      write();
+      await flight;
+      return !(away && changes > written);
     },
+    leave: () => {
+      if (ended || !keeper) return;
+      const unitDue = changes > written || inFlight !== null;
+      if (!unitDue && !modelDue) return;
+      try {
+        window.localStorage.setItem(leftKey, JSON.stringify({ basis, inFlight, model, unit: unitDue ? text() : null, at: Date.now() } satisfies Left));
+      } catch {
+        // A browser that refuses it drops what was still to be stored, as it refuses a write.
+      }
+    },
+    resume: () => forget(leftKey),
     stop,
   };
 }

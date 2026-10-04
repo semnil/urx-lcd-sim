@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { readSaved } from "./app/persist";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { type FakeIndexedDb, fakeIndexedDb } from "./app/fake-indexeddb";
+import { type Keeper, type Kept, openKeeper, readUnit } from "./app/persist";
 
 // The page around the screen: the simulator's own chrome, as the page opens it.
 
@@ -22,11 +23,27 @@ function letGo(): void {
   unload = null;
 }
 
+/** The browser's IndexedDB, fresh for each test, which every page a test opens reads as its own. */
+let idb: FakeIndexedDb;
+let keeper: Keeper;
+
+beforeEach(() => {
+  idb = fakeIndexedDb();
+  keeper = openKeeper(idb.factory) as Keeper;
+  Object.defineProperty(window, "indexedDB", { value: idb.factory, configurable: true, writable: true });
+});
+
 afterEach(() => {
   letGo();
   document.getElementById("app")?.remove();
   window.localStorage.clear();
 });
+
+/** The values the browser holds for `model`: the record, or what a version before IndexedDB kept. */
+async function readSaved(model: string): Promise<Record<string, unknown> | null> {
+  const kept = (await keeper.read()) ?? { token: null, model: null, unit: window.localStorage.getItem(KEY) };
+  return readUnit(kept, model);
+}
 
 /** The page as it opens with `saved` in the browser's storage, once the unit is up. */
 async function open(saved: string): Promise<HTMLElement> {
@@ -163,8 +180,8 @@ describe("[Reset the unit]", () => {
     await press("Enter");
     resetButton(app, "Reset")?.focus();
     await press("Enter");
-    for (let i = 0; i < 100 && readSaved("URX44V")?.["ch.ch1.level"] !== 0; i++) await flush();
-    expect(readSaved("URX44V")?.["ch.ch1.level"], "the unit as it ships is stored in place of what was").toBe(0);
+    for (let i = 0; i < 100 && (await readSaved("URX44V"))?.["ch.ch1.level"] !== 0; i++) await flush();
+    expect((await readSaved("URX44V"))?.["ch.ch1.level"], "the unit as it ships is stored in place of what was").toBe(0);
     expect(app.querySelector(".chrome-reset-ask"), "the unit starts again").toBeNull();
   });
 });
@@ -190,9 +207,9 @@ const realSetTimeout = globalThis.setTimeout;
 const pause = (ms: number): Promise<void> => new Promise((resolve) => realSetTimeout(resolve, ms));
 
 /** Wait for `ready` to hold, and fail with `what` when it does not. */
-async function until(what: string, ready: () => boolean, ms = 4000): Promise<void> {
+async function until(what: string, ready: () => boolean | Promise<boolean>, ms = 4000): Promise<void> {
   const end = Date.now() + ms;
-  while (!ready()) {
+  while (!(await ready())) {
     if (Date.now() > end) throw new Error(`timed out waiting for ${what}`);
     await pause(10);
   }
@@ -242,7 +259,7 @@ async function nudge(): Promise<string | null> {
 /** Turn CH 1's level up one step, and wait for the browser to hold it. */
 async function nudgeLevel(model: string): Promise<string | null> {
   const now = await nudge();
-  await until("the unit to be stored", () => readSaved(model)?.["ch.ch1.level"] === Number(now));
+  await until("the unit to be stored", async () => (await readSaved(model))?.["ch.ch1.level"] === Number(now));
   return now;
 }
 
@@ -284,8 +301,9 @@ describe("the model the page opens on", () => {
   it("opens on the model of the unit stored last, after another tab picked another model", async () => {
     await openPage();
     await chooseModel("URX22");
-    window.localStorage.setItem(MODEL_KEY, "URX44V");
-    window.dispatchEvent(new StorageEvent("storage", { key: MODEL_KEY, newValue: "URX44V", storageArea: window.localStorage }));
+    // Another tab picks a URX44V, which keeps the model alone.
+    const now = (await keeper.read()) as Kept;
+    expect(await keeper.write(now.token, { ...now, model: "URX44V" })).toBe("written");
     const edited = await nudgeLevel("URX22");
 
     await openPage();
@@ -333,7 +351,7 @@ describe("[Reset the unit]", () => {
     await pause(600);
     click(button("Reset"), 2);
     await pause(100);
-    expect(readSaved("URX44V")?.["ch.ch1.level"]).toBe(-9);
+    expect((await readSaved("URX44V"))?.["ch.ch1.level"]).toBe(-9);
     expect(firstLevel()?.getAttribute("aria-valuenow")).toBe("-9");
   });
 
@@ -341,7 +359,7 @@ describe("[Reset the unit]", () => {
     await asking();
     click(button("Reset"), 1);
     await pause(100);
-    expect(readSaved("URX44V")?.["ch.ch1.level"]).toBe(-9);
+    expect((await readSaved("URX44V"))?.["ch.ch1.level"]).toBe(-9);
     expect(firstLevel()?.getAttribute("aria-valuenow")).toBe("-9");
   });
 
@@ -350,7 +368,7 @@ describe("[Reset the unit]", () => {
     await pause(600);
     click(button("Reset"), 1);
     await until("the unit as it ships", () => firstLevel()?.getAttribute("aria-valuenow") !== "-9");
-    await until("the unit as it ships to be stored", () => readSaved("URX44V")?.["ch.ch1.level"] === Number(shownLevel()));
+    await until("the unit as it ships to be stored", async () => (await readSaved("URX44V"))?.["ch.ch1.level"] === Number(shownLevel()));
   });
 
   it("leaves the card in the slot as it is", async () => {
@@ -364,8 +382,8 @@ describe("[Reset the unit]", () => {
     await pause(600);
     click(button("Reset"), 1);
     await until("the unit as it ships", () => shownLevel() === "0");
-    await until("the card to be stored", () => readSaved("URX44V")?.["sd.cardName"] === "MYCARD");
-    const kept = readSaved("URX44V")!;
+    await until("the card to be stored", async () => (await readSaved("URX44V"))?.["sd.cardName"] === "MYCARD");
+    const kept = (await readSaved("URX44V"))!;
     expect([kept["sd.card"], kept["sd.file./Live.urxf"]], "the card").toEqual([card, file]);
     expect([kept["ch.ch1.level"], kept["sd.trackCount"]], "the unit as it ships").toEqual([0, 16]);
   });
@@ -388,9 +406,10 @@ describe("a change still waiting to be stored", () => {
     await openPage();
     holdTimers();
     const shown = await nudge();
-    expect(readSaved("URX44V"), "the change is still waiting").toBeNull();
+    expect(await readSaved("URX44V"), "the change is still waiting").toBeNull();
     await openPage();
     expect(shownLevel()).toBe(shown);
+    expect((await readSaved("URX44V"))?.["ch.ch1.level"], "and the start took it in").toBe(Number(shown));
   });
 
   it("is stored when another model is picked", async () => {
@@ -413,7 +432,8 @@ describe("a change still waiting to be stored", () => {
     const reset = [...box.querySelectorAll<HTMLElement>("button")].find((b) => b.textContent === "Reset")!;
     reset.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
     await until("the unit as it ships", () => shownLevel() === "0");
-    expect(readSaved("URX44V")?.["ch.ch1.level"], "the change is not written back, and the unit as it ships is").toBe(0);
+    await until("the unit as it ships to be stored", async () => (await readSaved("URX44V"))?.["ch.ch1.level"] === 0);
+    expect((await readSaved("URX44V"))?.["ch.ch1.level"], "the change is not written back, and the unit as it ships is").toBe(0);
   });
 });
 
@@ -438,17 +458,21 @@ const noticeClose = (): HTMLElement => notice()!.querySelector<HTMLElement>('but
 
 /** Make the browser refuse every write of the unit until the returned step is run. */
 function refuseWrites(): () => void {
-  const set = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
-    throw new DOMException("storage is full", "QuotaExceededError");
-  });
-  return () => set.mockRestore();
+  idb.refuse = true;
+  return () => {
+    idb.refuse = false;
+  };
 }
 
-/** Another tab storing a unit with CH 1 at -20, as this tab hears of it. */
-function storedElsewhere(): string {
-  const theirs = JSON.stringify({ version: 1, model: "URX44V", values: { "ch.ch1.level": -20 } });
-  window.localStorage.setItem(STATE_KEY, theirs);
-  window.dispatchEvent(new StorageEvent("storage", { key: STATE_KEY, newValue: theirs, storageArea: window.localStorage }));
+/** Another tab storing a unit with CH 1 at -20, and saying so where `heard`: the record it leaves. */
+async function storedElsewhere(heard = true): Promise<Kept> {
+  const theirs: Kept = { token: "theirs", model: "URX44V", unit: JSON.stringify({ version: 1, model: "URX44V", values: { "ch.ch1.level": -20 } }) };
+  expect(await keeper.write(undefined, theirs)).toBe("written");
+  if (heard) {
+    const channel = new BroadcastChannel("urx-lcd-sim.state");
+    channel.postMessage(theirs.token);
+    channel.close();
+  }
   return theirs;
 }
 
@@ -508,13 +532,74 @@ describe("a browser that does not take the unit", () => {
   });
 });
 
+describe("a browser with nowhere to keep the unit", () => {
+  it("is told so from the start, and nothing is stored or left behind", async () => {
+    Object.defineProperty(window, "indexedDB", { value: undefined, configurable: true, writable: true });
+    await openPage();
+    expect(notice()?.hidden, "told at once").toBe(false);
+    expect(notice()?.textContent).toMatch(/does not let the simulator keep the unit/);
+    await nudge();
+    await pause(600);
+    leave(false);
+    expect([await keeper.read(), window.localStorage.length]).toEqual([null, 0]);
+  });
+});
+
+describe("a browser that blocks storage", () => {
+  it("is told so from the start", async () => {
+    idb.blocked = true;
+    await openPage();
+    expect(notice()?.hidden, "told at once").toBe(false);
+    expect(notice()?.textContent).toMatch(/does not let the simulator keep the unit/);
+  });
+});
+
+describe("a change made just before another model is picked", () => {
+  it("is dropped where another tab stored the unit first, unheard, and the next start says so", async () => {
+    await openPage();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    await storedElsewhere(false);
+    await nudge();
+    expect(notice()?.hidden, "nothing told yet").toBe(true);
+    await chooseModel("URX22");
+    await until("the notice", () => notice()?.hidden === false);
+    expect(notice()?.textContent).toMatch(/were not kept/);
+    expect(await keeper.read(), "what the other tab stored stays").toMatchObject({ token: "theirs" });
+  });
+
+  it("says nothing where it was stored", async () => {
+    await openPage();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const shown = await nudge();
+    await chooseModel("URX22");
+    expect(notice()?.hidden).toBe(true);
+    expect((await readSaved("URX44V"))?.["ch.ch1.level"]).toBe(Number(shown));
+  });
+});
+
+describe("a change left on leaving the page", () => {
+  it("is dropped where another tab stored the unit before the next start, and that start says so", async () => {
+    await openPage();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    await nudge();
+    leave(false);
+    expect(window.localStorage.length, "what was waiting is left behind").toBe(1);
+    await storedElsewhere();
+    await openPage();
+    expect(shownLevel(), "the start opens on what the other tab stored").toBe("-20");
+    await until("the notice", () => notice()?.hidden === false);
+    expect(notice()?.textContent).toMatch(/were not kept/);
+    expect(window.localStorage.length, "and lets what was left go").toBe(0);
+  });
+});
+
 describe("a unit another tab stores", () => {
   it("is left as that tab stored it, with the chrome saying so, until a reload", async () => {
     await openPage();
-    const theirs = storedElsewhere();
+    const theirs = await storedElsewhere();
     await nudge();
     await pause(600);
-    expect(window.localStorage.getItem(STATE_KEY), "what the other tab stored stays").toBe(theirs);
+    expect(await keeper.read(), "what the other tab stored stays").toEqual(theirs);
     expect(notice()?.hidden, "the chrome says this tab stores no more").toBe(false);
     expect(notice()?.textContent).toMatch(/another tab/i);
 
@@ -526,7 +611,7 @@ describe("a unit another tab stores", () => {
 
   it("comes back on the banner at the next change once closed", async () => {
     await openPage();
-    storedElsewhere();
+    await storedElsewhere();
     await until("the notice", () => notice()?.hidden === false);
     expect(notice()?.textContent, "as soon as it hears").toMatch(/another tab/i);
     noticeClose().click();
@@ -538,10 +623,10 @@ describe("a unit another tab stores", () => {
 
   it("is stored by this tab again once [Reset the unit] starts it again", async () => {
     await openPage();
-    const theirs = storedElsewhere();
+    const theirs = await storedElsewhere();
     await nudge();
     await pause(600);
-    expect(window.localStorage.getItem(STATE_KEY), "this tab has stopped storing").toBe(theirs);
+    expect(await keeper.read(), "this tab has stopped storing").toEqual(theirs);
 
     const box = document.querySelector<HTMLElement>(".chrome-reset")!;
     box.querySelector<HTMLElement>("button")!.click();
@@ -551,6 +636,6 @@ describe("a unit another tab stores", () => {
     await until("the unit as it ships", () => shownLevel() === "0");
     expect(notice()?.hidden, "the chrome has nothing to tell").toBe(true);
     const now = await nudge();
-    await until("this tab to store the unit", () => readSaved("URX44V")?.["ch.ch1.level"] === Number(now), 2000);
+    await until("this tab to store the unit", async () => (await readSaved("URX44V"))?.["ch.ch1.level"] === Number(now), 2000);
   });
 });

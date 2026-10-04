@@ -9,7 +9,7 @@ import "./style/tokens.css";
 import "./style/app.css";
 import "./style/lcd.css";
 
-import { cardInSlot, lastModel, openHold, restore, startSaving } from "./app/persist";
+import { cardInSlot, modelOf, openKeeper, openKept, restore, startSaving, type Opened } from "./app/persist";
 import { Shell } from "./app/shell";
 import type { ParamValue } from "./device/path";
 import { DeviceStore } from "./device/store";
@@ -40,6 +40,12 @@ const UNKEPT_TEXT = "The browser is not keeping the unit: changes made now will 
 /** What the chrome says once another tab has stored the unit and this one stores it no more. */
 const ELSEWHERE_TEXT = "Another tab has stored the unit, so this tab no longer stores it: changes made here will not come back after a reload.";
 
+/** What the chrome says where the browser gives the simulator nowhere to keep the unit. */
+const NO_STORE_TEXT = "This browser does not let the simulator keep the unit: changes made now will not come back after a reload.";
+
+/** What the chrome says where the last changes made before this start were dropped. */
+const DROPPED_TEXT = "The last changes made before this start were not kept: another tab stored the unit first.";
+
 function applyZoom(percent: number): void {
   document.documentElement.style.setProperty("--zoom", String(percent / 100));
   document.documentElement.dataset["zoom"] = String(percent);
@@ -59,37 +65,45 @@ function requestedZoom(): number {
 /** Teardown for whatever is mounted: the shell's listeners, the meters, the link. */
 let disposeMounted: (() => void) | null = null;
 
-/** Stores a change of the mounted unit still waiting to be stored. */
-let flushMounted: (() => void) | null = null;
+/** Leaves a change of the mounted unit still waiting to be stored for the next start, and takes it back. */
+let leaveMounted: (() => void) | null = null;
+let resumeMounted: (() => void) | null = null;
 
-/** This tab's hold on storing the unit, kept across the unit's restarts in the tab. */
-const hold = openHold();
+/** Where the browser keeps the unit, and the name of what this page leaves on leaving. */
+const keeper = openKeeper();
+const tab = crypto.randomUUID();
 
 /**
- * Start `modelId` in `mount`: on opening the page, on a model `"picked"`, or
- * on [Reset the unit] (`"reset"`) with `card` (its paths and values) put back
- * in the slot.
+ * Start `modelId` in `mount`: on opening the page with what the browser held
+ * (`opened`), on a model `"picked"`, or on [Reset the unit] (`"reset"`) with
+ * `card` (its paths and values) put back in the slot.
  */
 async function boot(
   modelId: ModelId,
   mount: HTMLElement,
   how: "opened" | "picked" | "reset" = "opened",
   card: Record<string, ParamValue> = {},
+  opened?: Opened,
+  droppedBefore = false,
 ): Promise<void> {
   disposeMounted?.();
   disposeMounted = null;
-  flushMounted = null;
+  leaveMounted = null;
+  resumeMounted = null;
+  const { kept, dropped, refused } = opened ?? (await openKept(keeper));
   const model = unitById(modelId);
   const store = new DeviceStore();
   const transport = new SimTransport(factoryState(model));
   await store.attach(transport);
   // A reset starts from the unit as it ships, and stores it with the card at once.
-  if (how !== "reset") await restore(store, modelId);
+  if (how !== "reset") await restore(store, modelId, kept);
   for (const [path, value] of Object.entries(card)) await store.restore(path, value);
   // A banner over the top centre of the page while the browser refuses the unit,
   // full or blocked, which goes once a write is taken again. Once another tab has
-  // stored the unit, it says so instead until the unit starts again. It lies over
-  // the page, so showing it moves nothing else. [×] or Escape closes it; the
+  // stored the unit, it says so instead until the unit starts again. From the
+  // start, it says where the browser gives the simulator nowhere to keep the
+  // unit, or where the last changes made before this start were dropped. It lies
+  // over the page, so showing it moves nothing else. [×] or Escape closes it; the
   // browser's refusal brings it back at the next write it refuses, the other tab
   // at the next change to the unit.
   const noticeText = el("p", { attrs: { role: "status" } });
@@ -124,19 +138,22 @@ async function boot(
     modelId,
     undefined,
     (kept) => {
-      if (kept) notice.hidden = true;
-      else showNotice(UNKEPT_TEXT);
+      if (!kept) showNotice(UNKEPT_TEXT);
+      else if (noticeText.textContent === UNKEPT_TEXT) notice.hidden = true;
     },
     () => {
       storedElsewhere = true;
       showNotice(ELSEWHERE_TEXT);
     },
-    how === "opened" ? { hold } : { hold, first: how === "reset" ? "unit" : "model" },
+    { keeper, kept, tab, ...(how === "opened" ? {} : { first: how === "reset" ? "unit" : "model" }) },
   );
+  if (!keeper || refused) showNotice(NO_STORE_TEXT);
+  else if (dropped || droppedBefore) showNotice(DROPPED_TEXT);
   const offNotice = store.onChange(() => {
     if (storedElsewhere) showNotice(ELSEWHERE_TEXT);
   });
-  flushMounted = saving.flush;
+  leaveMounted = saving.leave;
+  resumeMounted = saving.resume;
 
   const shell = new Shell(buildRegistry(), store, model);
   const panel = buildPanel(shell);
@@ -149,9 +166,9 @@ async function boot(
     opt.selected = id === modelId;
     modelSelect.appendChild(opt);
   }
+  // The change still waiting is written before the picked model's start reads what is stored.
   modelSelect.addEventListener("change", () => {
-    saving.flush();
-    void boot(modelSelect.value as ModelId, mount, "picked");
+    void saving.settle().then((stored) => boot(modelSelect.value as ModelId, mount, "picked", {}, undefined, !stored));
   });
 
   const zoomSelect = el("select", { class: "chrome-select", attrs: { "aria-label": "Display scale" } }) as HTMLSelectElement;
@@ -260,7 +277,8 @@ async function boot(
   const stopClock = startRecorderClock(store, shell.root);
   const stopDateTime = startDateTimeClock(store, shell.root);
   // Tearing down drops a change still waiting to be stored, as [Reset the unit]
-  // does; leaving the page and picking another model store it first.
+  // does; picking another model writes it first, and leaving the page leaves it
+  // for the next start.
   disposeMounted = (): void => {
     saving.stop();
     offNotice();
@@ -272,17 +290,22 @@ async function boot(
   };
 }
 
-// Leaving the page stores a change still waiting. A page the browser keeps to
-// bring back on [Back] runs on as it was, still holding the hold on storing; a
-// page let go is torn down.
+// Leaving the page leaves a change still waiting for the next start to take in.
+// A page the browser keeps to bring back on [Back] runs on as it was and, once
+// back, takes what it left back to write itself; a page let go is torn down.
 window.addEventListener("pagehide", (ev) => {
-  flushMounted?.();
+  leaveMounted?.();
   if (!ev.persisted) disposeMounted?.();
+});
+window.addEventListener("pageshow", (ev) => {
+  if (ev.persisted) resumeMounted?.();
 });
 
 const mount = document.getElementById("app");
 if (mount) {
   applyZoom(requestedZoom());
-  const last = lastModel();
-  void boot(MODEL_IDS.find((id) => id === last) ?? "URX44V", mount);
+  void openKept(keeper).then((opened) => {
+    const last = modelOf(opened.kept);
+    return boot(MODEL_IDS.find((id) => id === last) ?? "URX44V", mount, "opened", {}, opened);
+  });
 }
