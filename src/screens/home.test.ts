@@ -6,10 +6,12 @@ import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
 import { CH_COLOR_PALETTE, unitById } from "../model/units";
 import { bankStrips } from "../model/types";
+import { OSC_TARGETS } from "../model/oscillator";
 import { bankName, channelLabel } from "./strip-state";
 import { buildRegistry } from "./index";
 import { meterLevels, setMeterSource, startMeterTicker } from "./meters";
-import { declarations, px, readStyle } from "../style/css-read";
+import { storeScene } from "./scene";
+import { declarations, declarationsOn, px, readStyle } from "../style/css-read";
 import { version as packageVersion } from "../../package.json";
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
@@ -449,7 +451,7 @@ describe("the STEREO/CUE meter", () => {
   it("holds the whole rail in place whether or not a cue is up", () => {
     // The name and the frame the cue state adds cost the box nothing: the frame
     // is drawn over it and the name stands in a row the box holds either way.
-    expect(Object.keys(declarations(CSS, ".master-meter.is-cue")), "the state itself sets nothing").toEqual([]);
+    expect(Object.keys(declarationsOn(CSS, ".master-meter.is-cue")), "the state itself sets nothing").toEqual([]);
     const frame = declarations(CSS, ".master-meter.is-cue::before");
     expect([frame["position"], frame["inset"]]).toEqual(["absolute", "0"]);
     const box = declarations(CSS, ".master-meter");
@@ -659,6 +661,77 @@ describe("the colour rail along the bottom of a strip", () => {
   });
 });
 
+describe("the bank a sideways swipe on HOME steps to", () => {
+  /** A press on the main area, off any control, at `from`, let go on the main area at `to`. */
+  const swipe = async (shell: Shell, from: number, to: number): Promise<void> => {
+    const main = shell.root.querySelector(".main");
+    main?.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, cancelable: true, clientX: from, clientY: 100 }));
+    main?.dispatchEvent(new MouseEvent("pointerup", { bubbles: true, cancelable: true, clientX: to, clientY: 100 }));
+    await flush();
+  };
+  const at = (shell: Shell): [string, number] => [shell.ctx.store.str("ui.bankSide", "input"), shell.ctx.store.num("ui.bank", 0)];
+  const first = (shell: Shell): string | null | undefined => shell.root.querySelector(".strip-id")?.textContent;
+  /**
+   * Run `body` on a shell on the page, so a pointer let go reaches the window as it does in the browser,
+   * with the pointer standing over the shell's main area wherever it is let go.
+   */
+  const onPage = async (id: "URX44V" | "URX22", body: (shell: Shell) => Promise<void>): Promise<void> => {
+    const shell = await mount(id);
+    document.body.append(shell.root);
+    document.elementFromPoint = (): Element | null => shell.root.querySelector(".main");
+    try {
+      await body(shell);
+    } finally {
+      shell.destroy();
+      shell.root.remove();
+      Reflect.deleteProperty(document, "elementFromPoint");
+    }
+  };
+
+  it("steps to the next bank for a swipe to the left and back for one to the right, and stays for a short move", () =>
+    onPage("URX44V", async (shell) => {
+      expect([at(shell), first(shell)]).toEqual([["input", 0], "CH 1"]);
+      await swipe(shell, 300, 200);
+      expect([at(shell), first(shell)], "to the left").toEqual([["input", 1], "CH 5/6"]);
+      await swipe(shell, 200, 300);
+      expect([at(shell), first(shell)], "to the right").toEqual([["input", 0], "CH 1"]);
+      await swipe(shell, 300, 280);
+      expect(at(shell), "a short move").toEqual(["input", 0]);
+    }));
+
+  it("stays on the INPUT side's last bank for a swipe past it and on its first for one before it, and steps back from either", async () => {
+    for (const [id, last] of [["URX44V", 2], ["URX22", 1]] as const) {
+      await onPage(id, async (shell) => {
+        await shell.ctx.store.set("ui.bank", last);
+        await flush();
+        await swipe(shell, 300, 200);
+        expect(at(shell), `${id}: past the last bank`).toEqual(["input", last]);
+        await swipe(shell, 200, 300);
+        expect(at(shell), `${id}: back a bank from the last`).toEqual(["input", last - 1]);
+
+        await shell.ctx.store.set("ui.bank", 0);
+        await flush();
+        await swipe(shell, 200, 300);
+        expect(at(shell), `${id}: before the first bank`).toEqual(["input", 0]);
+        await swipe(shell, 300, 200);
+        expect(at(shell), `${id}: on a bank from the first`).toEqual(["input", 1]);
+      });
+    }
+  });
+
+  it("steps no bank on a screen other than HOME", () =>
+    onPage("URX44V", async (shell) => {
+      shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+      await flush();
+      await swipe(shell, 300, 200);
+      expect(at(shell), "on a channel view").toEqual(["input", 0]);
+      shell.ctx.nav.openTop({ id: "setup" });
+      await flush();
+      await swipe(shell, 300, 200);
+      expect(at(shell), "on SETUP").toEqual(["input", 0]);
+    }));
+});
+
 describe("the channel-bank marks", () => {
   const marks = (shell: Shell): number => shell.root.querySelectorAll(".bank-cell").length;
 
@@ -855,6 +928,19 @@ describe("the screens the toolbar icons open", () => {
       expect((await captions(id)).every((c) => c.length > 0), `${id} names every entry`).toBe(true);
     }
   });
+
+  it("opens from MONITOR's menu the screen each entry names", async () => {
+    const shell = await mount();
+    const opened: string[] = [];
+    for (const label of ["Monitor", "Phones", "Oscillator"]) {
+      shell.ctx.nav.openTop({ id: "monitor" });
+      await flush();
+      [...shell.root.querySelectorAll<HTMLElement>(".menu-btn")].find((b) => b.textContent === label)?.click();
+      await flush();
+      opened.push(shell.ctx.nav.current.id);
+    }
+    expect(opened).toEqual(["monitor.level", "monitor.phones", "monitor.osc"]);
+  });
 });
 
 describe("the toolbar's icon row", () => {
@@ -897,6 +983,63 @@ describe("the toolbar's icon row", () => {
     expect(bank(), "the channel view names a channel instead of a bank").toBeNull();
     expect(shell.root.querySelector(".ch-selector")).not.toBeNull();
   });
+});
+
+describe("the menus that change with the model", () => {
+  // A model without the microSD slot, the LINE OUT, the clock or the HDMI input
+  // draws no icon, row, menu entry, tab or source for it.
+  const want = {
+    URX22: { icons: ["SETUP", "MONITOR", "HOME"], dateTime: false, analog: ["MAIN OUT"], tabs: ["Main"], sources: [] },
+    URX44: {
+      icons: ["SETUP", "microSD", "MONITOR", "HOME"],
+      dateTime: true,
+      analog: ["MAIN OUT", "LINE OUT"],
+      tabs: ["Main"],
+      sources: ["microSD Playback"],
+    },
+    URX44V: {
+      icons: ["SETUP", "microSD", "MONITOR", "HOME"],
+      dateTime: true,
+      analog: ["MAIN OUT", "LINE OUT"],
+      tabs: ["Main", "HDMI"],
+      sources: ["microSD Playback", "HDMI"],
+    },
+  };
+
+  for (const id of ["URX22", "URX44", "URX44V"] as const) {
+    it(`draws on the ${id} what the ${id} has, and nothing it does not`, async () => {
+      const row = want[id];
+      const shell = await mount(id);
+      const names = (selector: string): string[] =>
+        [...shell.root.querySelectorAll(selector)].map((n) => accessibleName(n).replace("\n", " "));
+      expect(names(".toolbar-icons .icon-btn"), "HOME's icons").toEqual(row.icons);
+
+      shell.ctx.nav.openTop({ id: "setup" });
+      await flush();
+      expect(names(".menu-btn"), "SETUP's menu").toContain("Version");
+      expect(names(".menu-btn").includes("Date/Time"), "SETUP's Date/Time").toBe(row.dateTime);
+      shell.ctx.nav.push({ id: "setup.patch" });
+      await flush();
+      expect(names(".patch-caption"), "OUTPUT PATCH's Analog tab").toEqual(row.analog);
+      shell.ctx.nav.back();
+      shell.ctx.nav.push({ id: "setup.peripheral" });
+      await flush();
+      expect(names(".side-tab .side-tab-label"), "PERIPHERAL's tabs").toEqual(row.tabs);
+
+      shell.ctx.nav.home();
+      shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+      shell.ctx.nav.push({ id: "ch.input", strip: "ch1" });
+      await flush();
+      shell.root.querySelector<HTMLElement>(".input-source-btn")?.click();
+      await flush();
+      const sources = names(".source-sheet .source-btn");
+      expect(sources, "CH 1's Input Source sheet open").toContain("AUX IN");
+      expect(
+        sources.filter((s) => s === "microSD Playback" || s === "HDMI"),
+        "CH 1's Input Source sheet",
+      ).toEqual(row.sources);
+    });
+  }
 });
 
 describe("the send-destination sheet", () => {
@@ -1652,6 +1795,57 @@ describe("the SCENE menu the scene box opens", () => {
     expect(Number.parseFloat(thumb()?.style.top ?? "") + 15).toBeCloseTo(111);
   });
 
+  it("hides the list's bar while every row is in view, and draws it once a row is out of view", async () => {
+    const shell = await mount();
+    shell.ctx.nav.openTop({ id: "scene" });
+    shell.ctx.nav.push({ id: "scene.list" });
+    await flush();
+    const body = shell.root.querySelector<HTMLElement>(".scene-list .list-body");
+    const hidden = (): boolean | undefined => shell.root.querySelector(".scene-scrollbar")?.hasAttribute("hidden");
+    // Rows of 38px, three of them in view.
+    const put = (rows: number): void => {
+      for (const [name, value] of [["scrollHeight", rows * 38], ["clientHeight", 3 * 38], ["scrollTop", 0]] as const) {
+        if (body) Object.defineProperty(body, name, { configurable: true, value });
+      }
+      body?.dispatchEvent(new Event("scroll"));
+    };
+    put(4);
+    expect(hidden(), "four rows, three in view").toBe(false);
+    put(3);
+    expect(hidden(), "three rows, all in view").toBe(true);
+  });
+
+  it("scrolls the list as far through its rows as its thumb is dragged through the well", async () => {
+    const shell = await mount();
+    shell.ctx.nav.openTop({ id: "scene" });
+    shell.ctx.nav.push({ id: "scene.list" });
+    await flush();
+    const body = shell.root.querySelector<HTMLElement>(".scene-list .list-body");
+    const thumb = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".scene-scrollbar .scroll-thumb");
+    // 63 rows of 38px, three of them in view: a 15px thumb in a 111px well.
+    let scrolled = 0;
+    if (body) {
+      Object.defineProperty(body, "scrollHeight", { configurable: true, value: 63 * 38 });
+      Object.defineProperty(body, "clientHeight", { configurable: true, value: 3 * 38 });
+      Object.defineProperty(body, "scrollTop", {
+        configurable: true,
+        get: () => scrolled,
+        set: (v: number) => {
+          scrolled = v;
+          body.dispatchEvent(new Event("scroll"));
+        },
+      });
+    }
+    body?.dispatchEvent(new Event("scroll"));
+    expect([thumb()?.style.height, thumb()?.style.top]).toEqual(["15px", "0px"]);
+
+    // Half of the thumb's 96px of travel is half of the 60 rows out of view.
+    thumb()?.dispatchEvent(new MouseEvent("pointerdown", { clientY: 100, bubbles: true }));
+    window.dispatchEvent(new MouseEvent("pointermove", { clientY: 148 }));
+    window.dispatchEvent(new MouseEvent("pointerup", { clientY: 148 }));
+    expect([body?.scrollTop, thumb()?.style.top]).toEqual([30 * 38, "48px"]);
+  });
+
   it("names the recalled scene on HOME the way the list names it", async () => {
     const shell = await mount();
     const box = (): string[] => [...(shell.root.querySelector(".scene-box")?.children ?? [])].map((c) => c.textContent ?? "");
@@ -1701,6 +1895,39 @@ describe("the SCENE menu the scene box opens", () => {
     expect(box?.querySelector(".dialog-mark svg"), "and carries the information mark").not.toBeNull();
     expect(box?.querySelector(".dialog-text")?.textContent).toContain("Recall scene");
     expect([...(box?.querySelectorAll(".dialog-actions .btn") ?? [])].map((b) => b.textContent)).toEqual(["Cancel", "OK"]);
+  });
+
+  it("recalls the scene picked on the list on [OK], and nothing on [Cancel]", async () => {
+    const shell = await mount();
+    const store = shell.ctx.store;
+    await store.set("ch.ch1.level", -12);
+    await storeScene(shell.ctx, "Standard", 3);
+    await store.set("scene.Standard.3.title", "Mine");
+    // The level moved on, 00 recalled since, and 03 picked on the list.
+    await store.set("ch.ch1.level", 0);
+    await store.set("scene.current", 0);
+    await store.set("scene.selected", 3);
+    shell.ctx.nav.openTop({ id: "scene" });
+    shell.ctx.nav.push({ id: "scene.list" });
+    await flush();
+    const press = async (selector: string, label: string): Promise<void> => {
+      [...shell.root.querySelectorAll<HTMLElement>(selector)].find((b) => b.textContent === label)?.click();
+      await flush();
+      await flush();
+    };
+    /** CH 1's level and the scene recalled. */
+    const state = (): [number, number] => [store.num("ch.ch1.level", 99), store.num("scene.current", -1)];
+
+    await press(".scene-actions .btn", "Recall");
+    expect(shell.root.querySelector(".dialog-text")?.textContent).toBe('Recall scene "Mine"?');
+    await press(".dialog-actions .btn", "Cancel");
+    expect(shell.root.querySelector(".dialog"), "[Cancel] closes the dialog").toBeNull();
+    expect(state(), "[Cancel] recalls nothing").toEqual([0, 0]);
+
+    await press(".scene-actions .btn", "Recall");
+    await press(".dialog-actions .btn", "OK");
+    expect(shell.root.querySelector(".dialog"), "[OK] closes the dialog").toBeNull();
+    expect(state(), "[OK] puts 03's level back and marks 03 recalled").toEqual([-12, 3]);
   });
 
   const sceneList = async (state: Record<string, number | string>): Promise<Shell> => {
@@ -2042,6 +2269,12 @@ describe("the SCENE menu the scene box opens", () => {
     expect(typed(), "typed where the caret stands, in a layout the sheet does not show").toBe("Ban!ds");
     await send("Backspace");
     expect(typed()).toBe("Bands");
+    await send("ArrowRight");
+    await send("!");
+    expect(typed(), "the right arrow takes the caret the other way").toBe("Band!s");
+    await send("Backspace");
+    await send("ArrowLeft");
+    expect(typed()).toBe("Bands");
 
     expect(await send("é"), "a character the unit cannot type is left alone").toBe(false);
     expect(await send("F1")).toBe(false);
@@ -2288,6 +2521,20 @@ describe("CH SETTING: what a channel is tapped at and what colour it carries", (
     expect(shell.root.querySelector(".color-sheet"), "the way out closes it").toBeNull();
     expect(shell.ctx.store.str("ch.ch1.color", ""), "on the colour it was opened with").toBe(before);
   });
+
+  it("names the channel what the Name field is left with, and nothing while it is typed in", async () => {
+    const shell = await setting("ch1");
+    const input = shell.root.querySelector<HTMLInputElement>(".chs-name");
+    const before = shell.ctx.store.str("ch.ch1.name", "");
+    expect(input?.value, "the field opens on the channel's name").toBe(before);
+    if (input) input.value = "Vox";
+    input?.dispatchEvent(new Event("input", { bubbles: true }));
+    await flush();
+    expect(shell.ctx.store.str("ch.ch1.name", ""), "a keystroke writes nothing").toBe(before);
+    input?.dispatchEvent(new Event("change", { bubbles: true }));
+    await flush();
+    expect(shell.ctx.store.str("ch.ch1.name", ""), "leaving the field writes it").toBe("Vox");
+  });
 });
 
 describe("POWER MANAGEMENT", () => {
@@ -2341,6 +2588,66 @@ describe("POWER MANAGEMENT", () => {
   });
 });
 
+describe("PERIPHERAL's HDMI tab", () => {
+  it("switches HDCP at each press of [Enable], and takes the Input Audio Channels pressed", async () => {
+    const shell = await mount();
+    const store = shell.ctx.store;
+    shell.ctx.nav.openTop({ id: "setup" });
+    shell.ctx.nav.push({ id: "setup.peripheral" });
+    await flush();
+    [...shell.root.querySelectorAll<HTMLElement>(".side-tab")].find((t) => t.querySelector(".side-tab-label")?.textContent === "HDMI")?.click();
+    await flush();
+    const press = async (label: string): Promise<void> => {
+      [...shell.root.querySelectorAll<HTMLElement>(".peripheral-screen .btn")].find((b) => b.textContent === label)?.click();
+      await flush();
+    };
+    /** HDCP, the Input Audio Channels, and the buttons lit. */
+    const seen = (): (boolean | string | string[])[] => [
+      store.bool("setup.peripheral.hdmiEnable", false),
+      store.str("setup.peripheral.hdmiChannels", ""),
+      [...shell.root.querySelectorAll(".peripheral-screen .btn.is-on")].map((b) => b.textContent ?? ""),
+    ];
+    expect(shell.root.querySelector(".peripheral-screen .section-band")?.textContent, "the HDMI tab open").toBe("HDMI");
+    expect(seen(), "as the unit ships").toEqual([true, "2 Channels", ["Enable", "2 Channels"]]);
+    await press("Enable");
+    expect(seen(), "HDCP off").toEqual([false, "2 Channels", ["2 Channels"]]);
+    await press("Multi Channels");
+    expect(seen()).toEqual([false, "Multi Channels", ["Multi Channels"]]);
+    await press("Enable");
+    await press("2 Channels");
+    expect(seen(), "and back").toEqual([true, "2 Channels", ["Enable", "2 Channels"]]);
+  });
+});
+
+describe("SOFTWARE INTEGRATION", () => {
+  it("takes for FX1 and for FX2 each the MIX picked on its own list", async () => {
+    const shell = await mount();
+    const store = shell.ctx.store;
+    shell.ctx.nav.openTop({ id: "setup" });
+    shell.ctx.nav.push({ id: "setup.integration" });
+    await flush();
+    const boxes = (): HTMLElement[] => [...shell.root.querySelectorAll<HTMLElement>(".integration-screen .pulldown")];
+    const choose = async (box: number, option: string): Promise<void> => {
+      boxes()[box]?.click();
+      await flush();
+      [...shell.root.querySelectorAll<HTMLElement>(".dropdown-option")].find((o) => o.textContent === option)?.click();
+      await flush();
+    };
+    /** What FX1 and FX2 are set to, then what their boxes read. */
+    const seen = (): (string | null | undefined)[] => [
+      store.str("setup.integration.fx1Send", ""),
+      store.str("setup.integration.fx2Send", ""),
+      ...boxes().map((b) => b.querySelector(".pulldown-value")?.textContent),
+    ];
+    expect(seen(), "as the unit ships").toEqual(["MIX 1", "MIX 1", "MIX 1", "MIX 1"]);
+    await choose(1, "MIX 2");
+    expect(seen(), "FX2's list").toEqual(["MIX 1", "MIX 2", "MIX 1", "MIX 2"]);
+    await choose(0, "MIX 2");
+    await choose(1, "MIX 1");
+    expect(seen()).toEqual(["MIX 2", "MIX 1", "MIX 2", "MIX 1"]);
+  });
+});
+
 describe("the side rail's tabs", () => {
   const open = async (id: string): Promise<Shell> => {
     const shell = await mount();
@@ -2377,7 +2684,7 @@ describe("the side rail's tabs", () => {
     expect(wrapped.map((t) => t.textContent)).toEqual(["Save/\nLoad"]);
     // The mark only changes what is inside the box; the box itself does not grow.
     expect(px(declarations(CSS, ".side-tab")["height"])).toBe(52);
-    expect(declarations(CSS, ".side-tab-wrapped")["height"]).toBeUndefined();
+    expect(declarationsOn(CSS, ".side-tab-wrapped")["height"]).toBeUndefined();
   });
 });
 
@@ -2516,6 +2823,30 @@ describe("the oscillator's Assign tab", () => {
         [...shell.root.querySelectorAll(".osc-target")].map((b) => [...b.classList].find((c) => /^osc-(mix|fx|stereo)$/.test(c))),
       ).toEqual(["osc-mix", "osc-mix", "osc-mix", "osc-mix", "osc-fx", "osc-fx", "osc-stereo", "osc-stereo"]);
     }
+  });
+
+  it("takes every assignment off with [Clear All]", async () => {
+    const shell = await mount();
+    shell.ctx.nav.openTop({ id: "monitor" });
+    shell.ctx.nav.push({ id: "monitor.osc" });
+    await shell.ctx.store.set("ui.oscTab", "Assign");
+    await flush();
+    const target = (label: string): HTMLElement | undefined =>
+      [...shell.root.querySelectorAll<HTMLElement>(".osc-target")].find((b) => (b.textContent ?? "").replace("\n", " ") === label);
+    const lit = (): string[] =>
+      [...shell.root.querySelectorAll(".osc-target.is-on")].map((b) => (b.textContent ?? "").replace("\n", " "));
+    const assigned = (): string[] => OSC_TARGETS.filter((t) => shell.ctx.store.bool(`osc.assign.${t.id}`, t.shipped)).map((t) => t.id);
+    expect(lit(), "as the unit ships").toEqual(["STEREO L", "STEREO R"]);
+    target("MIX 2 R")?.click();
+    await flush();
+    target("FX 1")?.click();
+    await flush();
+    expect(assigned()).toEqual(["mix2R", "fx1", "stereoL", "stereoR"]);
+
+    shell.root.querySelector<HTMLElement>(".osc-clear")?.click();
+    await flush();
+    expect(assigned()).toEqual([]);
+    expect(lit()).toEqual([]);
   });
 });
 
@@ -2853,6 +3184,22 @@ describe("the channel the dedicated screens show", () => {
     ]);
   });
 
+  it("steps back from the first channel round to the last, and on from there to the first again", async () => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    await flush();
+    const press = async (label: string): Promise<string[]> => {
+      shell.root.querySelector<HTMLElement>(`.ch-arrow[aria-label="${label}"]`)?.click();
+      await flush();
+      return [shell.root.querySelector(".ch-chip-id")?.textContent ?? "", shell.ctx.store.str("ui.selectedStrip", "")];
+    };
+    expect(shell.root.querySelector(".ch-chip-id")?.textContent).toBe("CH 1");
+    expect(await press("Previous channel")).toEqual(["STREAMING R", "bus.stream"]);
+    expect(await press("Previous channel"), "a two-channel strip through both of its channels").toEqual(["STREAMING L", "bus.stream"]);
+    expect(await press("Next channel")).toEqual(["STREAMING R", "bus.stream"]);
+    expect(await press("Next channel")).toEqual(["CH 1", "ch1"]);
+  });
+
   it("shortens STEREO and STREAMING in the narrow box", () => {
     const unit = unitById("URX44V");
     const find = (id: string) => {
@@ -2891,6 +3238,45 @@ describe("the channel the dedicated screens show", () => {
     expect(shell.root.querySelector(".ch-chip-id")?.textContent, "the screens open on CH 6").toBe("CH 6");
     const gain = shell.root.querySelector<HTMLElement>(".cv-gain .meter");
     expect([gain?.dataset["meterLane"], gain?.querySelectorAll(".meter-bar").length], "its gain meter shows CH 6 alone").toEqual(["1", 1]);
+  });
+
+  it("takes a stereo input back to its first channel at a second tap on its name area", async () => {
+    const shell = await mount();
+    await shell.ctx.store.set("ui.bank", 1);
+    shell.ctx.repaint();
+    await flush();
+    const name = (): HTMLElement | undefined =>
+      [...shell.root.querySelectorAll<HTMLElement>(".strip-name")].find((n) => n.querySelector(".strip-id")?.textContent === "CH 5/6");
+    const dark = (): string | null | undefined => name()?.querySelector(".strip-id .is-other")?.textContent;
+    name()?.click();
+    await flush();
+    expect(dark(), "the first tap moves to CH 6").toBe("5");
+    name()?.click();
+    await flush();
+    expect(dark(), "the second tap moves back to CH 5").toBe("6");
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch_5_6" });
+    await flush();
+    expect(shell.root.querySelector(".ch-chip-id")?.textContent, "the screens open on CH 5").toBe("CH 5");
+  });
+
+  it("selects a strip at a tap on its indicator rows, and opens its channel view at a tap once it is selected", async () => {
+    const shell = await mount();
+    const indicators = (): HTMLElement | null => shell.root.querySelector<HTMLElement>('[aria-label="CH 2 settings"]');
+    const state = (): string[] => [
+      shell.ctx.store.str("ui.selectedStrip", ""),
+      shell.ctx.nav.current.id,
+      shell.root.querySelector(".strip.is-selected .strip-id")?.textContent ?? "",
+    ];
+    expect(state()).toEqual(["ch1", "home", "CH 1"]);
+    indicators()?.click();
+    await flush();
+    expect(state(), "the first tap selects CH 2 and stays on HOME").toEqual(["ch2", "home", "CH 2"]);
+    indicators()?.click();
+    await flush();
+    expect([shell.ctx.nav.current.id, shell.root.querySelector(".ch-chip-id")?.textContent], "the next opens CH 2's channel view").toEqual([
+      "channel-view",
+      "CH 2",
+    ]);
   });
 
   it("opens a bus from HOME on its L channel", async () => {
@@ -2933,6 +3319,24 @@ describe("EQ's shape list and Operation Mode's previews", () => {
     expect(CSS, "the mark is not hidden").not.toMatch(/\.pulldown\.is-fixed \.pulldown-mark\s*\{\s*visibility: hidden/);
     const option = declarations(CSS, ".btn.dropdown-option.eq-shape-option");
     expect([px(option["width"]), px(option["height"])], "the size of the shape box").toEqual([94, 38]);
+  });
+
+  it("gives the band held the shape picked from its list, and leaves the other outer band's alone", async () => {
+    const shell = await mount();
+    const store = shell.ctx.store;
+    await store.set("ui.eqBand", "low");
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    shell.ctx.nav.push({ id: "ch.eq", strip: "ch1" });
+    await flush();
+    const shapes = (): string[] => [store.str("ch.ch1.eq.low.shape", ""), store.str("ch.ch1.eq.high.shape", "")];
+    const before = shapes();
+    expect(before[0], "LOW as the unit ships").toBe("L.Shelf");
+    shell.root.querySelector<HTMLElement>(".eq-screen > .pulldown")?.click();
+    await flush();
+    [...shell.root.querySelectorAll<HTMLElement>(".dropdown-option.eq-shape-option")].find((o) => o.getAttribute("aria-label") === "HPF")?.click();
+    await flush();
+    expect(shell.root.querySelector(".dropdown-option"), "the list closes on the pick").toBeNull();
+    expect(shapes()).toEqual(["HPF", before[1]]);
   });
 
   it("switches the held EQ band on and off from the band box, the curve leaving a band that is off and its grip hollow", async () => {
@@ -3569,6 +3973,33 @@ describe("the MONITOR Setting toggles", () => {
     expect(cue.map((b) => b.classList.contains("is-on")), "the off one takes the pale face").toEqual([true, false]);
     expect(mono.map((b) => b.classList.contains("is-on")), "and MONO follows its own bus").toEqual([false, true]);
   });
+
+  it("switches CUE Interrupt and MONO at each press, on the bus pressed alone", async () => {
+    const shell = await mount();
+    shell.ctx.nav.openTop({ id: "monitor" });
+    shell.ctx.nav.push({ id: "monitor.level" });
+    await shell.ctx.store.set("ui.monitorTab", "Setting");
+    await flush();
+    const press = async (selector: string, bus: number): Promise<void> => {
+      shell.root.querySelectorAll<HTMLElement>(selector)[bus - 1]?.click();
+      await flush();
+    };
+    /** Each bus's CUE Interrupt and MONO, as set and as lit. */
+    const seen = (): boolean[][] =>
+      [1, 2].map((n) => [
+        shell.ctx.store.bool(`monitor.${n}.cueInterrupt`, false),
+        shell.ctx.store.bool(`monitor.${n}.mono`, true),
+        shell.root.querySelectorAll(".mon-cue")[n - 1]?.classList.contains("is-on") ?? false,
+        shell.root.querySelectorAll(".mon-mono")[n - 1]?.classList.contains("is-on") ?? true,
+      ]);
+    expect(seen(), "as the unit ships").toEqual([[true, false, true, false], [true, false, true, false]]);
+    await press(".mon-cue", 2);
+    await press(".mon-mono", 2);
+    expect(seen(), "bus 2's").toEqual([[true, false, true, false], [false, true, false, true]]);
+    await press(".mon-cue", 2);
+    await press(".mon-mono", 2);
+    expect(seen(), "and back").toEqual([[true, false, true, false], [true, false, true, false]]);
+  });
 });
 
 describe("the LCD", () => {
@@ -3759,6 +4190,7 @@ describe("screens laid out from the guide's figures", () => {
     await flush();
     const sdIcon = (): HTMLElement | null => q('.toolbar-icons .icon-btn[aria-label^="microSD"]');
     expect([sdIcon()?.querySelector(".rec-dot") !== null, shell.ctx.store.str("sd.rec", "")], "off the screen the take goes on, HOME's microSD icon dotted").toEqual([true, "recording"]);
+    expect(sdIcon()?.getAttribute("aria-label"), "and named as recording").toBe("microSD, recording");
     sdIcon()?.click();
     await flush();
     const entry = (name: string): HTMLElement | undefined => [...shell.root.querySelectorAll<HTMLElement>(".menu-btn")].find((b) => b.textContent === name);
@@ -3766,6 +4198,7 @@ describe("screens laid out from the guide's figures", () => {
       [entry("Recorder")?.querySelector(".rec-dot") !== null, entry("Save/Load")?.classList.contains("is-disabled"), entry("Tools")?.classList.contains("is-disabled"), q(".usb-storage")?.classList.contains("is-disabled"), q(".sd-eject")?.classList.contains("is-disabled")],
       "the microSD menu: Recorder dotted, the rest out of reach",
     ).toEqual([true, true, true, true, true]);
+    expect(entry("Recorder")?.getAttribute("aria-label"), "Recorder named as recording").toBe("Recorder, recording");
     entry("Tools")?.click();
     q(".usb-storage")?.click();
     await flush();
@@ -3779,13 +4212,18 @@ describe("screens laid out from the guide's figures", () => {
     shell.ctx.nav.home();
     await flush();
     expect(sdIcon()?.querySelector(".rec-dot") !== null, "a paused take is still open").toBe(true);
+    expect(sdIcon()?.getAttribute("aria-label"), "paused, still named as recording").toBe("microSD, recording");
     await shell.ctx.store.set("sd.rec", "armed");
     await flush();
     expect(sdIcon()?.querySelector(".rec-dot") !== null, "armed is recording mode too").toBe(true);
+    expect(sdIcon()?.getAttribute("aria-label"), "armed, named as recording").toBe("microSD, recording");
     await shell.ctx.store.set("sd.rec", "idle");
     await flush();
     expect(sdIcon()?.querySelector(".rec-dot"), "stopped, no dot").toBeNull();
+    expect(sdIcon()?.getAttribute("aria-label"), "stopped, the name alone").toBe("microSD");
     shell.ctx.nav.openTop({ id: "microsd" });
+    await flush();
+    expect([entry("Recorder") !== undefined, entry("Recorder")?.getAttribute("aria-label")], "stopped, Recorder goes by its own name").toEqual([true, null]);
     shell.ctx.nav.push({ id: "microsd.recorder" });
     await flush();
     const sourceIdle = q(".rec-slot-src");
@@ -4229,7 +4667,7 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
     shell.ctx.nav.push({ id: "microsd.tools" });
     await shell.ctx.store.set("ui.sdToolsTab", "Test");
     await flush();
-    expect(shell.root.querySelector(".toolbar-right .sd-eject, .sd-eject"), "the eject button").not.toBeNull();
+    expect(shell.root.querySelector(".toolbar .sd-eject"), "the eject button").not.toBeNull();
     expect(shell.root.querySelector(".tools-free")).not.toBeNull();
     expect(shell.root.querySelector(".tools-report"), "nothing before a test").toBeNull();
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
@@ -4610,6 +5048,31 @@ describe("the control the knob turns", () => {
     shell.root.querySelector<HTMLElement>(".dyn-row-knee .pulldown")?.click();
     await flush();
     expect(shell.root.querySelector(".dropdown-list"), "while Knee opens once 1-knob is off").not.toBeNull();
+  });
+
+  it("takes the Knee and the Auto Makeup picked from their lists on the COMP screen", async () => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    shell.ctx.nav.push({ id: "ch.comp", strip: "ch1" });
+    await flush();
+    const choose = async (row: string, option: string): Promise<void> => {
+      shell.root.querySelector<HTMLElement>(`.dyn-row-${row} .pulldown`)?.click();
+      await flush();
+      [...shell.root.querySelectorAll<HTMLElement>(".dropdown-option")].find((o) => o.textContent === option)?.click();
+      await flush();
+    };
+    const seen = (): (string | boolean | null | undefined)[] => [
+      shell.ctx.store.str("ch.ch1.comp.knee", ""),
+      shell.ctx.store.bool("ch.ch1.comp.autoMakeup", true),
+      shell.root.querySelector(".dyn-row-knee .pulldown-value")?.textContent,
+      shell.root.querySelector(".dyn-row-makeup .pulldown-value")?.textContent,
+    ];
+    expect(seen(), "as the unit ships").toEqual(["Medium", false, "Medium", "Off"]);
+    await choose("knee", "Hard");
+    await choose("makeup", "On");
+    expect(seen()).toEqual(["Hard", true, "Hard", "On"]);
+    await choose("makeup", "Off");
+    expect(seen()).toEqual(["Hard", false, "Hard", "Off"]);
   });
 
   it("pins the focus to 1-knob's level on the EQ screen and shrinks the grips to marks that pick nothing", async () => {

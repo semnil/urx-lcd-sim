@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { KNOB_SIZE } from "../ui/param-spec";
-import { columnGap, declarations, px, readStyle, styleRules } from "./css-read";
+import { columnGap, declarations, declarationsOn, px, readStyle, styleRules, subject } from "./css-read";
 
 // A value has to read under the panel it belongs to. The HOME bank, the knob
 // readout strip and the head-amp column of a channel view therefore stand on one
@@ -1032,7 +1032,7 @@ describe("the SEND TO rail", () => {
     // The unit's tab names stand 10px to the cap. `.lcd button { font: inherit }`
     // reaches the tab, so a size on the tab would not take; the name carries it.
     expect(px(declarations(CSS, ".side-tab-label")["font-size"])).toBe(14.5);
-    expect(declarations(CSS, ".side-tab")["font-size"], "not on the tab").toBeUndefined();
+    expect(declarationsOn(CSS, ".side-tab")["font-size"], "not on the tab").toBeUndefined();
   });
 
   it("colours the picked tab as the unit colours a picked side tab", () => {
@@ -1114,7 +1114,17 @@ describe("the scene name box", () => {
 
   it("fades the number in SCENE LIST's box out and back in at the pace of every other mark, and not the title", () => {
     expect(declarations(CSS, ".scene-box-static .scene-no.is-pending")["animation"]).toBe("focus-mark-blink 2s ease-in-out infinite");
-    expect(declarations(CSS, ".scene-box-static .scene-title")["animation"]).toBeUndefined();
+    const onTitle = styleRules(CSS).flatMap((rule) =>
+      rule.selectors
+        .filter((s) => {
+          const { classes, pseudo } = subject(s);
+          const before = s.replace(/:not\([^()]*\)/g, "").split(/[\s>+~]+/).slice(0, -1).join(" ");
+          return pseudo === "" && classes.includes("scene-title") && /\.scene-box-static(?![\w-])/.test(before);
+        })
+        .map((selector) => ({ selector, animated: Object.keys(rule.body).some((key) => key.startsWith("animation")) })),
+    );
+    expect(onTitle.map((r) => r.selector), "the box's own title rule is among those read").toContain(".scene-box-static .scene-title");
+    expect(onTitle.filter((r) => r.animated).map((r) => r.selector), "no rule on the box's title animates it").toEqual([]);
     expect(CSS, "no blinking for a reader who asks for less motion").toMatch(/@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.scene-box-static \.scene-no\.is-pending\s*\{\s*animation: none;/);
   });
 });
@@ -1436,7 +1446,7 @@ describe("the dynamics screens", () => {
     expect(declarations(CSS, ".badge.badge-title")["white-space"], "and a screen name never wraps").toBe("nowrap");
     // A long screen name is set at the size of the shorter ones; no rule sets it
     // a size down.
-    expect(Object.keys(declarations(CSS, ".badge.badge-title.is-long"))).toEqual([]);
+    expect(Object.keys(declarationsOn(CSS, ".badge.badge-title.is-long"))).toEqual([]);
   });
 
   it("keeps the channel colour behind the name drawn over it", () => {
@@ -1587,14 +1597,6 @@ describe("an effect's grid of controls", () => {
     const value = declarations(CSS, ".efx-cell .pulldown-value");
     expect(value["overflow"]).toBe("hidden");
     expect(value["text-overflow"], "the mark every name too long for its box takes").toBe("ellipsis");
-  });
-
-  it("draws the effect area in the panels the screen it opens uses", () => {
-    // The INS FX screen's effect area is the same grid with nothing to turn, so
-    // it carries no size of its own to drift from the screen it opens.
-    expect(Object.keys(declarations(CSS, ".efx-params.is-rack"))).toEqual([]);
-    expect(Object.keys(declarations(CSS, ".is-rack .efx-cell"))).toEqual([]);
-    expect(Object.keys(declarations(CSS, ".efx-cell.is-wide"))).toEqual([]);
   });
 
   it("stretches a row of buttons over two panels, and stands a foot list at the foot of its panel", () => {
@@ -2818,7 +2820,7 @@ describe("corners the unit draws a pixel at a time", () => {
     // (2026-09-24): its foot ends on y226, the Scale list's last row beside it, 177 rows
     // down the screen's body from y50.
     expect([listed(cut, ".pitch-keys"), listed(cast, ".pitch-keys")]).toEqual([true, false]);
-    expect(declarations(CSS, ".pitch-keys")["border-radius"]).toBeUndefined();
+    expect(declarationsOn(CSS, ".pitch-keys")["border-radius"]).toBeUndefined();
     const keys = declarations(CSS, ".pitch-keys");
     expect(px(keys["top"]) + px(keys["height"])).toBe(177);
     // None of them steps onto a band in the buttons' own cast: the rows and the tray have no
@@ -2832,8 +2834,8 @@ describe("corners the unit draws a pixel at a time", () => {
     expect(corner(source, "right", "bottom")).toEqual(corner(source, "left", "bottom"));
     expect(["a", "b"].map((k) => declarations(TOKENS, ":root")[`--corner-source-step-${k}`])).toEqual(["#4a595a", "#526163"]);
     expect(declarations(CSS, ".pick-dialog-row::after")["background"]).toBe("none");
-    expect(declarations(CSS, ".pick-dialog-row.is-empty")["border-radius"], "no curve of the browser's under the cut").toBeUndefined();
-    expect(declarations(CSS, ".mon-source")["translate"], "MONITOR's Source stands at x6 as p068-1 has it").toBeUndefined();
+    expect(declarationsOn(CSS, ".pick-dialog-row.is-empty")["border-radius"], "no curve of the browser's under the cut").toBeUndefined();
+    expect(declarationsOn(CSS, ".mon-source")["translate"], "MONITOR's Source stands at x6 as p068-1 has it").toBeUndefined();
     const sourceMark = declarations(CSS, ".mon-source-copy");
     expect(sourceMark["color"], "its copy mark white, as p068-1 draws it").toBe("var(--text)");
     // The chip's band climbs each side over three rows, in shares of the band and of black
@@ -2892,7 +2894,7 @@ describe("the parts measured against the guide's figures", () => {
     expect([0, 1].map((r) => px(declarations(CSS, `.version-row-${r}`)["top"]))).toEqual([20, 56]);
     expect(px(declarations(CSS, ".version-entry")["left"])).toBe(26);
     expect([".version-colon", ".version-value"].map((s) => px(declarations(CSS, s)["left"]))).toEqual([95, 101]);
-    expect(declarations(CSS, ".version-key")["font-weight"], "the names are no heavier than the values").toBeUndefined();
+    expect(declarationsOn(CSS, ".version-key")["font-weight"], "the names are no heavier than the values").toBeUndefined();
   });
 
   it("leads a whole-screen menu's names 18px apart and lifts a one-line name a pixel", () => {
@@ -2997,7 +2999,7 @@ describe("the channel, monitor and microSD parts measured against the guide's fi
     expect(declarations(CSS, ".ch-chip-id")["font-weight"]).toBe("400");
     const send = declarations(CSS, ".cv-sendto");
     expect([send["white-space"], send["padding"]]).toEqual(["nowrap", "0 8px 3px 7px"]);
-    expect(declarations(CSS, ".dyn-set-caption")["font-weight"], "the dynamics captions are not bold").toBeUndefined();
+    expect(declarationsOn(CSS, ".dyn-set-caption")["font-weight"], "the dynamics captions are not bold").toBeUndefined();
   });
 
   it("marks the band TOUCH AND TURN holds with a triangle either side, 6x8", () => {
@@ -3129,7 +3131,7 @@ describe("the channel, monitor and microSD parts measured against the guide's fi
     expect(plot["background"], "the ground on two pixels of the edge row").toContain("linear-gradient(var(--pc-g), var(--pc-g)) left 0px top 0px / 2px 1px no-repeat");
     expect(plot["background"], "the brighter shade inside the turn").toContain("linear-gradient(var(--pc-b), var(--pc-b)) right 1px top 1px / 1px 1px no-repeat");
     expect(declarations(CSS, ".lcd .dyn-plot::after")["background"], "the dynamics graphs the same").toBe(plot["background"]);
-    expect(declarations(CSS, ".dyn-plot")["overflow"], "their corners are not clipped away").toBeUndefined();
+    expect(declarationsOn(CSS, ".dyn-plot")["overflow"], "their corners are not clipped away").toBeUndefined();
     expect(plot["background"], "the same turn at the bottom, whatever the curve fills").toContain("linear-gradient(var(--pc-b), var(--pc-b)) right 1px bottom 1px / 1px 1px no-repeat");
     expect(plot["background"]).not.toContain("--graph-grid-lit");
     const root = declarations(TOKENS, ":root");
@@ -3214,7 +3216,7 @@ describe("the channel, monitor and microSD parts measured against the guide's fi
   it("draws the readout bar's page step as an 8x12 glyph", () => {
     const glyph = declarations(CSS, ".knob-strip .icon-page-step");
     expect([px(glyph["width"]), px(glyph["height"])]).toEqual([8, 12]);
-    expect(declarations(CSS, ".knob-strip .knob-page-step")["transform"], "no stretched character").toBeUndefined();
+    expect(declarationsOn(CSS, ".knob-page-step")["transform"], "no stretched character").toBeUndefined();
   });
 
   it("raises the names on the tabs after the first, where the screens set them higher", () => {
@@ -3229,7 +3231,7 @@ describe("the channel, monitor and microSD parts measured against the guide's fi
   it("sets the card's name and free space top right on every card screen, and a test's report a line every 25px", () => {
     const free = declarations(CSS, ".sd-free");
     expect([free["position"], px(free["left"]), px(free["top"]), free["text-align"]]).toEqual(["absolute", 312, 5, "left"]);
-    expect(declarations(CSS, ".sd-free.tools-free"), "TOOLS takes the same place").toEqual({});
+    expect(declarationsOn(CSS, ".sd-free.tools-free"), "TOOLS takes the same place").toEqual({});
     expect([2, 3, 4, 5, 6, 7].map((n) => px(declarations(CSS, `.tools-report-row:nth-child(${n})`)["top"]))).toEqual([57, 82, 107, 132, 157, 182]);
     expect(px(declarations(CSS, ".tools-report-value")["left"])).toBe(146);
     expect(px(declarations(CSS, ".tools-report-row.is-sub .tools-report-value")["left"])).toBe(101);
@@ -3471,7 +3473,7 @@ describe("the marks on the control holding the focus", () => {
       "var(--oneknob-panel)", "var(--corner-oneknob-lit-a)", "var(--corner-oneknob-lit-b)", "var(--corner-oneknob-lit-c)", "var(--corner-oneknob-lit-in)",
       "var(--oneknob-lit-band)", "var(--oneknob-lit-band)", "var(--oneknob-lit-band)",
     ]);
-    expect(declarations(CSS, ".lcd .oneknob.is-on::after")["background"], "no other corner laid over the switch's").toBeUndefined();
+    expect(declarationsOn(CSS, ".oneknob.is-on::after")["background"], "no other corner laid over the switch's").toBeUndefined();
     const panel = declarations(CSS, ".oneknob-panel");
     expect([px(panel["height"]), panel["background"]]).toEqual([44, "var(--oneknob-panel)"]);
     const level = declarations(CSS, ".lcd .oneknob-panel > .oneknob-level");

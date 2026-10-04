@@ -71,6 +71,20 @@ describe("the OUTPUT PATCH source buttons", () => {
     expect(sheet(shell)).toBeNull();
   });
 
+  it("lights on the sheet the source its own output is on, and that one alone", async () => {
+    const shell = await open();
+    const lit = (): string[] =>
+      [...shell.root.querySelectorAll(".source-sheet .source-btn.is-on")].map((b) => (b.textContent ?? "").replace("\n", " "));
+    await tap(shell, ".patch-btn");
+    expect(lit(), "MAIN OUT as the unit ships").toEqual(["STEREO"]);
+    await pick(shell, "MONITOR 1");
+    await tap(shell, ".patch-btn");
+    expect(lit(), "MAIN OUT taken to MONITOR 1").toEqual(["MONITOR 1"]);
+    await pick(shell, "MONITOR 1");
+    await tap(shell, ".patch-btn", 1);
+    expect([title(shell), lit()], "LINE OUT as the unit ships").toEqual(["LINE OUT", ["MIX 1"]]);
+  });
+
   it("puts the channels a USB output can take on its list, as many as the unit has", async () => {
     const shell = await open();
     await shell.ctx.store.set("setup.outputPatch.tab", "USB");
@@ -269,6 +283,35 @@ describe("the DATE / TIME popup buttons", () => {
     expect(reading(shell)).toBe("01 / 03 / 2020 09 : 00 PM");
   });
 
+  it("takes the Display Format picked from each list, and reads the clock in it", async () => {
+    const shell = await open();
+    const boxes = (): HTMLElement[] => [...shell.root.querySelectorAll<HTMLElement>(".dt-formats .pulldown")];
+    const formats = (): string[] => [shell.ctx.store.str("setup.dateTime.dateFormat", ""), shell.ctx.store.str("setup.dateTime.timeFormat", "")];
+    const choose = async (box: number, option: string): Promise<void> => {
+      boxes()[box]?.click();
+      await flush();
+      [...shell.root.querySelectorAll<HTMLElement>(".dropdown-option")].find((o) => o.textContent === option)?.click();
+      await flush();
+    };
+    expect(formats(), "as the unit ships").toEqual(["MM/DD/YYYY", "24h"]);
+
+    await choose(0, "YYYY/MM/DD");
+    expect(shell.root.querySelector(".dropdown-option"), "the list closes on the pick").toBeNull();
+    await choose(1, "12h");
+    expect(formats()).toEqual(["YYYY/MM/DD", "12h"]);
+    expect(boxes().map((b) => b.querySelector(".pulldown-value")?.textContent)).toEqual(["YYYY/MM/DD", "12h"]);
+
+    // The year, month and day apart, and the hours either side of where the 12-hour clock turns over:
+    // the unit reads the hour 0 and the hour 12 as 00.
+    const read: string[] = [];
+    for (const hour of [0, 11, 12, 13]) {
+      await setClock(shell.ctx.store, { year: 2020, month: 3, day: 4, hour, minute: 5 });
+      await flush();
+      read.push(reading(shell));
+    }
+    expect(read).toEqual(["2020 / 03 / 04 00 : 05 AM", "2020 / 03 / 04 11 : 05 AM", "2020 / 03 / 04 00 : 05 PM", "2020 / 03 / 04 01 : 05 PM"]);
+  });
+
   it("reads the clock in the time zone the unit is set to", async () => {
     const shell = await open();
     await shell.ctx.store.set("setup.dateTime.timeZone", "London");
@@ -293,6 +336,26 @@ describe("the DATE / TIME popup buttons", () => {
     await flush();
     expect(dayBox()?.getAttribute("aria-valuemax"), "and a leap year's 29").toBe("29");
     expect(shell.ctx.store.num("ui.dateTimeDraft.day", 0), "a day that fits is left alone").toBe(28);
+  });
+
+  it("brings 29 February down to the 28th as the Year turns to a year that is not a leap year", async () => {
+    const shell = await open();
+    await tap(shell, ".dt-value");
+    const box = (i: number): HTMLElement | null => shell.root.querySelectorAll<HTMLElement>(".dt-box")[i] ?? null;
+    const draft = (): number[] => ["year", "month", "day"].map((k) => shell.ctx.store.num(`ui.dateTimeDraft.${k}`, 0));
+    await shell.ctx.store.set("ui.dateTimeDraft.year", 2028);
+    await shell.ctx.store.set("ui.dateTimeDraft.month", 2);
+    await shell.ctx.store.set("ui.dateTimeDraft.day", 29);
+    await flush();
+    expect(draft(), "the control: 29 February 2028 stands").toEqual([2028, 2, 29]);
+    box(0)?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
+    await flush();
+    expect(draft(), "2027 has no 29 February").toEqual([2027, 2, 28]);
+    expect([box(2)?.textContent, box(2)?.getAttribute("aria-valuenow"), box(2)?.getAttribute("aria-valuemax")], "the Day box").toEqual([
+      "28",
+      "28",
+      "28",
+    ]);
   });
 
   it("moves the reading on as the clock runs, without drawing the screen again", async () => {
@@ -550,6 +613,12 @@ describe("the INPUT Input Source button", () => {
     const ask = await bulk(small, "All USB DAW", "OK");
     expect(ask, "and the question names the channels it carries").toContain("Ch1-10 All USB DAW");
     expect(small.ctx.store.str("ch.ch_9_10.source", "")).toBe("USB DAW 9/10");
-    expect(tiles(small), "and never names a return the unit does not carry").not.toContain("USB DAW 11/12");
+    await tap(small, ".input-source-btn");
+    const offered = tiles(small);
+    expect(offered.length, "the sheet open again").toBeGreaterThan(0);
+    expect(
+      offered.filter((t) => t.startsWith("USB DAW ")),
+      "names the five returns the unit carries, and none past them",
+    ).toEqual(["USB DAW 1/2", "USB DAW 3/4", "USB DAW 5/6", "USB DAW 7/8", "USB DAW 9/10"]);
   });
 });

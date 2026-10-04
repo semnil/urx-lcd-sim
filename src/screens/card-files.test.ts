@@ -325,6 +325,20 @@ describe("what the card's own actions do to it", () => {
     expect(names(shell)).toEqual(["Recordings"]);
   });
 
+  it("leaves the cursor on the last row left once RECORDER's Edit tab deletes the last row, with Delete and Rename in reach", async () => {
+    const takes: CardEntry[] = ["a.wav", "b.wav", "c.wav"].map((name) => ({ name, kind: "take", seconds: 20, tracks: 2, stamp: "", dir: "/" }));
+    const shell = await mount({ id: "microsd.recorder" }, takes);
+    await shell.ctx.store.set("ui.sdTab", "Edit");
+    await shell.ctx.store.set("sd.selectedFile", 2);
+    await flush();
+    action(shell, "Delete")?.click();
+    await flush();
+    await okDialog(shell);
+    expect(names(shell)).toEqual(["a.wav", "b.wav"]);
+    expect(shell.ctx.store.num("sd.selectedFile", -1)).toBe(1);
+    expect(["Delete", "Rename"].map((l) => action(shell, l)?.classList.contains("is-disabled"))).toEqual([false, false]);
+  });
+
   it("renames the entry the cursor stands on", async () => {
     const shell = await mount({ id: "microsd.saveload" }, card);
     await shell.ctx.store.set("ui.sdSaveTab", "Edit");
@@ -407,6 +421,44 @@ describe("what the card's own actions do to it", () => {
     expect(store.str("setup.dateTime.timeZone", ""), "the time zone is").toBe("London");
   });
 
+  it("takes the recorder down to the tracks the sampling frequency a settings file brings can carry", async () => {
+    // A settings file holds the frequency and not the track count: Load meets the recorder's own count with the file's frequency.
+    const shell = await mount({ id: "microsd.saveload" }, card);
+    const store = shell.ctx.store;
+    const open = async (...routes: Route[]): Promise<void> => {
+      shell.ctx.nav.home();
+      for (const route of routes) shell.ctx.nav.push(route);
+      await flush();
+    };
+    const rate = async (label: string): Promise<void> => {
+      await open({ id: "setup" }, { id: "setup.rate" });
+      [...shell.root.querySelectorAll<HTMLElement>(".rate-btn")].find((b) => b.textContent === label)?.click();
+      await flush();
+    };
+    const held = (): number[] => [store.num("setup.samplingFrequency", 0), store.num("sd.trackCount", 0)];
+    await rate("192kHz");
+    await open({ id: "microsd" }, { id: "microsd.saveload" });
+    action(shell, "Save as")?.click();
+    await flush();
+    await typeTitle(shell, "fast");
+
+    await rate("48kHz");
+    await open({ id: "microsd" }, { id: "microsd.recorder" });
+    shell.root.querySelector<HTMLElement>(".dropdown-box")?.click();
+    await flush();
+    [...shell.root.querySelectorAll<HTMLElement>(".dropdown-option")].find((o) => o.textContent === "16 Tracks")?.click();
+    await flush();
+    expect(held(), "the recorder at 48 kHz, raised to sixteen tracks").toEqual([48_000, 16]);
+
+    await open({ id: "microsd" }, { id: "microsd.saveload" });
+    await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === "fast.urxf"));
+    await flush();
+    action(shell, "Load")?.click();
+    await flush();
+    await flush();
+    expect(held(), "the file's 192 kHz carries two").toEqual([192_000, 2]);
+  });
+
   it("keeps what a settings file holds when it is renamed", async () => {
     const shell = await mount({ id: "microsd.saveload" }, card);
     const store = shell.ctx.store;
@@ -456,9 +508,13 @@ describe("what the card's own actions do to it", () => {
 
   it("leaves the card with nothing on it after a format", async () => {
     const shell = await mount({ id: "microsd.saveload" }, card);
+    // The browser is open on /Recordings/ with the cursor on the file saved there.
+    await shell.ctx.store.set("sd.path", "/Recordings/");
     action(shell, "Save as")?.click();
     await flush();
     await typeTitle(shell, "mine");
+    await shell.ctx.store.set("sd.selectedFile", 2);
+    expect(names(shell), "the card before the format").toEqual(["Recordings", "take.wav", "mine.urxf"]);
     shell.ctx.nav.back();
     shell.ctx.nav.push({ id: "microsd.tools" });
     await flush();
@@ -483,6 +539,7 @@ describe("what the card's own actions do to it", () => {
     expect(shell.root.querySelector(".dialog-overlay"), "the modal takes itself down").toBeNull();
     expect(shell.ctx.nav.current.id, "back on the Format screen").toBe("microsd.tools");
     expect(names(shell)).toEqual([]);
+    expect([shell.ctx.store.str("sd.path", ""), shell.ctx.store.num("sd.selectedFile", -1)], "the browser back at the root with the cursor at the top").toEqual(["/", 0]);
     expect(shell.ctx.store.str("sd.cardName", ""), "under the label typed").toBe("blank");
     expect(shell.root.querySelector(".tools-free")?.textContent).toBe("blank\n116.4GB Free");
     expect(freeBytes(shell.ctx.store), "and the room the takes held back").toBeGreaterThan(free);

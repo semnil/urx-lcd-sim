@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { declarations, readStyle } from "./css-read";
+import { declarations, declarationsOn, readStyle } from "./css-read";
 
 // The chrome around the glass — the title row and the notes under it — is as
 // wide as the glass, so its text wraps where the screen ends rather than at some
@@ -26,7 +26,7 @@ describe("the chrome around the glass", () => {
 
   it("reads the display scale from the one place that sets it", () => {
     expect(declarations(TOKENS, ":root")["--scale"], "the token file owns the value").toBe("2");
-    expect(declarations(LCD, ".lcd-frame")["--scale"], "the frame uses it, it does not redefine it").toBeUndefined();
+    expect(declarationsOn(LCD, ".lcd-frame")["--scale"], "the frame uses it, it does not redefine it").toBeUndefined();
     expect(declarations(LCD, ".lcd-frame")["width"]).toContain("var(--scale)");
   });
 
@@ -34,7 +34,7 @@ describe("the chrome around the glass", () => {
     expect(declarations(LCD, ".lcd-frame")["width"]).toContain("var(--zoom, 1)");
     expect(declarations(LCD, ".lcd-frame")["height"]).toContain("var(--zoom, 1)");
     expect(declarations(LCD, ".lcd")["transform"]).toBe("scale(calc(var(--scale) * var(--zoom, 1)))");
-    expect(declarations(APP, ".panel")["zoom"], "no second scale on the frame around it").toBeUndefined();
+    expect(declarationsOn(APP, ".panel")["zoom"], "no second scale on the frame around it").toBeUndefined();
   });
 
   it("centres the frame around the glass in the column", () => {

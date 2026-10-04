@@ -6,7 +6,7 @@ import { SSMCS_DEFAULTS, factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
 import { compResponse } from "./channel";
-import { declarations, px, readStyle } from "../style/css-read";
+import { declarations, px, readStyle, styleRules, subject } from "../style/css-read";
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -156,6 +156,12 @@ describe("the strip's main screen", () => {
     await flush();
     expect(shell.ctx.store.str("ch.ch1.ssmcs.data", "")).toBe("04 Sweep - Boost");
     expect(shell.root.querySelector(".ssmcs-data-sheet"), "the sheet closes on the pick").toBeNull();
+    expect(shell.root.querySelector(".ssmcs-data")?.textContent, "the button names the pick").toBe("04 Sweep - Boost");
+
+    tap(shell.root.querySelector(".ssmcs-data"));
+    await flush();
+    const lit = [...shell.root.querySelectorAll(".ssmcs-data-sheet .source-btn")].filter((b) => b.getAttribute("aria-pressed") === "true");
+    expect(lit.map((b) => b.textContent), "opened again, the sheet lights the pick alone").toEqual(["04 Sweep - Boost"]);
   });
 });
 
@@ -294,6 +300,21 @@ describe("the compressor the strip runs", () => {
     expect(new Set(low).size, "sixty-one stops, each its own value").toBe(61);
   });
 
+  it("takes the Knee picked from its list, naming it in the box and bending the curve to it", async () => {
+    const shell = await strip("ch.ssmcs.comp");
+    const curve = (): string | null | undefined => shell.root.querySelector(".dyn-plot .dyn-curve-line")?.getAttribute("points");
+    const shown = (): string | null | undefined => shell.root.querySelector(".ssmcs-knee .pulldown-value")?.textContent;
+    expect([shell.ctx.store.str("ch.ch1.ssmcs.comp.knee", ""), shown()], "as it ships").toEqual(["Medium", "Medium"]);
+    const medium = curve();
+
+    shell.root.querySelector<HTMLElement>(".ssmcs-knee .pulldown")?.click();
+    await flush();
+    [...shell.root.querySelectorAll<HTMLElement>(".dropdown-option")].find((o) => o.textContent === "Soft")?.click();
+    await flush();
+    expect([shell.ctx.store.str("ch.ch1.ssmcs.comp.knee", ""), shown()]).toEqual(["Soft", "Soft"]);
+    expect(curve(), "a softer corner").not.toBe(medium);
+  });
+
   it("switches the filter from the button over the three rows", async () => {
     const shell = await strip("ch.ssmcs.sc");
     const button = shell.root.querySelector(".ssmcs-sc-switch");
@@ -345,6 +366,59 @@ describe("the strip's EQ screen", () => {
     await flush();
     expect(shell.ctx.store.bool("ch.ch1.ssmcs.eq.mid.on", true)).toBe(false);
     expect(shell.root.querySelector(".ssmcs-band")?.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("stands each grip at its band's frequency along the graph and its gain up it", async () => {
+    const shell = await strip("ch.ssmcs.eq");
+    const at = async (hz: number, db: number): Promise<number[]> => {
+      await shell.ctx.store.set("ch.ch1.ssmcs.eq.mid.freq", hz);
+      await shell.ctx.store.set("ch.ch1.ssmcs.eq.mid.gain", db);
+      await flush();
+      const grip = shell.root.querySelector<HTMLElement>('.eq-grip[aria-label="Mid band"]');
+      return [px(grip?.style.left), px(grip?.style.top)];
+    };
+    // A plot ruled 20 Hz to 20 kHz across 414px, and 20 dB either side of its middle down 136px.
+    for (const [hz, db] of [
+      [2000, 6],
+      [500, -6],
+    ] as const) {
+      const [left, top] = await at(hz, db);
+      expect(left, `${hz} Hz`).toBeCloseTo((Math.log10(hz / 20) / 3) * 414, 1);
+      expect(top, `${db} dB`).toBeCloseTo(68 - (db / 40) * 136, 1);
+    }
+  });
+
+  it("marks the grip of a band switched off", async () => {
+    const shell = await strip("ch.ssmcs.eq");
+    const off = (): string[] => [...shell.root.querySelectorAll(".eq-grip.is-off")].map((g) => g.textContent ?? "");
+    expect(off(), "every band ships on").toEqual([]);
+    await shell.ctx.store.set("ch.ch1.ssmcs.eq.mid.on", false);
+    await flush();
+    expect(off()).toEqual(["M"]);
+  });
+
+  it("opens holding the grip of the band picked last", async () => {
+    const held = async (band: string): Promise<string[]> => {
+      const shell = await mount();
+      await shell.ctx.store.set("ch.ch1.compEqOrder", "SSMCS");
+      await shell.ctx.store.set("ui.ssmcsBand", band);
+      shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+      shell.ctx.nav.push({ id: "ch.ssmcs.eq", strip: "ch1" });
+      await flush();
+      return [...shell.root.querySelectorAll(".eq-grip.is-held")].map((g) => g.textContent ?? "");
+    };
+    expect(await held("mid")).toEqual(["M"]);
+    expect(await held("high")).toEqual(["H"]);
+  });
+
+  it("fills the area between the curve and the graph's middle", async () => {
+    const shell = await strip("ch.ssmcs.eq");
+    await shell.ctx.store.set("ch.ch1.ssmcs.eq.mid.gain", 12);
+    await flush();
+    const fills = [...shell.root.querySelectorAll(".eq-plot .eq-curve-fill")];
+    const line = shell.root.querySelector(".eq-plot .eq-curve-line")?.getAttribute("points");
+    expect(fills.length).toBe(1);
+    expect(fills[0]?.getAttribute("points")).toBe(`0,68 ${line} 414,68`);
   });
 
   it("leaves the curve flat while every band is at no gain", async () => {
@@ -451,7 +525,11 @@ describe("where the strip puts its boxes", () => {
     expect(declarations(CSS, ".lcd .ssmcs-block-switch.badge-title")["font-size"]).toBe("16.5px");
     expect(declarations(CSS, ".lcd .ssmcs-band")["font-size"]).toBe("17px");
     expect(declarations(CSS, ".lcd .ssmcs-sc-switch")["font-size"]).toBe("12.5px");
-    expect(declarations(CSS, ".ssmcs-eq-plot"), "no frame of its own").toEqual({});
+    const framed = styleRules(CSS)
+      .filter((rule) => Object.keys(rule.body).some((key) => key.startsWith("border") && !key.endsWith("radius")))
+      .flatMap((rule) => rule.selectors)
+      .filter((s) => subject(s).pseudo === "" && subject(s).classes.includes("eq-plot"));
+    expect(framed, "no frame of its own").toEqual([".eq-plot"]);
   });
 
   it("gives the channel view's area the two columns COMP and EQ had", () => {

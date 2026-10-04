@@ -800,8 +800,8 @@ const SD_TAB_ICON: Record<string, () => SVGSVGElement> = {
   Edit: Icons.edit,
 };
 
-/** How long the recorder holds its loading modal up before the tab appears. */
-const SD_TAB_LOADING_MS = 3000;
+/** How long the recorder holds its loading modal up before the tab appears, the same each time. */
+const SD_TAB_LOADING_MS = 2000;
 
 /**
  * Move to another RECORDER tab. Play and Edit read the card, so they come up

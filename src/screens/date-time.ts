@@ -48,14 +48,11 @@ function dateText(store: DeviceStore, time: ClockTime): string {
   return `${m} / ${d} / ${y}`;
 }
 
-/** The time, on the 24- or 12-hour clock the screen is set to. */
+/** The time, on the 24- or 12-hour clock the screen is set to; the 12-hour clock reads the hours 0 and 12 as 00. */
 function timeText(store: DeviceStore, time: ClockTime): string {
   const h = time.hour;
   const m = pad(time.minute, 2);
-  if (store.str("setup.dateTime.timeFormat", "24h") === "12h") {
-    const hour = h % 12 === 0 ? 12 : h % 12;
-    return `${pad(hour, 2)} : ${m} ${h < 12 ? "AM" : "PM"}`;
-  }
+  if (store.str("setup.dateTime.timeFormat", "24h") === "12h") return `${pad(h % 12, 2)} : ${m} ${h < 12 ? "AM" : "PM"}`;
   return `${pad(h, 2)} : ${m}`;
 }
 
