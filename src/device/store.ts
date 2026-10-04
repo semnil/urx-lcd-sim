@@ -223,10 +223,16 @@ export class DeviceStore {
 
   /**
    * The writes that go with an edit. The store holds one rule and knows
-   * nothing of what it decides; the caller supplies the meaning.
+   * nothing of what it decides; the caller supplies the meaning. The function
+   * returned lets the rule go: the rule it replaced is held again, unless
+   * another rule has since taken its place.
    */
-  setWriteRule(rule: WriteRule | null): void {
+  setWriteRule(rule: WriteRule | null): () => void {
+    const previous = this.writeRule;
     this.writeRule = rule;
+    return () => {
+      if (this.writeRule === rule) this.writeRule = previous;
+    };
   }
 
   /** The paths an edit of `path` to `value` carries a write onto. */
@@ -236,10 +242,17 @@ export class DeviceStore {
 
   /**
    * The paths whose values the screens keep for themselves. The store knows
-   * nothing of which they are; the caller supplies the meaning.
+   * nothing of which they are; the caller supplies the meaning. The function
+   * returned lets it go: the one it replaced is held again, unless another has
+   * since taken its place.
    */
-  setScreenOnly(screenOnly: ((path: ParamPath) => boolean) | null): void {
-    this.screenOnly = screenOnly ?? (() => false);
+  setScreenOnly(screenOnly: ((path: ParamPath) => boolean) | null): () => void {
+    const previous = this.screenOnly;
+    const held = screenOnly ?? (() => false);
+    this.screenOnly = held;
+    return () => {
+      if (this.screenOnly === held) this.screenOnly = previous;
+    };
   }
 
   /**

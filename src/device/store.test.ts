@@ -622,6 +622,62 @@ describe("DeviceStore", () => {
     expect([store.num("ch.ch1.level"), store.num("ch.ch2.level")]).toEqual([-4, -9]);
   });
 
+  it("puts back the rule a rule replaced when that rule is let go, and leaves a later one in place", async () => {
+    const { store, transport } = simStore([
+      ["a", 0],
+      ["b", 0],
+      ["c", 0],
+    ]);
+    await store.attach(transport);
+    const toB = (path: ParamPath, value: ParamValue): [ParamPath, ParamValue][] => (path === "a" ? [["b", value]] : []);
+    const toC = (path: ParamPath, value: ParamValue): [ParamPath, ParamValue][] => (path === "a" ? [["c", value]] : []);
+    store.setWriteRule(toB);
+    const letGoC = store.setWriteRule(toC);
+    await store.set("a", 1);
+    expect([store.num("b"), store.num("c")], "the second rule is held").toEqual([0, 1]);
+
+    letGoC();
+    await store.set("a", 2);
+    expect([store.num("b"), store.num("c")], "the first rule is back").toEqual([2, 1]);
+
+    // Let go after another rule has taken its place, a rule leaves that one held.
+    const letGoB = store.setWriteRule(toB);
+    store.setWriteRule(toC);
+    letGoB();
+    await store.set("a", 3);
+    expect([store.num("b"), store.num("c")], "the later rule stays").toEqual([2, 3]);
+  });
+
+  it("puts back the screens' own values the list it replaced names when that list is let go, and leaves a later one in place", async () => {
+    // A unit that writes none of `ui.`: a value the screens keep stays unsent, any other edit of one is refused.
+    const store = new DeviceStore();
+    const unit: DeviceTransport = {
+      kind: "bridge",
+      snapshot: () => Promise.resolve(new Map<ParamPath, ParamValue>([["ui.x", 0], ["ui.y", 0]])),
+      writable: (path) => !path.startsWith("ui."),
+      write: (_path, value) => Promise.resolve(value),
+      onNotify: () => () => undefined,
+      close: () => {},
+    };
+    await store.attach(unit);
+    const kept = async (path: ParamPath, value: number): Promise<boolean> => {
+      await store.set(path, value);
+      return store.num(path, -1) === value;
+    };
+    store.setScreenOnly((path) => path === "ui.x");
+    const letGoY = store.setScreenOnly((path) => path === "ui.y");
+    expect([await kept("ui.x", 1), await kept("ui.y", 1)], "the second list is held").toEqual([false, true]);
+
+    letGoY();
+    expect([await kept("ui.x", 2), await kept("ui.y", 2)], "the first list is back").toEqual([true, false]);
+
+    // Let go after another list has taken its place, a list leaves that one held.
+    const letGoX = store.setScreenOnly((path) => path === "ui.x");
+    store.setScreenOnly((path) => path === "ui.y");
+    letGoX();
+    expect([await kept("ui.x", 3), await kept("ui.y", 3)], "the later list stays").toEqual([false, true]);
+  });
+
   it("puts a restored value back alone, without the writes a rule names", async () => {
     const { store, transport } = simStore([
       ["ch.ch1.level", 0],

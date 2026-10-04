@@ -4231,6 +4231,31 @@ describe("EQ's shape list and Operation Mode's previews", () => {
     expect(released, "the shell drawn for it lets the store go").toBeGreaterThan(0);
     expect(declarations(CSS, ".mode-preview .lcd")["transform"]).toBe("scale(0.4146)");
   });
+
+  it("keeps the writes an edit carries once the still of HOME is let go", async () => {
+    for (const id of ["URX44V", "URX44", "URX22"] as const) {
+      const shell = await mount(id);
+      const store = shell.ctx.store;
+      shell.ctx.nav.push({ id: "setup" });
+      shell.ctx.nav.push({ id: "setup.mode" });
+      await flush();
+      expect(shell.root.querySelector(".mode-preview-standard .strip"), `${id}: the still is drawn`).not.toBeNull();
+      [...shell.root.querySelectorAll<HTMLButtonElement>(".wizard-btn")].find((b) => b.textContent === "Back")?.click();
+      await flush();
+      expect(shell.ctx.nav.current.id, `${id}: [Back] leaves Operation Mode`).toBe("setup");
+
+      // A linked pair takes an edit to one channel onto the other.
+      await store.set("ch.ch1.signalType", "STEREO");
+      await store.set("ch.ch2.signalType", "STEREO");
+      await store.set("ch.ch1.level", -12);
+      expect(store.num("ch.ch2.level"), `${id}: the pair's other channel`).toBe(-12);
+      // HI-Z brings its connector's A.Gain down to what it reaches.
+      await store.set("ch.ch1.gain", 60);
+      await store.set("ch.ch1.hiZ", true);
+      expect(store.num("ch.ch1.gain"), `${id}: A.Gain under HI-Z`).toBe(40);
+      shell.destroy();
+    }
+  });
 });
 
 describe("what the dedicated channel screens draw", () => {
