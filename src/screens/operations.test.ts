@@ -12,7 +12,7 @@ import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
 import { takeInsert } from "./insert-fx";
 import { setBusType } from "./mix-bus";
-import { pausePlayback, pauseTake, recordTake, startPlayback, stopPlayback, stopTake } from "./recording";
+import { pausePlayback, pauseTake, playedSeconds, recordTake, startPlayback, stopPlayback, stopTake, takeSeconds } from "./recording";
 import { storeScene } from "./scene";
 import { screenOnly } from "./screen-only";
 import { setPanBal, setSignalType } from "./stereo-link";
@@ -205,9 +205,10 @@ async function onSimulator(op: Operation): Promise<Map<ParamPath, ParamValue>> {
 
 /**
  * The operation on a unit with `bound` bound, each carried as the type of the value
- * the operation writes there, the unit starting from the simulator's state.
+ * the operation writes there, the unit starting from the simulator's state; `watch`
+ * names more paths to read on the store before and after.
  */
-async function onUnit(op: Operation, bound: ParamPath[], written: ReadonlyMap<ParamPath, ParamValue>) {
+async function onUnit(op: Operation, bound: ParamPath[], written: ReadonlyMap<ParamPath, ParamValue>, watch: ParamPath[] = []) {
   const shell = await mount();
   await op.prep?.(shell.ctx, shell);
   const store = shell.ctx.store;
@@ -224,12 +225,15 @@ async function onUnit(op: Operation, bound: ParamPath[], written: ReadonlyMap<Pa
   await store.attach(new BridgeTransport(unit, bindings));
   const failures: WriteFailure[] = [];
   store.onWriteFailure((f) => failures.push(f));
-  const before = new Map(bound.map((p) => [p, store.get(p, null as never)]));
+  const read = (paths: ParamPath[]) => new Map(paths.map((p) => [p, store.get(p, null as never)]));
+  const before = read(bound);
+  const watchedBefore = read(watch);
   await op.act(shell.ctx, shell);
   await flush();
-  const after = new Map(bound.map((p) => [p, store.get(p, null as never)]));
+  const after = read(bound);
+  const watchedAfter = read(watch);
   shell.destroy();
-  return { sent: unit.sent, failures, before, after };
+  return { sent: unit.sent, failures, before, after, watchedBefore, watchedAfter, store };
 }
 
 describe("an operation that sets one value and the values that follow from it", () => {
@@ -240,11 +244,13 @@ describe("an operation that sets one value and the values that follow from it", 
       expect(paths, "on the simulator it writes its value and others with it").toContain(op.main);
       expect(paths.length, "on the simulator it writes more than one value").toBeGreaterThan(1);
       const unit = paths.filter((p) => !screenOnly(p));
+      const own = paths.filter(screenOnly);
 
       const others = unit.filter((p) => p !== op.main);
-      const unbound = await onUnit(op, others, written);
+      const unbound = await onUnit(op, others, written, own);
       expect(unbound.sent, "with its own path unbound, nothing reaches the unit").toEqual([]);
       expect(unbound.after, "and the values that follow from it stay where the unit holds them").toEqual(unbound.before);
+      expect(unbound.watchedAfter, "as do the screens' own values").toEqual(unbound.watchedBefore);
       const refused = unbound.failures.map((f) => f.path);
       expect(refused, "the refusal of its own path is reported").toContain(op.main);
       expect(
@@ -256,22 +262,21 @@ describe("an operation that sets one value and the values that follow from it", 
       // and those a unit refuses it for, written with a value the simulator already held.
       // The screens' own values stay unbound.
       const targets = new Map([...written].filter(([p]) => !screenOnly(p)));
-      let onUnitOnly = await onUnit(op, [...targets.keys()], targets);
+      let onUnitOnly = await onUnit(op, [...targets.keys()], targets, own);
       for (let round = 0; onUnitOnly.failures.some((f) => !screenOnly(f.path)) && round < 3; round++) {
         for (const f of onUnitOnly.failures) if (!screenOnly(f.path)) targets.set(f.path, f.attempted);
-        onUnitOnly = await onUnit(op, [...targets.keys()], targets);
+        onUnitOnly = await onUnit(op, [...targets.keys()], targets, own);
       }
-      expect(
-        onUnitOnly.failures.map((f) => f.path).filter((p) => !screenOnly(p)),
-        "with every path of the unit's bound, none of them is refused",
-      ).toEqual([]);
+      expect(onUnitOnly.failures.map((f) => f.path), "with every path of the unit's bound, nothing is refused").toEqual([]);
+      expect(onUnitOnly.watchedAfter, "and the screens' own values stay on the screen with the operation's values").toEqual(
+        new Map(own.map((p) => [p, written.get(p)])),
+      );
       const changing = [...targets.keys()].filter((p) => onUnitOnly.before.get(p) !== targets.get(p));
       expect(changing, "the unit holds its own value otherwise before").toContain(op.main);
       expect(new Set(onUnitOnly.sent), "and each of its values the operation changes reaches the unit").toEqual(new Set(changing));
       expect(onUnitOnly.after.get(op.main), "and the unit holds the operation's own value").toBe(written.get(op.main));
 
-      for (const p of paths.filter(screenOnly)) targets.set(p, written.get(p) as ParamValue);
-      for (const f of onUnitOnly.failures) targets.set(f.path, f.attempted);
+      for (const p of own) targets.set(p, written.get(p) as ParamValue);
       const whole = await onUnit(op, [...targets.keys()], targets);
       expect(whole.failures, "with the screens' own values bound as well, nothing is refused").toEqual([]);
     });
@@ -287,14 +292,17 @@ describe("a value the screens keep for themselves", () => {
 
   const unitWith = async (op: Operation, bound: [ParamPath, ParamValue][]) => onUnit(op, bound.map(([p]) => p), new Map(bound));
   const recordingOn = OPERATIONS.find((o) => o.name === "recording on from a pause");
+  const playback = OPERATIONS.find((o) => o.name === "playback");
   const sceneBank = OPERATIONS.find((o) => o.name === "SCENE's bank");
 
-  it("holds no recording back where it alone has no address", async () => {
+  it("holds no recording back, and keeps its clock running, where the clock alone has no address", async () => {
     if (!recordingOn) throw new Error("no recording operation");
+    // The take goes on at 3 s and is read 3 s later.
     const onlyRec = await unitWith(recordingOn, [["sd.rec", "paused"]]);
     expect(onlyRec.sent, "the recorder's own state reaches the unit").toEqual(["sd.rec"]);
     expect(onlyRec.after.get("sd.rec"), "and the unit records").toBe("recording");
-    expect(onlyRec.failures.map((f) => f.path), "the clock alone is refused").toEqual(["sd.recSince"]);
+    expect(onlyRec.failures, "nothing is refused").toEqual([]);
+    expect(takeSeconds(onlyRec.store, 6_000), "and the take's counter runs").toBe(3);
 
     const withClock = await unitWith(recordingOn, [
       ["sd.rec", "paused"],
@@ -302,6 +310,30 @@ describe("a value the screens keep for themselves", () => {
     ]);
     expect(withClock.sent).toEqual(["sd.recSince", "sd.rec"]);
     expect(withClock.failures).toEqual([]);
+    expect(takeSeconds(withClock.store, 6_000), "control: the clock bound as well").toBe(3);
+  });
+
+  it("keeps playback's clock running where the clock alone has no address", async () => {
+    if (!playback) throw new Error("no playback operation");
+    // The file goes on at 1 s and is read 3 s later.
+    const bound: [ParamPath, ParamValue][] = [
+      ["sd.playing", false],
+      ["sd.playingFile", 0],
+    ];
+    const noClock = await unitWith(playback, bound);
+    expect(new Set(noClock.sent), "playback's own state reaches the unit").toEqual(new Set(["sd.playing", "sd.playingFile"]));
+    expect(noClock.failures, "nothing is refused").toEqual([]);
+    expect(playedSeconds(noClock.store, 4_000), "and the file's counter runs").toBe(3);
+
+    const withClock = await unitWith(playback, [...bound, ["sd.playSeconds", 0], ["sd.playSince", 0]]);
+    expect(withClock.failures).toEqual([]);
+    expect(playedSeconds(withClock.store, 4_000), "control: the clock bound as well").toBe(3);
+  });
+
+  it("keeps an edit to one of them alone on the screen where it has no address", async () => {
+    const menu: Operation = { name: "SCENE's menu", main: "ui.sceneMenu", act: async (ctx) => ctx.store.set("ui.sceneMenu", "Edit") };
+    const alone = await unitWith(menu, []);
+    expect([alone.sent, alone.failures, alone.store.str("ui.sceneMenu", "")], "nothing sent, nothing refused, the menu on the screen").toEqual([[], [], "Edit"]);
   });
 
   it("holds no change of SCENE's bank back where it alone has no address", async () => {
@@ -313,7 +345,8 @@ describe("a value the screens keep for themselves", () => {
     const noMenu = await unitWith(sceneBank, bound);
     expect(new Set(noMenu.sent), "the bank and the selected row reach the unit").toEqual(new Set(["scene.bank", "scene.selected"]));
     expect(noMenu.after.get("scene.bank"), "and the bank changes").toBe("Simple");
-    expect(noMenu.failures.map((f) => f.path), "the menu alone is refused").toEqual(["ui.sceneMenu"]);
+    expect(noMenu.failures, "nothing is refused").toEqual([]);
+    expect(noMenu.store.str("ui.sceneMenu", ""), "and the menu the bank leaves up stays on the screen").toBe((await onSimulator(sceneBank)).get("ui.sceneMenu"));
 
     const withMenu = await unitWith(sceneBank, [...bound, ["ui.sceneMenu", "Edit"]]);
     expect(withMenu.failures).toEqual([]);

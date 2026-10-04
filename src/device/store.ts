@@ -6,7 +6,8 @@
 // write still on screen goes back to the value the unit holds, so a screen
 // never keeps showing a value the unit refused. An edit with the writes it
 // carries, and an operation of several edits, go to the transport whole or not
-// at all, a value the screens keep for themselves aside.
+// at all, a value the screens keep for themselves aside: that holds none of it
+// back, and where the transport cannot write it, it stays in the mirror unsent.
 //
 // Every notify that differs from the mirror is adopted, an echo of our own write
 // (`echo: true`) and a change made on the device (`echo: false`) alike; the
@@ -265,9 +266,9 @@ export class DeviceStore {
    * their paths, none of them goes: the mirror goes back to what it held before
    * the operation, and the transport's refusal of each such path is reported
    * through `onWriteFailure`. A path `setScreenOnly` names holds nothing back:
-   * its write goes with the others, and where the transport cannot write it, it
-   * alone is refused, as an edit to it is. An operation run inside another is
-   * part of it.
+   * its write goes with the others, and where the transport cannot write it, its
+   * value stays in the mirror and is not sent, as with an edit to it. An
+   * operation run inside another is part of it.
    */
   operation(op: () => void): void {
     void this.together(() => {
@@ -290,9 +291,15 @@ export class DeviceStore {
     }
     this.edit = null;
     const t = this.transport;
-    const refused = t ? edit.filter((q) => !this.screenOnly(q.path) && t.writable?.(q.path) === false) : [];
+    const unwritable = t ? edit.filter((q) => t.writable?.(q.path) === false) : [];
+    const refused = unwritable.filter((q) => !this.screenOnly(q.path));
     if (!t || refused.length === 0) {
-      for (const q of edit) q.send();
+      // What is left that the transport cannot write is the screens' own, and
+      // stays in the mirror unsent.
+      for (const q of edit) {
+        if (unwritable.includes(q)) q.drop();
+        else q.send();
+      }
       return result;
     }
     this.undo(edit);
