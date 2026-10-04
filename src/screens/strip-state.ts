@@ -5,7 +5,7 @@
 import type { AppContext } from "../app/context";
 import type { ParamPath } from "../device/path";
 import type { Strip, StripKind, StripSide } from "../model/types";
-import { allStrips, bankCount, bankStrips, findStrip } from "../model/types";
+import { SENDS_TARGET_SHIPPED, allStrips, bankCount, bankStrips, findStrip } from "../model/types";
 import { CH_COLOR_OFF } from "../model/units";
 import { eqOutOfUse } from "../model/channel-eq";
 
@@ -176,7 +176,7 @@ export function channelLabel(strip: Strip, lane: 0 | 1, narrow: boolean): string
 }
 
 export function sendsTarget(ctx: AppContext): string {
-  return ctx.store.str("ui.sendsTarget", "ST");
+  return ctx.store.str("ui.sendsTarget", SENDS_TARGET_SHIPPED);
 }
 
 /** The strip each Sends destination names. */

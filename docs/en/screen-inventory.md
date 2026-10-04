@@ -1773,18 +1773,21 @@ that is open in case alone asks nothing and writes over that file, which keeps i
 that differs from a folder's in case alone asks nothing and writes nothing. On a card with no room for one more settings
 file, a [Save as] under a new name writes nothing and shows nothing, and writing over a settings file there still goes
 through (what the unit does with a full card is in `known-issues.md`). [Save] and [Load] stand out of reach until a settings file is under the
-cursor. A settings file carries every value but the screen's own state (`ui.`, and the tabs OUTPUT
-PATCH, PERIPHERAL and SCENE LIST's Standard / Simple stand on), the card itself (`sd.`), the clock ("SETUP
-screen") and what a linked pair's COMP hears (`pair.`, "The three dynamics screens (GATE / COMP / DUCKER)"),
+cursor. A settings file carries every value but the screen's own state (`ui.` bar the destination HOME's [Sends]
+shows, and the tabs OUTPUT PATCH, PERIPHERAL and SCENE LIST's Standard / Simple stand on), the card itself (`sd.`), the clock
+("SETUP screen") and what a linked pair's COMP hears (`pair.`, "The three dynamics screens (GATE / COMP / DUCKER)"),
 so a load leaves those tabs where they stand, as on the unit (URX44V, the operator, 2026-10-04). SCENE LIST's
 cursor is in the file, and a load puts it back on the row it stood on when the file was saved, as on
 the unit (URX44V, the operator, 2026-10-04, on Standard's list). Where the tab standing open does not
 list that row, SCENE LIST opens the tab that does; a row both tabs list leaves the open tab where it
 stands (URX44V, the operator, 2026-10-04, for Simple's P02 and 09 loaded with Standard open, and Standard's 00 loaded with Simple open). The bank USER DEFINED KNOBS
 stands on is in the file, and a load brings back the bank the file was saved on, as on the unit
-(URX44V, the operator, 2026-10-03). A source the file holds no D.Gain for comes back to 0 dB when it
-is loaded, a BALANCE the file holds none for comes back to the centre, and a scene number the file holds nothing
-under comes back empty.
+(URX44V, the operator, 2026-10-03). A load brings [Sends] back to the destination the file was saved on,
+as on the unit (URX44V, the operator, 2026-10-04, for a file saved on MIX 1 and loaded over FX 1, and one
+saved on ST at 192 kHz and loaded over FX 2 at 48 kHz). A source the file holds no D.Gain for comes back
+to 0 dB when it is loaded, a BALANCE the file holds none for comes back to the centre, [Sends] comes back
+on ST from a file that names no destination, and a scene number the file holds nothing under comes back
+empty.
 
 A playback runs against the take's length, writing the counter and the bar in place once a second.
 At the end of the file playback lets the file go, as [■] does: the triangle leaves the microSD icon, and RECORDER's card-eject
@@ -1829,11 +1832,12 @@ stores nothing.
 [Recall] cannot be used on a number with nothing stored, and a press asks nothing. On a stored number and on a factory scene
 it asks `Recall scene "Band"?` (the title is the picked scene's) with [Cancel] / [OK], and on [OK] puts that scene's mixer
 back and makes it the recalled one. A source the scene holds no D.Gain for comes back to 0 dB, and a BALANCE the scene holds
-none for comes back to the centre. 00 Initial Data puts the factory mixer back. P01 to P03 lay settings of their own over the
-factory mixer. The main ones are below; the whole of what a preset changes is in `src/model/scene-presets.ts`. The table's
-channels go onto the mono and the stereo channels from the lowest number up, the mono channels on a HI-Z connector (CH 3-4 in
-the table) apart from the rest: on a URX22, CH 1 takes the table's CH 1, CH 2 on its HI-Z connector takes the table's CH 3,
-and CH 3/4 to 9/10 take its four stereo channels.
+none for comes back to the centre. A recall leaves the destination HOME's [Sends] shows where it stands, as on the unit
+(URX44V, the operator, 2026-10-04, for a scene stored on MIX 1 and recalled over FX 1). 00 Initial Data puts the factory
+mixer back. P01 to P03 lay settings of their own over the factory mixer. The main ones are below; the whole of what a preset
+changes is in `src/model/scene-presets.ts`. The table's channels go onto the mono and the stereo channels from the lowest
+number up, the mono channels on a HI-Z connector (CH 3-4 in the table) apart from the rest: on a URX22, CH 1 takes the
+table's CH 1, CH 2 on its HI-Z connector takes the table's CH 3, and CH 3/4 to 9/10 take its four stereo channels.
 
 | Preset | Mono channels | Stereo channels (lowest number first) |
 | --- | --- | --- |

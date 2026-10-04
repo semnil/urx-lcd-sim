@@ -341,6 +341,34 @@ describe("storing and recalling a scene", () => {
     expect(read(), "an older settings file").toEqual([0, 0, 0, 0, 0, 9]);
   });
 
+  it("puts HOME's [Sends] on ST for a settings file that does not name its destination", async () => {
+    // A settings file an earlier version saved left the destination out.
+    const shell = await mount();
+    const s = shell.ctx.store;
+    await s.set("ui.sendsTarget", "MIX1");
+    const file = captureSettings(s);
+    expect(file["ui.sendsTarget"], "a file saved now names it").toBe("MIX1");
+    delete file["ui.sendsTarget"];
+    await s.set("ui.sendsTarget", "FX1");
+    await applySettings(s, file);
+    expect(s.str("ui.sendsTarget", "")).toBe("ST");
+  });
+
+  it("leaves HOME's [Sends] where it stands on a recall", async () => {
+    // As on the unit: a scene stored on MIX 1 and recalled over FX 1 leaves FX 1 (URX44V, 2026-10-04).
+    const shell = await mount();
+    const s = shell.ctx.store;
+    await s.set("ui.sendsTarget", "MIX1");
+    await s.set("ch.ch1.level", -10);
+    await s.set("scene.Standard.1.title", "SENDS");
+    await storeScene(shell.ctx, "Standard", 1);
+    await s.set("ui.sendsTarget", "FX1");
+    await s.set("ch.ch1.level", 0);
+    await recallScene(shell.ctx, 1);
+    expect(s.num("ch.ch1.level", 0), "the scene is recalled").toBe(-10);
+    expect(s.str("ui.sendsTarget", "")).toBe("FX1");
+  });
+
   it("puts an SSMCS frequency, Attack or Release an older scene holds off the stops on the stop nearest it", async () => {
     // CH 1's strip as an earlier version shipped it, with LOW at that version's top and MID on one of its stops.
     const shell = await mount();

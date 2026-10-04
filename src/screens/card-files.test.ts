@@ -1099,6 +1099,35 @@ describe("what the card's own actions do to it", () => {
     expect(store.num("setup.udk.bank", 0), "the bank the file was saved on").toBe(2);
   });
 
+  for (const [saved, over, why] of [
+    [{ rate: 48_000, target: "MIX1" }, { rate: 48_000, target: "FX1" }, "saved on MIX 1 and loaded over FX 1"],
+    [{ rate: 192_000, target: "ST" }, { rate: 48_000, target: "FX2" }, "saved on ST at 192 kHz and loaded over FX 2 at 48 kHz"],
+  ] as const) {
+    it(`brings back the destination HOME's [Sends] showed when the file was saved: ${why}`, async () => {
+      // As on the unit (URX44V, 2026-10-04).
+      const shell = await mount({ id: "microsd.saveload" }, card);
+      const store = shell.ctx.store;
+      await store.set("setup.samplingFrequency", saved.rate);
+      await store.set("ui.sendsTarget", saved.target);
+      await store.set("ch.ch1.level", -10);
+      await flush();
+      action(shell, "Save as")?.click();
+      await flush();
+      await typeTitle(shell, "mine");
+
+      await store.set("setup.samplingFrequency", over.rate);
+      await store.set("ui.sendsTarget", over.target);
+      await store.set("ch.ch1.level", 0);
+      await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === "mine.urxf"));
+      await flush();
+      action(shell, "Load")?.click();
+      await okDialog(shell);
+      await flush();
+      expect(store.num("ch.ch1.level", 0), "the file is loaded").toBe(-10);
+      expect([store.num("setup.samplingFrequency", 0), store.str("ui.sendsTarget", "")], "the rate and the destination it was saved with").toEqual([saved.rate, saved.target]);
+    });
+  }
+
   it("keeps what a settings file holds when it is renamed", async () => {
     const shell = await mount({ id: "microsd.saveload" }, card);
     const store = shell.ctx.store;

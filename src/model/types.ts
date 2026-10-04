@@ -97,3 +97,6 @@ export function sendsTo(from: Strip, to: Strip): boolean {
   if (from.kind === "fx") return to.kind === "stereo" || to.kind === "mix";
   return to.kind === "stereo";
 }
+
+/** The destination HOME's [Sends] ships on: the stereo bus. */
+export const SENDS_TARGET_SHIPPED = "ST";
