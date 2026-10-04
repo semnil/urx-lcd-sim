@@ -357,8 +357,8 @@ sheet covers the bar's place. Under each of those named here the knobs turn noth
 and the STEREO meter under it among them), on the dark around the INPUT source sheet (over the bar, left of,
 right of and above its panel) or on the bar under the Date format list closes the sheet or the list, the
 list's value staying as it was; one at the foot of the Volume Label sheet, SCENE LIST's title sheet or
-SAVE/LOAD's [Save as] name sheet, and one on the dark around the
-eject dialog, the bar's place included, leaves it up. As each of these closes, the mode stays on. On an ordinary screen the bar lies over the screen's bottom
+SAVE/LOAD's [Save as] name sheet, and one on the dark around either of the
+eject dialogs, the bar's place included, leaves it up. As each of these closes, the mode stays on. On an ordinary screen the bar lies over the screen's bottom
 edge, SAVE/LOAD's [Save as] and SCENE LIST's [Store] included (URX44V, confirmed by the operator on
 2026-10-03 and 2026-10-04).
 The simulator draws what shows of the bar dark under a sheet, a list or a dialog, and hides it under the
