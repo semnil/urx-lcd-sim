@@ -5127,6 +5127,28 @@ describe("what the dedicated channel screens draw", () => {
     expect([at176.marks.ch1, at176.marks.ch3, at176.marks.ch4], "the mono channels' EQ mark at 176.4 kHz").toEqual(["EQ", "EQ", "EQ"]);
   });
 
+  it("shows SSMCS in COMP's place under HPF, and no EQ, on HOME's strip of a channel on SSMCS, cyan while it is on", async () => {
+    // As on the unit: CH 1 on COMP->EQ reads HPF, GATE, COMP, EQ, INS FX and CH 2 on SSMCS HPF, GATE, SSMCS, INS FX,
+    // SSMCS under HPF, cyan while on and grey while off (URX44V, 2026-10-04).
+    const shell = await mount();
+    await shell.ctx.store.set("ch.ch2.compEqOrder", "SSMCS");
+    await flush();
+    const rows = (label: string): string[][] => {
+      const strip = [...shell.root.querySelectorAll(".strip")].find((n) => n.querySelector(".strip-id")?.textContent === label);
+      return [...(strip?.querySelectorAll(".ind-row") ?? [])].slice(1).map((r) => [...r.querySelectorAll(".ind-cell")].map((c) => c.textContent ?? ""));
+    };
+    expect(rows("CH 1")).toEqual([["HPF", "GATE"], ["COMP", "EQ"], ["INS FX", ""]]);
+    expect(rows("CH 2")).toEqual([["HPF", "GATE"], ["SSMCS", ""], ["INS FX", ""]]);
+    const lit = (): boolean | undefined => shell.root.querySelector(".strip .badge-ssmcs")?.classList.contains("is-on");
+    const lits: (boolean | undefined)[] = [];
+    for (const on of [true, false]) {
+      await shell.ctx.store.set("ch.ch2.ssmcs.on", on);
+      await flush();
+      lits.push(lit());
+    }
+    expect(lits, "lit while on, unlit while off").toEqual([true, false]);
+  });
+
   it("goes back to the channel view of the channel the arrows stepped to, and HOME keeps that channel selected", async () => {
     const seen: (string | number | null)[][] = [];
     const want: (string | number | null)[][] = [];

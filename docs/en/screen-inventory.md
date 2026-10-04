@@ -438,7 +438,8 @@ The status panel is 2 columns by 2 rows: +48V, Φ / HPF, HI-Z for a mono channel
 source is not MIC/LINE, the +48V and HI-Z cells are empty. The text is 13px, the same as
 captions. A lit mark takes the colour of that item's own button: red for +48V, orange for Φ and cyan
 for HPF and HI-Z. HOME's strip does the same — red for +48V, orange for Φ, cyan for HPF, and its
-button's cyan for the INS FX mark.
+button's cyan for the INS FX mark. On a mono channel whose COMP / EQ type is SSMCS, HOME's strip shows `SSMCS` in COMP's
+place, under HPF, and no `EQ`, lit in its switch's cyan while SSMCS is on (URX44V, the operator, 2026-10-04).
 
 Φ is drawn as a 10x11 mark rather than a letter, the same drawing on HOME's strip, the channel view and
 INPUT's [Φ] button: a bar 2 wide runs through a ring 7 high and out of it by 2px at each end (p047-1,

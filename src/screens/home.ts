@@ -8,7 +8,7 @@ import { STRIPS_PER_BANK, allStrips, bankCount, bankStrips, type Strip } from ".
 import { el, formatPan, makeTappable } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { faderSpec, rangeAttrs, type NumericSpec } from "../ui/param-spec";
-import { faderShipped, sendShipsOn } from "../model/defaults";
+import { SSMCS_DEFAULTS, faderShipped, sendShipsOn } from "../model/defaults";
 import { attachSpin, fractionOf, knobGraphic, meter, panSlider, toggle } from "../ui/widgets";
 import type { ScreenBody, ScreenDef } from "./types";
 import { fxShutOut } from "./effect-params";
@@ -23,6 +23,7 @@ import {
   currentBankStrips,
   eqShut,
   phasePath,
+  runsSsmcs,
   selectStrip,
   selectedStripId,
   sendsDestination,
@@ -99,12 +100,14 @@ function indicatorRows(ctx: AppContext, strip: Strip): HTMLElement {
   const insFx = badge("INS FX", ctx.store.bool(`${insertBase(ctx, strip)}.on`, false), "insfx");
 
   if (strip.kind === "monoIn") {
+    // A strip on SSMCS shows SSMCS in COMP's place, and no EQ.
+    const ssmcs = badge("SSMCS", ctx.store.bool(`ch.${strip.id}.ssmcs.on`, SSMCS_DEFAULTS.on), "ssmcs");
     return el("div", {
       class: "ind-block",
       children: [
         row([lamps, phaseMark(inverted)], phantom),
         row([badge("HPF", on("hpf.on"), "neutral")], [badge("GATE", on("gate.on"), "gate")]),
-        row([badge("COMP", on("comp.on"), "comp")], [eq]),
+        runsSsmcs(ctx, strip) ? row([ssmcs]) : row([badge("COMP", on("comp.on"), "comp")], [eq]),
         row([insFx]),
       ],
     });

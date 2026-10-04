@@ -1504,6 +1504,7 @@ describe("the marks a strip and a channel view print", () => {
     expect(shade(declarations(CSS, ".sym.is-hot")["color"]), "+48V on the strip").toBe(phantom);
     expect(shade(declarations(CSS, ".sym-phase.is-on")["color"]), "Φ on the strip").toBe(phase);
     expect(shade(declarations(CSS, ".ind-row .badge-insfx.is-on")["color"]), "INS FX on the strip").toBe(insert);
+    expect(shade(declarations(CSS, ".ind-row .badge-ssmcs.is-on")["color"]), "SSMCS on the strip").toBe(shade(declarations(CSS, ".badge.badge-switch.badge-ssmcs.is-on")["background"]));
     expect(shade(declarations(CSS, ".ind-row .badge-neutral.is-on")["color"]), "HPF on the strip").toBe(lit);
     expect(shade(declarations(CSS, ".flag.is-on.is-phantom")["color"]), "+48V in the channel view").toBe(phantom);
     expect(shade(declarations(CSS, ".flag.is-on.is-phase")["color"]), "Φ in the channel view").toBe(phase);

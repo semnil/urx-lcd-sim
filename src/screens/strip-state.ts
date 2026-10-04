@@ -175,6 +175,14 @@ export function channelLabel(strip: Strip, lane: 0 | 1, narrow: boolean): string
   }
 }
 
+/** What a mono channel's COMP / EQ type reads while the channel runs the morphing strip. */
+export const COMP_EQ_SSMCS = "SSMCS";
+
+/** Whether the strip is a mono channel whose COMP / EQ type is the morphing strip. */
+export function runsSsmcs(ctx: AppContext, strip: Strip): boolean {
+  return strip.kind === "monoIn" && ctx.store.str(`ch.${strip.id}.compEqOrder`, "COMP->EQ") === COMP_EQ_SSMCS;
+}
+
 export function sendsTarget(ctx: AppContext): string {
   return ctx.store.str("ui.sendsTarget", SENDS_TARGET_SHIPPED);
 }

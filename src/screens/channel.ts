@@ -29,7 +29,7 @@ import { inputSourceSheet, sourceBoxLabel } from "./input-source";
 import { NO_EFFECT, insertBase } from "./insert-fx";
 import { effectSettingsScreen, fxShutOut, insFxScreen, openEffectParams } from "./effect-params";
 import { ssmcsArea } from "./ssmcs";
-import { channelLabel, eqShut, phasePath, selectStrip, selectedStripId, sendsTarget, stepChannel, stripColor, stripLane, stripLanes } from "./strip-state";
+import { COMP_EQ_SSMCS, channelLabel, eqShut, phasePath, runsSsmcs, selectStrip, selectedStripId, sendsTarget, stepChannel, stripColor, stripLane, stripLanes } from "./strip-state";
 import type { ScreenBody, ScreenDef } from "./types";
 
 /** What a channel screen shows when the route names no channel. */
@@ -127,13 +127,7 @@ const REC_POINTS = [
 const REC_POINT_DEFAULT = "PRE FADER";
 
 /** What the channel's COMP and EQ are used as, per the guide's CH SETTING. */
-const COMP_EQ_SSMCS = "SSMCS";
 const COMP_EQ_ORDERS = ["COMP->EQ", COMP_EQ_SSMCS];
-
-/** Whether the strip is a mono channel whose COMP / EQ type is the morphing strip. */
-function runsSsmcs(ctx: AppContext, strip: Strip): boolean {
-  return strip.kind === "monoIn" && ctx.store.str(`ch.${strip.id}.compEqOrder`, "COMP->EQ") === COMP_EQ_SSMCS;
-}
 
 /**
  * The tap stages a strip offers. The morphing channel strip has no discrete EQ
