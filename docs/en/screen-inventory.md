@@ -1727,7 +1727,9 @@ p074-1). The HOME box and SCENE LIST's top-left box both name the scene picked o
 02 in p074-1), `00 Initial Data` on a factory unit. While the row picked is not the recalled scene (the row with the ▶),
 the number fades out and back in over two seconds, and the title stays (confirmed by the operator; for the HOME box on
 2026-10-04, picking P01 on the Simple tab blinks the number of `P01 Live Music 0`, and picking the recalled 07 on the
-Standard tab shows `07 Initial Data` without a blink). A preset's number is `--scene-preset` green in either box (for the
+Standard tab shows `07 Initial Data` without a blink). Where motion is reduced (`prefers-reduced-motion: reduce`) the
+number holds still, and either box instead puts the list's ▶ ahead of its number while it names the recalled scene. The
+unit's box draws no ▶ (p073-1's box names P01, which carries the ▶ on the list, without one). A preset's number is `--scene-preset` green in either box (for the
 HOME box, P01 picked on the Simple tab in Standard Mode, confirmed by the operator on 2026-10-04). The numbers on the list
 and in SCENE LIST's top-left box are set at the title's size, on the title's baseline (02 and `01234-56789` both at
 y162..170 in p074-1, and the box's P01 and `Live Music 0` at y18..26 and y17..26 in p073-1).

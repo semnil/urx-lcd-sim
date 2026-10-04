@@ -1127,6 +1127,14 @@ describe("the scene name box", () => {
     expect(onTitle.filter((r) => r.animated).map((r) => r.selector), "no rule on either box's title animates it").toEqual([]);
     expect(CSS, "no blinking for a reader who asks for less motion").toMatch(/@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.scene-box \.scene-no\.is-pending\s*\{\s*animation: none;/);
   });
+
+  it("marks the recalled scene in either box with the list's mark where motion is reduced, and not while the number blinks", () => {
+    expect(CSS, "hidden while the number can blink").toMatch(/(^|\n)\.scene-box \.icon-recalled \{\s*display: none;\s*\}/);
+    expect(CSS, "shown for a reader who asks for less motion").toMatch(
+      /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.scene-box \.scene-no\.is-pending\s*\{\s*animation: none;\s*\}\s*\.scene-box \.icon-recalled\s*\{\s*display: inline;\s*\}\s*\}/,
+    );
+    expect(declarations(CSS, ".scene-no .icon-recalled")["left"], "set ahead of the number as on the list").toBe("-9px");
+  });
 });
 
 describe("a sheet over the screen below it", () => {

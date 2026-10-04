@@ -147,13 +147,17 @@ function pickedRow(ctx: AppContext, listed: number[]): number {
  * Fill a scene box, HOME's or SCENE LIST's, with the number and title of the
  * scene on SCENE LIST's cursor rather than the scene recalled. A preset's number
  * is green, the number blinks while the scene on the cursor is not the one
- * recalled, and the box is described as recalled while it is.
+ * recalled, and while it is, the box is described as recalled and carries the
+ * list's recalled mark, which stands in for the blink where motion is reduced.
  */
 export function nameCursorScene<T extends HTMLElement>(ctx: AppContext, box: T): T {
   const selected = pickedRow(ctx, sceneRows(ctx, openBank(ctx)));
   const current = ctx.store.num("scene.current", 0);
   box.append(
-    el("span", { class: `scene-no${isPreset(selected) ? " is-preset" : ""}${selected === current ? "" : " is-pending"}`, text: sceneNumber(selected) }),
+    el("span", {
+      class: `scene-no${isPreset(selected) ? " is-preset" : ""}${selected === current ? "" : " is-pending"}`,
+      children: [selected === current && Icons.recalled(), document.createTextNode(sceneNumber(selected))],
+    }),
     el("span", { class: "scene-title", text: sceneTitle(ctx, selected) }),
   );
   if (selected === current) box.setAttribute("aria-description", "recalled");

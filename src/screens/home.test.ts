@@ -2078,6 +2078,36 @@ describe("the SCENE menu the scene box opens", () => {
     expect([number()?.contains("is-preset"), number()?.contains("is-pending")]).toEqual([true, true]);
   });
 
+  it("marks the recalled scene with the list's mark in the scene box on HOME, the bank list, the Sends sheet and SCENE LIST, and not a scene picked and not recalled", async () => {
+    const shell = await mount();
+    const screens: [string, () => void][] = [
+      ["HOME", () => {}],
+      ["the bank list", () => shell.ctx.nav.push({ id: "bank-select" })],
+      ["the Sends sheet", () => shell.ctx.nav.push({ id: "sends-select" })],
+      ["SCENE LIST", () => {
+        shell.ctx.nav.openTop({ id: "scene" });
+        shell.ctx.nav.push({ id: "scene.list" });
+      }],
+    ];
+    const read = async (): Promise<unknown[][]> => {
+      const out: unknown[][] = [];
+      for (const [name, open] of screens) {
+        open();
+        await flush();
+        const boxes = [...shell.root.querySelectorAll(".scene-box")];
+        const no = boxes[0]?.querySelector(".scene-no");
+        out.push([name, boxes.length, !!no?.querySelector(":scope > .icon-recalled"), no?.classList.contains("is-pending"), boxes[0]?.getAttribute("aria-description") ?? null]);
+        shell.ctx.nav.home();
+        await flush();
+      }
+      return out;
+    };
+    expect(await read(), "on the scene recalled").toEqual(screens.map(([name]) => [name, 1, true, false, "recalled"]));
+    await shell.ctx.store.set("scene.selected", 3);
+    await flush();
+    expect(await read(), "on a scene picked and not recalled").toEqual(screens.map(([name]) => [name, 1, false, true, null]));
+  });
+
   it("names on HOME the row SCENE LIST's box names where the open tab no longer lists the selection", async () => {
     const shell = await mount();
     await shell.ctx.store.set("scene.bank", "Simple");

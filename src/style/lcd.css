@@ -533,9 +533,19 @@
   animation: focus-mark-blink 2s ease-in-out infinite;
 }
 
+/* Where motion is reduced the number holds still, and the box marks the
+ * recalled scene with the list's mark ahead of its number instead. */
+.scene-box .icon-recalled {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .scene-box .scene-no.is-pending {
     animation: none;
+  }
+
+  .scene-box .icon-recalled {
+    display: inline;
   }
 }
 
