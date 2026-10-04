@@ -54,30 +54,10 @@ const DRAG_SLOP_PX = 4;
 
 /**
  * Keep `node` carrying `cls` while the focus is on `key`: now, and whenever the
- * focus moves, for as long as the node exists. The listener holds the node weakly,
- * so a node a repaint has replaced is let go.
+ * focus moves, for as long as the node stands on the glass.
  */
 export function markFocus(ctx: AppContext, node: Element, key: string, cls = "is-focused"): void {
-  followFocus(ctx, node, (n) => n.classList.toggle(cls, ctx.focus.holds(key)));
-}
-
-/**
- * Run `apply` on `node` now and whenever the focus moves, for as long as the node
- * exists. The listener holds the node weakly and hands it to `apply` each time, so
- * a node a repaint has replaced is let go where `apply` holds nothing of the
- * screen it was drawn on.
- */
-export function followFocus(ctx: AppContext, node: Element, apply: (node: Element) => void): void {
-  apply(node);
-  const ref = new WeakRef(node);
-  const off = ctx.focus.onChange(() => {
-    const held = ref.deref();
-    if (!held) {
-      off();
-      return;
-    }
-    apply(held);
-  });
+  ctx.focus.follow(node, () => node.classList.toggle(cls, ctx.focus.holds(key)));
 }
 
 /**

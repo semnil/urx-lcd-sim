@@ -101,6 +101,7 @@ export class Shell {
           if (!this.overlays.delete(close)) return;
           node.remove();
           this.shutBehind();
+          focus.sweep(this.lcd);
           onClose?.();
           // A focus it leaves on nothing goes back there, or to the control drawn in that place since.
           if (document.activeElement && document.activeElement !== document.body) return;
@@ -231,6 +232,7 @@ export class Shell {
     clear(this.sideNode);
     clear(this.toolbarNode);
     clear(this.knobStripNode);
+    this.ctx.focus.sweep(this.lcd);
 
     if (!def) {
       this.mainNode.appendChild(el("p", { class: "screen-missing", text: `No screen registered for "${route.id}"` }));

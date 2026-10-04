@@ -1,8 +1,7 @@
-import { setFlagsFromString } from "node:v8";
-import { runInNewContext } from "node:vm";
 import { afterEach, describe, expect, it } from "vitest";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
+import { writeCard } from "../model/card";
 import { factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
 import { buildRegistry } from "../screens";
@@ -601,26 +600,107 @@ describe("the USER DEFINED KNOBS bar", () => {
 });
 
 describe("what a redraw lets go of", () => {
-  it("leaves the focus holding only the drawn screen's controls, however many times a value redraws it", async () => {
-    setFlagsFromString("--expose-gc");
-    const gc = runInNewContext("gc") as () => void;
+  // The counts are read with the focus where it stands, so only a redraw or a
+  // sheet shutting lets go of the controls it took off the glass.
+  const following = (shell: Shell): number => (shell.ctx.focus as unknown as { followers: Set<unknown> }).followers.size;
+
+  it("leaves the focus following only the drawn screen's controls, however many times a value redraws it", async () => {
     const shell = await mount();
     shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
     await flush();
-    const listening = (): number => (shell.ctx.focus as unknown as { listeners: Set<unknown> }).listeners.size;
-    const first = listening();
+    const first = following(shell);
     for (let i = 0; i < 100; i++) {
       await shell.ctx.store.set("ch.ch1.pan", i % 2 === 0 ? 10 : -10);
       await flush();
     }
-    for (let i = 0; i < 4; i++) {
-      gc();
-      await flush();
-    }
-    // A listener whose control has gone lets go the next time the focus moves.
-    shell.ctx.focus.takeKey("one");
-    shell.ctx.focus.takeKey("two");
     expect(first, "the channel view follows the focus").toBeGreaterThan(0);
-    expect(listening()).toBe(first);
+    expect(following(shell)).toBe(first);
+  });
+
+  for (const [name, stack, rows] of [
+    ["SCENE LIST", ["scene", "scene.list"], ".scene-list .list-row"],
+    ["the card's list", ["microsd.saveload"], ".sd-list .list-row"],
+  ] as const) {
+    it(`does the same for ${name}, however many rows are touched`, async () => {
+      const shell = await mount();
+      const take = (file: string) => ({ name: file, kind: "take" as const, seconds: 10, tracks: 2, stamp: "04/30/2026\n15:29:28", dir: "/" });
+      await writeCard(shell.ctx.store, [take("take1.wav"), take("take2.wav")]);
+      for (const id of stack) shell.ctx.nav.push({ id });
+      await flush();
+      const first = following(shell);
+      const drawn = new Set<Element>();
+      for (let i = 0; i < 50; i++) {
+        const row = shell.root.querySelectorAll<HTMLElement>(rows)[i % 2];
+        if (row) drawn.add(row);
+        row?.click();
+        await flush();
+      }
+      expect(drawn.size, "each touch drew the list again").toBe(50);
+      expect(first, "the list's bar follows the focus").toBeGreaterThan(0);
+      expect(following(shell)).toBe(first);
+    });
+  }
+
+  for (const [name, route, opener] of [
+    ["the Input Source sheet", "ch.input", ".input-source-btn"],
+  ] as const) {
+    it(`lets go of ${name} as it shuts, with nothing drawn again`, async () => {
+      const shell = await mount();
+      shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+      shell.ctx.nav.push({ id: route, strip: "ch1" });
+      await flush();
+      const first = following(shell);
+      const open: number[] = [];
+      for (let i = 0; i < 20; i++) {
+        shell.root.querySelector<HTMLElement>(opener)?.click();
+        open.push(following(shell));
+        shell.root.querySelector<HTMLElement>(".source-back")?.click();
+      }
+      const closers = (shell as unknown as { overlays: Set<unknown> }).overlays.size;
+      expect(open, "the sheet's bar follows the focus").toEqual(Array<number>(20).fill(first + 1));
+      expect([following(shell), closers], "followed, and sheets the shell can still close").toEqual([first, 0]);
+    });
+  }
+
+  it("keeps marking the focus on the controls drawn after a redraw, a change of screen, and over a sheet", async () => {
+    const shell = await mount();
+    const marks = (selector: string): boolean[] => [...shell.root.querySelectorAll(selector)].map((n) => n.classList.contains("is-focused"));
+    shell.ctx.nav.push({ id: "scene" });
+    shell.ctx.nav.push({ id: "scene.list" });
+    await flush();
+    shell.ctx.nav.back();
+    shell.ctx.nav.push({ id: "scene.list" });
+    await flush();
+    shell.ctx.focus.takeKey("elsewhere");
+    const away = marks(".scene-scrollbar");
+    shell.root.querySelector(".scene-list .list-body")?.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true }));
+    expect([away, marks(".scene-scrollbar")], "SCENE LIST opened again, the focus elsewhere and then on the list").toEqual([[false], [true]]);
+
+    shell.ctx.nav.openTop({ id: "channel-view", strip: "ch1" });
+    await flush();
+    // The first block with a value on the knobs, found again by its kind after each redraw.
+    const kind = [...(shell.root.querySelector(".cv-block[data-press]")?.classList ?? [])].find((c) => c.startsWith("cv-block-"));
+    const block = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(`.${kind ?? "none"}`);
+    block()?.click();
+    const key = shell.ctx.focus.spec?.path;
+    await shell.ctx.store.set("ch.ch1.pan", 10);
+    await flush();
+    const redrawn = [block()?.dataset.press, marks(".cv-block .is-focused").length];
+    shell.ctx.focus.takeKey("elsewhere");
+    expect(key, "the block took the focus").toBeDefined();
+    expect([redrawn, [block()?.dataset.press, marks(".cv-block .is-focused").length]], "the block's panel and frame, held and let go").toEqual([
+      [undefined, 1],
+      ["none", 0],
+    ]);
+
+    shell.ctx.nav.push({ id: "ch.input", strip: "ch1" });
+    await flush();
+    shell.root.querySelector<HTMLElement>(".input-source-btn")?.click();
+    await shell.ctx.store.set("ch.ch1.pan", -10);
+    await flush();
+    shell.root.querySelector(".source-sheet .source-grid")?.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true }));
+    const held = marks(".source-scrollbar");
+    shell.ctx.focus.takeKey("elsewhere");
+    expect([held, marks(".source-scrollbar")], "the sheet's bar through a redraw under it").toEqual([[true], [false]]);
   });
 });

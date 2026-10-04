@@ -18,7 +18,7 @@ import { inkOn } from "../ui/color";
 import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
 import { compRatioSpec, dbSpec, faderSpec, fineGainSpec, freqSpec, intSpec, logFreqSpec, msSpec, panSpec, stoppedMsSpec } from "../ui/param-spec";
-import { attachDrag, attachSpin, followFocus, knobControl, markFocus, meter, panSlider, pickerSheet, pulldown, setAriaValue, sideTab, toggle, unbuilt, valueBox } from "../ui/widgets";
+import { attachDrag, attachSpin, knobControl, markFocus, meter, panSlider, pickerSheet, pulldown, setAriaValue, sideTab, toggle, unbuilt, valueBox } from "../ui/widgets";
 import { type GrSpec, type LampState, blockReduction, drawnLevels, inputMeterId, markBlockLamps, markClipSafe, markLevelBar, markReduction, showBlockLamps } from "./meters";
 import { DELAY_MAX_MS, type Tap, compSpec, duckerSources, duckerSpec, gateSpec, stripTap, tapId } from "./signal-flow";
 import { PAN_BAL, SIGNAL_TYPES, carriesStereo, enterSsmcs, setPanBal, setSignalType, signalType, stripPosition } from "./stereo-link";
@@ -231,17 +231,6 @@ export function channelSelector(ctx: AppContext, strip: Strip, route: Route, nar
 }
 
 /**
- * Lets a block's panel sink under a touch only while the value under `key` holds
- * the focus. It holds the context and the key and nothing of the screen.
- */
-function sinkWhileFocused(ctx: AppContext, key: string): (node: Element) => void {
-  return (n) => {
-    if (ctx.focus.holds(key)) n.removeAttribute("data-press");
-    else n.setAttribute("data-press", "none");
-  };
-}
-
-/**
  * One processing block. Its name is the switch that turns the block on and off;
  * an `inert` block's name switches nothing, and a touch on it is the block's own.
  * A block with a value the knob turns takes the focus at the first touch, framing
@@ -274,7 +263,12 @@ export function block(
   // A block with a value on the knobs takes two touches: the first brings the
   // focus to it and the second opens its screen. The first one does not sink the
   // panel, so it only gains its frame.
-  if (knob) followFocus(ctx, node, sinkWhileFocused(ctx, key));
+  if (knob) {
+    ctx.focus.follow(node, () => {
+      if (ctx.focus.holds(key)) node.removeAttribute("data-press");
+      else node.setAttribute("data-press", "none");
+    });
+  }
   if (knob) {
     markFocus(ctx, knob.frame, key);
     attachSpin(ctx, node, knob.spec, () => ctx.focus.take(knob.spec), false);
