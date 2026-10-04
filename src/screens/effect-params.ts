@@ -801,10 +801,12 @@ function pitchKeyboard(ctx: AppContext, holder: EffectHolder): HTMLElement {
       class: cls,
       ...(style ? { style } : {}),
       attrs: { "aria-label": name, "aria-pressed": on ? "true" : "false" },
-      onTap: () => {
-        void ctx.store.set(path, !on);
-        void ctx.store.set(`${holder.base}.scale`, PITCH_CUSTOM);
-      },
+      // The note and the scale it leaves are one operation of the store.
+      onTap: () =>
+        ctx.store.operation(() => {
+          void ctx.store.set(path, !on);
+          void ctx.store.set(`${holder.base}.scale`, PITCH_CUSTOM);
+        }),
       children: [el("span", { class: "pitch-note", text: name })],
     });
     return node;
@@ -840,11 +842,13 @@ function pitchNotes(ctx: AppContext, holder: EffectHolder, params: readonly Effe
       void ctx.store.set(`${holder.base}.${pitchNoteKey(semitone)}`, notes.has(semitone));
     }
   };
-  const take = (p: EffectSelect, v: string): void => {
-    void ctx.store.set(`${holder.base}.${p.key}`, v);
-    if (p.key === "scale") fill(at("key"), v);
-    if (p.key === "key") fill(v, at("scale"));
-  };
+  // A list's choice and the keyboard it fills in are one operation of the store.
+  const take = (p: EffectSelect, v: string): void =>
+    ctx.store.operation(() => {
+      void ctx.store.set(`${holder.base}.${p.key}`, v);
+      if (p.key === "scale") fill(at("key"), v);
+      if (p.key === "key") fill(v, at("scale"));
+    });
   return el("div", {
     class: "pitch-notes",
     children: [

@@ -4,7 +4,9 @@
 // a local mirror of every value and pushes edits through the transport in the
 // background. The mirror is updated optimistically on `set`, and a rejected
 // write still on screen goes back to the value the unit holds, so a screen
-// never keeps showing a value the unit refused.
+// never keeps showing a value the unit refused. An edit with the writes it
+// carries, and an operation of several edits, go to the transport whole or not
+// at all.
 //
 // Every notify that differs from the mirror is adopted, an echo of our own write
 // (`echo: true`) and a change made on the device (`echo: false`) alike; the
@@ -71,6 +73,18 @@ interface Awaited {
   heard: number;
 }
 
+/** A write the mirror has taken, waiting to go to the transport with the rest of its edit. */
+interface Queued {
+  path: ParamPath;
+  value: ParamValue;
+  /** What the mirror held for the path before the write. */
+  previous: ParamValue | undefined;
+  /** Send the write; what its `set` returned settles with it. */
+  send: () => void;
+  /** Leave the write unsent; what its `set` returned resolves. */
+  drop: () => void;
+}
+
 export class DeviceStore {
   private mirror = new Map<ParamPath, ParamValue>();
   private writeRule: WriteRule | null = null;
@@ -86,6 +100,9 @@ export class DeviceStore {
 
   /** The count each attach is numbered from; the newest one is the one that takes the store. */
   private attaches = 0;
+
+  /** The writes of the edit under way, sent together once it ends; null between edits. */
+  private edit: Queued[] | null = null;
 
   /** Paths changed since the last flush, coalesced into one notification. */
   private pending = new Set<ParamPath>();
@@ -212,11 +229,12 @@ export class DeviceStore {
 
   /**
    * Edit a value: mirror it now, send it to the device, revert on rejection.
-   * Returns the write promise so callers that must sequence can await it; UI
-   * handlers ignore it.
+   * The edit and the writes its rule carries go to the transport together, or
+   * none of them does, as with `operation`. Returns the write promise so
+   * callers that must sequence can await it; UI handlers ignore it.
    */
   set(path: ParamPath, value: ParamValue): Promise<void> {
-    return this.write(path, value, true);
+    return this.together(() => this.write(path, value, true));
   }
 
   /**
@@ -225,7 +243,62 @@ export class DeviceStore {
    * edit carries.
    */
   restore(path: ParamPath, value: ParamValue): Promise<void> {
-    return this.write(path, value, false);
+    return this.together(() => this.write(path, value, false));
+  }
+
+  /**
+   * Make the edits `op` makes as one operation, as a screen does when one
+   * setting takes others with it. Each edit takes the mirror at once; their
+   * writes, and the writes their rule carries, go to the transport in the order
+   * they were made once `op` returns. Where the transport cannot write one of
+   * their paths, none of them goes: the mirror goes back to what it held before
+   * the operation, and the transport's refusal of each such path is reported
+   * through `onWriteFailure`. An operation run inside another is part of it.
+   */
+  operation(op: () => void): void {
+    void this.together(() => {
+      op();
+      return Promise.resolve();
+    });
+  }
+
+  private together(op: () => Promise<void>): Promise<void> {
+    if (this.edit) return op();
+    const edit: Queued[] = [];
+    this.edit = edit;
+    let result: Promise<void>;
+    try {
+      result = op();
+    } catch (error) {
+      this.edit = null;
+      this.undo(edit);
+      throw error;
+    }
+    this.edit = null;
+    const t = this.transport;
+    const refused = t ? edit.filter((q) => t.writable?.(q.path) === false) : [];
+    if (!t || refused.length === 0) {
+      for (const q of edit) q.send();
+      return result;
+    }
+    this.undo(edit);
+    for (const q of refused) {
+      t.write(q.path, q.value).then(undefined, (error: unknown) => {
+        const restored = this.mirror.get(q.path);
+        for (const l of [...this.failureListeners]) l({ path: q.path, attempted: q.value, restored, error });
+      });
+    }
+    return result;
+  }
+
+  /** Put the mirror back to what it held before `edit`, last write first, and send none of it. */
+  private undo(edit: Queued[]): void {
+    for (const q of [...edit].reverse()) {
+      if (q.previous === undefined) this.mirror.delete(q.path);
+      else this.mirror.set(q.path, q.previous);
+      this.markChanged(q.path);
+    }
+    for (const q of edit) q.drop();
   }
 
   private write(path: ParamPath, value: ParamValue, carry: boolean, carried = false): Promise<void> {
@@ -235,16 +308,22 @@ export class DeviceStore {
     if (previous === value && (carried || !this.awaiting.has(path))) return Promise.resolve();
     this.mirror.set(path, value);
     this.markChanged(path);
-    const t = this.transport;
-    // Each write the rule adds is an edit with its own optimistic update and
-    // its own revert. A rule that points back at the path it was given stops
-    // on the guard above, which has already taken the new value.
-    // An edit to a path the transport cannot write carries none of them.
-    if (carry && this.writeRule && t?.writable?.(path) !== false) {
-      for (const [p, v] of this.writeRule(path, value)) void this.write(p, v, true, true);
-    }
+    // Each write the rule adds takes the mirror now and goes with this edit. A
+    // rule that points back at the path it was given stops on the guard above,
+    // which has already taken the new value.
+    if (carry && this.writeRule) for (const [p, v] of this.writeRule(path, value)) void this.write(p, v, true, true);
 
+    const t = this.transport;
     if (!t) return Promise.resolve();
+    return new Promise<void>((resolve) => {
+      const queued: Queued = { path, value, previous, send: () => resolve(this.send(t, path, value, previous)), drop: () => resolve() };
+      if (this.edit) this.edit.push(queued);
+      else queued.send();
+    });
+  }
+
+  /** Send one write the mirror has taken, and go back to what the device holds if it is refused. */
+  private send(t: DeviceTransport, path: ParamPath, value: ParamValue, previous: ParamValue | undefined): Promise<void> {
     const awaited = this.awaiting.get(path) ?? { newest: 0, sent: 0, open: 0, held: previous, heard: 0 };
     const n = ++this.writes;
     awaited.newest = n;

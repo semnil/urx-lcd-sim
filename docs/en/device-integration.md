@@ -117,8 +117,17 @@ the mirror holds the bound paths alone. An unbound path holds no value, and a re
 caller's fallback. An edit to it is refused by `BridgeTransport` with `UnboundPathError`, and
 `DeviceStore` puts the mirror back and reports the refusal through `onWriteFailure` ("mirrors the bound
 paths alone, puts an edit to an unbound path back and writes a bound one" in
-`src/device/bridge-transport.test.ts`). Such an edit carries none of the writes the write rule adds to an
-edit ("The writes one edit carries with it" in [architecture.md](architecture.md)): `DeviceStore` asks
-`BridgeTransport.writable()` before it carries them, so switching on an unbound HI-Z sends no A.Gain to the
-unit, and an edit to an unbound path of a linked pair sends nothing for the other channel ("sends none of
-the writes the Shell's rule carries with an edit to an unbound path" in the same file).
+`src/device/bridge-transport.test.ts`). An edit goes to the unit together with the writes the write rule
+adds to it ("The writes one edit carries with it" in [architecture.md](architecture.md)), and an operation a
+screen makes of one setting and the values that follow from it goes as one (`DeviceStore.operation()`): BUS
+Type, Signal Type, PAN/BAL, COMP / EQ, 1-knob EQ, an effect, an input source, the sampling frequency, Pitch
+Fix's keys and scale, SCENE's bank, storing and naming a scene, the recorder, playback and the card. Where
+`BridgeTransport.writable()` says one of their paths has no address, none of them is sent, the mirror goes
+back to what it held before, and the refusal of each such path is reported. Switching on an unbound HI-Z
+sends no A.Gain, and taking an unbound BUS Type or Signal Type sends none of the sends, pans or other values
+it brings with it ("sends none of the writes the Shell's rule carries with an edit to an unbound path" in
+the same file, and `src/screens/operations.test.ts`). A path with no address among those an operation writes
+keeps the whole operation back, also where the unit already holds the value it would write. An operation
+that sets several values each on its own (a scene recall, a settings file Load, clearing every CUE, the
+oscillator's Clear All, the output patch's Default, All Input and All USB DAW) sends each value as an edit of
+its own.

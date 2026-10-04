@@ -200,12 +200,15 @@ export const samplingRateScreen: ScreenDef = {
     // and keeps showing it lit; the row simply cannot be used until the switch
     // is turned off again.
     const rates = SAMPLING_RATES.map((hz) => {
+      // The frequency and what it takes off the inserts, the recorder and playback are one operation of the store.
       const cell = toggle(label(hz), hz === current, () => {
         if (followUsb) return;
-        void ctx.store.set("setup.samplingFrequency", hz);
-        dropInsertsOverRate(ctx, hz);
-        dropTracksOverRate(ctx.store, hz);
-        releaseOnRateChange(ctx.store, current, hz);
+        ctx.store.operation(() => {
+          void ctx.store.set("setup.samplingFrequency", hz);
+          dropInsertsOverRate(ctx, hz);
+          dropTracksOverRate(ctx.store, hz);
+          releaseOnRateChange(ctx.store, current, hz);
+        });
       }, "rate-btn");
       if (followUsb) cell.setAttribute("aria-disabled", "true");
       return cell;

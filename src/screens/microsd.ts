@@ -93,10 +93,12 @@ function ejectButton(ctx: AppContext): HTMLElement {
       dialog({
         message: "Now you may safely remove the microSD card.",
         okOnly: true,
-        onOk: () => {
-          void ctx.store.set("sd.tested", false);
-          void ctx.store.set("sd.mounted", false);
-        },
+        // The test's result and the card leave in one operation of the store.
+        onOk: () =>
+          ctx.store.operation(() => {
+            void ctx.store.set("sd.tested", false);
+            void ctx.store.set("sd.mounted", false);
+          }),
       }),
     );
   };
@@ -220,9 +222,11 @@ function cardPath(ctx: AppContext): string {
 
 /** Open a folder, with the cursor on the first thing in it. */
 function openPath(ctx: AppContext, path: string): void {
-  void ctx.store.set("sd.path", path);
-  const at = readCard(ctx.store).findIndex((e) => e.dir === path);
-  void ctx.store.set("sd.selectedFile", at);
+  ctx.store.operation(() => {
+    void ctx.store.set("sd.path", path);
+    const at = readCard(ctx.store).findIndex((e) => e.dir === path);
+    void ctx.store.set("sd.selectedFile", at);
+  });
   ctx.repaint();
 }
 
@@ -360,15 +364,17 @@ function deleteSelected(ctx: AppContext): void {
   ctx.overlay(
     dialog({
       message: "Delete the selected file?",
-      onOk: () => {
-        if (row === playingFile(ctx)) stopPlayback(ctx.store);
-        void ctx.store.set(filePath(entry), "");
-        // The cursor goes on to the next entry of the same folder, else back to
-        // the one before it, else onto nothing.
-        const next = entries[row + 1]?.dir === entry.dir ? row + 1 : entries[row - 1]?.dir === entry.dir ? row - 1 : -1;
-        void ctx.store.set("sd.selectedFile", next);
-        updateCard(ctx, entries.map((e, i) => (i === row ? undefined : e)));
-      },
+      // The file, the cursor and playback go in one operation of the store.
+      onOk: () =>
+        ctx.store.operation(() => {
+          if (row === playingFile(ctx)) stopPlayback(ctx.store);
+          void ctx.store.set(filePath(entry), "");
+          // The cursor goes on to the next entry of the same folder, else back to
+          // the one before it, else onto nothing.
+          const next = entries[row + 1]?.dir === entry.dir ? row + 1 : entries[row - 1]?.dir === entry.dir ? row - 1 : -1;
+          void ctx.store.set("sd.selectedFile", next);
+          updateCard(ctx, entries.map((e, i) => (i === row ? undefined : e)));
+        }),
     }),
   );
 }
@@ -399,17 +405,19 @@ function renameSelected(ctx: AppContext): void {
     const typed = name.slice(0, name.length - suffix.length);
     return folderCarries(entries, entry.dir, name, row, sameName) || entries.some((e, i) => i !== row && e.kind !== "folder" && e.dir === entry.dir && sameName(e.name, typed));
   };
-  nameOnCard(ctx, entry.name, (name) => {
-    const held = ctx.store.str(filePath(entry), "");
-    if (held) {
-      void ctx.store.set(filePath(entry), "");
-      void ctx.store.set(filePath({ ...entry, name }), held);
-    }
-    updateCard(
-      ctx,
-      entries.map((e, i) => (i === row ? { ...e, name } : e)),
-    );
-  }, { suffix, max: NAME_MAX - suffix.length, refuse: (name) => (taken(name) ? NAME_TAKEN : undefined) });
+  // The file under its old name and its new one go in one operation of the store.
+  nameOnCard(ctx, entry.name, (name) =>
+    ctx.store.operation(() => {
+      const held = ctx.store.str(filePath(entry), "");
+      if (held) {
+        void ctx.store.set(filePath(entry), "");
+        void ctx.store.set(filePath({ ...entry, name }), held);
+      }
+      updateCard(
+        ctx,
+        entries.map((e, i) => (i === row ? { ...e, name } : e)),
+      );
+    }), { suffix, max: NAME_MAX - suffix.length, refuse: (name) => (taken(name) ? NAME_TAKEN : undefined) });
 }
 
 /**
@@ -432,9 +440,12 @@ function newFolder(ctx: AppContext): void {
 function saveSettings(ctx: AppContext, name: string, at = -1): void {
   const entry: CardEntry = { name, kind: "data", seconds: 0, tracks: 0, written: clockParts(ctx.store), dir: cardPath(ctx) };
   if (at < 0 && !roomFor(ctx.store, entry)) return;
-  void ctx.store.set(filePath(entry), toJson(captureSettings(ctx.store)));
-  const entries = cardEntries(ctx);
-  updateCard(ctx, at < 0 ? [...entries, entry] : entries.map((e, i) => (i === at ? entry : e)));
+  // The file and its entry go in one operation of the store.
+  ctx.store.operation(() => {
+    void ctx.store.set(filePath(entry), toJson(captureSettings(ctx.store)));
+    const entries = cardEntries(ctx);
+    updateCard(ctx, at < 0 ? [...entries, entry] : entries.map((e, i) => (i === at ? entry : e)));
+  });
 }
 
 /** The row of the settings file the folder that is open carries under `name`, or -1 where it carries none. */
@@ -854,8 +865,11 @@ function formatUnder(ctx: AppContext, label: string): void {
   let close = (): void => undefined;
   const timer = window.setTimeout(() => {
     close();
-    formatCard(ctx);
-    void ctx.store.set("sd.cardName", label || UNTITLED);
+    // The emptying and the name go in one operation of the store.
+    ctx.store.operation(() => {
+      formatCard(ctx);
+      void ctx.store.set("sd.cardName", label || UNTITLED);
+    });
   }, FORMAT_RUN_MS);
   close = ctx.overlay(loadingDialog("Formatting in progress..."), () => window.clearTimeout(timer));
 }

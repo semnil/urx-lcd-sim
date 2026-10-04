@@ -96,26 +96,29 @@ function recPoints(ctx: AppContext, strip: Strip): string[] {
 /**
  * Switch the channel between COMP → EQ and the morphing strip. A tap standing on
  * PRE EQ has no stage to read once the morphing strip is in, so it moves back to
- * the stage before it.
+ * the stage before it. The switch and what it loads are one operation of the
+ * store.
  */
 function setCompEq(ctx: AppContext, strip: Strip, value: string): void {
   const base = `ch.${strip.id}`;
   if (ctx.store.str(`${base}.compEqOrder`, "COMP->EQ") === value) return;
-  void ctx.store.set(`${base}.compEqOrder`, value);
-  if (value === COMP_EQ_SSMCS) enterSsmcs(ctx, strip);
-  if (value === COMP_EQ_SSMCS && ctx.store.str(`${base}.recPoint`, REC_POINT_DEFAULT) === "PRE EQ") {
-    void ctx.store.set(`${base}.recPoint`, "PRE COMP");
-  }
-  // The two banks are separate on the unit: taking a type loads that bank's
-  // factory values, and the bank being left keeps its own until it is entered
-  // again. GATE is the same either way and stays where it is.
-  if (value === COMP_EQ_SSMCS) {
-    for (const [suffix, v] of ssmcsBankDefaults()) void ctx.store.set(`${base}.${suffix}`, v);
-    void ctx.store.set(`${base}.comp.on`, true);
-    void ctx.store.set(`${base}.eq.on`, true);
-  } else {
-    for (const [suffix, v] of compEqBankDefaults()) void ctx.store.set(`${base}.${suffix}`, v);
-  }
+  ctx.store.operation(() => {
+    void ctx.store.set(`${base}.compEqOrder`, value);
+    if (value === COMP_EQ_SSMCS) enterSsmcs(ctx, strip);
+    if (value === COMP_EQ_SSMCS && ctx.store.str(`${base}.recPoint`, REC_POINT_DEFAULT) === "PRE EQ") {
+      void ctx.store.set(`${base}.recPoint`, "PRE COMP");
+    }
+    // The two banks are separate on the unit: taking a type loads that bank's
+    // factory values, and the bank being left keeps its own until it is entered
+    // again. GATE is the same either way and stays where it is.
+    if (value === COMP_EQ_SSMCS) {
+      for (const [suffix, v] of ssmcsBankDefaults()) void ctx.store.set(`${base}.${suffix}`, v);
+      void ctx.store.set(`${base}.comp.on`, true);
+      void ctx.store.set(`${base}.eq.on`, true);
+    } else {
+      for (const [suffix, v] of compEqBankDefaults()) void ctx.store.set(`${base}.${suffix}`, v);
+    }
+  });
 }
 
 /** The three COMP knee curves. */
@@ -1675,16 +1678,20 @@ const EQ_ONE_KNOB_TYPES = ["Intensity", "Vocal", "Loudness"] as const;
 /** Where each kind of curve leaves the level standing: its own neutral point. */
 const EQ_ONE_KNOB_NEUTRAL: Record<string, number> = { Intensity: 50, Vocal: 0, Loudness: 0 };
 
-/** Taking a kind of curve puts the level on that curve's neutral point. */
+/** Taking a kind of curve puts the level on that curve's neutral point, in one operation of the store. */
 function setEqOneKnobType(ctx: AppContext, base: string, type: string): void {
-  void ctx.store.set(`${base}.eq.oneKnob.type`, type);
-  void ctx.store.set(`${base}.eq.oneKnob.level`, EQ_ONE_KNOB_NEUTRAL[type] ?? 0);
+  ctx.store.operation(() => {
+    void ctx.store.set(`${base}.eq.oneKnob.type`, type);
+    void ctx.store.set(`${base}.eq.oneKnob.level`, EQ_ONE_KNOB_NEUTRAL[type] ?? 0);
+  });
 }
 
-/** Switching 1-knob on takes the curve back to Intensity at its neutral point. */
+/** Switching 1-knob on takes the curve back to Intensity at its neutral point, in one operation of the store. */
 function setEqOneKnob(ctx: AppContext, base: string, on: boolean): void {
-  void ctx.store.set(`${base}.eq.oneKnob.on`, on);
-  if (on) setEqOneKnobType(ctx, base, "Intensity");
+  ctx.store.operation(() => {
+    void ctx.store.set(`${base}.eq.oneKnob.on`, on);
+    if (on) setEqOneKnobType(ctx, base, "Intensity");
+  });
 }
 
 /** Where a band keeps the gain the Intensity level scales. */

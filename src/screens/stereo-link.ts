@@ -205,21 +205,24 @@ export function pairWriteRule(store: DeviceStore, model: UnitModel): WriteRule {
  * the Signal Type moves. The pair comes up on its balance, both channels are
  * placed, and linking puts the pair on the lower-numbered channel's values and
  * its compressors on the pair's louder channel; unlinking puts nothing back.
+ * All of it is one operation of the store.
  */
 export function setSignalType(ctx: PairCtx, strip: Strip, value: string): void {
   if (signalType(ctx, strip) === value) return;
-  writePair(ctx, strip, "signalType", value);
-  for (const s of [strip, linkPartner(ctx, strip)]) {
-    if (!s) continue;
-    void ctx.store.set(`ch.${s.id}.insFx.effect`, NO_EFFECT);
-    void ctx.store.set(`ch.${s.id}.insFx.on`, false);
-  }
-  writePair(ctx, strip, "panBal", value === "STEREO" ? "BAL" : "PAN");
-  placePair(ctx, strip);
-  if (value !== "STEREO") return;
-  collapsePair(ctx, strip);
-  const first = pairMembers(ctx, strip)?.[0];
-  if (first) void ctx.store.set(compSplitPath(first), false);
+  ctx.store.operation(() => {
+    writePair(ctx, strip, "signalType", value);
+    for (const s of [strip, linkPartner(ctx, strip)]) {
+      if (!s) continue;
+      void ctx.store.set(`ch.${s.id}.insFx.effect`, NO_EFFECT);
+      void ctx.store.set(`ch.${s.id}.insFx.on`, false);
+    }
+    writePair(ctx, strip, "panBal", value === "STEREO" ? "BAL" : "PAN");
+    placePair(ctx, strip);
+    if (value !== "STEREO") return;
+    collapsePair(ctx, strip);
+    const first = pairMembers(ctx, strip)?.[0];
+    if (first) void ctx.store.set(compSplitPath(first), false);
+  });
 }
 
 /** Whether the pair is positioned by its L/R balance rather than by two pans. */
@@ -227,10 +230,13 @@ export function usesBalance(ctx: PairCtx, strip: Strip): boolean {
   return isStereoLinked(ctx, strip) && ctx.store.str(`ch.${strip.id}.panBal`, "PAN") === "BAL";
 }
 
+/** Place the pair by its balance or by two pans, the choice and the placing as one operation of the store. */
 export function setPanBal(ctx: PairCtx, strip: Strip, value: string): void {
   if (ctx.store.str(`ch.${strip.id}.panBal`, "PAN") === value) return;
-  writePair(ctx, strip, "panBal", value);
-  placePair(ctx, strip);
+  ctx.store.operation(() => {
+    writePair(ctx, strip, "panBal", value);
+    placePair(ctx, strip);
+  });
 }
 
 /**

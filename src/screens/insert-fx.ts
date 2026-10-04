@@ -76,12 +76,15 @@ function seedEffect(ctx: AppContext, base: string, name: string): void {
 /**
  * Take an effect on a channel. The unit switches the block on as it takes one and
  * fills the effect with its own settings, so selecting the same effect again
- * puts those settings back.
+ * puts those settings back. The effect, the switch and the settings are one
+ * operation of the store.
  */
 export function takeEffect(ctx: AppContext, base: string, namePath: string, onPath: string, name: string): void {
-  void ctx.store.set(namePath, name);
-  if (onPath) void ctx.store.set(onPath, name !== NO_EFFECT);
-  seedEffect(ctx, base, name);
+  ctx.store.operation(() => {
+    void ctx.store.set(namePath, name);
+    if (onPath) void ctx.store.set(onPath, name !== NO_EFFECT);
+    seedEffect(ctx, base, name);
+  });
 }
 
 /** Take an insert on a channel, which is the pair's where the pair is linked. */

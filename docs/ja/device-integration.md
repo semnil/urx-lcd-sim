@@ -108,8 +108,13 @@ sequenceDiagram
 束縛したパスだけが載る。束縛していないパスは値を持たず、読むと呼び出し側の既定値が返る。その編集は
 `BridgeTransport` が `UnboundPathError` で拒否し、`DeviceStore` はミラーを元に戻して `onWriteFailure` で知らせる
 (`src/device/bridge-transport.test.ts` の「mirrors the bound paths alone, puts an edit to an unbound path back and
-writes a bound one」)。この編集は、書き込み規則が編集に連れていく書き込み ([architecture.md](architecture.md) の
-「1 つの編集が連れていく書き込み」) を 1 つも連れていかない。`DeviceStore` は連れていく前に `BridgeTransport.writable()` を
-確かめるので、束縛していない HI-Z を入れても A.Gain は実機へ送られず、リンクしたペアの束縛していないパスへの編集は
-もう片方のチャンネルの分を何も送らない (同じファイルの「sends none of the writes the Shell's rule carries with an edit to
-an unbound path」)。
+writes a bound one」)。編集は、書き込み規則が連れていく書き込み ([architecture.md](architecture.md) の「1 つの編集が
+連れていく書き込み」) と一緒に実機へ送られ、画面が 1 つの設定とそれに従う値をまとめて書く操作は 1 つとして送られる
+(`DeviceStore.operation()`)。BUS Type、Signal Type、PAN/BAL、COMP / EQ、1-knob EQ、エフェクト、入力ソース、サンプリング
+周波数、Pitch Fix の鍵盤とスケール、SCENE のバンク、シーンの保存と命名、レコーダー、再生、カードの操作がこれに当たる。
+そのどれかの経路にアドレスが無いと `BridgeTransport.writable()` が答えると、どれも送らず、ミラーを前の値に戻し、その経路ごとの
+拒否を知らせる。束縛していない HI-Z を入れても A.Gain は送られず、束縛していない BUS Type や Signal Type を選んでも、それが
+連れていく送り・定位などの値は何も送られない (同じファイルの「sends none of the writes the Shell's rule carries with an edit
+to an unbound path」と `src/screens/operations.test.ts`)。操作が書く経路の中にアドレスの無いものが 1 つあれば、実機がすでに
+その値を持っている場合でも操作全体を送らない。複数の値をそれぞれ単独で書く操作 (シーンのリコール、設定ファイルの Load、
+CUE の一括解除、オシレーターの Clear All、出力パッチの Default、All Input と All USB DAW) は、値ごとに 1 つの編集として送る。

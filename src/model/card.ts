@@ -122,9 +122,14 @@ export async function changeCard(store: DeviceStore, entries: readonly (CardEntr
   const cursor = entries[store.num("sd.selectedFile", 0)];
   const held = entries[store.num("sd.playingFile", -1)];
   const sorted = entries.filter((e) => e !== undefined).sort(cardOrder);
-  void store.set("sd.selectedFile", cursor ? sorted.indexOf(cursor) : -1);
-  void store.set("sd.playingFile", held ? sorted.indexOf(held) : -1);
-  await store.set(CARD, JSON.stringify(sorted));
+  // The card and the rows the cursor and playback stand on go in one operation of the store.
+  let written = Promise.resolve();
+  store.operation(() => {
+    void store.set("sd.selectedFile", cursor ? sorted.indexOf(cursor) : -1);
+    void store.set("sd.playingFile", held ? sorted.indexOf(held) : -1);
+    written = store.set(CARD, JSON.stringify(sorted));
+  });
+  await written;
 }
 
 /** The sampling frequency a take was recorded at. */
