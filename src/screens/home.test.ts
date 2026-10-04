@@ -2131,6 +2131,9 @@ describe("the SCENE menu the scene box opens", () => {
       await flush();
       expect(button("Recall")?.classList.contains("is-disabled"), `factory scene ${no}`).toBe(false);
     }
+    await shell.ctx.store.set("scene.selected", 9);
+    await flush();
+    expect(button("Recall")?.classList.contains("is-disabled"), "a number on Simple's list holding no scene").toBe(true);
   });
 
   it("shuts all three on an empty number and a factory scene, and Store and Edit on Simple's list in Standard Mode", async () => {
