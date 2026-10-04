@@ -2309,6 +2309,11 @@
   bottom: var(--press);
 }
 
+/* A control drawn again while a pointer holds it down is down already: it does not slide down again. */
+.lcd .is-pressed.is-carried {
+  transition: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lcd .is-pressed {
     transition: none;
