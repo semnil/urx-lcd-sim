@@ -14,7 +14,7 @@ import { meterLevels, setMeterSource, startMeterTicker } from "./meters";
 import { storeScene } from "./scene";
 import { declarations, declarationsOn, px, readStyle } from "../style/css-read";
 import { INTERACTIVE } from "../ui/dom";
-import { dialog } from "../ui/widgets";
+import { SHORT_PROGRESS_MS, dialog } from "../ui/widgets";
 import { udkAssignment } from "../model/udk";
 import { openDateTimeSet, openTimeZone } from "./date-time";
 import { version as packageVersion } from "../../package.json";
@@ -2430,31 +2430,64 @@ describe("the SCENE menu the scene box opens", () => {
     expect(tabs(), "and stays open on 00").toEqual([["Store/Recall", false, false], ["Edit", true, false]]);
   });
 
-  it("names an empty number on the title entry sheet when it is stored, and asks before storing over a stored scene", async () => {
+  it("stores on any number through the title entry sheet, on the recalled scene's title, then a question, then a store in progress", async () => {
     const shell = await sceneList({ "scene.Standard.4.title": "Band", "scene.selected": 7 });
+    const s = shell.ctx.store;
+    const stored = (no: number): [string, boolean, number] => [s.str(`scene.Standard.${no}.title`, ""), s.str(`scene.Standard.${no}.state`, "") !== "", s.num("scene.current", -1)];
+    const asked = (): string | null => shell.root.querySelector(".dialog .dialog-text")?.textContent ?? null;
+    /** [OK] on the question, and what stands over the list until the store is done. */
+    const confirm = async (): Promise<[string | null, string | null, string | null]> => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        pick(shell, ".dialog-actions .btn", "OK")?.click();
+        for (let i = 0; i < 5; i++) await Promise.resolve();
+        const at = (): string | null => shell.root.querySelector('.dialog-overlay[role="status"] .dialog-text')?.textContent ?? null;
+        const first = at();
+        vi.advanceTimersByTime(SHORT_PROGRESS_MS - 1);
+        const held = at();
+        vi.advanceTimersByTime(1);
+        return [first, held, at()];
+      } finally {
+        vi.useRealTimers();
+      }
+    };
+
     await tap(pick(shell, ".scene-actions .btn", "Store"));
     expect(shell.ctx.nav.current.id, "an empty number opens the sheet").toBe("scene.title");
     expect(shell.root.querySelector(".title-text")?.textContent, "on the recalled scene's title").toBe("Initial Data");
     await tap(pick(shell, ".pick-dialog-btn", "Cancel"));
-    expect([shell.ctx.store.str("scene.Standard.7.title", ""), shell.ctx.store.num("scene.current", 0)], "Cancel stores nothing").toEqual(["", 0]);
+    expect(stored(7), "the sheet's Cancel stores nothing").toEqual(["", false, 0]);
 
     await tap(pick(shell, ".scene-actions .btn", "Store"));
     await tap(pick(shell, ".title-key", "x"));
     await tap(pick(shell, ".pick-dialog-btn", "OK"));
-    expect([shell.ctx.nav.current.id, shell.ctx.store.str("scene.Standard.7.title", ""), shell.ctx.store.num("scene.current", 0)]).toEqual([
-      "scene.list", "Initial Datax", 7,
-    ]);
+    expect([shell.ctx.nav.current.id, asked()], "the sheet's OK asks on the list").toEqual(["scene.list", 'Store to "Scene Memory #07"?']);
+    expect(stored(7), "and has stored nothing yet").toEqual(["", false, 0]);
+    await tap(pick(shell, ".dialog-actions .btn", "Cancel"));
+    expect(stored(7), "the question's Cancel stores nothing").toEqual(["", false, 0]);
 
-    await shell.ctx.store.set("scene.selected", 4);
+    await tap(pick(shell, ".scene-actions .btn", "Store"));
+    await tap(pick(shell, ".title-key", "x"));
+    await tap(pick(shell, ".pick-dialog-btn", "OK"));
+    expect(await confirm(), "in progress, for as long as the short progress modals").toEqual([
+      "Scene store is in progress...",
+      "Scene store is in progress...",
+      null,
+    ]);
+    await flush();
+    expect(stored(7), "stored under the typed title and recalled").toEqual(["Initial Datax", true, 7]);
+
+    await s.set("scene.selected", 4);
     await flush();
     await tap(pick(shell, ".scene-actions .btn", "Store"));
-    expect(shell.ctx.nav.current.id, "a stored scene keeps the list").toBe("scene.list");
-    expect(shell.root.querySelector(".dialog .dialog-text")?.textContent).toBe('Store to "Scene Memory #04"?');
-    await tap(pick(shell, ".dialog-actions .btn", "Cancel"));
-    expect(shell.ctx.store.num("scene.current", 0), "Cancel leaves the recalled scene").toBe(7);
-    await tap(pick(shell, ".scene-actions .btn", "Store"));
-    await tap(pick(shell, ".dialog-actions .btn", "OK"));
-    expect([shell.ctx.store.num("scene.current", 0), shell.ctx.store.str("scene.Standard.4.title", "")]).toEqual([4, "Band"]);
+    expect(shell.ctx.nav.current.id, "a stored scene opens the sheet too").toBe("scene.title");
+    expect(shell.root.querySelector(".title-text")?.textContent, "on the recalled scene's title, not its own").toBe("Initial Datax");
+    await tap(pick(shell, ".pick-dialog-btn", "OK"));
+    expect(asked()).toBe('Store to "Scene Memory #04"?');
+    expect(stored(4), "nothing stored over it yet").toEqual(["Band", false, 7]);
+    await confirm();
+    await flush();
+    expect([shell.ctx.nav.current.id, ...stored(4)]).toEqual(["scene.list", "Initial Datax", true, 4]);
   });
 
   it("takes no more than 16 characters for a title", async () => {
@@ -5573,6 +5606,33 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
     shell.ctx.nav.push({ id: "channel-view", strip: "bus.stream" });
     await flush();
     expect(shell.root.querySelector(".cv-block-value.cv-delay-value")).not.toBeNull();
+  });
+
+  it("holds a card test's progress modal up as long as a scene store's", async () => {
+    /** The modal's words as the touch leaves it, a moment before the short time is up, and once it is. */
+    const watch = async (shell: Shell, touch: () => void): Promise<(string | null)[]> => {
+      const at = (): string | null => shell.root.querySelector('.dialog-overlay[role="status"] .dialog-text')?.textContent ?? null;
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        touch();
+        const first = at();
+        vi.advanceTimersByTime(SHORT_PROGRESS_MS - 1);
+        const held = at();
+        vi.advanceTimersByTime(1);
+        return [first, held, at()];
+      } finally {
+        vi.useRealTimers();
+      }
+    };
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "microsd.tools" });
+    await shell.ctx.store.set("ui.sdToolsTab", "Test");
+    await flush();
+    expect(await watch(shell, () => shell.root.querySelector<HTMLElement>(".tools-screen > .btn")?.click()), "a card test").toEqual([
+      "Testing in progress...",
+      "Testing in progress...",
+      null,
+    ]);
   });
 
   it("gives TOOLS the eject button and reports a test once it has run, holding a modal up while it runs", async () => {

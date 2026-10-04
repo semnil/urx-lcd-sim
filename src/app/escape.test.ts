@@ -536,7 +536,7 @@ describe("a dialog or a sheet over the screen", () => {
       { routes: [{ id: "setup" }, { id: "setup.patch" }], state: { "setup.outputPatch.mainOut": "MONITOR 2" }, opener: bySelector(".patch-default") },
       { routes: [{ id: "microsd" }, { id: "microsd.saveload" }], state: { "ui.sdSaveTab": "Edit", "sd.selectedFile": 1 }, opener: bySelector('.sd-actions [aria-label="Delete"]') },
       { routes: [{ id: "scene" }, { id: "scene.list" }], state: { ...stored, "ui.sceneMenu": "Edit" }, opener: bySelector('.scene-actions.is-edit [aria-label="Delete"]') },
-      { routes: [{ id: "scene" }, { id: "scene.list" }], state: stored, opener: byText(".scene-actions .btn", "Store") },
+      { routes: [{ id: "scene" }, { id: "scene.list" }], state: stored, opener: byText(".scene-actions .btn", "Store"), sheet: ".pick-dialog-ok" },
       { routes: [{ id: "scene" }, { id: "scene.list" }], state: stored, opener: byText(".scene-actions .btn", "Recall") },
       { routes: [{ id: "microsd" }, { id: "microsd.tools" }], opener: bySelector(".tools-screen .btn"), sheet: ".pick-dialog-ok" },
       { routes: [{ id: "microsd" }], state: { "sd.mounted": false }, opener: bySelector(".sd-no-card") },

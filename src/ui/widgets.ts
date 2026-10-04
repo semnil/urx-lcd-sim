@@ -1102,11 +1102,9 @@ export function dropdown(ctx: AppContext, spec: DropdownSpec): HTMLElement {
   return node;
 }
 
-/**
- * The confirmation box the guide describes under "Dialog box": a pale sheet
- * inside a blue frame, asking beside an information mark. Mount it with
- * ctx.overlay so it lands inside the screen frame.
- */
+/** How long the short progress modals stand: a card test, a scene being stored. */
+export const SHORT_PROGRESS_MS = 3000;
+
 /**
  * The modal the unit holds up while a screen loads: the dialog's frame with a
  * turning ring where the question mark goes, and no way to answer it. It is not
@@ -1136,6 +1134,11 @@ export function loadingDialog(message = "Loading..."): HTMLElement {
   return node;
 }
 
+/**
+ * The confirmation box the guide describes under "Dialog box": a pale sheet
+ * inside a blue frame, asking beside an information mark. Mount it with
+ * ctx.overlay so it lands inside the screen frame.
+ */
 export function dialog(options: DialogOptions): HTMLElement {
   const modal: Modal = {};
   const close = (): void => modal.close?.();

@@ -21,7 +21,7 @@ URX44V/44/22 ユーザーガイド (英語版 revision D0) が載せている LC
 | Sends 送り先選択 | `sends-select` | p51 | 実装済み。HOME のメインエリアに重なるシート。サイドレールは HOME のまま |
 | SCENE (メニュー) | `scene` | p72 | 実装済み。HOME 左上のシーン名から開く |
 | SCENE LIST | `scene.list` | p72-75 | 実装済み (Store/Recall と Edit) |
-| 題の入力 | `scene.title` | — | 実装済み。SCENE LIST の Edit タブの [Title] と、保存の無い番号の [Store] から開く。SAVE/LOAD の [Save as]・[New folder]・[Rename] と RECORDER の [Rename] と TOOLS の [Format microSD] は同じ画面を `microsd.name` として開く ([Save as]・[New folder]・[Rename] はカードのキーボードで開き、拡張子を入力欄の外に出す。[Format microSD] は題 `Volume Label` を付け、11 文字までで、空でも [OK] で進む)。ガイドに図は無い |
+| 題の入力 | `scene.title` | — | 実装済み。SCENE LIST の Edit タブの [Title] と、Store/Recall タブの [Store] から開く。SAVE/LOAD の [Save as]・[New folder]・[Rename] と RECORDER の [Rename] と TOOLS の [Format microSD] は同じ画面を `microsd.name` として開く ([Save as]・[New folder]・[Rename] はカードのキーボードで開き、拡張子を入力欄の外に出す。[Format microSD] は題 `Volume Label` を付け、11 文字までで、空でも [OK] で進む)。ガイドに図は無い |
 
 ### SETUP
 
@@ -1522,9 +1522,10 @@ Simple タブで P01 を選ぶと `P01 Live Music 0` の番号が明滅し、呼
 工場の印 (p073-1 の x344..363 / y118..137)。工場出荷のシーンには保存も編集もできない。見出しの `Title` は列の中心ではなく x122 から置き、`No.` と `Lock` は
 それぞれの欄の中心に置く。
 
-[Store] は、保存の無い番号では題の入力シートを最後に呼び出したシーンの題で開き、[OK] で保存してそのシーンを呼び出し中にする。
-保存済みの番号では `Store to "Scene Memory #05"?` (番号は選んでいるシーン) を [Cancel] / [OK] で尋ね、[OK] で上書きして
-そのシーンを呼び出し中にする。
+[Store] は、保存の無い番号でも保存済みの番号でも、題の入力シートを最後に呼び出したシーンの題で開く。シートの [OK] で
+一覧に戻って `Store to "Scene Memory #05"?` (番号は選んでいるシーン) を [Cancel] / [OK] で尋ね、[OK] で打った題とミキサーを
+その番号に保存してそのシーンを呼び出し中にし、`Scene store is in progress...` のモーダルを TOOLS の `Testing in progress...` と
+同じ 3 秒出す。シートの [Cancel] と問いの [Cancel] は何も保存しない。
 
 [Recall] は保存の無い番号では使えず、押しても何も尋ねない。保存済みの番号と工場出荷のシーンでは `Recall scene "Band"?`
 (題は選んでいるシーン) を [Cancel] / [OK] で尋ね、[OK] でそのシーンのミキサーを戻して呼び出し中にする。シーンが D.Gain を
@@ -1563,7 +1564,7 @@ x6..95・x149..238・x291..380、字形は錠 16x21・ごみ箱 16x18・名前�
 
 ## 題の入力シート
 
-[Title] と、保存の無い番号の [Store] が開くシートは画面全体を `--dialog-sheet` の面で覆う。左上に [Cancel]、右上に [OK] (DATE / TIME のダイアログと同じ
+[Title] と [Store] が開くシートは画面全体を `--dialog-sheet` の面で覆う。左上に [Cancel]、右上に [OK] (DATE / TIME のダイアログと同じ
 ボタン)、その間の下に黒い入力欄 (x124..361 / y49..89、題は 15px の太字、右端に消去ボタン)、下端にキーボードを置く。
 キーは 4 行 (y96..135・y137..176・y178..217・y219..257) で、1 キーの幅を 4 等分した 40 列に並ぶ (x7..470、キーの間隔
 2px、字は 15px)。
@@ -1579,7 +1580,7 @@ x6..95・x149..238・x291..380、字形は錠 16x21・ごみ箱 16x18・名前�
 
 [Shift] はタップのたびに入れ切りし、入っているあいだ面を `--accent-selected` にして文字のキーを大文字で描き、大文字を打つ。
 題は 16 文字まで打て、それを超えるキーは題を変えない。`<` `>` はカーソルを 1 文字ずつ動かし、打った文字と後退はカーソルの位置に効く。消去ボタンは欄を空にする。シートは
-文字の配列・Shift を切った状態で開き、[OK] で題を書き込む。欄が空のあいだ [OK] は何もしない。[Cancel] は何も書き込まない。
+文字の配列・Shift を切った状態で開き、[Title] のシートは [OK] で題を書き込み、[Store] のシートは [OK] で保存の問いへ進む。欄が空のあいだ [OK] は何もしない。[Cancel] は何も書き込まない。
 
 カードの上の名前 (SAVE/LOAD の [Save as]・[New folder]・[Rename] と RECORDER の [Rename]) は、このシートをカードの
 キーボードで開く。文字の配列と 4 行目は題と同じで、数字と記号の配列は次のとおり。題より短い行は、題の行と同じく

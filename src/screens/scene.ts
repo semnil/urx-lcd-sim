@@ -11,8 +11,8 @@ import { followRecall, pairStates } from "./stereo-link";
 import { settlePanLink } from "./mix-bus";
 import { el, markShut } from "../ui/dom";
 import { Icons } from "../ui/icons";
-import { LIST_THUMB_MIN_PX, button, dialog, listView, menuButton, menuGrid, scrollbar, sideTab, toggle } from "../ui/widgets";
-import { openTitleEntry } from "./title-entry";
+import { LIST_THUMB_MIN_PX, SHORT_PROGRESS_MS, button, dialog, listView, loadingDialog, menuButton, menuGrid, scrollbar, sideTab, toggle } from "../ui/widgets";
+import { draftTitle, openTitleEntry } from "./title-entry";
 import type { ScreenBody, ScreenDef } from "./types";
 import { toJson } from "../device/value-json";
 
@@ -96,6 +96,22 @@ export async function recallScene(ctx: AppContext, no: number): Promise<void> {
   // can come back onto a unit that is running too fast for it.
   dropInsertsOverRate(ctx, ctx.store.num("setup.samplingFrequency", 48000));
   ctx.repaint();
+}
+
+/**
+ * What [Store] does once it is answered: the mixer goes in under the number with
+ * the title typed for it and becomes the scene recalled, the title, the mixer and
+ * the number in one operation of the store, and `Scene store is in progress...`
+ * stands over the list as long as the other short progress modals.
+ */
+function storeTitled(ctx: AppContext, bank: string, no: number, title: string): void {
+  ctx.store.operation(() => {
+    void ctx.store.set(`scene.${bank}.${no}.title`, title);
+    void storeScene(ctx, bank, no);
+  });
+  let close = (): void => undefined;
+  const timer = window.setTimeout(() => close(), SHORT_PROGRESS_MS);
+  close = ctx.overlay(loadingDialog("Scene store is in progress..."), () => window.clearTimeout(timer));
 }
 
 /** Take the mixer as it stands into a scene number, and recall it, the scene and the number in one operation of the store. */
@@ -245,17 +261,21 @@ export const sceneScreen: ScreenDef = {
     const storeShut = isFactoryLocked(selected) || guarded || readOnly;
     const store = markShut(button("Store", () => {
       if (storeShut) return;
-      // A number with nothing stored is named on the title entry sheet, starting from the recalled scene's title.
-      if (owner === null) {
-        openTitleEntry(ctx, `scene.${bank}.${selected}.title`, sceneTitle(ctx, current), selected);
-        return;
-      }
-      ctx.overlay(
-        dialog({
-          message: `Store to "Scene Memory #${sceneNumber(selected)}"?`,
-          onOk: () => void storeScene(ctx, bank, selected),
-        }),
-      );
+      // Any number is named on the title entry sheet first, starting from the
+      // recalled scene's title, and [OK] there asks before anything is stored.
+      draftTitle(ctx, {
+        path: "",
+        title: sceneTitle(ctx, current),
+        onOk: (typed) => {
+          ctx.overlay(
+            dialog({
+              message: `Store to "Scene Memory #${sceneNumber(selected)}"?`,
+              onOk: () => storeTitled(ctx, bank, selected, typed),
+            }),
+          );
+        },
+      });
+      ctx.nav.push({ id: "scene.title" });
     }), storeShut);
 
     // Only a stored scene can be protected, and only one left unprotected deleted or renamed.

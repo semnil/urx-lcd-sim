@@ -22,7 +22,7 @@ Which screen leads to which is drawn in [screen-map.md](screen-map.md).
 | Sends destination picker | `sends-select` | p51 | Built. A sheet over HOME's main area; the side rail stays HOME's |
 | SCENE (menu) | `scene` | p72 | Built. Opened from the scene name at HOME's top left |
 | SCENE LIST | `scene.list` | p72-75 | Built (Store/Recall and Edit) |
-| Title entry | `scene.title` | — | Built. Opened from [Title] on SCENE LIST's Edit tab and from [Store] on a number with nothing stored. [Save as], [New folder] and [Rename] on SAVE/LOAD, [Rename] on RECORDER and [Format microSD] on TOOLS open the same screen as `microsd.name` ([Save as], [New folder] and [Rename] open it on the card's keyboard, with the extension outside the field; [Format microSD] titles it `Volume Label`, takes up to 11 characters and lets [OK] go on with the field empty). The guide has no figure of it |
+| Title entry | `scene.title` | — | Built. Opened from [Title] on SCENE LIST's Edit tab and from [Store] on its Store/Recall tab. [Save as], [New folder] and [Rename] on SAVE/LOAD, [Rename] on RECORDER and [Format microSD] on TOOLS open the same screen as `microsd.name` ([Save as], [New folder] and [Rename] open it on the card's keyboard, with the extension outside the field; [Format microSD] titles it `Volume Label`, takes up to 11 characters and lets [OK] go on with the field empty). The guide has no figure of it |
 
 ### SETUP
 
@@ -1769,9 +1769,11 @@ of a scene the unit ships with (00 and P01 to P03) carries a factory: a sawtooth
 The heading `Title` starts at x122 rather than over the middle of its column, and `No.` and `Lock` stand over the
 middle of their cells.
 
-[Store] opens the title entry sheet on the last recalled scene's title for a number with nothing stored, and on [OK]
-stores the scene and makes it the recalled one. On a stored number it asks `Store to "Scene Memory #05"?` (the number is
-the picked scene's) with [Cancel] / [OK], and on [OK] stores over it and makes it the recalled one.
+[Store] opens the title entry sheet on the last recalled scene's title, on a number with nothing stored and on a stored
+one alike. The sheet's [OK] goes back to the list and asks `Store to "Scene Memory #05"?` (the number is the picked
+scene's) with [Cancel] / [OK]; [OK] stores the typed title and the mixer under the number, makes it the recalled scene, and
+holds a `Scene store is in progress...` modal up for 3 seconds, as long as TOOLS' `Testing in progress...`. [Cancel] on the
+sheet and on the question stores nothing.
 
 [Recall] cannot be used on a number with nothing stored, and a press asks nothing. On a stored number and on a factory scene
 it asks `Recall scene "Band"?` (the title is the picked scene's) with [Cancel] / [OK], and on [OK] puts that scene's mixer
@@ -1812,7 +1814,7 @@ The Edit tab (p074-1) sets glyph-only buttons [Protect], [Delete] and [Title] al
 
 ## The title entry sheet
 
-The sheet that [Title], and [Store] on a number with nothing stored, open covers the glass with the `--dialog-sheet` face. [Cancel] stands at the top left and [OK] at
+The sheet that [Title] and [Store] open covers the glass with the `--dialog-sheet` face. [Cancel] stands at the top left and [OK] at
 the top right (the buttons of the DATE / TIME dialog), a black field under the gap between them (x124..361 / y49..89,
 the title in 15px bold, a clear button at its right end), and the keyboard across the foot. The keys stand in four rows
 (y96..135, y137..176, y178..217, y219..257) on forty columns, four to a key (x7..470, 2px between keys, 15px type).
@@ -1829,8 +1831,9 @@ wide), space (three keys wide), `@`, `.`, and `<` and `>` (one and three quarter
 
 [Shift] turns on and off at each tap; while on, its face is `--accent-selected` and the letter keys draw and type
 capitals. A title takes up to 16 characters, and a key typed past that changes nothing. `<` and `>` move the cursor a character at a time, and typing and backspace act at the cursor. The clear
-button empties the field. The sheet opens on the letters with Shift off, and [OK] writes the title. [OK] does nothing
-while the field is empty, and [Cancel] writes nothing.
+button empties the field. The sheet opens on the letters with Shift off; [OK] on [Title]'s sheet writes the title, and
+[OK] on [Store]'s goes on to the question before storing. [OK] does nothing while the field is empty, and [Cancel] writes
+nothing.
 
 A name on the card ([Save as], [New folder] and [Rename] on SAVE/LOAD, and [Rename] on RECORDER) opens the sheet on
 the card's keyboard. Its letters and row 4 are the title's, and its numbers and symbols run as below. A row shorter

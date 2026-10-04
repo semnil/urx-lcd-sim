@@ -871,6 +871,9 @@ describe("what the card's own actions do to it", () => {
       [...shell.root.querySelectorAll<HTMLElement>(".scene-actions .btn")].find((b) => b.textContent === "Store")?.click();
       await flush();
       await typeTitle(shell, title);
+      // The sheet's [OK] asks before it stores.
+      [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === "OK")?.click();
+      await flush();
       shell.ctx.nav.back();
       await flush();
     };

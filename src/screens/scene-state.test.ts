@@ -325,6 +325,8 @@ describe("storing and recalling a scene", () => {
     expect(field, "the title sheet opens on a number that holds nothing").not.toBeNull();
     [...shell.root.querySelectorAll<HTMLElement>(".pick-dialog-ok")][0]?.click();
     await flush();
+    [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === "OK")?.click();
+    await flush();
 
     await shell.ctx.store.set("ch.ch3.level", 0);
     await shell.ctx.store.set("ch.ch1.ssmcs.comp.ratio", 40);

@@ -467,15 +467,16 @@ const SCREEN_OPERATIONS: ScreenOperation[] = [
     act: async (shell) => storeScene(shell.ctx, "Standard", 3),
   },
   {
-    name: "naming a scene number that holds nothing",
+    name: "storing a scene under the title typed for it, on the question's [OK]",
     main: "scene.Standard.4.title",
     prep: async (shell) => {
       await shell.ctx.store.set("scene.selected", 4);
       await open(shell, "scene.list");
       await tap(shell, "button.btn", "Store");
       await typeTitle(shell, "Fresh");
+      await tap(shell, ".pick-dialog-ok");
     },
-    act: async (shell) => tap(shell, ".pick-dialog-ok"),
+    act: async (shell) => tap(shell, ".dialog-actions .btn", "OK"),
   },
   { name: "recording", main: "sd.rec", act: async (shell) => recordTake(shell.ctx.store, 1_000) },
   {

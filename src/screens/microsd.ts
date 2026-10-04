@@ -20,7 +20,7 @@ import { settlePanLink } from "./mix-bus";
 import { allStrips, channelPairs } from "../model/types";
 import { el, markShut, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
-import { LIST_THUMB_MIN_PX, button, dialog, dropdown, listView, loadingDialog, menuButton, menuGrid, meter, pickerGrid, pickerSheet, scrollbar, sideTab, toggle } from "../ui/widgets";
+import { LIST_THUMB_MIN_PX, SHORT_PROGRESS_MS, button, dialog, dropdown, listView, loadingDialog, menuButton, menuGrid, meter, pickerGrid, pickerSheet, scrollbar, sideTab, toggle } from "../ui/widgets";
 import { drawnLevels, pairMeterId } from "./meters";
 import { PLAYBACK_METER, listenedTap } from "./signal-flow";
 import { dateText } from "./date-time";
@@ -875,7 +875,7 @@ function formatUnder(ctx: AppContext, label: string): void {
 }
 
 /** How long a card test runs before its result appears. */
-const TEST_RUN_MS = 3000;
+const TEST_RUN_MS = SHORT_PROGRESS_MS;
 
 /** Test starts on the touch and holds a modal up while it runs; the result follows. */
 function testCard(ctx: AppContext): void {
