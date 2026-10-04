@@ -9,7 +9,7 @@ import { unitById } from "../model/units";
 import { freeBytes, readCard, writeCard } from "../model/card";
 import type { CardEntry } from "../model/card";
 import { buildRegistry } from "./index";
-import { forget, restore } from "../app/persist";
+import { restore } from "../app/persist";
 import { pausePlayback, playedSeconds, recordTake, startPlayback, startRecorderClock, stopPlayback, stopTake } from "./recording";
 import { openTitleEntry } from "./title-entry";
 
@@ -1149,7 +1149,7 @@ describe("what the card's own actions do to it", () => {
         expect(store.num("ch.ch1.level", 99), dir).toBe(-12);
       }
     } finally {
-      forget();
+      window.localStorage.removeItem("urx-lcd-sim.state");
     }
   });
 

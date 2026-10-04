@@ -146,14 +146,22 @@ function unpack(values: Saved["values"], shared: unknown): Record<string, ParamV
   return out;
 }
 
-/** What is stored for `model`, or nothing where the browser holds none of it. */
-export function readSaved(model: string): Record<string, ParamValue> | null {
-  let text: string | null = null;
+/** The unit the browser holds, as it was written; nothing where it holds none or refuses to read it. */
+function storedUnit(): string | null {
   try {
-    text = window.localStorage.getItem(KEY);
+    return window.localStorage.getItem(KEY);
   } catch {
     return null;
   }
+}
+
+/** What is stored for `model`, or nothing where the browser holds none of it. */
+export function readSaved(model: string): Record<string, ParamValue> | null {
+  return unitFor(storedUnit(), model);
+}
+
+/** The values `text` holds for `model`, or nothing where it holds none of them. */
+function unitFor(text: string | null, model: string): Record<string, ParamValue> | null {
   if (!text) return null;
   try {
     const saved = fromJson(text) as Partial<Saved>;
@@ -182,7 +190,7 @@ export function lastModel(): string | null {
 }
 
 /** Keep `model` as the one the simulator opens as next time. */
-export function keepModel(model: string): void {
+function keepModel(model: string): void {
   try {
     window.localStorage.setItem(MODEL_KEY, model);
   } catch {
@@ -251,6 +259,112 @@ export function cardInSlot(store: DeviceStore): Record<string, ParamValue> {
   return values;
 }
 
+/** The Web Lock held by the tab that stores the unit. */
+const HOLD_LOCK = "urx-lcd-sim.state";
+
+/**
+ * A tab's hold on storing the unit. One tab of the browser holds it at a time,
+ * and only the tab holding it writes. A tab keeps it across its own restarts (a
+ * switch of model, [Reset the unit]) and lets it go when the page goes, when
+ * another tab takes it, or once another tab has stored the unit.
+ */
+export interface Hold {
+  /** Whether this tab holds it. */
+  readonly held: boolean;
+  /**
+   * Take it: from the tab holding it where `steal`, otherwise only where no tab
+   * holds it. Resolves whether this tab holds it.
+   */
+  take: (steal: boolean) => Promise<boolean>;
+  /**
+   * Whether this tab still holds it, as the browser's lock manager has it now:
+   * a tab it has been taken from may not have heard yet. Answered at once in a
+   * browser without Web Locks.
+   */
+  confirm: () => boolean | Promise<boolean>;
+  /** Let it go. */
+  release: () => void;
+  /** Told when another tab takes it from this one. */
+  onTaken: () => void;
+}
+
+/** A hold on storing the unit, not yet held, kept by `locks` (the browser's Web Locks). */
+export function openHold(locks: LockManager | undefined = window.navigator.locks): Hold {
+  let held = false;
+  let letGo: (() => void) | null = null;
+  let asking: Promise<boolean> | null = null;
+  /** A lock only this tab asks for, held while the page lives, by which the lock manager names this tab. */
+  const self = locks ? `${HOLD_LOCK}.tab.${crypto.randomUUID()}` : "";
+  const selfHeld = locks
+    ? new Promise<void>((granted) => {
+        locks
+          .request(self, () => {
+            granted();
+            return new Promise<void>(() => {});
+          })
+          .catch(() => granted());
+      })
+    : Promise.resolve();
+  const hold: Hold = {
+    get held() {
+      return held;
+    },
+    onTaken: () => {},
+    take: (steal) => {
+      if (asking) return steal ? asking.then((got) => got || hold.take(true)) : asking;
+      if (!locks) {
+        // A browser without Web Locks: the tab writes while what the browser
+        // holds is what it last read or wrote.
+        held = true;
+        return Promise.resolve(true);
+      }
+      asking = selfHeld
+        .then(
+          () =>
+            new Promise<boolean>((resolve) => {
+              locks
+                .request(HOLD_LOCK, steal ? { steal: true } : { ifAvailable: true }, (lock) => {
+                  if (!lock) {
+                    resolve(false);
+                    return undefined;
+                  }
+                  held = true;
+                  resolve(true);
+                  return new Promise<void>((done) => {
+                    letGo = done;
+                  });
+                })
+                .catch(() => {
+                  // Another tab took it, or the browser refused it.
+                  const had = held;
+                  held = false;
+                  letGo = null;
+                  resolve(false);
+                  if (had) hold.onTaken();
+                });
+            }),
+        )
+        .finally(() => {
+          asking = null;
+        });
+      return asking;
+    },
+    confirm: () => {
+      if (!locks || !held) return held;
+      return locks.query().then(({ held: now = [] }) => {
+        const me = now.find((lock) => lock.name === self)?.clientId;
+        return held && now.some((lock) => lock.name === HOLD_LOCK && lock.clientId === me);
+      });
+    },
+    release: () => {
+      held = false;
+      letGo?.();
+      letGo = null;
+    },
+  };
+  return hold;
+}
+
 /** The steps that end the writing `startSaving` starts. */
 export interface Saving {
   /** Write a change still waiting now, rather than when it falls due. */
@@ -259,11 +373,28 @@ export interface Saving {
   stop: () => void;
 }
 
+/** How a start of the unit stands to what the browser holds. */
+export interface From {
+  /** The tab's hold on storing the unit; one of its own where none is given. */
+  hold?: Hold;
+  /** What to store at once: the model picked, or the whole unit as it stands ([Reset the unit]). */
+  first?: "model" | "unit";
+}
+
 /**
  * Write the unit to storage whenever it changes, and no more often than
  * `delayMs`, telling `onWrite` after each write whether the browser took it.
- * Once another tab of the browser stores the unit or forgets it, stop writing,
- * so as not to write over it, and tell `onElsewhere`.
+ *
+ * Only the tab holding `from.hold` writes. A tab that starts while no tab holds
+ * it holds it from the start. Otherwise a tab takes it with its first change,
+ * or with [Reset the unit], from whichever tab holds it, and only while what
+ * the browser holds is what it held when this saving started or what this tab
+ * last wrote; each write looks at that again first. Once another tab has
+ * stored the unit, forgotten it or taken the hold, this tab stops writing, so
+ * as not to write over it, lets the hold go and tells `onElsewhere`.
+ *
+ * A stored unit keeps its own model as the one the simulator opens as. A model
+ * picked is kept where this tab holds the hold or no tab does.
  * Returns the steps that end it.
  */
 export function startSaving(
@@ -272,14 +403,35 @@ export function startSaving(
   delayMs = 400,
   onWrite: (kept: boolean) => void = () => {},
   onElsewhere: () => void = () => {},
+  from: From = {},
 ): Saving {
+  const hold = from.hold ?? openHold();
+  /** What the browser holds, as it was when this started or as this tab last wrote it. */
+  let seen = storedUnit();
   let timer = 0;
-  const save = (): void => {
-    timer = 0;
+  /** The changes made since the start, and how many of them the last write took in. */
+  let changes = 0;
+  let written = 0;
+  let taking = false;
+  let ended = false;
+  /** The unit as it stands, as it is written, with the changes it takes in. */
+  const prepare = (): { text: string; upTo: number } => {
     const saved: Saved = { version: VERSION, model, ...pack(snapshot(store)) };
+    return { text: toJson(saved), upTo: changes };
+  };
+  const commit = ({ text, upTo }: { text: string; upTo: number }): void => {
+    // A later write has taken these changes in already.
+    if (ended || upTo <= written) return;
+    if (storedUnit() !== seen) {
+      elsewhere();
+      return;
+    }
     let kept = true;
     try {
-      window.localStorage.setItem(KEY, toJson(saved));
+      window.localStorage.setItem(KEY, text);
+      seen = text;
+      written = upTo;
+      keepModel(model);
     } catch {
       // A browser that is full or refuses to store anything keeps what it held
       // before, and the unit runs on.
@@ -287,38 +439,75 @@ export function startSaving(
     }
     onWrite(kept);
   };
+  // Writes once the lock manager answers that this tab still holds the hold: a
+  // tab the hold is taken from while it writes the unit out has not heard yet.
+  const save = (): void => {
+    const write = prepare();
+    const still = hold.confirm();
+    if (still === true) commit(write);
+    else void Promise.resolve(still).then((yes) => (yes ? commit(write) : elsewhere()));
+  };
+  const takeOver = (): void => {
+    if (taking || hold.held) return;
+    if (storedUnit() !== seen) {
+      elsewhere();
+      return;
+    }
+    taking = true;
+    void hold.take(true).then((got) => {
+      taking = false;
+      if (!got) elsewhere();
+      else if (changes > written && !timer) save();
+    });
+  };
+  const due = (): void => {
+    timer = 0;
+    if (hold.held) save();
+  };
   const off = store.onChange(() => {
-    if (timer) return;
-    timer = window.setTimeout(save, delayMs);
+    changes++;
+    if (!hold.held) takeOver();
+    if (!timer && !ended) timer = window.setTimeout(due, delayMs);
   });
   const stop = (): void => {
+    ended = true;
     if (timer) window.clearTimeout(timer);
     timer = 0;
     off();
-    window.removeEventListener("storage", elsewhere);
+    window.removeEventListener("storage", heard);
   };
-  // A storage event reaches a tab only for a write another tab made.
-  const elsewhere = (ev: StorageEvent): void => {
-    if (ev.key !== KEY) return;
+  const elsewhere = (): void => {
+    if (ended) return;
     stop();
+    hold.release();
     onElsewhere();
   };
-  window.addEventListener("storage", elsewhere);
+  // A storage event reaches a tab only for a write another tab made.
+  const heard = (ev: StorageEvent): void => {
+    if (ev.key === KEY) elsewhere();
+  };
+  window.addEventListener("storage", heard);
+  hold.onTaken = elsewhere;
+  if (from.first === "unit") {
+    changes++;
+    if (hold.held) save();
+    else takeOver();
+  } else if (hold.held) {
+    if (from.first === "model") keepModel(model);
+  } else {
+    // A tab that starts while no tab holds the hold holds it from the start.
+    void hold.take(false).then((got) => {
+      if (got && !ended && from.first === "model") keepModel(model);
+    });
+  }
   return {
+    // A page that is going cannot wait for the lock manager, so this writes at once.
     flush: () => {
-      if (!timer) return;
-      window.clearTimeout(timer);
-      save();
+      if (ended || !hold.held || changes <= written) return;
+      if (timer) window.clearTimeout(timer);
+      timer = 0;
+      commit(prepare());
     },
     stop,
   };
-}
-
-/** Leave the browser holding nothing, so the next start is the unit as it ships. */
-export function forget(): void {
-  try {
-    window.localStorage.removeItem(KEY);
-  } catch {
-    // Nothing was stored to begin with.
-  }
 }

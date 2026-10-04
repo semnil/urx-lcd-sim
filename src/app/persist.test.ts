@@ -6,24 +6,30 @@ import type { CardEntry } from "../model/card";
 import { filePath, writeCard } from "../model/card";
 import { captureScene } from "../model/scene-state";
 import { captureSettings } from "../model/settings-file";
+import type { ModelId } from "../model/types";
 import { unitById } from "../model/units";
 import { toJson } from "../device/value-json";
-import { forget, keepModel, lastModel, persisted, readSaved, restore, snapshot, startSaving } from "./persist";
+import { type From, lastModel, openHold, persisted, readSaved, restore, type Saving, snapshot, startSaving } from "./persist";
 
 // The unit comes back as it was left, and what it was doing does not.
 
 const MODEL = "URX44V";
 
-async function unit(): Promise<DeviceStore> {
+async function unit(model: ModelId = MODEL): Promise<DeviceStore> {
   const store = new DeviceStore();
-  await store.attach(new SimTransport(factoryState(unitById(MODEL))));
+  await store.attach(new SimTransport(factoryState(unitById(model))));
   return store;
 }
 
 afterEach(() => {
-  forget();
+  window.localStorage.clear();
   vi.useRealTimers();
 });
+
+/** How many times the unit has been written out as text since `JSON.stringify` was spied on. */
+function unitTexts(stringify: { mock: { calls: unknown[][] } }): number {
+  return stringify.mock.calls.filter(([value]) => typeof value === "object" && value !== null && "values" in value && "version" in value).length;
+}
 
 describe("what a reload carries over", () => {
   it("leaves out what the unit was doing at that moment", () => {
@@ -227,28 +233,32 @@ describe("what a reload carries over", () => {
       expect(lastModel(), "a unit of another version").toBeNull();
       window.localStorage.setItem("urx-lcd-sim.state", JSON.stringify({ version: 1, model: "URX22", values: {} }));
       expect(lastModel(), "a unit stored before the model was kept apart").toBe("URX22");
-      keepModel("URX44");
+      window.localStorage.setItem("urx-lcd-sim.model", "URX44");
       expect(lastModel(), "the model kept apart").toBe("URX44");
     } finally {
       window.localStorage.removeItem("urx-lcd-sim.model");
     }
   });
 
-  it("starts from the unit as it ships once it is forgotten", async () => {
+  it("stores the unit as it ships at once when it starts again from it", async () => {
+    // [Reset the unit]: the unit as it ships takes the place of what was stored.
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const store = await unit();
     const { stop } = startSaving(store, MODEL, 10);
     await store.set("ch.ch1.level", -9);
     vi.advanceTimersByTime(20);
     stop();
-    expect(readSaved(MODEL)).not.toBeNull();
-    forget();
-    expect(readSaved(MODEL)).toBeNull();
+    expect(readSaved(MODEL)?.["ch.ch1.level"]).toBe(-9);
 
     const next = await unit();
-    const before = next.num("ch.ch1.level", 99);
-    await restore(next, MODEL);
-    expect(next.num("ch.ch1.level", 99)).toBe(before);
+    const shipped = next.num("ch.ch1.level", 99);
+    const again = startSaving(next, MODEL, 10, undefined, undefined, { first: "unit" });
+    await settle();
+    expect(readSaved(MODEL)?.["ch.ch1.level"], "before any change falls due").toBe(shipped);
+    again.stop();
+    const after = await unit();
+    await restore(after, MODEL);
+    expect(after.num("ch.ch1.level", 99)).toBe(shipped);
   });
 
   it("runs on where the browser refuses to store anything", async () => {
@@ -277,10 +287,12 @@ describe("what a reload carries over", () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const store = await unit();
     const set = vi.spyOn(Storage.prototype, "setItem");
+    const stringify = vi.spyOn(JSON, "stringify");
     const { stop } = startSaving(store, MODEL, 10);
     for (let i = 0; i < 20; i++) await store.set("ch.ch1.level", -i);
     vi.advanceTimersByTime(20);
-    expect(set).toHaveBeenCalledTimes(1);
+    expect(set.mock.calls.filter(([key]) => key === "urx-lcd-sim.state")).toHaveLength(1);
+    expect(unitTexts(stringify), "and writes it out as text once").toBe(1);
     stop();
     set.mockRestore();
   });
@@ -289,8 +301,10 @@ describe("what a reload carries over", () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const store = await unit();
     const { stop, flush } = startSaving(store, MODEL, 10);
+    const stringify = vi.spyOn(JSON, "stringify");
     flush();
     expect(readSaved(MODEL), "nothing waited").toBeNull();
+    expect(unitTexts(stringify), "nor is the unit written out as text").toBe(0);
     await store.set("ch.ch1.level", -9);
     expect(readSaved(MODEL), "the change is still waiting").toBeNull();
     flush();
@@ -299,12 +313,11 @@ describe("what a reload carries over", () => {
   });
 
   it("drops a change still waiting when it stops", async () => {
-    // [Reset the unit] forgets what was stored and then stops: nothing comes back.
+    // [Reset the unit] stops the unit before it starts again: the change is not stored.
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const store = await unit();
     const { stop, flush } = startSaving(store, MODEL, 10);
     await store.set("ch.ch1.level", -9);
-    forget();
     stop();
     vi.advanceTimersByTime(20);
     flush();
@@ -367,13 +380,308 @@ describe("what a reload carries over", () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const store = await unit();
     let told = 0;
-    const { stop } = startSaving(store, MODEL, 10, undefined, () => told++);
-    window.dispatchEvent(new StorageEvent("storage", { key: "urx-lcd-sim.state", newValue: null, storageArea: window.localStorage }));
+    const { stop, flush } = startSaving(store, MODEL, 10, undefined, () => told++);
     await store.set("ch.ch1.level", -9);
+    flush();
+    expect(readSaved(MODEL)?.["ch.ch1.level"], "this tab stores the unit").toBe(-9);
+    // A tab of an earlier version, whose [Reset the unit] leaves nothing stored.
+    window.localStorage.removeItem("urx-lcd-sim.state");
+    window.dispatchEvent(new StorageEvent("storage", { key: "urx-lcd-sim.state", newValue: null, storageArea: window.localStorage }));
+    expect(told, "told as it hears").toBe(1);
+    await store.set("ch.ch1.level", -8);
     vi.advanceTimersByTime(20);
-    expect(readSaved(MODEL), "[Reset the unit] in the other tab stays done").toBeNull();
+    expect(readSaved(MODEL), "the other tab's reset stays done").toBeNull();
     expect(told).toBe(1);
     stop();
+  });
+});
+
+/**
+ * Web Locks shared by the tabs of a test, as a browser keeps them: each tab
+ * asks through its own view, a grant comes after the request returns, and the
+ * tab a lock is taken from hears of it only on `deliver()`.
+ */
+function webLocks(): { tab: () => LockManager; deliver: () => void; answerLater: () => () => void } {
+  const holders = new Map<string, { client: string; reject: (err: unknown) => void }>();
+  const taken: (() => void)[] = [];
+  let clients = 0;
+  /** Queries the lock manager has not answered yet, once `answerLater` holds them. */
+  let unanswered: (() => void)[] | null = null;
+  const tab = (): LockManager => {
+    const client = `tab ${++clients}`;
+    const request = (name: string, ...rest: unknown[]): Promise<unknown> => {
+      const callback = rest.at(-1) as (lock: Lock | null) => unknown;
+      const options = (rest.length > 1 ? rest[0] : {}) as LockOptions;
+      return new Promise((resolve, reject) => {
+        queueMicrotask(() => {
+          const holder = holders.get(name);
+          if (holder && !options.steal) {
+            resolve(callback(null));
+            return;
+          }
+          if (holder) taken.push(() => holder.reject(new DOMException("The lock was taken.", "AbortError")));
+          const me = { client, reject };
+          holders.set(name, me);
+          void Promise.resolve(callback({ name, mode: "exclusive" } as Lock)).then((value) => {
+            if (holders.get(name) === me) holders.delete(name);
+            resolve(value);
+          });
+        });
+      });
+    };
+    const query = (): Promise<LockManagerSnapshot> =>
+      new Promise((resolve) => {
+        const answer = (): void =>
+          resolve({ held: [...holders].map(([name, h]) => ({ name, mode: "exclusive" as const, clientId: h.client })), pending: [] });
+        if (unanswered) unanswered.push(answer);
+        else answer();
+      });
+    return { request, query } as unknown as LockManager;
+  };
+  const answerLater = (): (() => void) => {
+    const held: (() => void)[] = [];
+    unanswered = held;
+    return () => {
+      unanswered = null;
+      held.forEach((answer) => answer());
+    };
+  };
+  return { tab, deliver: () => taken.splice(0).forEach((tell) => tell()), answerLater };
+}
+
+/** Let the promises in flight settle, as the browser does between tasks. */
+async function settle(): Promise<void> {
+  for (let i = 0; i < 20; i++) await Promise.resolve();
+}
+
+/**
+ * A tab of the browser, holding its hold on storing through `locks` (none: a
+ * browser without Web Locks): its unit, its saving and how often it was told
+ * another tab stores the unit.
+ */
+async function tab(
+  locks: LockManager | undefined,
+  model: ModelId = MODEL,
+  from: From = {},
+): Promise<{ store: DeviceStore; saving: Saving; told: () => number }> {
+  const store = await unit(model);
+  let told = 0;
+  const saving = startSaving(store, model, 10, undefined, () => told++, locks ? { ...from, hold: openHold(locks) } : from);
+  return { store, saving, told: () => told };
+}
+
+describe("one tab at a time", () => {
+  for (const withLocks of [true, false]) {
+    const browser = withLocks ? "with Web Locks" : "without Web Locks";
+    for (const leaving of [false, true]) {
+      it(`stores one tab's change or tells that tab, where a second tab's change comes before the first ${leaving ? "leaves the page" : "falls due"}, ${browser}`, async () => {
+        vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+        const net = withLocks ? webLocks() : null;
+        const a = await tab(net?.tab());
+        const b = await tab(net?.tab());
+        await a.store.set("ch.ch1.level", -9);
+        await settle();
+        await b.store.set("ch.ch2.level", -5);
+        await settle();
+        if (leaving) {
+          a.saving.flush();
+          a.saving.stop();
+        }
+        vi.advanceTimersByTime(10);
+        await settle();
+        const kept = readSaved(MODEL);
+        const mine = [kept?.["ch.ch1.level"] === -9, kept?.["ch.ch2.level"] === -5];
+        expect(mine.filter(Boolean), "one tab's unit is stored, whole").toHaveLength(1);
+        expect(mine[0] || a.told() === 1, "the first tab's change is stored, or the tab says it does not store").toBe(true);
+        expect(mine[1] || b.told() === 1, "the second tab's change is stored, or the tab says it does not store").toBe(true);
+        net?.deliver();
+        await settle();
+        a.saving.stop();
+        b.saving.stop();
+      });
+    }
+
+    it(`leaves the unit with the tab that stored it where a second tab changes what it read before that, ${browser}`, async () => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      const net = withLocks ? webLocks() : null;
+      const a = await tab(net?.tab());
+      const b = await tab(net?.tab());
+      await a.store.set("ch.ch1.level", -9);
+      await settle();
+      vi.advanceTimersByTime(10);
+      await settle();
+      expect(readSaved(MODEL)?.["ch.ch1.level"]).toBe(-9);
+      // The second tab has not heard of that write yet.
+      await b.store.set("ch.ch2.level", -5);
+      await settle();
+      vi.advanceTimersByTime(10);
+      await settle();
+      expect(b.told(), "the second tab says it does not store").toBe(1);
+      await a.store.set("ch.ch1.level", -8);
+      await settle();
+      vi.advanceTimersByTime(10);
+      await settle();
+      expect(readSaved(MODEL)?.["ch.ch1.level"], "the first tab stores on").toBe(-8);
+      expect(readSaved(MODEL)?.["ch.ch2.level"], "and the second tab's change is not stored").not.toBe(-5);
+      expect(a.told()).toBe(0);
+      a.saving.stop();
+      b.saving.stop();
+    });
+  }
+
+  it("leaves unwritten the write of a tab whose hold was taken before it heard, and tells that tab", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const net = webLocks();
+    const a = await tab(net.tab());
+    const b = await tab(net.tab());
+    await a.store.set("ch.ch1.level", -9);
+    await settle();
+    // The second tab takes the hold; the first has not heard when its change falls due.
+    await b.store.set("ch.ch2.level", -5);
+    await settle();
+    vi.advanceTimersByTime(10);
+    await settle();
+    expect(readSaved(MODEL)?.["ch.ch1.level"], "the first tab's write is not made").not.toBe(-9);
+    expect(a.told(), "and the first tab says it does not store").toBe(1);
+    expect(readSaved(MODEL)?.["ch.ch2.level"], "the second tab stores").toBe(-5);
+    net.deliver();
+    await settle();
+    a.saving.stop();
+    b.saving.stop();
+  });
+
+  it("stores a change made at once after it starts on leaving the page, where no tab holds the hold", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const net = webLocks();
+    const a = await tab(net.tab());
+    await settle();
+    await a.store.set("ch.ch1.level", -9);
+    a.saving.flush();
+    expect(readSaved(MODEL)?.["ch.ch1.level"]).toBe(-9);
+    a.saving.stop();
+  });
+
+  it("keeps the newest change where a write the lock manager answers late comes after one written at once", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const net = webLocks();
+    const a = await tab(net.tab());
+    await settle();
+    await a.store.set("ch.ch1.level", -9);
+    const answer = net.answerLater();
+    vi.advanceTimersByTime(10);
+    // The page goes into the back/forward cache: the change since is written at once.
+    await a.store.set("ch.ch1.level", -8);
+    a.saving.flush();
+    expect(readSaved(MODEL)?.["ch.ch1.level"]).toBe(-8);
+    answer();
+    await settle();
+    expect(readSaved(MODEL)?.["ch.ch1.level"], "the earlier write does not land over it").toBe(-8);
+    a.saving.stop();
+  });
+
+  it("leaves the hold to another tab once it stops storing", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const net = webLocks();
+    const a = await tab(net.tab());
+    await settle();
+    // A tab of an earlier version, which holds no lock, stores the unit.
+    const theirs = JSON.stringify({ version: 1, model: MODEL, values: { "ch.ch1.level": -20 } });
+    window.localStorage.setItem("urx-lcd-sim.state", theirs);
+    window.dispatchEvent(new StorageEvent("storage", { key: "urx-lcd-sim.state", newValue: theirs, storageArea: window.localStorage }));
+    expect(a.told()).toBe(1);
+    const c = await tab(net.tab(), "URX22", { first: "model" });
+    await settle();
+    expect(lastModel(), "a model picked in another tab is kept").toBe("URX22");
+    a.saving.stop();
+    c.saving.stop();
+  });
+
+  it("takes storing over with a change made while it is still asking for the hold it starts with", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const net = webLocks();
+    const a = await tab(net.tab());
+    await settle();
+    const b = await tab(net.tab());
+    await b.store.set("ch.ch2.level", -5);
+    await settle();
+    net.deliver();
+    await settle();
+    expect(a.told(), "the first tab is told").toBe(1);
+    vi.advanceTimersByTime(10);
+    await settle();
+    expect(readSaved(MODEL)?.["ch.ch2.level"]).toBe(-5);
+    a.saving.stop();
+    b.saving.stop();
+  });
+
+  it("hands storing to a tab opened on what was stored with its first change, and tells the tab it takes it from", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const net = webLocks();
+    const a = await tab(net.tab());
+    await a.store.set("ch.ch1.level", -9);
+    await settle();
+    vi.advanceTimersByTime(10);
+    await settle();
+    const bStore = await unit();
+    await restore(bStore, MODEL);
+    let bTold = 0;
+    const b = startSaving(bStore, MODEL, 10, undefined, () => bTold++, { hold: openHold(net.tab()) });
+    await settle();
+    expect(a.told(), "opening a second tab takes nothing").toBe(0);
+    await bStore.set("ch.ch2.level", -5);
+    await settle();
+    net.deliver();
+    await settle();
+    expect(a.told(), "the first tab is told").toBe(1);
+    vi.advanceTimersByTime(10);
+    await settle();
+    expect([readSaved(MODEL)?.["ch.ch1.level"], readSaved(MODEL)?.["ch.ch2.level"]], "the second tab stores what it opened on and its change").toEqual([-9, -5]);
+    await a.store.set("ch.ch3.level", -1);
+    vi.advanceTimersByTime(10);
+    await settle();
+    expect(readSaved(MODEL)?.["ch.ch3.level"], "the first tab stores no more").not.toBe(-1);
+    expect(bTold).toBe(0);
+    a.saving.stop();
+    b.stop();
+  });
+
+  it("opens next on the model of the unit stored last, over a model picked in a tab that does not store", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const net = webLocks();
+    const a = await tab(net.tab(), "URX22", { first: "model" });
+    await settle();
+    const b = await tab(net.tab(), "URX44V", { first: "model" });
+    await settle();
+    expect(lastModel(), "the second tab's pick is not kept while the first stores").toBe("URX22");
+    await a.store.set("ch.ch1.level", -9);
+    await settle();
+    vi.advanceTimersByTime(10);
+    await settle();
+    expect(lastModel()).toBe("URX22");
+    expect(readSaved("URX22")?.["ch.ch1.level"]).toBe(-9);
+    a.saving.stop();
+    b.saving.stop();
+  });
+
+  it("opens next on the model of the unit stored last, over a model picked first in another tab", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const net = webLocks();
+    const b = await tab(net.tab(), "URX44V", { first: "model" });
+    await settle();
+    const a = await tab(net.tab(), "URX22");
+    await settle();
+    expect(lastModel(), "a pick is kept in the tab that stores").toBe("URX44V");
+    await a.store.set("ch.ch1.level", -9);
+    await settle();
+    net.deliver();
+    await settle();
+    expect(b.told(), "the tab that picked is told").toBe(1);
+    vi.advanceTimersByTime(10);
+    await settle();
+    expect(lastModel()).toBe("URX22");
+    expect(readSaved("URX22")?.["ch.ch1.level"]).toBe(-9);
+    a.saving.stop();
+    b.saving.stop();
   });
 });
 
@@ -413,7 +721,7 @@ describe("the room a unit takes in the browser", () => {
     for (const files of [0, 1]) {
       const store = await fullUnit(files);
       scenes = store.paths().filter((p) => /^scene\..+\.state$/.test(p)).reduce((sum, p) => sum + store.str(p, "").length, 0);
-      forget();
+      window.localStorage.removeItem("urx-lcd-sim.state");
       const { stop, flush } = startSaving(store, MODEL, 10);
       await store.set("ch.ch1.level", -33);
       flush();

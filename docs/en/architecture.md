@@ -85,15 +85,16 @@ on the same model (`src/app/persist.ts`). A burst of changes is written once, 40
 of them, under the key `urx-lcd-sim.state`; a stored unit of another model or another version is not
 read. Leaving the page and switching the model write a change still waiting to be written there and
 then. A page the browser keeps and brings back on [Back] runs on as it was left. The simulator opens
-on the model it was last used as, kept under the key `urx-lcd-sim.model` (where that key is missing,
-it opens on the stored unit's model). There is one stored unit across the models: after the model
-selector switches to another model, the first change replaces what the previous model stored.
+on the model kept under the key `urx-lcd-sim.model`: the model of the unit stored last, or a model
+picked after it (where that key is missing, it opens on the stored unit's model). There is one stored
+unit across the models: after the model selector switches to another model, the first change replaces
+what the previous model stored.
 
 What is left out is **what the unit was doing** at that moment: a take or a playback running
 (`sd.rec` and the rest) and a name half typed (`ui.titleEntry.`, `ui.dateTimeDraft.`) come back
 stopped, as they do on a unit that has been switched off. The result of TOOLS' card test (`sd.tested`)
 is left out too, as a unit switched off no longer shows it. [Reset the unit], outside the screen, asks
-first and then forgets what was stored and starts again from the unit as it ships. The card in the
+first, then starts again from the unit as it ships and stores it at once over what was stored. The card in the
 slot stays as it stands, with its takes, settings files and volume label ([Format microSD] on TOOLS
 empties it). The question sits on a panel laid over the page under the button, so the other controls
 and the glass stay where they are, and a click on its [Reset] does not answer as the second click of a
@@ -127,15 +128,26 @@ and takes this shape the next time it is written. When the browser refuses a wri
 it keeps the unit it last took; for as long as that lasts, a line under the controls outside the screen says the
 browser is not keeping the unit, and it goes once a write is taken again.
 
-When another tab of the same browser writes the unit or forgets it ([Reset the unit]), a tab that was open stops
-writing, so as not to write over the other tab's unit, and says so on the same line. It writes again once it starts
-again, on a reload, a switch of model or [Reset the unit].
+One tab of the browser at a time writes the unit: the tab holding a Web Lock (`navigator.locks`) under the name
+`urx-lcd-sim.state`. A tab that starts while no tab holds the lock holds it from the start. Another tab takes it with
+its first change or with [Reset the unit], and only while the stored unit is the one it read when it started. Before
+each write, a tab asks the browser's lock manager whether it still holds the lock, since a tab the lock was taken from
+in the middle of a write has not heard yet, and looks again at whether the stored unit is the one it read or last
+wrote. Leaving the page cannot wait for the lock manager's answer, so the change still waiting is written at once by
+the tab holding the lock. A model picked is kept where the tab holds the lock or no tab does, and each unit stored
+keeps its own model under `urx-lcd-sim.model`.
+
+A tab that finds another tab has stored or removed the unit, or taken the lock, stops writing, so as not to write over
+the other tab's unit, and says so on the same line. It writes again once it starts again, on a reload, a switch of
+model or [Reset the unit]. Where the browser has no Web Locks (outside a secure context, such as a page served over
+plain http from an address other than `localhost`), the look at the stored unit before each write is all that keeps
+two tabs apart.
 
 ```mermaid
 flowchart LR
   ST["DeviceStore"] -->|"on change, 400 ms after the last"| LS["localStorage<br/>urx-lcd-sim.state"]
   LS -->|"opening on the same model"| ST
-  RS["[Reset the unit]"] -->|"ask, forget and start again"| LS
+  RS["[Reset the unit]"] -->|"ask, start again and store the unit as it ships"| LS
 ```
 
 ## Addressing parameters

@@ -163,7 +163,8 @@ describe("[Reset the unit]", () => {
     await press("Enter");
     resetButton(app, "Reset")?.focus();
     await press("Enter");
-    expect(window.localStorage.getItem(KEY)).toBeNull();
+    for (let i = 0; i < 100 && readSaved("URX44V")?.["ch.ch1.level"] !== 0; i++) await flush();
+    expect(readSaved("URX44V")?.["ch.ch1.level"], "the unit as it ships is stored in place of what was").toBe(0);
     expect(app.querySelector(".chrome-reset-ask"), "the unit starts again").toBeNull();
   });
 });
@@ -182,6 +183,7 @@ describe("the page's landmarks", () => {
 // the screen it mounts. A reload is the page torn down and main.ts run afresh.
 
 const STATE_KEY = "urx-lcd-sim.state";
+const MODEL_KEY = "urx-lcd-sim.model";
 
 /** The browser's own timer, which keeps running while a test holds the page's timers still. */
 const realSetTimeout = globalThis.setTimeout;
@@ -279,8 +281,20 @@ describe("the model the page opens on", () => {
     expect(firstLevel()?.getAttribute("aria-valuenow")).toBe("-9");
   });
 
+  it("opens on the model of the unit stored last, after another tab picked another model", async () => {
+    await openPage();
+    await chooseModel("URX22");
+    window.localStorage.setItem(MODEL_KEY, "URX44V");
+    window.dispatchEvent(new StorageEvent("storage", { key: MODEL_KEY, newValue: "URX44V", storageArea: window.localStorage }));
+    const edited = await nudgeLevel("URX22");
+
+    await openPage();
+    expect([modelSelect()?.value, lcdModel()]).toEqual(["URX22", "URX22 LCD"]);
+    expect(firstLevel()?.getAttribute("aria-valuenow"), "the URX22's level comes back").toBe(edited);
+  });
+
   it("opens on a URX44V where the kept model is none the simulator has", async () => {
-    window.localStorage.setItem("urx-lcd-sim.model", "URX99");
+    window.localStorage.setItem(MODEL_KEY, "URX99");
     await openPage();
     expect(modelSelect()?.value).toBe("URX44V");
   });
@@ -318,21 +332,25 @@ describe("[Reset the unit]", () => {
     await asking();
     await pause(600);
     click(button("Reset"), 2);
-    expect(window.localStorage.getItem(STATE_KEY)).not.toBeNull();
+    await pause(100);
+    expect(readSaved("URX44V")?.["ch.ch1.level"]).toBe(-9);
+    expect(firstLevel()?.getAttribute("aria-valuenow")).toBe("-9");
   });
 
   it("leaves the unit alone when [Reset] is pressed the moment the question appears", async () => {
     await asking();
     click(button("Reset"), 1);
-    expect(window.localStorage.getItem(STATE_KEY)).not.toBeNull();
+    await pause(100);
+    expect(readSaved("URX44V")?.["ch.ch1.level"]).toBe(-9);
+    expect(firstLevel()?.getAttribute("aria-valuenow")).toBe("-9");
   });
 
   it("starts again from the unit as it ships when [Reset] is pressed once the question is up", async () => {
     await asking();
     await pause(600);
     click(button("Reset"), 1);
-    expect(window.localStorage.getItem(STATE_KEY), "what was stored is dropped").toBeNull();
     await until("the unit as it ships", () => firstLevel()?.getAttribute("aria-valuenow") !== "-9");
+    await until("the unit as it ships to be stored", () => readSaved("URX44V")?.["ch.ch1.level"] === Number(shownLevel()));
   });
 
   it("leaves the card in the slot as it is", async () => {
@@ -395,7 +413,7 @@ describe("a change still waiting to be stored", () => {
     const reset = [...box.querySelectorAll<HTMLElement>("button")].find((b) => b.textContent === "Reset")!;
     reset.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
     await until("the unit as it ships", () => shownLevel() === "0");
-    expect(window.localStorage.getItem(STATE_KEY), "nothing is written back").toBeNull();
+    expect(readSaved("URX44V")?.["ch.ch1.level"], "the change is not written back, and the unit as it ships is").toBe(0);
   });
 });
 

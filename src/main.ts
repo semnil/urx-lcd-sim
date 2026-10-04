@@ -9,7 +9,7 @@ import "./style/tokens.css";
 import "./style/app.css";
 import "./style/lcd.css";
 
-import { cardInSlot, forget, keepModel, lastModel, restore, startSaving } from "./app/persist";
+import { cardInSlot, lastModel, openHold, restore, startSaving } from "./app/persist";
 import { Shell } from "./app/shell";
 import type { ParamValue } from "./device/path";
 import { DeviceStore } from "./device/store";
@@ -61,17 +61,30 @@ let disposeMounted: (() => void) | null = null;
 /** Stores a change of the mounted unit still waiting to be stored. */
 let flushMounted: (() => void) | null = null;
 
-/** Start `modelId` in `mount`, with `card` (its paths and values) put back in the slot. */
-async function boot(modelId: ModelId, mount: HTMLElement, card: Record<string, ParamValue> = {}): Promise<void> {
+/** This tab's hold on storing the unit, kept across the unit's restarts in the tab. */
+const hold = openHold();
+
+/**
+ * Start `modelId` in `mount`: on opening the page, on a model `"picked"`, or
+ * on [Reset the unit] (`"reset"`) with `card` (its paths and values) put back
+ * in the slot.
+ */
+async function boot(
+  modelId: ModelId,
+  mount: HTMLElement,
+  how: "opened" | "picked" | "reset" = "opened",
+  card: Record<string, ParamValue> = {},
+): Promise<void> {
   disposeMounted?.();
   disposeMounted = null;
   flushMounted = null;
-  keepModel(modelId);
   const model = unitById(modelId);
   const store = new DeviceStore();
   const transport = new SimTransport(factoryState(model));
   await store.attach(transport);
-  await restore(store, modelId);
+  // A reset starts from the unit as it ships, and stores it with the card at once.
+  if (how !== "reset") await restore(store, modelId);
+  for (const [path, value] of Object.entries(card)) await store.restore(path, value);
   // Stands under the chrome's controls while the browser refuses the unit, full
   // or blocked, and goes once a write is taken again. Once another tab has
   // stored the unit, it says so instead and stays until the unit starts again.
@@ -88,9 +101,9 @@ async function boot(modelId: ModelId, mount: HTMLElement, card: Record<string, P
       unkept.textContent = ELSEWHERE_TEXT;
       unkept.hidden = false;
     },
+    how === "opened" ? { hold } : { hold, first: how === "reset" ? "unit" : "model" },
   );
   flushMounted = saving.flush;
-  for (const [path, value] of Object.entries(card)) await store.restore(path, value);
 
   const shell = new Shell(buildRegistry(), store, model);
   const panel = buildPanel(shell);
@@ -105,7 +118,7 @@ async function boot(modelId: ModelId, mount: HTMLElement, card: Record<string, P
   }
   modelSelect.addEventListener("change", () => {
     saving.flush();
-    void boot(modelSelect.value as ModelId, mount);
+    void boot(modelSelect.value as ModelId, mount, "picked");
   });
 
   const zoomSelect = el("select", { class: "chrome-select", attrs: { "aria-label": "Display scale" } }) as HTMLSelectElement;
@@ -149,9 +162,7 @@ async function boot(modelId: ModelId, mount: HTMLElement, card: Record<string, P
                 el("span", { class: "chrome-reset-ask", text: "Drop everything and start again?" }),
                 el("button", { class: "chrome-button is-danger", text: "Reset", onTap: (ev) => {
                   if (ev instanceof MouseEvent && (ev.detail > 1 || performance.now() - askedAt < RESET_HOLD_MS)) return;
-                  const card = cardInSlot(store);
-                  forget();
-                  void boot(modelId, mount, card);
+                  void boot(modelId, mount, "reset", cardInSlot(store));
                 } }),
                 cancel,
               ],
@@ -228,7 +239,8 @@ async function boot(modelId: ModelId, mount: HTMLElement, card: Record<string, P
 }
 
 // Leaving the page stores a change still waiting. A page the browser keeps to
-// bring back on [Back] runs on as it was; a page let go is torn down.
+// bring back on [Back] runs on as it was, still holding the hold on storing; a
+// page let go is torn down.
 window.addEventListener("pagehide", (ev) => {
   flushMounted?.();
   if (!ev.persisted) disposeMounted?.();
