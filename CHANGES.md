@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Leave OUTPUT PATCH's and PERIPHERAL's tabs and SCENE LIST's Standard / Simple tab and cursor where they stand when a settings file is loaded. A settings file carried them, so a load moved those screens back to where they stood when the file was saved.
+- Leave OUTPUT PATCH's and PERIPHERAL's tabs and SCENE LIST's Standard / Simple tab where they stand when a settings file is loaded, as the unit does; SCENE LIST opens the other tab only where the open one does not list the row its cursor comes back to. A settings file carried them, so a load moved those screens back to where they stood when the file was saved.
 - Leave the card in the slot as it is on [Reset the unit], with its takes, settings files and volume label. A reset emptied the card along with the unit's memory.
 - Store the unit from one tab of the browser at a time, and say on a banner over the top of the page when a tab no longer stores it. Two tabs each stored their own unit over the other's, so a reload dropped what the other tab had changed without a word.
 - Keep a page the browser brings back on [Back] running as it was left. After leaving for another page and coming back, the values did not change, the meters stood still, Escape did nothing and no change was stored until a reload.

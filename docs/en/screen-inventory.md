@@ -1687,9 +1687,13 @@ that is open, asks `File already exists. Replace it?` first; loading asks nothin
 the folder as it is and writes nothing, as the unit does. A [Save as] name that differs from a settings file's in the folder
 that is open in case alone asks nothing and writes over that file, which keeps its name as it was spelt, as the unit does; one
 that differs from a folder's in case alone asks nothing and writes nothing. [Save] and [Load] stand out of reach until a settings file is under the
-cursor. A settings file carries every value but the screen's own state (`ui.`, the tabs OUTPUT PATCH
-and PERIPHERAL stand on, and SCENE LIST's Standard / Simple tab and cursor) and the card itself
-(`sd.`), so a load leaves the tabs and the cursor where they stand. The bank USER DEFINED KNOBS
+cursor. A settings file carries every value but the screen's own state (`ui.`, and the tabs OUTPUT
+PATCH, PERIPHERAL and SCENE LIST's Standard / Simple stand on) and the card itself (`sd.`), so a load
+leaves those tabs where they stand, as on the unit (URX44V, the operator, 2026-10-04). SCENE LIST's
+cursor is in the file, and a load puts it back on the row it stood on when the file was saved, as on
+the unit (URX44V, the operator, 2026-10-04, on Standard's list). Where the tab standing open does not
+list that row, SCENE LIST opens the tab that does; a row both tabs list leaves the open tab where it
+stands (URX44V, the operator, 2026-10-04, for Simple's P02 and 09 loaded with Standard open, and Standard's 00 loaded with Simple open). The bank USER DEFINED KNOBS
 stands on is in the file, and a load brings back the bank the file was saved on, as on the unit
 (URX44V, the operator, 2026-10-03). A source the file holds no D.Gain for comes back to 0 dB when it
 is loaded, and a scene number the file holds nothing under comes back empty.

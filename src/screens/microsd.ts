@@ -14,6 +14,7 @@ import { applySettings, captureSettings } from "../model/settings-file";
 import { onDynamicsTimeStops } from "../model/dynamics-times";
 import { TRACK_COUNTS, dropTracksOverRate, trackCountCeiling } from "../model/track-count";
 import { dropInsertsOverRate } from "./insert-fx";
+import { followSceneCursor } from "./scene";
 import { followRecall, pairStates } from "./stereo-link";
 import { settlePanLink } from "./mix-bus";
 import { allStrips, channelPairs } from "../model/types";
@@ -487,6 +488,7 @@ function loadSettings(ctx: AppContext, entry: CardEntry): void {
     dropInsertsOverRate(ctx, rate);
     dropTracksOverRate(ctx.store, rate);
     releaseOnRateChange(ctx.store, before, rate);
+    followSceneCursor(ctx);
     ctx.repaint();
   });
 }

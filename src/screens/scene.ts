@@ -115,6 +115,18 @@ function sceneRows(ctx: AppContext, bank: string): number[] {
   return [...SIMPLE_PRESETS.map((_, i) => PRESET_BASE + i + 1), ...numbers.filter((n) => !ctx.store.str(`scene.Standard.${n}.title`, ""))];
 }
 
+/**
+ * Once a settings file has put SCENE LIST's cursor back, open the tab that lists
+ * its row where the tab standing open does not; a tab that lists it stays.
+ */
+export function followSceneCursor(ctx: AppContext): void {
+  const bank = ctx.store.str("scene.bank", "Standard");
+  const picked = ctx.store.num("scene.selected", 0);
+  if (sceneRows(ctx, bank).includes(picked)) return;
+  const other = bank === "Simple" ? "Standard" : "Simple";
+  if (sceneRows(ctx, other).includes(picked)) void ctx.store.set("scene.bank", other);
+}
+
 /** In Standard Mode, Simple's list can be recalled from but not stored to or edited. */
 function readOnlyBank(ctx: AppContext, bank: string): boolean {
   return bank === "Simple" && ctx.store.str("setup.operationMode", "Standard") === "Standard";
