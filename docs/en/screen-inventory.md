@@ -465,8 +465,8 @@ face (white for COMP). A block with a value the knob turns takes the focus at th
 opens that block's screen at the next: GATE, COMP and DUCKER turn their threshold, DELAY its time, and COMP and EQ their
 depth while 1-knob is on. EQ with 1-knob off and INS FX open the screen at the first touch.
 DELAY's block turns its time as the DELAY screen's ms cell does, 1.00 ms a detent with the hundredths kept
-(45.86 ms goes to 46.86 ms), and the same 1.00 ms with Shift held: the channel view's knobs do not push in, so
-they turn it no finer (URX44V, the operator, 2026-10-03).
+(45.86 ms goes to 46.86 ms), and the same 1.00 ms with Shift held: the knob of STREAMING's channel view DELAY
+block does not push in, so it turns the time no finer (URX44V, the operator, 2026-10-03).
 The touch that only brings the focus does not sink the panel, which gains its frame alone; the touch that opens the
 screen sinks it.
 

@@ -1322,7 +1322,7 @@ describe("a processing block on the channel view", () => {
     // 46.87 ms × 50 is 2343.5, and the time goes to 46.88 ms.
     expect(await turn(4587, "ArrowUp", 1), "onto 0.02 ms").toEqual([4688]);
     expect([...(await turn(99912, "ArrowUp", 1)), ...(await turn(178, "ArrowDown", 1))], "stopped at either end").toEqual([100000, 100]);
-    // The channel view's knobs do not push in, and Shift turns the same detent.
+    // The DELAY block's knob does not push in, and Shift turns the same detent.
     expect([...(await turn(4586, "ArrowUp", 1, true)), ...(await turn(2400, "ArrowDown", 1, true))], "1.00 ms with Shift too").toEqual([4686, 2300]);
     expect([...(await turn(99912, "ArrowUp", 1, true)), ...(await turn(178, "ArrowDown", 1, true))], "and the ends with Shift").toEqual([100000, 100]);
 
