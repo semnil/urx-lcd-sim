@@ -1821,8 +1821,10 @@ middle of their cells.
 [Store] opens the title entry sheet on the last recalled scene's title, on a number with nothing stored and on a stored
 one alike. The sheet's [OK] goes back to the list and asks `Store to "Scene Memory #05"?` (the number is the picked
 scene's) with [Cancel] / [OK]; [OK] stores the typed title and the mixer under the number, makes it the recalled scene, and
-holds a `Scene store is in progress...` modal up for 3 seconds, as long as TOOLS' `Testing in progress...`. [Cancel] on the
-sheet and on the question stores nothing.
+holds a `Scene store is in progress...` modal up for 2 seconds, as long as a RECORDER tab's `Loading...`. On the unit
+the modal stood for about 1 to 3 seconds, a little longer or shorter each time (URX44V, the operator, 2026-10-04), and
+the simulator holds it the same 2 seconds each time (the operator's choice). [Cancel] on the sheet and on the question
+stores nothing.
 
 [Recall] cannot be used on a number with nothing stored, and a press asks nothing. On a stored number and on a factory scene
 it asks `Recall scene "Band"?` (the title is the picked scene's) with [Cancel] / [OK], and on [OK] puts that scene's mixer

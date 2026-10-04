@@ -6137,7 +6137,7 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
     expect(shell.root.querySelector(".cv-block-value.cv-delay-value")).not.toBeNull();
   });
 
-  it("holds a card test's progress modal up as long as a scene store's", async () => {
+  it("holds a RECORDER tab's loading up as long as a scene store's", async () => {
     /** The modal's words as the touch leaves it, a moment before the short time is up, and once it is. */
     const watch = async (shell: Shell, touch: () => void): Promise<(string | null)[]> => {
       const at = (): string | null => shell.root.querySelector('.dialog-overlay[role="status"] .dialog-text')?.textContent ?? null;
@@ -6154,14 +6154,10 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
       }
     };
     const shell = await mount();
-    shell.ctx.nav.push({ id: "microsd.tools" });
-    await shell.ctx.store.set("ui.sdToolsTab", "Test");
+    shell.ctx.nav.push({ id: "microsd.recorder" });
     await flush();
-    expect(await watch(shell, () => shell.root.querySelector<HTMLElement>(".tools-screen > .btn")?.click()), "a card test").toEqual([
-      "Testing in progress...",
-      "Testing in progress...",
-      null,
-    ]);
+    const play = [...shell.root.querySelectorAll<HTMLElement>(".side-tab")].find((t) => t.textContent === "Play");
+    expect(await watch(shell, () => play?.click()), "a RECORDER tab").toEqual(["Loading...", "Loading...", null]);
   });
 
   it("gives TOOLS the eject button and reports a test once it has run, holding a modal up while it runs", async () => {

@@ -881,7 +881,7 @@ function formatUnder(ctx: AppContext, label: string): void {
 }
 
 /** How long a card test runs before its result appears. */
-const TEST_RUN_MS = SHORT_PROGRESS_MS;
+const TEST_RUN_MS = 3000;
 
 /** Test starts on the touch and holds a modal up while it runs; the result follows. */
 function testCard(ctx: AppContext): void {
@@ -945,7 +945,7 @@ const SD_TAB_ICON: Record<string, () => SVGSVGElement> = {
 };
 
 /** How long the recorder holds its loading modal up before the tab appears, the same each time. */
-const SD_TAB_LOADING_MS = 2000;
+const SD_TAB_LOADING_MS = SHORT_PROGRESS_MS;
 
 /**
  * Whether RECORDER's tab `to` opens: recording mode keeps the tab it is in, and

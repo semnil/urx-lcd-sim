@@ -1111,8 +1111,8 @@ export function dropdown(ctx: AppContext, spec: DropdownSpec): HTMLElement {
   return node;
 }
 
-/** How long the short progress modals stand: a card test, a scene being stored. */
-export const SHORT_PROGRESS_MS = 3000;
+/** How long the short progress modals stand, the same each time: a RECORDER tab loading, a scene being stored. */
+export const SHORT_PROGRESS_MS = 2000;
 
 /**
  * The modal the unit holds up while a screen loads: the dialog's frame with a
