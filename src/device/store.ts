@@ -235,12 +235,15 @@ export class DeviceStore {
     if (previous === value && (carried || !this.awaiting.has(path))) return Promise.resolve();
     this.mirror.set(path, value);
     this.markChanged(path);
+    const t = this.transport;
     // Each write the rule adds is an edit with its own optimistic update and
     // its own revert. A rule that points back at the path it was given stops
     // on the guard above, which has already taken the new value.
-    if (carry && this.writeRule) for (const [p, v] of this.writeRule(path, value)) void this.write(p, v, true, true);
+    // An edit to a path the transport cannot write carries none of them.
+    if (carry && this.writeRule && t?.writable?.(path) !== false) {
+      for (const [p, v] of this.writeRule(path, value)) void this.write(p, v, true, true);
+    }
 
-    const t = this.transport;
     if (!t) return Promise.resolve();
     const awaited = this.awaiting.get(path) ?? { newest: 0, sent: 0, open: 0, held: previous, heard: 0 };
     const n = ++this.writes;

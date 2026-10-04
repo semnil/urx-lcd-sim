@@ -46,6 +46,12 @@ export interface DeviceTransport {
    */
   write(path: ParamPath, value: ParamValue, onSent?: () => void): Promise<ParamValue>;
 
+  /**
+   * Whether `write` can take `path` at all. False for a path it refuses
+   * whatever the value. A transport without it takes every path.
+   */
+  writable?(path: ParamPath): boolean;
+
   /** Register for device-originated changes. Returns an unsubscribe function. */
   onNotify(listener: (n: Notify) => void): () => void;
 

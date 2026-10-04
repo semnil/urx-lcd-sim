@@ -108,4 +108,8 @@ sequenceDiagram
 束縛したパスだけが載る。束縛していないパスは値を持たず、読むと呼び出し側の既定値が返る。その編集は
 `BridgeTransport` が `UnboundPathError` で拒否し、`DeviceStore` はミラーを元に戻して `onWriteFailure` で知らせる
 (`src/device/bridge-transport.test.ts` の「mirrors the bound paths alone, puts an edit to an unbound path back and
-writes a bound one」)。
+writes a bound one」)。この編集は、書き込み規則が編集に連れていく書き込み ([architecture.md](architecture.md) の
+「1 つの編集が連れていく書き込み」) を 1 つも連れていかない。`DeviceStore` は連れていく前に `BridgeTransport.writable()` を
+確かめるので、束縛していない HI-Z を入れても A.Gain は実機へ送られず、リンクしたペアの束縛していないパスへの編集は
+もう片方のチャンネルの分を何も送らない (同じファイルの「sends none of the writes the Shell's rule carries with an edit to
+an unbound path」)。

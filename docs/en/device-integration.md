@@ -117,4 +117,8 @@ the mirror holds the bound paths alone. An unbound path holds no value, and a re
 caller's fallback. An edit to it is refused by `BridgeTransport` with `UnboundPathError`, and
 `DeviceStore` puts the mirror back and reports the refusal through `onWriteFailure` ("mirrors the bound
 paths alone, puts an edit to an unbound path back and writes a bound one" in
-`src/device/bridge-transport.test.ts`).
+`src/device/bridge-transport.test.ts`). Such an edit carries none of the writes the write rule adds to an
+edit ("The writes one edit carries with it" in [architecture.md](architecture.md)): `DeviceStore` asks
+`BridgeTransport.writable()` before it carries them, so switching on an unbound HI-Z sends no A.Gain to the
+unit, and an edit to an unbound path of a linked pair sends nothing for the other channel ("sends none of
+the writes the Shell's rule carries with an edit to an unbound path" in the same file).
