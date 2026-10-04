@@ -1058,6 +1058,60 @@ describe("the microSD card browser", () => {
     }
   });
 
+  it("holds playback out of the keys' reach behind Loading..., and Record and Edit out of it while a file is held", async () => {
+    const shell = await mount({ id: "microsd.recorder" }, [entry("take.wav", "take", 600)]);
+    document.body.appendChild(shell.root);
+    const store = shell.ctx.store;
+    const tab = (label: string): HTMLElement | undefined =>
+      [...shell.root.querySelectorAll<HTMLElement>(".side-tab")].find((t) => t.querySelector(".side-tab-label")?.textContent === label);
+    const control = (cls: string): HTMLElement | null => shell.root.querySelector<HTMLElement>(`.sd-actions > .${cls}`);
+    const settle = async (): Promise<void> => {
+      for (let i = 0; i < 5; i++) await Promise.resolve();
+    };
+    // Enter pressed and let go on a control the focus is put on.
+    const enter = async (node: HTMLElement | null | undefined): Promise<void> => {
+      node?.focus();
+      node?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+      await settle();
+      node?.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter", bubbles: true, cancelable: true }));
+      await settle();
+    };
+    const modal = (): string | null => shell.root.querySelector(".dialog-text")?.textContent ?? null;
+    await pickTab(shell, "ui.sdTab", "Play");
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await enter(tab("Edit"));
+      expect(modal(), "Edit loads").toBe("Loading...");
+      expect(
+        [control("rec-pause"), control("rec-stop"), tab("Record"), tab("Play"), tab("Edit")].map((n) => n !== null && n?.closest("[inert]") !== null),
+        "[Play/Pause], [■] and the tabs are under it",
+      ).toEqual([true, true, true, true, true]);
+      vi.advanceTimersByTime(60_000);
+      await settle();
+      expect([modal(), store.str("ui.sdTab", ""), store.num("sd.playingFile", -1)], "Edit opens on nothing held").toEqual([null, "Edit", -1]);
+
+      await enter(tab("Play"));
+      vi.advanceTimersByTime(60_000);
+      await settle();
+      await enter(control("rec-pause"));
+      expect([store.str("ui.sdTab", ""), store.num("sd.playingFile", -1), store.bool("sd.playing", false)], "a file played from the keys").toEqual(["Play", 0, true]);
+      for (const label of ["Edit", "Record"]) {
+        await enter(tab(label));
+        expect([modal(), store.str("ui.sdTab", "")], `held: ${label} does nothing`).toEqual([null, "Play"]);
+      }
+      await enter(control("rec-stop"));
+      await enter(tab("Edit"));
+      expect([store.num("sd.playingFile", -1), modal()], "the control: let go, Edit loads").toEqual([-1, "Loading..."]);
+      vi.advanceTimersByTime(60_000);
+      await settle();
+    } finally {
+      vi.useRealTimers();
+      shell.destroy();
+      shell.root.remove();
+    }
+  });
+
+
   it("puts Play's [↑] out of reach while playback holds a file, playing or paused, and brings it back once [■] lets the file go", async () => {
     const shell = await mount({ id: "microsd.recorder" }, [entry("Recordings", "folder"), entry("inside.wav", "take", 96, 2, "/Recordings/")]);
     const store = shell.ctx.store;
