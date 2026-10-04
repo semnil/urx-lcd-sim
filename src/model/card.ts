@@ -145,6 +145,11 @@ export function freeBytes(store: DeviceStore): number {
   return Math.max(0, store.num("sd.capacity", CARD_CAPACITY) - used);
 }
 
+/** Whether what is left on the card holds `entry`. */
+export function roomFor(store: DeviceStore, entry: CardEntry): boolean {
+  return entryBytes(entry) <= freeBytes(store);
+}
+
 /** How many whole seconds of a take of `tracks` recorded at `rate` what is left on the card holds. */
 export function roomSeconds(store: DeviceStore, rate: number, tracks: number): number {
   return Math.floor(freeBytes(store) / (rate * BYTES_PER_SAMPLE * tracks));
