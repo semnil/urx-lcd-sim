@@ -343,21 +343,30 @@ SAVE/LOAD, TOOLS or RECORDER gives way to microSD's `Not inserted microSD card` 
 taken out. The mode itself goes off: the screen it was switched on at opens again without the bar. Every
 other move keeps it on: the back arrow onto a screen that carries the toggle, the HOME icon, a channel's ‹ ›,
 a touch on the screen that opens another (a strip on HOME to its channel view, a block to its screen),
-tabs, page steps, sheets and lists. The bar was seen to go on the back arrow from SETUP's USER DEFINED KNOBS
-onto SETUP, from SAVE/LOAD, RECORDER and TOOLS onto microSD and from a screen under MONITOR onto MONITOR,
-and SAVE/LOAD, DATE / TIME and that screen under MONITOR were seen to open again without it after the back
-arrow onto the screen above them. Sheets and lists lie over the bar, which stays drawn under them and
-shows again once they close, and a dialog lies over it too. What shows of the bar at the edge of DATE / TIME's
-TIME ZONE sheet is dark, as is the bar behind SAVE/LOAD's eject dialog, and while either is up the knobs
-turn nothing; under the Sends destination sheet they turn nothing either. A touch on the dark bar at the
-edge of TIME ZONE closes the sheet. On an ordinary screen the bar lies over the screen's bottom edge,
-SAVE/LOAD's [Save as] and SCENE LIST's [Store] included (URX44V, confirmed by the operator on 2026-10-03).
-The simulator draws what shows of the bar dark under a sheet, a list or a dialog alike, and while one is up
-the bar's divisions and page steps take no touch, drag, wheel, arrow key or Tab. A touch on the bar there is
-a touch on the bare screen around the sheet: a full-glass sheet and the channel-bank list close, and the
-Sends sheet, which a touch on its dark leaves up, stays up. Over a picker sheet, a list or a dialog the
-layer itself takes the touch, as it takes one anywhere outside its panel. How the dark is drawn is
-under "Sheets over the screen".
+tabs, page steps, sheets and lists. The bar was seen to go on the back arrow from SETUP's USER DEFINED KNOBS,
+Brightness and Output Patch onto SETUP, from SAVE/LOAD, RECORDER and TOOLS onto microSD and from MONITOR's
+Monitor, Phones and Oscillator onto MONITOR, and SAVE/LOAD, DATE / TIME and a screen under MONITOR were seen
+to open again without it after the back arrow onto the screen above them. Sheets and lists lie over the bar, which stays drawn under them and
+shows again once they close, and a dialog lies over it too. What shows of the bar at the foot of DATE / TIME's
+[Date/Time] and TIME ZONE sheets is dark, as is the bar under the INPUT source sheet, EFFECT TYPE and
+DATE / TIME's Date format list and behind SAVE/LOAD's eject dialog; the knob assignment and TOOLS's Volume
+Label sheet cover the glass to their edges and leave none of the bar in sight, and the Sends destination
+sheet covers the bar's place. Under each of those named here the knobs turn nothing. A touch on the edge of
+[Date/Time], TIME ZONE or the knob assignment, on the dark around the Sends destination sheet (SETUP's icon
+and the STEREO meter under it among them), on the dark around the INPUT source sheet (over the bar, left of,
+right of and above its panel) or on the bar under the Date format list closes the sheet or the list, the
+list's value staying as it was; one at the foot of the Volume Label sheet, SCENE LIST's title sheet or
+SAVE/LOAD's [Save as] name sheet, and one on the dark around the
+eject dialog, the bar's place included, leaves it up. As each of these closes, the mode stays on. On an ordinary screen the bar lies over the screen's bottom
+edge, SAVE/LOAD's [Save as] and SCENE LIST's [Store] included (URX44V, confirmed by the operator on
+2026-10-03 and 2026-10-04).
+The simulator draws what shows of the bar dark under a sheet, a list or a dialog, and hides it under the
+knob assignment and the title and name sheets; while one is up the bar's divisions and page steps take no
+touch, drag, wheel, arrow key or Tab. A touch on the bar there is a touch on the bare screen around the
+sheet: [Date/Time], TIME ZONE, the knob assignment, the Sends sheet and the channel-bank list close, and the
+title and name sheets stay up. Over a picker sheet, a list or a dialog the layer itself takes the
+touch, as it takes one anywhere outside its panel: a picker sheet and a list close, and a dialog stays up.
+How the dark is drawn is under "Sheets over the screen".
 The shell switches the mode off in one place (`src/app/shell.ts`) and holds the bar out of reach under a sheet
 as it draws the screen; `src/screens/home.test.ts` holds the moves that switch the mode off, one of each kind
 that keeps it on, the bar under each kind of sheet, list and dialog, and a touch on the bar under each sheet
@@ -1125,20 +1134,33 @@ shadow to its right and below: the first pixel outside the sheet is darkened by 
 the two on the ground turn in 6px and the two on the toolbar in 5px. The top right corner is drawn by
 the way out: the panel leaves that corner square, the button turns it in three pixels
 (`--sheet-back-top-corner-*`), and the pixel at the corner itself is left to the screen behind
-(p100-2, p060-2).
+(p100-2, p060-2). A touch on the dark around the panel closes the sheet, as its way out does, and a press
+that went down on the panel stays the panel's wherever it is let go (`pickerSheet`). On the unit the INPUT
+source sheet closed on a touch over the bar and left of, right of and above its panel, and MONITOR's Source,
+OUTPUT PATCH's MAIN OUT, COLOR, EFFECT TYPE, RECORDER's REC Track 1/2 source, the DELAY's Frame rate and
+SSMCS's Sweet Spot Data on a touch left of theirs (URX44V, the operator, 2026-10-04).
 
 The Sends destination sheet lies over HOME's main area and darkens what it does not cover (toolbar,
 side rail, meters, the USER DEFINED KNOBS bar) with `--scrim`. The [Sends] button that opened the sheet
 stays bright (measured on p051-1: the toolbar face (66,73,82) becomes (8,12,16), while [Sends] stays
 (206,69,41)). It is declared with `dimsBehind` on `ScreenDef`, and the screen marks what stays bright with
-`is-lit`. A dialog darkens the glass around it the same way (wide/p040-2: the toolbar beside the dialog
-reads (8,12,16)).
+`is-lit`. Nothing under the dark but [Sends] answers a touch, and a touch on the dark closes the sheet
+(`shellExits: false`), as it closes the channel-bank list: on the unit, SETUP's icon and the STEREO meter
+under the dark each took the sheet down and did nothing else (URX44V, the operator, 2026-10-04). A dialog
+darkens the glass around it the same way (wide/p040-2: the toolbar beside the dialog reads (8,12,16)).
 A sheet that takes the whole glass (the title and name sheets, the knob assignment, and DATE / TIME's
-[Date/Time] and TIME ZONE) leaves a 4px margin, where the USER DEFINED KNOBS bar under it shows. Around
-TIME ZONE that edge of the bar shows dark (URX44V, confirmed by the operator on 2026-10-03), and the
-simulator darkens it through the same filter around each of these sheets. In the simulator a touch on the
-bar under any of these closes the sheet, as one on the bare screen around it does, and the bar's knobs take
-nothing (see "Knob readout bar").
+[Date/Time] and TIME ZONE) leaves a 4px margin. At the foot of [Date/Time] and TIME ZONE the USER DEFINED
+KNOBS bar under it shows there dark, while the knob assignment and TOOLS's Volume Label sheet leave none of
+the bar in sight. A touch on the margin closes [Date/Time], TIME ZONE and the knob assignment, and leaves the
+Volume Label sheet, SCENE LIST's title sheet and SAVE/LOAD's [Save as] name sheet up (URX44V, confirmed by
+the operator on 2026-10-03 and 2026-10-04). The simulator darkens
+that edge of the bar through the same filter around [Date/Time] and TIME ZONE, and hides the bar under the
+knob assignment and the title and name sheets (`coversBar` on `pickDialog`, `covers-bar` on the title
+sheet). A touch on the margin closes the sheet, but for the title and name sheets, which are left through
+their own [Cancel] and [OK] alone (`leavesOnTouchAround: false` on `ScreenDef`), and the bar's knobs take
+nothing (see "Knob readout bar"). A press belongs to where it went down (`attachBackdrop`): on the unit, one
+that went down on [Date/Time]'s sheet and was let go over the bar left the sheet up, and one that went down
+on the bar and was let go over the sheet closed it (URX44V, the operator, 2026-10-04).
 
 [Sends] on HOME's rail is always lit in the colour of the destination in view (STEREO red in p047-1, MIX 1 orange in
 p157-1), the same as the unit shows. p036-1 draws it unlit, and that figure is treated as wrong.
