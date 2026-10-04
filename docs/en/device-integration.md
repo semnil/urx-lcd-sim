@@ -127,7 +127,10 @@ back to what it held before, and the refusal of each such path is reported. Swit
 sends no A.Gain, and taking an unbound BUS Type or Signal Type sends none of the sends, pans or other values
 it brings with it ("sends none of the writes the Shell's rule carries with an edit to an unbound path" in
 the same file, and `src/screens/operations.test.ts`). A path with no address among those an operation writes
-keeps the whole operation back, also where the unit already holds the value it would write. An operation
+keeps the whole operation back, also where the unit already holds the value it would write. A value the
+screens keep for their own showing holds nothing back (`src/screens/screen-only.ts`: anything under `ui.`,
+and the recorder's and playback's counters with the moments they count from):
+it goes with the rest, and where it has no address it alone is refused, as an edit to it is. An operation
 that sets several values each on its own (a scene recall, a settings file Load, clearing every CUE, the
 oscillator's Clear All, the output patch's Default, All Input and All USB DAW) sends each value as an edit of
 its own.

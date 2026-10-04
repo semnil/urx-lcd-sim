@@ -47,8 +47,8 @@ flowchart TB
 Two dependencies point up, the app layer's on the screen layer and the model layer's on the screen
 layer's `src/ui`; the rest point down. The Shell imports the screen layer to build and show a screen,
 and builds the toolbar, side menu and knob strip from the parts in `src/ui`. It also takes from
-`src/screens` the write rules that live there among those it hands `DeviceStore` at start-up
-("Value flow"), the bank stepping, the moment a screen being drawn takes its readings at
+`src/screens` what it hands `DeviceStore` at start-up from there, the write rules ("Value flow") and
+which values the screens keep for themselves (`screenOnly`), as well as the bank stepping, the moment a screen being drawn takes its readings at
 (`drawAtOneMoment`), and the record dot and the play mark on the microSD icon; `src/app/persist.ts`
 takes from `src/screens/mix-bus.ts` how Pan Link is brought into place when a stored state is put back. The model
 layer shares the value ranges and display formats (`src/ui/param-spec.ts`, `src/ui/dom.ts`) with the

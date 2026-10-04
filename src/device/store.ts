@@ -6,7 +6,7 @@
 // write still on screen goes back to the value the unit holds, so a screen
 // never keeps showing a value the unit refused. An edit with the writes it
 // carries, and an operation of several edits, go to the transport whole or not
-// at all.
+// at all, a value the screens keep for themselves aside.
 //
 // Every notify that differs from the mirror is adopted, an echo of our own write
 // (`echo: true`) and a change made on the device (`echo: false`) alike; the
@@ -103,6 +103,9 @@ export class DeviceStore {
 
   /** The writes of the edit under way, sent together once it ends; null between edits. */
   private edit: Queued[] | null = null;
+
+  /** Whether a path holds a value the screens keep for themselves. */
+  private screenOnly: (path: ParamPath) => boolean = () => false;
 
   /** Paths changed since the last flush, coalesced into one notification. */
   private pending = new Set<ParamPath>();
@@ -228,6 +231,14 @@ export class DeviceStore {
   }
 
   /**
+   * The paths whose values the screens keep for themselves. The store knows
+   * nothing of which they are; the caller supplies the meaning.
+   */
+  setScreenOnly(screenOnly: ((path: ParamPath) => boolean) | null): void {
+    this.screenOnly = screenOnly ?? (() => false);
+  }
+
+  /**
    * Edit a value: mirror it now, send it to the device, revert on rejection.
    * The edit and the writes its rule carries go to the transport together, or
    * none of them does, as with `operation`. Returns the write promise so
@@ -253,7 +264,10 @@ export class DeviceStore {
    * they were made once `op` returns. Where the transport cannot write one of
    * their paths, none of them goes: the mirror goes back to what it held before
    * the operation, and the transport's refusal of each such path is reported
-   * through `onWriteFailure`. An operation run inside another is part of it.
+   * through `onWriteFailure`. A path `setScreenOnly` names holds nothing back:
+   * its write goes with the others, and where the transport cannot write it, it
+   * alone is refused, as an edit to it is. An operation run inside another is
+   * part of it.
    */
   operation(op: () => void): void {
     void this.together(() => {
@@ -276,7 +290,7 @@ export class DeviceStore {
     }
     this.edit = null;
     const t = this.transport;
-    const refused = t ? edit.filter((q) => t.writable?.(q.path) === false) : [];
+    const refused = t ? edit.filter((q) => !this.screenOnly(q.path) && t.writable?.(q.path) === false) : [];
     if (!t || refused.length === 0) {
       for (const q of edit) q.send();
       return result;
