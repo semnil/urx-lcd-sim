@@ -335,6 +335,33 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     expect(pan(), "after the drag ended").toBe(0);
   });
 
+  it("turns two values apart under two fingers that drag them at once", async () => {
+    const { shell, store } = await mount();
+    await open(shell, { id: "setup" });
+    shell.ctx.nav.home();
+    await flush();
+    const level = (ch: number): HTMLElement | undefined =>
+      turnables(shell.root).find((n) => n.getAttribute("aria-label") === `CH ${ch} LEVEL`);
+    const value = (ch: number): number => store.num(`ch.ch${ch}.level`, NaN);
+    const finger = (node: EventTarget | undefined, type: string, pointerId: number, clientY: number): void => {
+      const buttons = type === "pointerdown" || type === "pointermove" ? 1 : 0;
+      node?.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId, pointerType: "touch", button: 0, buttons, clientY }));
+    };
+    const [one, two] = [value(1), value(2)];
+
+    finger(level(1), "pointerdown", 1, 300);
+    finger(level(2), "pointerdown", 2, 300);
+    finger(window, "pointermove", 2, 280);
+    await flush();
+    expect([value(1), value(2) > two], "the second finger's move turns its own value alone").toEqual([one, true]);
+    finger(window, "pointerup", 2, 280);
+    const second = value(2);
+    finger(window, "pointermove", 1, 290);
+    await flush();
+    expect([value(1) > one, value(2)], "the first finger goes on after the second is let go").toEqual([true, second]);
+    finger(window, "pointerup", 1, 290);
+  });
+
   it("leaves a value to the finger that took it until that finger is let go", async () => {
     const { shell, store } = await mount();
     await open(shell, { id: "setup" });

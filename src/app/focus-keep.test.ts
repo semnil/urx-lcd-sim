@@ -105,6 +105,111 @@ describe("the focus through a redraw", () => {
     expect([...held, box?.classList.contains("is-pressed")]).toEqual([true, "3px", false]);
   });
 
+  it("keeps a held control down when its screen is drawn again, until the finger is let go", async () => {
+    const shell = await mount();
+    // The page's stylesheet is not loaded here, so [ON]'s band is given by a rule of its own.
+    const band = document.createElement("style");
+    band.textContent = ".btn-on { box-shadow: inset 0 -4px 0 rgb(0, 0, 0); }";
+    document.head.append(band);
+    try {
+      const on = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".main .strip .btn-on");
+      const sunk = (): boolean | undefined => on()?.classList.contains("is-pressed");
+      const finger = (node: EventTarget | null, type: string, pointerId: number, clientY = 0): void => {
+        const buttons = type === "pointerdown" || type === "pointermove" ? 1 : 0;
+        node?.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId, pointerType: "touch", button: 0, buttons, clientY }));
+      };
+
+      finger(on(), "pointerdown", 1);
+      const held = on();
+      // A value written elsewhere draws HOME again.
+      await shell.ctx.store.set("ch.ch2.level", 3);
+      await flush();
+      expect([on() !== held, sunk()], "drawn again under the finger").toEqual([true, true]);
+      // A second finger dragging CH 2 LEVEL draws it again on each move.
+      finger(shell.root.querySelector('[aria-label="CH 2 LEVEL"]'), "pointerdown", 2, 300);
+      finger(window, "pointermove", 2, 250);
+      await flush();
+      expect(sunk(), "while a second finger drags").toBe(true);
+      finger(window, "pointerup", 2, 250);
+      await flush();
+      expect(sunk(), "the second finger let go").toBe(true);
+      finger(window, "pointerup", 1);
+      expect(sunk(), "the first finger let go").toBe(false);
+
+      // Another screen and back: the control HOME draws then is not held.
+      finger(on(), "pointerdown", 3);
+      shell.ctx.nav.openTop({ id: "setup" });
+      await flush();
+      shell.ctx.nav.home();
+      await flush();
+      expect(sunk(), "after another screen").toBe(false);
+      finger(window, "pointerup", 3);
+    } finally {
+      band.remove();
+    }
+  });
+
+  it("keeps a held [ON] down while HOME's bank stands, and no other channel's [ON] when it steps", async () => {
+    const shell = await mount();
+    const band = document.createElement("style");
+    band.textContent = ".btn-on { box-shadow: inset 0 -4px 0 rgb(0, 0, 0); }";
+    document.head.append(band);
+    try {
+      const ons = (): HTMLElement[] => [...shell.root.querySelectorAll<HTMLElement>(".main .strip .btn-on")];
+      const down = (): number => ons().filter((n) => n.classList.contains("is-pressed")).length;
+      const firstStrip = (): string | null | undefined => shell.root.querySelector(".main .strip")?.getAttribute("aria-label");
+      const finger = (node: EventTarget | undefined, type: string, pointerId: number): void => {
+        node?.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId, pointerType: "touch" }));
+      };
+
+      // The same bank drawn again keeps CH 1's [ON] down, until the finger is cancelled.
+      finger(ons()[0], "pointerdown", 1);
+      await shell.ctx.store.set("ch.ch2.level", 3);
+      await flush();
+      const sameBank = { strip: firstStrip(), first: ons()[0]?.classList.contains("is-pressed"), down: down() };
+      finger(window, "pointercancel", 1);
+      const cancelled = down();
+
+      // Another bank: the [ON] drawn where CH 1's stood is another channel's.
+      finger(ons()[0], "pointerdown", 2);
+      await shell.ctx.store.set("ui.bank", 1);
+      await flush();
+      const otherBank = { strip: firstStrip(), down: down() };
+      finger(window, "pointerup", 2);
+      expect({ sameBank, cancelled, otherBank, letGo: down() }).toEqual({
+        sameBank: { strip: expect.stringMatching(/^CH 1\b/), first: true, down: 1 },
+        cancelled: 0,
+        otherBank: { strip: expect.not.stringMatching(/^CH 1\b/), down: 0 },
+        letGo: 0,
+      });
+    } finally {
+      band.remove();
+    }
+  });
+
+  it("keeps down nothing another channel's screen draws in the place of a held control", async () => {
+    const shell = await mount();
+    const band = document.createElement("style");
+    band.textContent = ".ch-arrow { box-shadow: inset 0 -3px 0 rgb(0, 0, 0); }";
+    document.head.append(band);
+    try {
+      shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+      await flush();
+      const arrow = (): Element | null => shell.root.querySelector('[aria-label="Next channel"]');
+      const sunk = (): boolean | undefined => arrow()?.classList.contains("is-pressed");
+      arrow()?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 1, pointerType: "touch" }));
+      await shell.ctx.store.set("ch.ch1.level", 3);
+      await flush();
+      const same = sunk();
+      shell.ctx.nav.replace({ id: "channel-view", strip: "ch2" });
+      await flush();
+      expect({ same, next: sunk() }).toEqual({ same: true, next: false });
+      window.dispatchEvent(new PointerEvent("pointerup", { pointerId: 1, pointerType: "touch" }));
+    } finally {
+      band.remove();
+    }
+  });
+
   it("stays in the title field as a browser's keys fill it", async () => {
     const shell = await mount();
     shell.ctx.nav.push({ id: "scene" });

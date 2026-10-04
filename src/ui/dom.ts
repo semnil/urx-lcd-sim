@@ -47,6 +47,29 @@ export function fromInnerControl(ev: Event, node: Element): boolean {
   return inner !== null && inner !== node;
 }
 
+/**
+ * The step that finds, once `root` is drawn again, the control drawn in the place of `node`, which stands inside
+ * `root` now: the control of the same kind at the same place, or else the one control of that kind with the same
+ * words. A control's kind is its tag and its classes, less the ones naming its state.
+ */
+export function placeOf(root: Element, node: Element): () => Element | undefined {
+  const kind = (n: Element): string => [n.tagName, ...[...n.classList].filter((c) => !c.startsWith("is-"))].join(" ");
+  const was = kind(node);
+  const path: number[] = [];
+  for (let n: Element = node; n !== root && n.parentElement; n = n.parentElement) {
+    path.unshift([...n.parentElement.children].indexOf(n));
+  }
+  return () => {
+    let found: Element | undefined = root;
+    for (const i of path) found = found?.children[i];
+    if (!found || found === root || kind(found) !== was) {
+      const alike = [...root.querySelectorAll(node.tagName)].filter((n) => kind(n) === was && n.textContent === node.textContent);
+      found = alike.length === 1 ? alike[0] : undefined;
+    }
+    return found;
+  };
+}
+
 /** How many page pixels each of the glass's own pixels is drawn across. */
 export function drawnScale(glass: HTMLElement): number {
   return glass.getBoundingClientRect().width / glass.offsetWidth || 1;
