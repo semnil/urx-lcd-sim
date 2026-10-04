@@ -37,7 +37,7 @@ import {
   stripLanes,
 } from "./strip-state";
 import { CUE_METER, drawnLevels, homeMeterTap, lampState, lampTap, simulatedLevel, tapId } from "./meters";
-import { sceneNumber, sceneTitle } from "./scene";
+import { nameCursorScene } from "./scene";
 
 /**
  * The pair of lamps every indicator block opens with: the left one is green
@@ -449,13 +449,5 @@ export const bankSelectScreen: ScreenDef = {
 
 /** The scene name box at the top-left of the HOME toolbar; opens the SCENE screen. */
 export function sceneBox(ctx: AppContext): HTMLElement {
-  const no = ctx.store.num("scene.current", 0);
-  return el("button", {
-    class: "scene-box",
-    onTap: () => ctx.nav.openTop({ id: "scene" }),
-    children: [
-      el("span", { class: "scene-no", text: sceneNumber(no) }),
-      el("span", { class: "scene-title", text: sceneTitle(ctx, no) }),
-    ],
-  });
+  return nameCursorScene(ctx, el("button", { class: "scene-box", onTap: () => ctx.nav.openTop({ id: "scene" }) }));
 }

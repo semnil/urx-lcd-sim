@@ -522,18 +522,19 @@
 }
 
 /* SCENE LIST's box sets its title a row up of where HOME's box sets it. While
- * the scene picked is not the one recalled, its number fades out and back in
- * every two seconds, at the pace of a held EQ band's marks; the title stays. */
+ * the scene picked is not the one recalled, the number on either box fades out
+ * and back in every two seconds, at the pace of a held EQ band's marks; the
+ * title stays. */
 .scene-box-static .scene-title {
   translate: 0 0;
 }
 
-.scene-box-static .scene-no.is-pending {
+.scene-box .scene-no.is-pending {
   animation: focus-mark-blink 2s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .scene-box-static .scene-no.is-pending {
+  .scene-box .scene-no.is-pending {
     animation: none;
   }
 }
