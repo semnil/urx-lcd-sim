@@ -5032,6 +5032,7 @@ describe("what the dedicated channel screens draw", () => {
   });
 
   it("puts a stereo channel's EQ out of use above 96 kHz on its channel view, on HOME and on the EQ screen", async () => {
+    // As on the unit: in use at 96 kHz, out of use at 176.4 and 192 kHz (URX44V, 2026-10-04).
     const seen: Record<string, unknown> = {};
     for (const rate of [96000, 176400, 192000]) {
       const shell = await mount();
@@ -5068,6 +5069,62 @@ describe("what the dedicated channel screens draw", () => {
       192000: { badge: null, blocks: ["cv-block-ducker"], screen: ["ch_5_6", null, "This channel has no EQ screen at this sampling frequency", 0, true] },
     });
     expect((seen[96000] as { screen: number[] }).screen[3], "the EQ screen has controls at 96 kHz").toBeGreaterThan(0);
+  });
+
+  it("keeps the EQ of the other kinds of strip at 176.4 / 192 kHz: their blocks, their EQ mark on HOME and their EQ screen", async () => {
+    // As on the unit (URX44V, 2026-10-04): at 192 kHz CH 1 on COMP->EQ, CH 2 on SSMCS, FX 1, MIX 1, STEREO and
+    // STREAMING keep every block, CH 1, CH 3 and CH 4 at 176.4 and 192 kHz and MIX 1 and STEREO at 192 kHz keep the
+    // EQ mark, and the EQ screens of CH 1, MIX 1 and STEREO at 192 kHz draw their graph and knobs.
+    const read = async (rate: number) => {
+      const shell = await mount();
+      await shell.ctx.store.set("ch.ch2.compEqOrder", "SSMCS");
+      await shell.ctx.store.set("setup.samplingFrequency", rate);
+      const blocks: Record<string, (string | undefined)[]> = {};
+      for (const strip of ["ch1", "ch2", "fx1", "bus.mix1", "bus.stereo", "bus.stream"]) {
+        shell.ctx.nav.home();
+        shell.ctx.nav.push({ id: "channel-view", strip });
+        await flush();
+        blocks[strip] = [...shell.root.querySelectorAll(".cv-block")].map((n) => [...n.classList].find((c) => /^cv-block-/.test(c)));
+      }
+      const marks: Record<string, string | null> = {};
+      for (const [side, ids] of [["input", ["ch1", "ch3", "ch4"]], ["output", ["bus.mix1", "bus.stereo"]]] as const) {
+        shell.ctx.nav.home();
+        await shell.ctx.store.set("ui.bankSide", side);
+        await shell.ctx.store.set("ui.bank", 0);
+        await flush();
+        for (const id of ids) {
+          const label = findStrip(shell.ctx.model, id)?.label;
+          const strip = [...shell.root.querySelectorAll(".strip")].find((n) => n.querySelector(".strip-id")?.textContent === label);
+          if (!strip) throw new Error(`${rate}: no ${id} strip on HOME`);
+          marks[id] = strip.querySelector(".badge-eq")?.textContent ?? null;
+        }
+      }
+      const screens: Record<string, (string | null)[]> = {};
+      for (const strip of ["ch1", "bus.mix1", "bus.stereo"]) {
+        shell.ctx.nav.home();
+        shell.ctx.nav.push({ id: "channel-view", strip });
+        shell.ctx.nav.push({ id: "ch.eq", strip });
+        await flush();
+        screens[strip] = [
+          shell.root.querySelector(".toolbar .badge-title")?.textContent ?? null,
+          shell.root.querySelector(".main .screen-missing")?.textContent ?? null,
+          shell.root.querySelector(".main .eq-screen .eq-grip") ? "graph" : null,
+        ];
+      }
+      shell.destroy();
+      return { blocks, marks, screens };
+    };
+    const at48 = await read(48000);
+    expect(
+      Object.entries(at48.blocks).filter(([, blocks]) => blocks.includes("cv-block-eq")).map(([strip]) => strip),
+      "the strips that draw an EQ block at 48 kHz",
+    ).toEqual(["ch1", "bus.mix1", "bus.stereo"]);
+    expect(at48.marks).toEqual({ ch1: "EQ", ch3: "EQ", ch4: "EQ", "bus.mix1": "EQ", "bus.stereo": "EQ" });
+    expect(at48.screens).toEqual({ ch1: ["EQ", null, "graph"], "bus.mix1": ["EQ", null, "graph"], "bus.stereo": ["EQ", null, "graph"] });
+    const at192 = await read(192000);
+    expect(at192, "192 kHz as 48 kHz").toEqual(at48);
+    const at176 = await read(176400);
+    expect([at176.marks.ch1, at176.marks.ch3, at176.marks.ch4], "the mono channels' EQ mark at 176.4 kHz").toEqual(["EQ", "EQ", "EQ"]);
   });
 
   it("goes back to the channel view of the channel the arrows stepped to, and HOME keeps that channel selected", async () => {

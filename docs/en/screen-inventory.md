@@ -550,7 +550,11 @@ at the foot, its cells empty, the USER DEFINED KNOBS button at the bottom right,
 At 176.4 and 192 kHz the stereo inputs' EQ is out of use: their channel view draws no EQ block, DUCKER keeping its
 place, HOME's strip leaves its `EQ` mark out, and the EQ screen stepped to one of them shows `This channel has no EQ
 screen at this sampling frequency` in the same form (URX44V, the operator, 2026-10-04). The EQ keeps its settings, and
-the signal passes it untouched until the rate comes back down.
+the signal passes it untouched until the rate comes back down. At 96 kHz a stereo input keeps its EQ block and its `EQ`
+mark (URX44V, the operator, 2026-10-04, on CH 5/6). The other strips keep their EQ at 176.4 and 192 kHz: CH 1, CH 3 and
+CH 4 keep their `EQ` mark at both rates, and at 192 kHz CH 1, MIX 1 and STEREO keep their EQ block, MIX 1 and STEREO
+their `EQ` mark, and the EQ screens of CH 1, MIX 1 and STEREO draw the graph and the knobs (URX44V, the operator,
+2026-10-04).
 
 The screen name does not wrap.
 

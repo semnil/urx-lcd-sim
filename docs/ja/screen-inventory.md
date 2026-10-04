@@ -486,6 +486,10 @@ DUCKER はステレオの入力、DELAY は STREAMING、EQ はタイプが SSMCS
 176.4 kHz と 192 kHz では、ステレオの入力の EQ は使えない。そのチャンネルビューは EQ のブロックを描かず (DUCKER は位置を変えない)、
 HOME のストリップは `EQ` の印を出さず、EQ の画面からそのチャンネルへ送ると同じ形で `This channel has no EQ screen at this sampling
 frequency` と出す (URX44V、2026-10-04 操作者確認)。EQ の設定は残り、周波数を下げるまで信号は EQ を通らない。
+96 kHz ではステレオの入力も EQ のブロックと `EQ` の印を残す (URX44V、2026-10-04 操作者確認、CH 5/6 で)。他のストリップは
+176.4 kHz と 192 kHz でも EQ を残す。CH 1・CH 3・CH 4 はどちらの周波数でも `EQ` の印を残し、192 kHz では CH 1・MIX 1・STEREO
+が EQ のブロックを、MIX 1 と STEREO が `EQ` の印を残し、CH 1・MIX 1・STEREO の EQ の画面はグラフとつまみを描く
+(URX44V、2026-10-04 操作者確認)。
 
 画面名は折り返さない。
 
