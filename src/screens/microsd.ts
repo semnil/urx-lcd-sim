@@ -287,7 +287,6 @@ function cardLabel(ctx: AppContext): Node[] {
 
 /** Leave the card with nothing on it. */
 function formatCard(ctx: AppContext): void {
-  stopPlayback(ctx.store);
   for (const entry of cardEntries(ctx)) void ctx.store.set(filePath(entry), "");
   void ctx.store.set("sd.path", CARD_ROOT);
   updateCard(ctx, []);
@@ -371,7 +370,6 @@ function deleteSelected(ctx: AppContext): void {
       // The file, the cursor and playback go in one operation of the store.
       onOk: () =>
         ctx.store.operation(() => {
-          if (row === playingFile(ctx)) stopPlayback(ctx.store);
           void ctx.store.set(filePath(entry), "");
           // The cursor goes on to the next entry of the same folder, else back to
           // the one before it, else onto nothing.
