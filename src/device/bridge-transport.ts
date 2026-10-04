@@ -14,6 +14,9 @@
 //     never established.
 //   - After close, a write or a snapshot is refused, a snapshot reads no
 //     further address, and no subscription is left open on the link.
+//
+// Writes to one address go to the link one at a time, each once the link has
+// answered the one before.
 
 import type { ParamPath, ParamValue } from "./path";
 import type { DeviceTransport, Notify } from "./transport";
@@ -48,14 +51,18 @@ export class BridgeTransport implements DeviceTransport {
   private snapshotRead = false;
   private closed = false;
   private readonly listeners = new Set<(n: Notify) => void>();
+  /** The newest write issued to each address, sent or still waiting its turn. */
+  private readonly newest = new Map<string, object>();
   /**
-   * The newest write to each address that no notify has followed yet, with the
-   * raw value of a numeric one. A notify carrying that raw value is flagged as
-   * its echo, and any notify for the address clears it.
+   * The write last sent to each address that no notify has followed since, with
+   * the raw value of a numeric one. A notify carrying that raw value is flagged
+   * as its echo, and any notify for the address clears it.
    */
   private readonly inFlight = new Map<string, { raw?: number }>();
   /** The newest read of each string address taken on its notify and not yet answered. */
   private readonly strReads = new Map<string, Promise<string>>();
+  /** The last write queued on each address, which the next write to it waits for. */
+  private readonly lanes = new Map<string, Promise<void>>();
 
   constructor(
     private readonly bridge: DeviceLink,
@@ -99,33 +106,41 @@ export class BridgeTransport implements DeviceTransport {
 
   /**
    * Resolves with what the unit holds after the write: the value as encoded for
-   * it, or the string written. The write goes out calling `onSent`.
+   * it, or the string written. The write goes out, calling `onSent`, once the
+   * link has answered every write queued on its address before it.
    */
   async write(path: ParamPath, value: ParamValue, onSent?: () => void): Promise<ParamValue> {
     if (this.closed) throw new Error("transport closed");
     const b = this.bindings.forPath(path);
     if (!b) throw new UnboundPathError(path);
+    const addr = b.addr;
     if (b.isString) {
       const sentStr = {};
-      onSent?.();
-      this.inFlight.set(b.addr, sentStr);
-      await this.bridge.setStr(b.addr, String(value));
-      // The echo goes out only while neither a notify for the address nor a
-      // later write to it has come since.
-      if (this.inFlight.get(b.addr) === sentStr) this.emit({ path, value, echo: true });
+      this.newest.set(addr, sentStr);
+      await this.inTurn(addr, () => {
+        onSent?.();
+        this.inFlight.set(addr, sentStr);
+        return this.bridge.setStr(addr, String(value));
+      });
+      // The echo goes out only while the write is the newest to its address and
+      // no notify for the address has come since it was sent.
+      if (this.newest.get(addr) === sentStr && this.inFlight.get(addr) === sentStr) this.emit({ path, value, echo: true });
       return String(value);
     }
     const raw = b.codec.encode(value);
     if (!Number.isFinite(raw)) throw new Error(`"${path}" does not encode ${String(value)} to a number`);
     const sent = { raw };
-    onSent?.();
-    this.inFlight.set(b.addr, sent);
-    await this.bridge.set(b.addr, raw);
+    this.newest.set(addr, sent);
+    await this.inTurn(addr, () => {
+      onSent?.();
+      this.inFlight.set(addr, sent);
+      return this.bridge.set(addr, raw);
+    });
     const held = b.codec.decode(raw);
     // The echo carries the value as encoded for the unit, and goes out only
-    // while neither a notify for the address nor a later write to it has come
-    // since.
-    if (this.inFlight.get(b.addr) === sent) this.emit({ path, value: held, echo: true });
+    // while the write is the newest to its address and no notify for the
+    // address has come since it was sent.
+    if (this.newest.get(addr) === sent && this.inFlight.get(addr) === sent) this.emit({ path, value: held, echo: true });
     return held;
   }
 
@@ -200,6 +215,34 @@ export class BridgeTransport implements DeviceTransport {
         if (this.strReads.get(addr) === read) this.strReads.delete(addr);
       },
     );
+  }
+
+  /**
+   * Run `op` once the link has answered every write queued on `addr`. One whose
+   * turn comes after close is refused without being sent.
+   */
+  private afterWrites<T>(addr: string, op: () => Promise<T>): Promise<T> {
+    const run = (): Promise<T> => (this.closed ? Promise.reject(new Error("transport closed")) : op());
+    const ahead = this.lanes.get(addr);
+    return ahead ? ahead.then(run) : run();
+  }
+
+  /**
+   * Send a write once the link has answered every write queued on `addr`
+   * before it, so writes reach the unit, and come back, in the order they were
+   * issued.
+   */
+  private inTurn(addr: string, op: () => Promise<void>): Promise<void> {
+    const turn = this.afterWrites(addr, op);
+    const answered = turn.then(
+      () => {},
+      () => {},
+    );
+    this.lanes.set(addr, answered);
+    void answered.then(() => {
+      if (this.lanes.get(addr) === answered) this.lanes.delete(addr);
+    });
+    return turn;
   }
 
   private emit(n: Notify): void {

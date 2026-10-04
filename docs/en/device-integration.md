@@ -47,6 +47,10 @@ one-way remote control. It subscribes before it reads, so `DeviceStore` also tak
 the unit while the values are read, after the values themselves. A string address (a channel name,
 say) is read again with `getStr` on each of its notifies, and the string read is what arrives.
 
+Writes to one address go to `DeviceLink` one at a time, each once the link has answered the one
+before it, so they reach the unit, and come back, in the order they were issued. A write the link
+never answers holds up every later write to its address.
+
 A notify that is our own written value coming back is marked `echo: true`
 ("flags the notify that is our own write coming back" in `src/device/bridge-transport.test.ts`).
 

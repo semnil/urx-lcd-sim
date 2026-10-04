@@ -46,6 +46,9 @@ export interface DeviceLink {
 購読は読み出しより先に張るので、読み出しの途中に実機で変わった値も、`DeviceStore` が読み出した値の後で採る。
 文字列のアドレス (チャンネル名など) は、notify を受けるたびに `getStr` で読み直し、読めた文字列を届ける。
 
+1 つのアドレスへの書き込みは、`DeviceLink` が前の書き込みに応答してから次を送るので、出した順に
+実機へ届き、出した順に返る。link が応答しない書き込みがあると、同じアドレスへのそれ以降の書き込みはすべて待ったままになる。
+
 自分が書いた値がそのまま返ってきた notify は `echo: true` として区別する
 (`src/device/bridge-transport.test.ts` の「flags the notify that is our own write coming back」)。
 

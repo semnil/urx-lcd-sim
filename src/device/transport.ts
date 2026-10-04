@@ -39,9 +39,10 @@ export interface DeviceTransport {
    * Push one edit to the device. Resolves when the device has accepted it,
    * with the value the device holds for the path after it. Rejects rather than
    * resolving on a partial write: the caller reverts the local mirror instead
-   * of leaving the screen showing a value the unit never took. `onSent` is
-   * called as the write goes out to the device, before it settles: a notify
-   * that comes before that is older than the write.
+   * of leaving the screen showing a value the unit never took. Writes to one
+   * path reach the device in the order they were issued. `onSent` is called as
+   * the write goes out to the device, before it settles: a notify that comes
+   * before that is older than the write.
    */
   write(path: ParamPath, value: ParamValue, onSent?: () => void): Promise<ParamValue>;
 

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { BindingTable, boolCodec, identityCodec, scaledCodec } from "./binding";
 import { BridgeTransport, UnboundPathError, type DeviceLink } from "./bridge-transport";
 import { DeviceStore } from "./store";
+import { applyScene } from "../model/scene-state";
+import { applySettings } from "../model/settings-file";
 
 const tick = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -81,8 +83,12 @@ function clampingUnit(max: number): DeviceLink & { held: Map<string, number> } {
 /**
  * A unit whose writes wait until the test takes or refuses each one, keeping a
  * taken value within [0, max], and that announces a raw value when the test says.
+ * With `announces`, it also announces each value it takes before it answers.
  */
-function answeringUnit(max: number): DeviceLink & {
+function answeringUnit(
+  max: number,
+  announces = false,
+): DeviceLink & {
   held: Map<string, number>;
   answers: { take: () => void; refuse: () => void }[];
   announce: (addr: string, raw: number) => void;
@@ -99,7 +105,9 @@ function answeringUnit(max: number): DeviceLink & {
       new Promise<void>((resolve, reject) => {
         answers.push({
           take: () => {
-            held.set(addr, Math.max(0, Math.min(value, max)));
+            const kept = Math.max(0, Math.min(value, max));
+            held.set(addr, kept);
+            if (announces) handler?.(addr, kept);
             resolve();
           },
           refuse: () => reject(new Error("unit said no")),
@@ -182,13 +190,86 @@ async function storeOnClampingUnit(): Promise<{ store: DeviceStore; unit: Return
 }
 
 /** A store on an `answeringUnit` that keeps up to 100, with ch.ch1.gain stored in tenths of a dB. */
-async function storeOnAnsweringUnit(): Promise<{ store: DeviceStore; unit: ReturnType<typeof answeringUnit> }> {
-  const unit = answeringUnit(100);
+async function storeOnAnsweringUnit(announces = false): Promise<{ store: DeviceStore; unit: ReturnType<typeof answeringUnit> }> {
+  const unit = answeringUnit(100, announces);
   const bindings = new BindingTable();
   bindings.bind("ch.ch1.gain", { addr: "gain-addr", codec: scaledCodec(10) });
   const store = new DeviceStore();
   await store.attach(new BridgeTransport(unit, bindings));
   return { store, unit };
+}
+
+/** A store on an `answeringUnit` that keeps up to 100, with ch.ch1.level and ch.ch2.level carried as they are. */
+async function storeOnTwoLevels(): Promise<{ store: DeviceStore; unit: ReturnType<typeof answeringUnit> }> {
+  const unit = answeringUnit(100);
+  const bindings = new BindingTable();
+  bindings.bind("ch.ch1.level", { addr: "level1-addr", codec: identityCodec });
+  bindings.bind("ch.ch2.level", { addr: "level2-addr", codec: identityCodec });
+  const store = new DeviceStore();
+  await store.attach(new BridgeTransport(unit, bindings));
+  return { store, unit };
+}
+
+/**
+ * A unit holding one name at "name-addr". A read answers with the name the
+ * unit held when it was asked, once the test answers it; a write waits until
+ * the test takes or refuses it. `rename` changes the name on the unit's own
+ * panel and announces it.
+ */
+function nameUnit(initial: string): DeviceLink & {
+  name: () => string;
+  reads: (() => void)[];
+  writes: { take: () => void; refuse: () => void }[];
+  rename: (name: string) => void;
+} {
+  let held = initial;
+  const reads: (() => void)[] = [];
+  const writes: { take: () => void; refuse: () => void }[] = [];
+  let handler: ((addr: string, raw: number) => void) | null = null;
+  return {
+    name: () => held,
+    reads,
+    writes,
+    rename: (name) => {
+      held = name;
+      handler?.("name-addr", 1);
+    },
+    get: () => Promise.resolve(0),
+    set: () => Promise.resolve(),
+    getStr: () => {
+      const asked = held;
+      return new Promise<string>((resolve) => reads.push(() => resolve(asked)));
+    },
+    setStr: (_addr, value) =>
+      new Promise<void>((resolve, reject) => {
+        writes.push({
+          take: () => {
+            held = value;
+            resolve();
+          },
+          refuse: () => reject(new Error("unit said no")),
+        });
+      }),
+    subscribe: (_addrs, onUpdate) => {
+      handler = onUpdate;
+      return Promise.resolve(() => {
+        handler = null;
+      });
+    },
+  };
+}
+
+/** A transport following ch.ch1.name on a `nameUnit` holding `initial`, its snapshot read answered. */
+async function nameTransport(initial: string): Promise<{ unit: ReturnType<typeof nameUnit>; transport: BridgeTransport }> {
+  const unit = nameUnit(initial);
+  const bindings = new BindingTable();
+  bindings.bind("ch.ch1.name", { addr: "name-addr", codec: identityCodec, isString: true });
+  const transport = new BridgeTransport(unit, bindings);
+  const snapshot = transport.snapshot();
+  await tick();
+  unit.reads.shift()!();
+  await snapshot;
+  return { unit, transport };
 }
 
 describe("BridgeTransport", () => {
@@ -511,6 +592,238 @@ describe("BridgeTransport", () => {
 
     expect(seen).toEqual([["Drums", false]]);
   });
+
+  it("sends a write to an address only once the unit has answered the write before it", async () => {
+    const { store, unit } = await storeOnAnsweringUnit();
+
+    const first = store.set("ch.ch1.gain", 4);
+    const second = store.set("ch.ch1.gain", 7);
+    await tick();
+    expect(unit.answers, "while the first write awaits the unit").toHaveLength(1);
+    unit.answers[0]!.take();
+    await first;
+    await tick();
+    unit.answers[1]!.take();
+    await second;
+
+    expect([unit.held.get("gain-addr"), store.num("ch.ch1.gain")]).toEqual([70, 7]);
+  });
+
+  it("sends a write at once when nothing on its address awaits the unit", async () => {
+    const { store, unit } = await storeOnAnsweringUnit();
+    const first = store.set("ch.ch1.gain", 4);
+    unit.answers[0]!.take();
+    await first;
+    await tick();
+
+    void store.set("ch.ch1.gain", 7);
+
+    expect(unit.answers).toHaveLength(2);
+  });
+
+  for (const announces of [false, true]) {
+    for (const answers of [
+      ["take", "take"],
+      ["take", "refuse"],
+      ["refuse", "take"],
+      ["refuse", "refuse"],
+    ] as const) {
+      it(`shows what the unit holds after it ${answers[0]}s and ${answers[1]}s two writes to an address${announces ? ", announcing what it takes" : ""}`, async () => {
+        const { store, unit } = await storeOnAnsweringUnit(announces);
+
+        const writes = [store.set("ch.ch1.gain", 4), store.set("ch.ch1.gain", 7)];
+        for (const [i, answer] of answers.entries()) {
+          await tick();
+          unit.answers[i]![answer]();
+          await writes[i];
+        }
+        await tick();
+
+        expect(store.num("ch.ch1.gain")).toBe((unit.held.get("gain-addr") ?? 0) / 10);
+      });
+    }
+  }
+
+  it("shows a write that waited its turn when the unit announces a change made before the write went out", async () => {
+    const { store, unit } = await storeOnAnsweringUnit();
+
+    const first = store.set("ch.ch1.gain", 4);
+    const second = store.set("ch.ch1.gain", 7);
+    // Gain is turned to 9 dB on the unit's own panel while the first write awaits it.
+    unit.held.set("gain-addr", 90);
+    unit.announce("gain-addr", 90);
+    unit.answers[0]!.take();
+    await first;
+    await tick();
+    unit.answers[1]!.take();
+    await second;
+
+    expect([unit.held.get("gain-addr"), store.num("ch.ch1.gain")]).toEqual([70, 7]);
+  });
+
+  it("echoes a write that waited its turn when the unit announced a change before the write went out", async () => {
+    const unit = answeringUnit(100);
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.gain", { addr: "gain-addr", codec: scaledCodec(10) });
+    const transport = new BridgeTransport(unit, bindings);
+    await transport.snapshot();
+    const seen: [unknown, boolean][] = [];
+    transport.onNotify((n) => seen.push([n.value, n.echo]));
+
+    const first = transport.write("ch.ch1.gain", 4);
+    const second = transport.write("ch.ch1.gain", 7);
+    unit.announce("gain-addr", 90);
+    unit.answers[0]!.take();
+    await first;
+    await tick();
+    unit.answers[1]!.take();
+    await second;
+
+    expect(seen).toEqual([
+      [9, false],
+      [7, true],
+    ]);
+  });
+
+  it("refuses a write still waiting its turn when the transport is closed, sending it nothing", async () => {
+    const unit = answeringUnit(100);
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.gain", { addr: "gain-addr", codec: scaledCodec(10) });
+    const transport = new BridgeTransport(unit, bindings);
+    await transport.snapshot();
+
+    const first = transport.write("ch.ch1.gain", 4);
+    const second = transport.write("ch.ch1.gain", 7).then(
+      () => "taken",
+      (error: Error) => error.message,
+    );
+    transport.close();
+    expect(unit.answers, "while the first write awaits the unit").toHaveLength(1);
+    unit.answers[0]!.take();
+    await first;
+
+    expect([await second, unit.answers.length, unit.held.get("gain-addr")]).toEqual(["transport closed", 1, 40]);
+  });
+
+  for (const edited of [7, 9]) {
+    for (const answers of [
+      ["take", "take"],
+      ["take", "refuse"],
+      ["refuse", "take"],
+      ["refuse", "refuse"],
+    ] as const) {
+      it(`ends a scene recall over a write of ${edited === 7 ? "the same value" : "another value"} with what the unit holds when it ${answers[0]}s the write and ${answers[1]}s the recall's`, async () => {
+        const { store, unit } = await storeOnTwoLevels();
+
+        const write = store.set("ch.ch1.level", edited);
+        const recall = applyScene(store, { "ch.ch1.level": 7, "ch.ch2.level": 3 });
+        await tick();
+        unit.answers[0]![answers[0]]();
+        await write;
+        await tick();
+        unit.answers[1]![answers[1]]();
+        await tick();
+        unit.answers[2]!.take();
+        await recall;
+
+        expect([store.num("ch.ch1.level"), store.num("ch.ch2.level")]).toEqual([
+          unit.held.get("level1-addr") ?? 0,
+          unit.held.get("level2-addr") ?? 0,
+        ]);
+      });
+    }
+  }
+
+  it("calls onSent as each write goes out, once the write before it is answered", async () => {
+    const unit = answeringUnit(100);
+    const bindings = new BindingTable();
+    bindings.bind("ch.ch1.gain", { addr: "gain-addr", codec: scaledCodec(10) });
+    const transport = new BridgeTransport(unit, bindings);
+    await transport.snapshot();
+    const sent: number[] = [];
+
+    const first = transport.write("ch.ch1.gain", 4, () => sent.push(unit.answers.length));
+    const second = transport.write("ch.ch1.gain", 7, () => sent.push(unit.answers.length));
+    expect([...sent], "while the first write awaits the unit").toEqual([0]);
+    unit.answers[0]!.take();
+    await first;
+    await tick();
+    unit.answers[1]!.take();
+    await second;
+
+    expect(sent).toEqual([0, 1]);
+  });
+
+  it("calls onSent as each name write goes out, once the write before it is answered", async () => {
+    const { unit, transport } = await nameTransport("Vocal");
+    const sent: number[] = [];
+
+    const first = transport.write("ch.ch1.name", "Guitar", () => sent.push(unit.writes.length));
+    const second = transport.write("ch.ch1.name", "Bass", () => sent.push(unit.writes.length));
+    expect([...sent], "while the first write awaits the unit").toEqual([0]);
+    unit.writes[0]!.take();
+    await first;
+    await tick();
+    unit.writes[1]!.take();
+    await second;
+
+    expect(sent).toEqual([0, 1]);
+  });
+
+  it("goes back to a write the unit took after a change it announced while that write waited its turn, when a later write is refused", async () => {
+    const { store, unit } = await storeOnAnsweringUnit();
+    const restored: unknown[] = [];
+    store.onWriteFailure((f) => restored.push(f.restored));
+
+    const writes = [store.set("ch.ch1.gain", 4), store.set("ch.ch1.gain", 7), store.set("ch.ch1.gain", 8)];
+    // Gain is turned to 9 dB on the unit's own panel while the first write awaits it.
+    unit.held.set("gain-addr", 90);
+    unit.announce("gain-addr", 90);
+    expect(store.num("ch.ch1.gain"), "while later writes wait their turn").toBe(8);
+    unit.answers[0]!.take();
+    await writes[0];
+    await tick();
+    unit.answers[1]!.take();
+    await writes[1];
+    await tick();
+    unit.answers[2]!.refuse();
+    await writes[2];
+
+    expect({ screen: store.num("ch.ch1.gain"), unit: unit.held.get("gain-addr")! / 10, restored }).toEqual({ screen: 7, unit: 7, restored: [7] });
+  });
+
+  for (const [what, putBack] of [
+    ["a scene recall", applyScene],
+    ["a settings file load", applySettings],
+  ] as const) {
+    it(`goes back to a write the unit took after a change it announced when the write ${what} sends is refused`, async () => {
+      const { store, unit } = await storeOnTwoLevels();
+      const restored: unknown[] = [];
+      store.onWriteFailure((f) => restored.push(f.restored));
+
+      const writes = [store.set("ch.ch1.level", 4), store.set("ch.ch1.level", 7)];
+      // CH 1 is turned to 9 on the unit's own panel while the first write awaits it.
+      unit.held.set("level1-addr", 9);
+      unit.announce("level1-addr", 9);
+      const putting = putBack(store, { "ch.ch1.level": 8, "ch.ch2.level": 3 });
+      unit.answers[0]!.take();
+      await writes[0];
+      await tick();
+      unit.answers[1]!.take();
+      await writes[1];
+      await tick();
+      unit.answers[2]!.refuse();
+      await tick();
+      unit.answers[3]!.take();
+      await putting;
+
+      expect({
+        screen: [store.num("ch.ch1.level"), store.num("ch.ch2.level")],
+        unit: [unit.held.get("level1-addr"), unit.held.get("level2-addr")],
+        restored,
+      }).toEqual({ screen: [7, 3], unit: [7, 3], restored: [7] });
+    });
+  }
 
   it("flags only the first notify of the value it wrote as its own", async () => {
     const bridge = fakeBridge();
