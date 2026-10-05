@@ -107,42 +107,67 @@ test("a pulldown's list takes a touch on a row, and goes on a touch on the dark 
   await expect(pulldown).toContainText("SSMCS");
 });
 
-test.describe("[Reset the unit]", () => {
-  const reset = (page: Page) => page.getByRole("button", { name: "Reset the unit" });
+test.describe("[Device]", () => {
+  const device = (page: Page) => page.getByRole("button", { name: "Device", exact: true });
+  const item = (page: Page, name: string) => page.getByRole("menuitem", { name });
   const ch1On = (page: Page) => lcd(page).getByRole("button", { name: "ON", exact: true }).first();
 
-  test("asks, and [Reset] pressed once the question is up starts the unit again as it ships", async ({ page }) => {
-    await go(page, "home");
-    await ch1On(page).click();
-    await expect(ch1On(page)).toHaveAttribute("aria-pressed", "false");
-    await reset(page).click();
-    await expect(page.getByText("Drop everything and start again?")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Cancel" })).toBeFocused();
-    // The question lies over the top of the glass until it is answered.
-    expect(await unreached(page, ".chrome-reset-panel")).toEqual([]);
-    // [Reset] holds off a press the moment the question appears, for longer than a double click.
-    await page.waitForTimeout(600);
-    await page.getByRole("button", { name: "Reset", exact: true }).click();
-    await expect(page.getByText("Drop everything and start again?")).toHaveCount(0);
-    await expect(ch1On(page)).toHaveAttribute("aria-pressed", "true");
-    await expect(reset(page)).toBeFocused();
-  });
+  for (const [name, question] of [
+    ["Initialize Current Memories", "Initialize current memories?"],
+    ["Initialize All Memories", "Initialize all memories?"],
+  ] as const) {
+    // A click on an item moves the focus off [Device] as the press goes down; the
+    // menu shut on that once, and the click then reached no item.
+    test(`[${name}] asks, and [Initialize] pressed once the question is up starts the unit again as it ships`, async ({ page }) => {
+      await go(page, "home");
+      await ch1On(page).click();
+      await expect(ch1On(page)).toHaveAttribute("aria-pressed", "false");
+      await device(page).click();
+      await expect(page.getByRole("menu", { name: "Device" })).toBeVisible();
+      await item(page, name).click();
+      await expect(page.getByText(question)).toBeVisible();
+      await expect(page.getByRole("button", { name: "Cancel" })).toBeFocused();
+      // The question lies over the top of the glass until it is answered.
+      expect(await unreached(page, ".chrome-reset-panel")).toEqual([]);
+      // [Initialize] holds off a press the moment the question appears, for longer than a double click.
+      await page.waitForTimeout(600);
+      await page.getByRole("button", { name: "Initialize", exact: true }).click();
+      await expect(page.getByText(question)).toHaveCount(0);
+      await expect(ch1On(page)).toHaveAttribute("aria-pressed", "true");
+      await expect(device(page)).toBeFocused();
+    });
+  }
 
   test("[Cancel] takes the question back and leaves the unit as it was", async ({ page }) => {
     await go(page, "home");
     await ch1On(page).click();
-    await reset(page).click();
+    await device(page).click();
+    await item(page, "Initialize All Memories").click();
     await page.getByRole("button", { name: "Cancel" }).click();
-    await expect(page.getByText("Drop everything and start again?")).toHaveCount(0);
-    await expect(reset(page)).toBeFocused();
+    await expect(page.getByText("Initialize all memories?")).toHaveCount(0);
+    await expect(device(page)).toBeFocused();
     await expect(ch1On(page)).toHaveAttribute("aria-pressed", "false");
   });
 
-  test("leaves the unit alone under a double click", async ({ page }) => {
+  test("leaves the unit alone under a double click on an item", async ({ page }) => {
     await go(page, "home");
     await ch1On(page).click();
-    await reset(page).dblclick();
-    await expect(page.getByText("Drop everything and start again?")).toBeVisible();
+    await device(page).click();
+    await item(page, "Initialize All Memories").dblclick();
+    await expect(page.getByText("Initialize all memories?")).toBeVisible();
     await expect(ch1On(page)).toHaveAttribute("aria-pressed", "false");
+  });
+
+  test("shuts the menu on a touch on the glass, and on Escape", async ({ page }) => {
+    await go(page, "home");
+    await device(page).click();
+    await expect(page.getByRole("menu", { name: "Device" })).toBeVisible();
+    await lcd(page).getByRole("button", { name: "STEREO meter" }).click();
+    await expect(page.getByRole("menu", { name: "Device" })).toHaveCount(0);
+    await device(page).click();
+    await expect(page.getByRole("menu", { name: "Device" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("menu", { name: "Device" })).toHaveCount(0);
+    await expect(device(page)).toBeFocused();
   });
 });
