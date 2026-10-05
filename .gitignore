@@ -5,6 +5,10 @@ dist-*/
 .DS_Store
 coverage/
 
+# Playwright's results and traces from `pnpm test:e2e`.
+test-results/
+playwright-report/
+
 # Extracted Yamaha user-guide artwork and any other primary-source derivative.
 # Copyrighted by Yamaha Corporation: kept locally as a rendering reference only,
 # never committed and never redistributed. Regenerate with scripts/extract-ug-screens.mjs

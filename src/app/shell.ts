@@ -225,6 +225,8 @@ export class Shell {
     const rescroll = this.scrollPlace();
     this.dim();
     this.drawn = route.id;
+    // Which screen is up, for a test driving the page from outside.
+    this.lcd.dataset["screen"] = route.id;
     this.moves = [];
     this.drawnStrip = route.strip;
     this.knobs = [];
