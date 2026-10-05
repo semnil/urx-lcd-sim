@@ -12,7 +12,7 @@ is built is in [screen-inventory.md](screen-inventory.md).
 | The Icon picker in CH SETTING | CH SETTING's Icon box carries a square in the channel colour. The picker does not open | The icon drawings are hard to reproduce, so they are not drawn |
 | Simple Mode as a whole (Setup Assistant, use-case selection, Simple's HOME and channel view) | Operation Mode still lists the Simple Mode card, drawn as an entry that cannot be chosen | Outside this simulator |
 | The screens for the Cubase series (Input settings / Hardware settings / MixKey channel editor) | Not here at all | Outside this simulator |
-| Initialize All Memories | Not here at all. [Reset the unit], outside the screen, does the same thing | Outside this simulator |
+| Initialize All Memories / Initialize Current Memories | The initialization screen is not here. [Reset the unit] resets the current values and scene memories; [Initialize Current Memories] resets the current values and keeps scene memories. Both items are in the Device menu outside the screen and keep the microSD card as it is | Outside this simulator |
 
 ## Controls
 

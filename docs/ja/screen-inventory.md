@@ -102,6 +102,7 @@ URX44V/44/22 ユーザーガイド (英語版 revision D0) が載せている LC
 | Simple Mode 全体 (Setup Assistant、ユースケース選択、Simple の HOME とチャンネルビュー) | p117-132 | このシミュレーターの範囲外 |
 | Cubase シリーズ専用画面 (Input settings / Hardware settings / MixKey channel editor) | p159-168 | このシミュレーターの範囲外 |
 | Initialize All Memories (工場出荷状態への初期化) | p169 | このシミュレーターの範囲外 |
+| Initialize Current Memories (シーンメモリーを残して現在値を初期化) | p169 | このシミュレーターの範囲外 |
 
 ## 画像で確認できていない表示
 

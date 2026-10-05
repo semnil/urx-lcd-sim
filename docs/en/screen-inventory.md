@@ -106,6 +106,7 @@ carries none.
 | Simple Mode as a whole (Setup Assistant, use-case selection, Simple's HOME and channel view) | p117-132 | Outside this simulator |
 | Screens for the Cubase series (Input settings / Hardware settings / MixKey channel editor) | p159-168 | Outside this simulator |
 | Initialize All Memories (reset to the factory state) | p169 | Outside this simulator |
+| Initialize Current Memories (reset current values, keep scene memories) | p169 | Outside this simulator |
 
 ## Displays no image confirms
 

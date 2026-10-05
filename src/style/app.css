@@ -54,6 +54,7 @@ body {
 
 /* The controls wrap onto further rows in a chrome narrower than they are. */
 .chrome-controls {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -85,33 +86,72 @@ body {
   background: #2b313b;
 }
 
-/* Resetting drops everything the unit holds, so the button asks first, on a
- * panel hung under it. The panel stands outside the header's row, so asking
- * moves no other control and not the glass, and its [Reset] lies clear of the
- * button that opened it. */
-.chrome-reset {
-  position: relative;
+/* Device opens over the page without moving the glass. */
+.chrome-device {
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
 }
 
-.chrome-reset-panel {
+.chrome-device-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 90px;
+  cursor: pointer;
+}
+
+.chrome-device-trigger::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin: -3px 1px 0 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+}
+
+.chrome-device-popup {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
   z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: max-content;
+  width: min(480px, calc(100vw - 32px));
   padding: 8px;
   background: #1b1f25;
   border: 1px solid #3a4150;
   border-radius: var(--radius-md);
 }
 
+.chrome-device-popup[hidden],
+.chrome-reset[hidden],
+.chrome-current[hidden] {
+  display: none;
+}
+
+.chrome-device-menu {
+  width: min(260px, 100%);
+  padding: 6px;
+}
+
+.chrome-device-menu .chrome-button {
+  width: 100%;
+  text-align: left;
+  border-color: transparent;
+  background: transparent;
+}
+
+.chrome-device-menu .chrome-button:hover,
+.chrome-device-menu .chrome-button:focus-visible {
+  background: #2b313b;
+}
+
+.chrome-reset-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .chrome-reset-ask {
+  flex: 1;
   font-size: 12px;
 }
 

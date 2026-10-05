@@ -57,7 +57,7 @@ async function open(saved: string): Promise<HTMLElement> {
   const left = listen.mock.calls.find(([type]) => type === "pagehide")?.[1];
   unload = typeof left === "function" ? (left as (ev: Event) => void) : null;
   listen.mockRestore();
-  for (let i = 0; i < 100 && !app.querySelector(".chrome-reset button"); i++) await flush();
+  for (let i = 0; i < 100 && !app.querySelector(".chrome-device > button"); i++) await flush();
   return app;
 }
 
@@ -70,6 +70,14 @@ async function press(key: string): Promise<void> {
   for (let i = 0; i < 10; i++) await flush();
 }
 
+const deviceControl = (): HTMLButtonElement => document.querySelector<HTMLButtonElement>('.chrome-device > button')!;
+const chooseDevice = (operation: "current" | "reset"): void => {
+  if (!document.querySelector('.chrome-device [role="menu"]')) {
+    if (deviceControl().getAttribute("aria-expanded") === "true") deviceControl().click();
+    deviceControl().click();
+  }
+  document.querySelector<HTMLButtonElement>(`.chrome-device [data-operation="${operation}"]`)!.click();
+};
 const resetButton = (app: HTMLElement, text: string): HTMLElement | undefined =>
   [...app.querySelectorAll<HTMLElement>(".chrome-reset button")].find((b) => b.textContent === text);
 
@@ -96,33 +104,75 @@ describe("[Unit model]", () => {
   });
 });
 
-describe("[Reset the unit]", () => {
-  it("gives the focus back to [Reset the unit] once [Cancel] takes the question back", async () => {
+describe("[Device menu]", () => {
+  it("uses the selector style before the link indicator and offers only actions without a selected item", async () => {
     const app = await open(SAVED);
-    resetButton(app, "Reset the unit")?.focus();
-    await press("Enter");
+    expect(deviceControl().classList.contains("chrome-select")).toBe(true);
+    expect(deviceControl().parentElement?.nextElementSibling?.classList.contains("chrome-link")).toBe(true);
+    expect(app.querySelector(".chrome-actions")).toBeNull();
+    expect(app.querySelector<HTMLElement>(".chrome-device-popup")!.hidden).toBe(true);
+    deviceControl().click();
+    const menu = app.querySelector<HTMLElement>('[role="menu"]')!;
+    expect([...menu.querySelectorAll('[role="menuitem"]')].map((item) => item.textContent)).toEqual([
+      "Initialize Current Memories", "Reset the unit",
+    ]);
+    expect(menu.querySelector('option, [aria-selected], [aria-checked], [role="menuitemradio"], [role="menuitemcheckbox"]')).toBeNull();
+    expect(document.activeElement?.textContent).toBe("Initialize Current Memories");
+    await press("ArrowDown");
+    expect(document.activeElement?.textContent).toBe("Reset the unit");
+    await press("Home");
+    expect(document.activeElement?.textContent).toBe("Initialize Current Memories");
+    await press("Escape");
+    expect(document.activeElement).toBe(deviceControl());
+    expect(await readSaved("URX44V")).toMatchObject({ "ch.ch1.level": -9 });
+  });
+
+  it("permits the same command after cancellation and closes the menu when focus or a pointer moves outside", async () => {
+    const app = await open(SAVED);
+    chooseDevice("current");
+    expect(document.activeElement?.textContent).toBe("Cancel");
+    await press("Escape");
+    expect(document.activeElement).toBe(deviceControl());
+    chooseDevice("current");
+    expect(app.querySelector(".chrome-current .chrome-reset-ask")).not.toBeNull();
+    await press("Escape");
+    deviceControl().click();
+    const model = app.querySelector<HTMLSelectElement>('[aria-label="Unit model"]')!;
+    model.focus();
+    await flush();
+    expect(app.querySelector<HTMLElement>(".chrome-device-popup")!.hidden).toBe(true);
+    expect(document.activeElement).toBe(model);
+    deviceControl().click();
+    document.body.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    expect(app.querySelector<HTMLElement>(".chrome-device-popup")!.hidden).toBe(true);
+    expect(await readSaved("URX44V")).toMatchObject({ "ch.ch1.level": -9 });
+  });
+});
+
+describe("[Reset the unit]", () => {
+  it("gives the focus back to [Device] once [Cancel] takes the question back", async () => {
+    const app = await open(SAVED);
+    chooseDevice("reset");
     resetButton(app, "Cancel")?.focus();
     await press("Enter");
     expect(app.querySelector(".chrome-reset-ask"), "the question is gone").toBeNull();
-    expect(document.activeElement).toBe(resetButton(app, "Reset the unit"));
+    expect(document.activeElement).toBe(deviceControl());
   });
 
-  it("puts the focus on [Reset the unit] of the unit started again from [Reset]", async () => {
+  it("puts the focus on [Device] of the unit started again from [Reset]", async () => {
     const app = await open(SAVED);
     const lcd = app.querySelector(".lcd");
-    resetButton(app, "Reset the unit")?.focus();
-    await press("Enter");
+    chooseDevice("reset");
     resetButton(app, "Reset")?.focus();
     await press("Enter");
     for (let i = 0; i < 100 && app.querySelector(".lcd") === lcd; i++) await flush();
     expect(app.querySelector(".lcd"), "the unit started again").not.toBe(lcd);
-    expect(document.activeElement).toBe(resetButton(app, "Reset the unit"));
+    expect(document.activeElement).toBe(deviceControl());
   });
 
   it("asks with the focus on [Cancel], one Shift+Tab short of [Reset]", async () => {
     const app = await open(SAVED);
-    resetButton(app, "Reset the unit")?.focus();
-    await press("Enter");
+    chooseDevice("reset");
     expect(app.querySelector(".chrome-reset-ask"), "it asks").not.toBeNull();
     expect(document.activeElement?.textContent).toBe("Cancel");
     const buttons = [...app.querySelectorAll<HTMLElement>(".chrome-reset button")].map((b) => b.textContent);
@@ -131,27 +181,25 @@ describe("[Reset the unit]", () => {
 
   it("keeps everything the unit holds through Enter pressed twice", async () => {
     const app = await open(SAVED);
-    resetButton(app, "Reset the unit")?.focus();
-    await press("Enter");
+    chooseDevice("reset");
     await press("Enter");
     expect(window.localStorage.getItem(KEY), "the unit is still stored").toBe(SAVED);
     expect(app.querySelector(".chrome-reset-ask"), "the question is gone").toBeNull();
   });
 
-  it("takes the question back on Escape as [Cancel] does, the focus on [Reset the unit] and the glass where it was", async () => {
+  it("takes the question back on Escape as [Cancel] does, the focus on [Device] and the glass where it was", async () => {
     const seen: (string | boolean | null | undefined)[][] = [];
     for (const on of ["Cancel", "Reset"]) {
       const app = await open(SAVED);
       app.querySelector<HTMLElement>('.lcd .icon-btn[aria-label="SETUP"]')?.click();
       await flush();
-      resetButton(app, "Reset the unit")?.focus();
-      await press("Enter");
+      chooseDevice("reset");
       resetButton(app, on)?.focus();
       await press("Escape");
       seen.push([
         on,
         app.querySelector(".chrome-reset-ask") === null,
-        document.activeElement === resetButton(app, "Reset the unit"),
+        document.activeElement === deviceControl(),
         app.querySelector<HTMLElement>(".lcd .toolbar")?.dataset["screen"],
         window.localStorage.getItem(KEY) === SAVED,
       ]);
@@ -164,25 +212,162 @@ describe("[Reset the unit]", () => {
     ]);
   });
 
-  it("leaves Escape alone on [Reset the unit] while it asks nothing", async () => {
-    const app = await open(SAVED);
-    const ask = resetButton(app, "Reset the unit");
-    ask?.focus();
+  it("leaves Escape alone on [Device] while it asks nothing", async () => {
+    await open(SAVED);
+    const ask = deviceControl();
+    ask.focus();
     const down = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
-    ask?.dispatchEvent(down);
+    ask.dispatchEvent(down);
     await flush();
-    expect([down.defaultPrevented, resetButton(app, "Reset the unit") === ask]).toEqual([false, true]);
+    expect([down.defaultPrevented, deviceControl() === ask]).toEqual([false, true]);
   });
 
   it("drops everything the unit holds once [Reset] itself is pressed", async () => {
     const app = await open(SAVED);
-    resetButton(app, "Reset the unit")?.focus();
-    await press("Enter");
+    chooseDevice("reset");
     resetButton(app, "Reset")?.focus();
     await press("Enter");
     for (let i = 0; i < 100 && (await readSaved("URX44V"))?.["ch.ch1.level"] !== 0; i++) await flush();
     expect((await readSaved("URX44V"))?.["ch.ch1.level"], "the unit as it ships is stored in place of what was").toBe(0);
     expect(app.querySelector(".chrome-reset-ask"), "the unit starts again").toBeNull();
+  });
+});
+
+describe("[Initialize Current Memories]", () => {
+  const currentBox = (): HTMLElement => document.querySelector<HTMLElement>(".chrome-current")!;
+  const button = (text: string): HTMLElement => {
+    return [...currentBox().querySelectorAll<HTMLElement>("button")].find((node) => node.textContent === text)!;
+  };
+  const click = (node: HTMLElement): void => {
+    node.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+  };
+
+  it("asks with [Cancel] focused and leaves the unit where it was when canceled", async () => {
+    window.localStorage.setItem(STATE_KEY, JSON.stringify({ version: 1, model: "URX44V", values: { "ch.ch1.level": -9 } }));
+    await openPage();
+    chooseDevice("current");
+    expect(currentBox().querySelector(".chrome-reset-ask")?.textContent).toBe(
+      "Initialize current memories? Scene memories and the microSD card will stay.",
+    );
+    expect(document.activeElement).toBe(button("Cancel"));
+    click(button("Cancel"));
+    expect(currentBox().querySelector(".chrome-reset-ask")).toBeNull();
+    expect(document.activeElement).toBe(deviceControl());
+    expect(firstLevel()?.getAttribute("aria-valuenow")).toBe("-9");
+  });
+
+  it("opens one initialization question at a time and returns focus on Escape", async () => {
+    await openPage();
+    chooseDevice("current");
+    chooseDevice("reset");
+    expect(currentBox().querySelector(".chrome-reset-ask")).toBeNull();
+    expect(document.querySelectorAll(".chrome-reset-ask").length).toBe(1);
+    chooseDevice("current");
+    expect(document.querySelector(".chrome-reset .chrome-reset-ask")).toBeNull();
+    await press("Escape");
+    expect(document.querySelector(".chrome-reset-ask")).toBeNull();
+    expect(document.activeElement).toBe(deviceControl());
+  });
+
+  it("rejects the second click and the click before 500 ms, and initializes at 500 ms", async () => {
+    window.localStorage.setItem(STATE_KEY, JSON.stringify({ version: 1, model: "URX44V", values: { "ch.ch1.level": -9 } }));
+    await openPage();
+    const now = vi.spyOn(performance, "now").mockReturnValue(0);
+    const { SimTransport } = await import("./device/sim-transport");
+    const close = vi.spyOn(SimTransport.prototype, "close");
+    try {
+      chooseDevice("current");
+      now.mockReturnValue(600);
+      button("Initialize").dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 2 }));
+      now.mockReturnValue(499);
+      click(button("Initialize"));
+      expect(close, "neither rejected click tears down the unit").not.toHaveBeenCalled();
+      expect(shownLevel()).toBe("-9");
+      expect(currentBox().querySelector(".chrome-reset-ask")).not.toBeNull();
+      now.mockReturnValue(500);
+      click(button("Initialize"));
+      expect(close, "the accepted click starts the unit again").toHaveBeenCalledTimes(1);
+      await until("current values reset at the hold boundary", () => shownLevel() === "0");
+    } finally {
+      now.mockRestore();
+      close.mockRestore();
+    }
+  });
+
+  it("starts the unit once when the confirmation is activated again while its storage read is pending", async () => {
+    window.localStorage.setItem(STATE_KEY, JSON.stringify({ version: 1, model: "URX44V", values: { "ch.ch1.level": -9 } }));
+    await openPage();
+    const { SimTransport } = await import("./device/sim-transport");
+    const snapshot = vi.spyOn(SimTransport.prototype, "snapshot");
+    const now = vi.spyOn(performance, "now").mockReturnValue(0);
+    try {
+      chooseDevice("current");
+      now.mockReturnValue(500);
+      idb.hold();
+      const initialize = button("Initialize");
+      click(initialize);
+      click(initialize);
+      idb.release();
+      await until("the initialized unit", () => shownLevel() === "0");
+      await idb.idle();
+      expect(snapshot, "one new simulated unit was attached").toHaveBeenCalledTimes(1);
+    } finally {
+      idb.release();
+      now.mockRestore();
+      snapshot.mockRestore();
+    }
+  });
+
+  it.each(["URX44V", "URX44", "URX22"])("resets %s's current values while keeping scene memories and its card in storage", async (model) => {
+    const sceneState = JSON.stringify({ "ch.ch1.level": -9 });
+    const card = JSON.stringify([
+      { name: "Live.urxf", kind: "data", seconds: 0, tracks: 0, stamp: "", dir: "/" },
+      { name: "Take.wav", kind: "take", seconds: 2, tracks: 2, stamp: "", dir: "/" },
+    ]);
+    const memories = {
+      "scene.Standard.5.title": "Live",
+      "scene.Standard.5.state": sceneState,
+      "scene.Standard.5.protect": 1,
+      "scene.Simple.63.title": "Acoustic",
+      "scene.Simple.63.state": sceneState,
+      "scene.Simple.63.protect": 0,
+    };
+    const cardValues = model === "URX22" ? {} : {
+      "sd.card": card,
+      "sd.cardName": "MYCARD",
+      "sd.file./Live.urxf": JSON.stringify({ "ch.ch1.level": -9 }),
+      "sd.trackCount": 8,
+    };
+    const values = {
+      "ch.ch1.level": -9,
+      "setup.brightness": 3,
+      "scene.current": 5,
+      "scene.bank": "Simple",
+      ...memories,
+      ...cardValues,
+    };
+    window.localStorage.setItem(STATE_KEY, JSON.stringify({ version: 1, model, values }));
+    await openPage();
+    chooseDevice("current");
+    expect(currentBox().querySelector(".chrome-reset-ask")?.textContent).toBe(model === "URX22"
+      ? "Initialize current memories? Scene memories will stay."
+      : "Initialize current memories? Scene memories and the microSD card will stay.");
+    await pause(600);
+    click(button("Initialize"));
+    await until("current values reset", () => shownLevel() === "0");
+    await until("current values stored", async () => (await readSaved(model))?.["ch.ch1.level"] === 0);
+    const kept = (await readSaved(model))!;
+    expect([kept["ch.ch1.level"], kept["setup.brightness"], kept["scene.current"], kept["scene.bank"]]).toEqual([
+      0, 10, 0, "Standard",
+    ]);
+    expect(Object.fromEntries(Object.keys(memories).map((key) => [key, kept[key]]))).toEqual(memories);
+    if (model !== "URX22") {
+      expect(kept["sd.trackCount"]).toBe(16);
+      expect([kept["sd.card"], kept["sd.cardName"], kept["sd.file./Live.urxf"]]).toEqual([
+        card, "MYCARD", cardValues["sd.file./Live.urxf"],
+      ]);
+    }
+    expect(document.activeElement).toBe(deviceControl());
   });
 });
 
@@ -320,8 +505,9 @@ describe("the model the page opens on", () => {
 
 describe("[Reset the unit]", () => {
   const resetBox = (): HTMLElement => document.querySelector<HTMLElement>(".chrome-reset")!;
-  const button = (text: string): HTMLElement =>
-    [...resetBox().querySelectorAll<HTMLElement>("button")].find((b) => b.textContent === text)!;
+  const button = (text: string): HTMLElement => {
+    return [...resetBox().querySelectorAll<HTMLElement>("button")].find((b) => b.textContent === text)!;
+  };
   const click = (node: HTMLElement, detail: number): void => {
     node.dispatchEvent(new MouseEvent("click", { bubbles: true, detail }));
   };
@@ -330,7 +516,7 @@ describe("[Reset the unit]", () => {
   async function asking(values: Record<string, string | number> = {}): Promise<void> {
     window.localStorage.setItem(STATE_KEY, JSON.stringify({ version: 1, model: "URX44V", values: { "ch.ch1.level": -9, ...values } }));
     await openPage();
-    click(button("Reset the unit"), 1);
+    chooseDevice("reset");
     expect(button("Reset"), "the question is up").toBeDefined();
   }
 
@@ -388,10 +574,10 @@ describe("[Reset the unit]", () => {
     expect([kept["ch.ch1.level"], kept["sd.trackCount"]], "the unit as it ships").toEqual([0, 16]);
   });
 
-  it("keeps [Reset the unit] where it was while it asks, and the question up under a second click on it", async () => {
+  it("keeps one confirmation when the command is selected again", async () => {
     await asking();
-    expect(resetBox().firstElementChild?.textContent, "the button stays first in the row").toBe("Reset the unit");
-    click(button("Reset the unit"), 2);
+    chooseDevice("reset");
+    expect(document.querySelectorAll(".chrome-reset-ask")).toHaveLength(1);
     expect(button("Reset"), "the question is still up").toBeDefined();
   });
 });
@@ -426,10 +612,9 @@ describe("a change still waiting to be stored", () => {
     await openPage();
     holdTimers();
     await nudge();
-    const box = document.querySelector<HTMLElement>(".chrome-reset")!;
-    box.querySelector<HTMLElement>("button")!.click();
+    chooseDevice("reset");
     await pause(600);
-    const reset = [...box.querySelectorAll<HTMLElement>("button")].find((b) => b.textContent === "Reset")!;
+    const reset = [...document.querySelectorAll<HTMLElement>(".chrome-reset button")].find((b) => b.textContent === "Reset")!;
     reset.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
     await until("the unit as it ships", () => shownLevel() === "0");
     await until("the unit as it ships to be stored", async () => (await readSaved("URX44V"))?.["ch.ch1.level"] === 0);
@@ -723,10 +908,9 @@ describe("a unit another tab stores", () => {
     await pause(600);
     expect(await keeper.read(), "this tab has stopped storing").toEqual(theirs);
 
-    const box = document.querySelector<HTMLElement>(".chrome-reset")!;
-    box.querySelector<HTMLElement>("button")!.click();
+    chooseDevice("reset");
     await pause(600);
-    const reset = [...box.querySelectorAll<HTMLElement>("button")].find((b) => b.textContent === "Reset")!;
+    const reset = [...document.querySelectorAll<HTMLElement>(".chrome-reset button")].find((b) => b.textContent === "Reset")!;
     reset.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
     await until("the unit as it ships", () => shownLevel() === "0");
     expect(notice()?.hidden, "the chrome has nothing to tell").toBe(true);

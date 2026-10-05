@@ -3,7 +3,7 @@
 ## Scope
 
 The GitHub Pages publishing configuration, the CI workflow, dependencies, tracked Git files,
-production build, and vulnerability reporting channel.
+production build, vulnerability reporting channel, and the page's initialization controls.
 This is not an application-wide penetration test.
 
 ## Results
@@ -25,6 +25,7 @@ This is not an application-wide penetration test.
 | Published files | Deployment contains the HTML, JavaScript, CSS, favicon, link preview image, fonts and font license in `dist/` | Listed files after `pnpm build` |
 | Tracked files | Excludes `reference/`, `work/`, installed dependencies and build output | Inspected `git ls-files` and pre-publication history |
 | Sensitive data | No matches for the private-key, GitHub-token, AWS-access-key and machine-identifier search patterns | Scanned tracked files. Pattern matching does not establish the absence of secrets outside those patterns |
+| Initialization | Both Device menu items ask with [Cancel] focused, reject a second click and block another initialization during startup. Current initialization keeps stored scene memories and the card; the all-memory reset keeps the card | Exercised confirmation transitions, the click hold boundary, a held storage read and saved values. Removing scene retention or the click guard failed their regression tests. The controls restart a local `SimTransport` |
 
 The released actionlint 1.7.12 reports `concurrency.queue` as an unknown key
 ([upstream issue](https://github.com/rhysd/actionlint/issues/657)). Local linting excludes only
