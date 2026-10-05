@@ -197,7 +197,7 @@ describe("storing and recalling a scene", () => {
     expect(paths.map((p) => s.num(p, 99)), "scene 00").toEqual(paths.map(() => 0));
   });
 
-  it("lays each preset over the unit's own mixer, as the unit holds P01 to P03", async () => {
+  it("lays P01 over the unit's own mixer, as the unit holds it", async () => {
     const shell = await mount();
     const s = shell.ctx.store;
     const shippedColor = s.str("ch.ch1.color", "");
@@ -228,10 +228,21 @@ describe("storing and recalling a scene", () => {
     expect(s.num("ch.ch1.eq.high.gain", 0), "HIGH from the +7 dB the preset keeps under a band at 0 dB").toBe(14);
     await s.set("ch.ch1.eq.oneKnob.level", 25);
     expect(s.num("ch.ch1.eq.lowMid.gain", 0), "from the curve the preset holds at 50").toBe(-4);
+  });
 
+  it("lays P02 over the unit's own mixer, as the unit holds it", async () => {
+    const shell = await mount();
+    const s = shell.ctx.store;
     await recallScene(shell.ctx, 102);
     expect([s.str("ch.ch3.name", ""), s.num("ch.ch3.gain", 0), s.bool("ch.ch3.hiZ", false), s.bool("ch.ch3.eq.on", true)]).toEqual(["Gt./Ba.", 15, true, false]);
     expect(s.str("ch.ch1.name", ""), "P02's CH 1").toBe("Dyn.Mic");
+  });
+
+  it("lays P03 over the unit's own mixer, as the unit holds it, and 00 puts the unit's own back", async () => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    const stereo = (): string[] => ["ch_5_6", "ch_7_8", "ch_9_10", "ch_11_12"].map((id) => s.str(`ch.${id}.source`, ""));
+    await s.set("ch.ch1.eq.oneKnob.on", true);
 
     await recallScene(shell.ctx, 103);
     expect(stereo(), "P03's stereo channels").toEqual(["USB DAW 1/2", "None", "None", "None"]);
@@ -621,5 +632,26 @@ describe("drawing the glass over a recall and a load", () => {
     expect(captureSettings(s), "the file's values, every one").toEqual(saved);
 
     expect(Math.max(p01, back, loaded), `drawn ${JSON.stringify({ p01, back, loaded })}`).toBeLessThanOrEqual(3);
+  });
+});
+
+describe("the SCENE LIST", () => {
+  it("stays where it was scrolled when a row is touched, and opens the other bank at its top", async () => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "scene" });
+    shell.ctx.nav.push({ id: "scene.list" });
+    await flush();
+    const body = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".scene-list .list-body");
+    const before = body();
+    if (before) before.scrollTop = 1400;
+    before?.querySelectorAll<HTMLElement>(".list-row")[40]?.click();
+    await flush();
+    expect(shell.ctx.store.num("scene.selected", -1)).toBe(40);
+    expect(body(), "the touch drew the list again").not.toBe(before);
+    expect(body()?.scrollTop, "the row touched stays in view").toBe(1400);
+
+    [...shell.root.querySelectorAll<HTMLElement>(".scene-bank")].find((b) => b.textContent === "Simple")?.click();
+    await flush();
+    expect(body()?.scrollTop, "Simple's list from its first row").toBe(0);
   });
 });

@@ -101,6 +101,7 @@ export class Shell {
           if (!this.overlays.delete(close)) return;
           node.remove();
           this.shutBehind();
+          focus.sweep(this.lcd);
           onClose?.();
           // A focus it leaves on nothing goes back there, or to the control drawn in that place since.
           if (document.activeElement && document.activeElement !== document.body) return;
@@ -221,6 +222,7 @@ export class Shell {
     const refocus = this.focusPlace();
     // The same screen of the same strip drawn again keeps down what is held down.
     const repress = this.drawn === route.id && this.drawnStrip === route.strip ? this.press.carry() : () => undefined;
+    const rescroll = this.scrollPlace();
     this.dim();
     this.drawn = route.id;
     this.moves = [];
@@ -230,6 +232,7 @@ export class Shell {
     clear(this.sideNode);
     clear(this.toolbarNode);
     clear(this.knobStripNode);
+    this.ctx.focus.sweep(this.lcd);
 
     if (!def) {
       this.mainNode.appendChild(el("p", { class: "screen-missing", text: `No screen registered for "${route.id}"` }));
@@ -241,8 +244,10 @@ export class Shell {
     // USER DEFINED KNOBS mode replaces the readout strip with the bank
     // assignments, so it shows even where the screen suppresses the normal one.
     const udkMode = this.ctx.store.bool("ui.userDefinedKnobs", false);
-    const showStrip = udkMode || (body.knobStrip ?? def.knobStrip ?? this.knobs.some(Boolean));
+    const ownStrip = body.knobStrip ?? def.knobStrip ?? this.knobs.some(Boolean);
+    const showStrip = udkMode || ownStrip;
     this.lcd.classList.toggle("has-knobs", showStrip);
+    this.lcd.classList.toggle("has-readout", ownStrip);
     this.lcd.classList.toggle("is-udk", udkMode);
     this.lcd.classList.toggle("is-dimmed", def.dimsBehind === true);
     this.lcd.classList.toggle("side-at-top", def.sideAtTop === true);
@@ -272,7 +277,24 @@ export class Shell {
       for (const control of this.knobStripNode.querySelectorAll(INTERACTIVE)) control.toggleAttribute("inert", true);
     }
     repress();
+    rescroll();
     refocus();
+  }
+
+  /**
+   * The step that puts each list carrying `data-scroll-keep` back where the list
+   * of the same mark was scrolled before the redraw. A list whose mark no list
+   * carried before the redraw starts from its top.
+   */
+  private scrollPlace(): () => void {
+    const lists = (): HTMLElement[] => [...this.mainNode.querySelectorAll<HTMLElement>("[data-scroll-keep]")];
+    const was = new Map(lists().map((node) => [node.dataset.scrollKeep, node.scrollTop]));
+    return () => {
+      for (const node of lists()) {
+        const top = was.get(node.dataset.scrollKeep);
+        if (top !== undefined) node.scrollTop = top;
+      }
+    };
   }
 
   /**

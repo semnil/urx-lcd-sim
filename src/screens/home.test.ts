@@ -2684,6 +2684,61 @@ describe("the SCENE menu the scene box opens", () => {
     await send("z");
     expect(typed(), "a 17th character changes nothing").toBe("0123456789abcdef");
   });
+
+  it("shows the end of a title wider than its field, and follows the caret back past the start of what shows", async () => {
+    // jsdom lays nothing out: each character stands 13.9px wide in a field 198px wide,
+    // drawn at twice its size on the page, and the field's scroll width is in whole pixels.
+    const PITCH = 13.9;
+    const WIDTH = 198;
+    const SCALE = 2;
+    const is = (node: Element, cls: string): boolean => node.classList.contains(cls);
+    const cursor = (shell: Shell): number => shell.ctx.store.num("ui.titleEntry.cursor", 0);
+    let current: Shell | null = null;
+    const rect = Element.prototype.getBoundingClientRect;
+    const spies = [
+      vi.spyOn(Element.prototype, "scrollWidth", "get").mockImplementation(function (this: Element) {
+        return is(this, "title-text") ? Math.max(WIDTH, Math.round((this.textContent ?? "").length * PITCH + 1)) : 0;
+      }),
+      vi.spyOn(Element.prototype, "clientWidth", "get").mockImplementation(function (this: Element) {
+        return is(this, "title-text") ? WIDTH : 0;
+      }),
+      vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockImplementation(function (this: HTMLElement) {
+        return is(this, "title-text") ? WIDTH : 0;
+      }),
+      vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+        if (is(this, "title-text")) return new DOMRect(16, 0, WIDTH * SCALE, 38);
+        if (is(this, "title-caret") && current) return new DOMRect(16 + cursor(current) * PITCH * SCALE, 0, SCALE, 34);
+        return rect.call(this);
+      }),
+    ];
+    try {
+      const shell = await sceneList({ "scene.Standard.2.title": "WWWWWWWWWWWWWWWW", "scene.selected": 2, "ui.sceneMenu": "Edit" });
+      current = shell;
+      const view = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".title-text");
+      const caretInView = (): number => cursor(shell) * PITCH - (view()?.scrollLeft ?? 0);
+      await tap(editButtons(shell)[2]);
+      expect(view()?.scrollLeft, "the end of sixteen characters, 223px of them").toBe(223 - WIDTH);
+      expect(caretInView(), "the caret at the end, in view").toBeLessThan(WIDTH);
+
+      for (let i = 0; i < 14; i++) await tap(pick(shell, ".title-key", "<"));
+      expect([cursor(shell), view()?.scrollLeft], "still inside what shows").toEqual([2, 223 - WIDTH]);
+      await tap(pick(shell, ".title-key", "<"));
+      expect(
+        [cursor(shell), view()?.scrollLeft, caretInView() >= 0],
+        "past its start, the field shows from the caret, scrolled by whole pixels",
+      ).toEqual([1, 13, true]);
+      await tap(pick(shell, ".title-key", "<"));
+      expect(view()?.scrollLeft).toBe(0);
+
+      await tap(shell.root.querySelector<HTMLElement>(".title-clear") ?? undefined);
+      for (const face of "band") await tap(pick(shell, ".title-key", face));
+      expect([view()?.textContent, view()?.scrollLeft], "a title that fits shows from its start").toEqual(["band", 0]);
+      // The field scrolls no further than its content runs, so the caret at the end stands in the pixels after the last character.
+      expect(declarations(CSS, ".title-text")["padding-right"]).toBe("2px");
+    } finally {
+      for (const spy of spies) spy.mockRestore();
+    }
+  });
 });
 
 describe("the sheets a value is picked on", () => {

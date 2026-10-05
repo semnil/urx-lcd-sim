@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { KNOB_SIZE } from "../ui/param-spec";
-import { columnGap, declarations, declarationsOn, px, readStyle, styleRules, subject } from "./css-read";
+import { columnGap, declarations, declarationsOn, placedRules, px, readStyle, styleRules, subject } from "./css-read";
 
 // A value has to read under the panel it belongs to. The HOME bank, the knob
 // readout strip and the head-amp column of a channel view therefore stand on one
@@ -95,8 +95,21 @@ describe("the four columns the screens share", () => {
 
     // The main area stops where the bar starts: the unit's screens draw right up
     // to its top edge rather than holding a margin off it.
-    const clearance = px(declarations(CSS, ".lcd.has-knobs .main")["bottom"]);
+    const clearance = px(declarations(CSS, ".lcd.has-readout .main")["bottom"]);
     expect(clearance).toBe(px(strip["height"]));
+  });
+
+  it("lays the USER DEFINED KNOBS bar over the main area only on a screen without a readout bar of its own", () => {
+    // A screen with its own readout bar keeps its main area above the bar when the
+    // mode is switched on, so the panels stacked from its foot stay where they were.
+    // The readout bar's rule follows the mode's, so it holds with the mode on.
+    const bottoms = styleRules(CSS).flatMap((r) =>
+      r.body["bottom"] === undefined ? [] : r.selectors.filter((s) => /^\.lcd\.(is-udk|has-knobs|has-readout) \.main$/.test(s)).map((s) => [s, px(r.body["bottom"])]),
+    );
+    expect(bottoms).toEqual([
+      [".lcd.is-udk .main", 2],
+      [".lcd.has-readout .main", 39],
+    ]);
   });
 
   it("lays a channel view's blocks on the columns of the controls under them", () => {
@@ -261,6 +274,36 @@ describe("what answers a touch", () => {
 
   it("lets a touch through the backlight", () => {
     expect(declarations(CSS, ".lcd-dim")["pointer-events"]).toBe("none");
+  });
+
+  it("takes a touch 18 screen pixels each way on the page steps, the bank steps and a list's bar and thumb, 36 at the default scale", () => {
+    // They draw smaller than that on the unit. An empty box laid over each part
+    // reaches 18px across and down without drawing anything, and a touch on it
+    // is the part's own.
+    const LEAST = 18;
+    expect(Number(declarations(TOKENS, ":root")["--scale"]) * LEAST, "the desktop minimum").toBe(36);
+    const reach = (selector: string): Record<string, string> => declarations(CSS, `${selector}::before`);
+    for (const step of [".knob-strip .knob-page-step", ".knob-strip .knob-bank-step"]) {
+      expect([reach(step)["content"], reach(step)["position"], reach(step)["width"], reach(step)["height"]], step).toEqual([
+        '""', "absolute", `${LEAST}px`, `max(100%, ${LEAST}px)`,
+      ]);
+      // Up from the foot of the bar, and from each end in towards the middle.
+      expect(reach(step)["bottom"]).toBe("0");
+    }
+    expect([reach(".knob-page-prev")["left"], reach(".knob-bank-prev")["left"]]).toEqual(["0", "0"]);
+    expect([reach(".knob-page-next")["right"], reach(".knob-bank-next")["right"]]).toEqual(["0", "0"]);
+    expect(px(declarations(CSS, ".knob-strip .knob-page-step")["width"]), "drawn narrower than it takes").toBeLessThan(LEAST);
+
+    // The bar and the thumb: centred on what they draw, the thumb at least as tall as it is wide.
+    for (const part of [".scrollbar", ".scroll-thumb"]) {
+      expect([reach(part)["content"], reach(part)["position"], reach(part)["width"], reach(part)["left"], reach(part)["translate"]], part).toEqual([
+        '""', "absolute", `${LEAST}px`, "50%", "-50% 0",
+      ]);
+    }
+    expect([reach(".scrollbar")["top"], reach(".scrollbar")["bottom"]]).toEqual(["0", "0"]);
+    const short = `min(0px, calc(50% - ${LEAST / 2}px))`;
+    expect([reach(".scroll-thumb")["top"], reach(".scroll-thumb")["bottom"]], "a thumb shorter than that reaches out to it").toEqual([short, short]);
+    expect(px(declarations(CSS, ".scroll-thumb")["width"]), "drawn narrower than it takes").toBeLessThan(LEAST);
   });
 });
 
@@ -1456,6 +1499,9 @@ describe("the dynamics screens", () => {
     // The narrow box is not wide enough for every name; what does not fit is cut
     // off by the box rather than drawn over the arrow beside it.
     expect(declarations(CSS, ".ch-chip.is-narrow")["overflow"]).toBe("hidden");
+    // A name with a space in it stays one line, so the channel's number above it
+    // stays inside the box.
+    expect(declarations(CSS, ".ch-chip-name")["white-space"], "a channel name never wraps").toBe("nowrap");
     expect(declarations(CSS, ".badge.badge-title")["white-space"], "and a screen name never wraps").toBe("nowrap");
     // A long screen name is set at the size of the shorter ones; no rule sets it
     // a size down.
@@ -3250,6 +3296,17 @@ describe("the channel, monitor and microSD parts measured against the guide's fi
     expect(px(declarations(CSS, ".tools-report-value")["left"])).toBe(146);
     expect(px(declarations(CSS, ".tools-report-row.is-sub .tools-report-value")["left"])).toBe(101);
   });
+
+  it("ends a card name too long for its line in `…` at the main area's right edge, the free space under it where it was", () => {
+    // The two lines run from x312 to the right edge of the box they stand in:
+    // the browser spans the main area, and TOOLS stands them on the main area.
+    expect(px(declarations(CSS, ".sd-free")["right"])).toBe(0);
+    expect(declarations(CSS, ".sd-browser")["width"]).toBe("100%");
+    const name = declarations(CSS, ".sd-free-name");
+    expect([name["white-space"], name["overflow"], name["text-overflow"]]).toEqual(["nowrap", "hidden", "ellipsis"]);
+    expect([name["display"], name["max-width"]], "no wider than the two lines' box").toEqual(["inline-block", "100%"]);
+    expect(name["vertical-align"], "the name's line as tall as the free space's").toBe("top");
+  });
 });
 
 describe("SCENE LIST's Edit tab and the title entry sheet", () => {
@@ -3305,7 +3362,10 @@ describe("the marks on the control holding the focus", () => {
     expect(declarations(CSS, ".eq-grip.is-held::before")["animation"]).toBe("focus-mark-blink 2s ease-in-out infinite");
     expect(CSS).toMatch(/@keyframes focus-mark-blink\s*\{\s*50%\s*\{\s*opacity:\s*0;/);
     expect(CSS, "no blinking for a reader who asks for less motion").toMatch(
-      /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.dyn-handle-mark\.is-held \.dyn-handle-arrow,\s*\.eq-grip\.is-held::before,\s*\.eq-grip\.is-held::after\s*\{\s*animation: none;/,
+      /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.dyn-handle-mark\.is-held \.dyn-handle-arrow\s*\{\s*animation: none;/,
+    );
+    expect(CSS, "for a held band's marks as well").toMatch(
+      /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.eq-grip\.is-held::before,\s*\.eq-grip\.is-held::after\s*\{\s*animation: none;/,
     );
   });
 
@@ -3706,7 +3766,7 @@ describe("what lies over the USER DEFINED KNOBS bar", () => {
       r.selectors.filter((s) => /^\.lcd(\.[\w-]+)+ \.main$/.test(s) && edges.some((e) => e in r.body)).map((s) => ({ s, at })),
     );
     expect(rivals.map(({ s }) => s), "the bars and the side rail move the main area's edges").toEqual(
-      expect.arrayContaining([".lcd.has-knobs .main", ".lcd.is-udk .main", ".lcd.has-side .main"]),
+      expect.arrayContaining([".lcd.has-readout .main", ".lcd.is-udk .main", ".lcd.has-side .main"]),
     );
     expect(
       rivals.filter(({ s, at }) => classes(s) > classes(sheetSelector) || (classes(s) === classes(sheetSelector) && at > sheetAt)).map(({ s }) => s),
@@ -3724,5 +3784,30 @@ describe("what lies over the USER DEFINED KNOBS bar", () => {
     expect([dark["position"], dark["inset"]]).toEqual(["absolute", declarations(CSS, ".lcd .knob-strip::after")["inset"]]);
     const parts = rules.filter((r) => r.selectors.some((s) => /\.knob-(cell|bank|page)/.test(s)) && "z-index" in r.body);
     expect([Number(dark["z-index"]) > 0, parts.map((r) => r.selectors.join())]).toEqual([true, []]);
+  });
+});
+
+describe("a reader who asks for less motion", () => {
+  it("has each blink and slide stopped by a rule later in the sheet than the one that starts it", () => {
+    // The stop carries the same selector as the rule it stops, so it holds only
+    // where it comes after that rule.
+    const reduce = (within: string): boolean => /prefers-reduced-motion:\s*reduce/.test(within);
+    let stops = 0;
+    for (const file of ["lcd.css", "app.css"]) {
+      const rules = placedRules(readStyle(file));
+      const late: string[] = [];
+      rules.forEach((rule, at) => {
+        if (!reduce(rule.within)) return;
+        for (const selector of rule.selectors) {
+          for (const motion of ["animation", "transition"].filter((m) => rule.body[m] !== undefined)) {
+            stops++;
+            const starts = rules.flatMap((r, i) => (!reduce(r.within) && r.selectors.includes(selector) && r.body[motion] !== undefined ? [i] : []));
+            if (starts.length === 0 || starts.some((i) => i > at)) late.push(`${file} ${selector} ${motion}`);
+          }
+        }
+      });
+      expect(late, "a stop with no rule before it to stop, or one a later rule starts again").toEqual([]);
+    }
+    expect(stops, "the sheets carry stops to check").toBeGreaterThan(0);
   });
 });

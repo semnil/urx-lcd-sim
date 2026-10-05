@@ -6,7 +6,7 @@ import { factoryState } from "../model/defaults";
 import { findStrip } from "../model/types";
 import { unitById } from "../model/units";
 import { buildRegistry } from "../screens";
-import { declarations, readStyle, selectorList, styleRules } from "./css-read";
+import { declarations, placedRules, readStyle, selectorList, styleRules } from "./css-read";
 
 // `.lcd button, .lcd input, .lcd select { font: inherit; color: inherit }` hands every
 // control the font and the colour of what it stands in, and it outranks a rule of one
@@ -227,6 +227,15 @@ describe("the font a rule gives a control", () => {
     expect(read).toEqual([
       { selectors: [".a"], body: { "font-size": "1px" } },
       { selectors: [".b"], body: { "font-weight": "700" } },
+    ]);
+  });
+
+  it("names the at-rule each rule stands in, every rule inside it and none after it", () => {
+    const read = placedRules("@media (x) {\n  .a { font-size: 1px; }\n  .b { color: red; }\n}\n@keyframes k {\n  50% { opacity: 1; }\n}\n.c { font-weight: 700; }");
+    expect(read.map((r) => [r.selectors.join(), r.within])).toEqual([
+      [".a", "@media (x)"],
+      [".b", "@media (x)"],
+      [".c", ""],
     ]);
   });
 

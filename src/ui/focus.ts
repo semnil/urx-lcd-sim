@@ -14,6 +14,7 @@ export class FocusController {
   private key: string | null = null;
   private pinned = false;
   private readonly listeners = new Set<(spec: NumericSpec | null) => void>();
+  private readonly followers = new Set<{ node: Element; apply: () => void }>();
 
   get spec(): NumericSpec | null {
     return this.current;
@@ -76,7 +77,19 @@ export class FocusController {
     return () => this.listeners.delete(listener);
   }
 
+  /** Run `apply` now and whenever the focus moves, until a `sweep` finds `node` off the glass. */
+  follow(node: Element, apply: () => void): void {
+    apply();
+    this.followers.add({ node, apply });
+  }
+
+  /** Stop following each node that no longer stands inside `root`: what taking a screen or a sheet down does. */
+  sweep(root: Node): void {
+    for (const f of this.followers) if (!root.contains(f.node)) this.followers.delete(f);
+  }
+
   private emit(): void {
     for (const l of [...this.listeners]) l(this.current);
+    for (const f of [...this.followers]) f.apply();
   }
 }

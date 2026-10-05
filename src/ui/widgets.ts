@@ -53,39 +53,11 @@ export function unbuilt(label: string, extraClass = ""): HTMLElement {
 const DRAG_SLOP_PX = 4;
 
 /**
- * The bar the unit draws beside a list that does not fit: a well with a white
- * thumb covering the share of the list in view, and a pink rim while the list
- * is the thing being turned. `unit` is the pitch one row of the list takes, so
- * the thumb steps with the rows rather than with the pixels. `always` keeps the
- * bar up with a full thumb where the unit draws one whatever the list holds.
- * `gap` is what the bar adds to the list's heights before counting rows in them,
- * and `minThumb` the shortest the thumb draws.
- *
- * The returned node is positioned by the screen that owns it.
- */
-/**
  * Keep `node` carrying `cls` while the focus is on `key`: now, and whenever the
- * focus moves, for as long as the node exists. The listener holds the node weakly,
- * so a node a repaint has replaced is let go.
+ * focus moves, for as long as the node stands on the glass.
  */
 export function markFocus(ctx: AppContext, node: Element, key: string, cls = "is-focused"): void {
-  followFocus(ctx, node, () => node.classList.toggle(cls, ctx.focus.holds(key)));
-}
-
-/**
- * Run `apply` now and whenever the focus moves, for as long as `node` exists. The
- * listener holds the node weakly, so a node a repaint has replaced is let go.
- */
-export function followFocus(ctx: AppContext, node: Element, apply: () => void): void {
-  apply();
-  const ref = new WeakRef(node);
-  const off = ctx.focus.onChange(() => {
-    if (!ref.deref()) {
-      off();
-      return;
-    }
-    apply();
-  });
+  ctx.focus.follow(node, () => node.classList.toggle(cls, ctx.focus.holds(key)));
 }
 
 /**
@@ -160,6 +132,20 @@ function valueHoldsOf(ctx: AppContext): PointerHolds<string> {
   return holds;
 }
 
+/**
+ * The bar the unit draws beside a list that does not fit: a well with a white
+ * thumb covering the share of the list in view, and a pink rim while the list
+ * is the thing being turned. `unit` is the pitch one row of the list takes, so
+ * the thumb steps with the rows rather than with the pixels. `always` keeps the
+ * bar up with a full thumb where the unit draws one whatever the list holds.
+ * `gap` is what the bar adds to the list's heights before counting rows in them,
+ * and `minThumb` the shortest the thumb draws. A list given `focus.keep` is
+ * marked with its `key` and `keep` (`data-scroll-keep`): a redraw puts it where
+ * the list of the same mark was scrolled, and a list of another mark starts
+ * from its top.
+ *
+ * The returned node is positioned by the screen that owns it.
+ */
 export function scrollbar(
   target: HTMLElement,
   track: number,
@@ -167,7 +153,7 @@ export function scrollbar(
   always = false,
   gap = unit > 1 ? unit - Math.round(unit * 0.8) : 0,
   minThumb = 0,
-  focus?: { ctx: AppContext; key: string },
+  focus?: { ctx: AppContext; key: string; keep?: string },
 ): HTMLElement {
   const thumb = el("div", { class: "scroll-thumb" });
   const bar = el("div", { class: "scrollbar", children: [thumb] });
@@ -196,6 +182,7 @@ export function scrollbar(
   // A bar the knob can turn takes the focus when its list or the bar is touched,
   // or the keys bring the focus to the list itself, and wears the pink rim while it holds it.
   if (focus) {
+    if (focus.keep !== undefined) target.dataset.scrollKeep = `${focus.key} ${focus.keep}`;
     markFocus(focus.ctx, bar, focus.key);
     for (const n of [target, bar]) n.addEventListener("pointerdown", () => focus.ctx.focus.takeKey(focus.key));
     target.addEventListener("focus", () => focus.ctx.focus.takeKey(focus.key));

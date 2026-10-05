@@ -787,7 +787,7 @@ operator the same day), over as little as it can:
 wider than the room left of the box (x98..325, right of Sync), so its left end lies over the foot of
 Sync (x60..97 / y107..121).
 Every control but Cho, Off and Vib takes one place, and a list value whose name does not fit its panel (Pitch Fix's `Harmonic Minor` and the like)
-ends in `…`, as every other name too long for its box does; the whole of it is on the sheet. The
+ends in `…`; the whole of it is on the sheet. The
 block's own input and output meters stand at the right (x430..473), in the place and at the size the
 dynamics screens give them.
 
@@ -1738,7 +1738,8 @@ the size every settings file takes. It is printed over 1024³ to one decimal, as
 The card's name, the volume label it was formatted under, stands on a line above it, the two lines top right and
 set left from x313 (x313..387 / y58..81). Every card screen puts them in the same place (URX44V, the operator,
 2026-09-22): SAVE/LOAD's p084-1 and TOOLS' p087-1 show both lines, and RECORDER's p081-1 and p083-1 show the name
-line empty. With no card none of these screens
+line empty. The name's line runs to the main area's right edge (x418), and a name that does not fit ends in `…`.
+With no card none of these screens
 is open: the microSD top takes their place. A touch on the eject button first asks `Eject the microSD card?` under the
 circled i mark, with [Cancel] and [OK], as the unit does (URX44V, the operator, 2026-10-04). Its [OK] brings up the unit's
 dialog `Now you may safely remove the microSD card.` with [OK] alone: the text on one line, the circled i
@@ -1892,7 +1893,8 @@ wide), space (three keys wide), `@`, `.`, and `<` and `>` (one and three quarter
 [#+-] to the symbols and [ABC] to the letters.
 
 [Shift] turns on and off at each tap; while on, its face is `--accent-selected` and the letter keys draw and type
-capitals. A title takes up to 16 characters, and a key typed past that changes nothing. `<` and `>` move the cursor a character at a time, and typing and backspace act at the cursor. The clear
+capitals. A title takes up to 16 characters, and a key typed past that changes nothing. `<` and `>` move the cursor a character at a time, and typing and backspace act at the cursor.
+A title wider than the field shows its end, and a cursor moved back past the start of what shows stands at the field's left edge. The clear
 button empties the field. The sheet opens on the letters with Shift off; [OK] on [Title]'s sheet writes the title, and
 [OK] on [Store]'s goes on to the question before storing. [OK] does nothing while the field is empty, and [Cancel] writes
 nothing.

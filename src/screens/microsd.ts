@@ -183,8 +183,9 @@ function cardBrowser(ctx: AppContext, opts: BrowserOptions): HTMLElement {
   const body = list.querySelector<HTMLElement>(".list-body");
   // The well the thumb runs in, between the rims at each end of the bar. The
   // list's padding and the gaps between its rows come to whole rows, so the bar
-  // adds nothing before counting them.
-  const bar = body ? scrollbar(body, LIST_TRACK_PX, LIST_ROW_PITCH_PX, false, 0, LIST_THUMB_MIN_PX, { ctx, key: "sd.list" }) : null;
+  // adds nothing before counting them. A touch on a row leaves the list where it
+  // was scrolled; another folder starts from its top.
+  const bar = body ? scrollbar(body, LIST_TRACK_PX, LIST_ROW_PITCH_PX, false, 0, LIST_THUMB_MIN_PX, { ctx, key: "sd.list", keep: path }) : null;
   bar?.classList.add("sd-scrollbar");
 
   return el("div", {
@@ -206,7 +207,7 @@ function cardBrowser(ctx: AppContext, opts: BrowserOptions): HTMLElement {
           el("div", { class: "sd-path-field", children: [el("span", { text: path })] }),
         ],
       }),
-      el("div", { class: "sd-free", text: cardLabel(ctx) }),
+      el("div", { class: "sd-free", children: cardLabel(ctx) }),
       list,
       ...(bar ? [bar] : []),
       el("div", { class: "sd-actions", children: actions }),
@@ -279,9 +280,9 @@ function cardName(ctx: AppContext): string {
   return ctx.store.str("sd.cardName", "test");
 }
 
-/** The card's name over what it leaves, as every card screen carries it. */
-function cardLabel(ctx: AppContext): string {
-  return `${cardName(ctx)}\n${freeText(ctx)}`;
+/** The card's name over what it leaves, as every card screen carries it. The name stands on a line of its own. */
+function cardLabel(ctx: AppContext): Node[] {
+  return [el("span", { class: "sd-free-name", text: cardName(ctx) }), document.createTextNode(`\n${freeText(ctx)}`)];
 }
 
 /** Leave the card with nothing on it. */
@@ -833,7 +834,7 @@ export const toolsScreen: ScreenDef = {
         class: "tools-screen",
         children: [
           button(tab === "Format" ? "Format microSD" : "Test microSD", () => (tab === "Format" ? askVolumeLabel(ctx) : testCard(ctx))),
-          el("div", { class: "sd-free tools-free", text: cardLabel(ctx) }),
+          el("div", { class: "sd-free tools-free", children: cardLabel(ctx) }),
           ...(tested ? [testReport()] : []),
         ],
       }),

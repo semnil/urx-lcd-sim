@@ -18,7 +18,7 @@ import { inkOn } from "../ui/color";
 import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
 import { compRatioSpec, dbSpec, faderSpec, fineGainSpec, freqSpec, intSpec, logFreqSpec, msSpec, panSpec, stoppedMsSpec } from "../ui/param-spec";
-import { attachDrag, attachSpin, followFocus, knobControl, markFocus, meter, panSlider, pickerSheet, pulldown, setAriaValue, sideTab, toggle, unbuilt, valueBox } from "../ui/widgets";
+import { attachDrag, attachSpin, knobControl, markFocus, meter, panSlider, pickerSheet, pulldown, setAriaValue, sideTab, toggle, unbuilt, valueBox } from "../ui/widgets";
 import { type GrSpec, type LampState, blockReduction, drawnLevels, inputMeterId, markBlockLamps, markClipSafe, markLevelBar, markReduction, showBlockLamps } from "./meters";
 import { DELAY_MAX_MS, type Tap, compSpec, duckerSources, duckerSpec, gateSpec, stripTap, tapId } from "./signal-flow";
 import { PAN_BAL, SIGNAL_TYPES, carriesStereo, enterSsmcs, setPanBal, setSignalType, signalType, stripPosition } from "./stereo-link";
@@ -264,7 +264,7 @@ export function block(
   // focus to it and the second opens its screen. The first one does not sink the
   // panel, so it only gains its frame.
   if (knob) {
-    followFocus(ctx, node, () => {
+    ctx.focus.follow(node, () => {
       if (ctx.focus.holds(key)) node.removeAttribute("data-press");
       else node.setAttribute("data-press", "none");
     });

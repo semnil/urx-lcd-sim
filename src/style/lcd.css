@@ -30,12 +30,18 @@
   height: var(--lcd-h);
   background: var(--lcd-bg);
   color: var(--text);
+  /* The glass and every part on it keep the unit's own colours under a forced
+   * palette such as a high-contrast theme; the chrome around it takes the
+   * browser's. */
+  forced-color-adjust: none;
   font-family: var(--font);
   font-size: var(--fs-md);
   overflow: hidden;
   /* Drawn at --scale so the panel is legible on a desktop display. Controls on
    * the glass keep the unit's own geometry — a 26px-tall button on a 4.3-inch
-   * panel — and the scale is what carries them past the 36px target minimum.
+   * panel — and the scale is what carries them past the 36px target minimum;
+   * a part drawn under 18px takes a touch over 18px all the same (the page
+   * steps, the bank steps and a list's bar and thumb).
    * The display zoom multiplies in here too, so the glass is scaled by this one
    * transform. */
   transform: scale(calc(var(--scale) * var(--zoom, 1)));
@@ -285,10 +291,6 @@
   right: 62px;
 }
 
-.lcd.has-knobs .main {
-  bottom: 39px;
-}
-
 .lcd.has-knobs .knob-strip {
   display: grid;
 }
@@ -398,6 +400,13 @@
   bottom: 2px;
 }
 
+/* A screen with a readout bar of its own ends its main area where the bar
+ * starts, with USER DEFINED KNOBS on or off, so the panels stacked from its foot
+ * stay where they are when the mode is switched on. */
+.lcd.has-readout .main {
+  bottom: 39px;
+}
+
 .lcd.is-udk .knob-strip {
   background: var(--accent-udk);
   border-color: var(--accent-udk-edge);
@@ -483,6 +492,29 @@
 
 .knob-page-next {
   right: 1px;
+}
+
+/* A touch reaches each step over 18 screen pixels each way, 36 at the default
+ * scale, while the step draws only its own mark: up from the foot of the bar and
+ * in from its end, over the edge of the division beside it, where the step takes
+ * the touch. */
+.knob-strip .knob-page-step::before,
+.knob-strip .knob-bank-step::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  width: 18px;
+  height: max(100%, 18px);
+}
+
+.knob-page-prev::before,
+.knob-bank-prev::before {
+  left: 0;
+}
+
+.knob-page-next::before,
+.knob-bank-next::before {
+  right: 0;
 }
 
 .lcd.is-udk .knob-cell-label {
@@ -4095,11 +4127,14 @@
   color: var(--text);
 }
 
+/* The two pixels after the last character keep a caret at the end of a title
+ * wider than the field inside the field. */
 .title-text {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   white-space: pre;
+  padding-right: 2px;
   font-size: 15px;
   font-weight: 700;
 }
@@ -4300,9 +4335,11 @@
   font-weight: 400;
 }
 
+/* A name stays one line, a space in it too, so the number above it keeps its row. */
 .ch-chip-name {
   font-size: 12.5px;
   translate: 1px 0;
+  white-space: nowrap;
 }
 
 .param-header {
@@ -5424,9 +5461,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dyn-handle-mark.is-held .dyn-handle-arrow,
-  .eq-grip.is-held::before,
-  .eq-grip.is-held::after {
+  .dyn-handle-mark.is-held .dyn-handle-arrow {
     animation: none;
   }
 }
@@ -6727,6 +6762,29 @@
   background: var(--text);
 }
 
+/* A touch reaches the bar and its thumb over 18 screen pixels across, 36 at the
+ * default scale, centred on what they draw, and a thumb shorter than that over 18
+ * down. The thumb stands over the bar, so where the two reach over each other the
+ * thumb takes the touch. */
+.scrollbar::before,
+.scroll-thumb::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 18px;
+  translate: -50% 0;
+}
+
+.scrollbar::before {
+  top: 0;
+  bottom: 0;
+}
+
+.scroll-thumb::before {
+  top: min(0px, calc(50% - 9px));
+  bottom: min(0px, calc(50% - 9px));
+}
+
 /* Where the input-source sheet stands its bar. */
 .source-scrollbar {
   left: 397px;
@@ -6913,15 +6971,27 @@
 }
 
 /* The card's name over what it leaves, top right in the same place on every
- * card screen. */
+ * card screen, the two lines no wider than the main area leaves them. */
 .sd-free {
   position: absolute;
   left: 312px;
+  right: 0;
   top: 5px;
   white-space: pre-line;
   text-align: left;
   font-size: 12px;
   color: var(--text);
+}
+
+/* A name too long for its line ends in `…`. Its line stands as tall as the
+ * free space's, at the same place. */
+.sd-free-name {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: top;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* A list the unit draws as separate boxes on a tray: the 2px around and between
@@ -7526,6 +7596,13 @@
   border-bottom: 4px solid transparent;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .eq-grip.is-held::before,
+  .eq-grip.is-held::after {
+    animation: none;
+  }
+}
+
 .eq-grip.is-held::before {
   left: -12px;
   border-right: 6px solid var(--accent-focus);
@@ -7659,8 +7736,8 @@
   font-size: var(--fs-sm);
 }
 
-/* A name longer than the panel ends the way every other name too long for its
- * box does, rather than running under the mark beside it. */
+/* A name longer than the panel ends in `…` rather than running under the mark
+ * beside it. */
 .efx-cell .pulldown-value {
   overflow: hidden;
   text-overflow: ellipsis;

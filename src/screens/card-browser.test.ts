@@ -246,6 +246,7 @@ describe("the microSD card browser", () => {
     await shell.ctx.store.set("sd.cardName", "SONG 1");
     await flush();
     expect(shell.root.querySelector(".sd-free")?.textContent?.split("\n")[0], "the name follows the card").toBe("SONG 1");
+    expect(shell.root.querySelector(".sd-free > .sd-free-name")?.textContent, "on a line of its own, which ends a long name").toBe("SONG 1");
   });
 
   it("changes only the actions between the two SAVE/LOAD tabs", async () => {
@@ -431,6 +432,32 @@ describe("the microSD card browser", () => {
     up()?.click();
     await flush();
     expect([path(), names()]).toEqual(["/", ["Recordings", "take.wav"]]);
+  });
+
+  it("stays where it was scrolled when a row is touched, and shows a folder it opens from the top", async () => {
+    // Folders list first, so the folder touched stands below the first rows.
+    const shell = await mount({ id: "microsd.saveload" }, [
+      ...Array.from({ length: 12 }, (_, i) => entry(`Folder${String(i).padStart(2, "0")}`, "folder")),
+      ...Array.from({ length: 8 }, (_, i) => entry(`take${i}.wav`, "take", 10)),
+      entry("inside.wav", "take", 96, 2, "/Folder09/"),
+    ]);
+    const body = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".sd-list .list-body");
+    const touch = async (row: number): Promise<void> => {
+      rows(shell)[row]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flush();
+    };
+    const before = body();
+    if (before) before.scrollTop = 300;
+    await touch(8);
+    expect(shell.ctx.store.num("sd.selectedFile", -1)).toBe(8);
+    expect(body(), "the touch drew the list again").not.toBe(before);
+    expect(body()?.scrollTop, "the row touched stays in view").toBe(300);
+
+    await touch(9);
+    expect([shell.ctx.store.num("sd.selectedFile", -1), body()?.scrollTop], "the first touch on the folder takes the cursor").toEqual([9, 300]);
+    await touch(9);
+    expect(shell.root.querySelector(".sd-path-field")?.textContent).toBe("/Folder09/");
+    expect(body()?.scrollTop, "the folder from its top").toBe(0);
   });
 
   it("carries the card-eject button where the unit has it, asking the unit's question before the card comes out", async () => {

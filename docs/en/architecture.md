@@ -233,7 +233,9 @@ Outside that there is one more display scale. The selector at the top of the pag
 150% / 200%) and `?zoom=` supply `--zoom`, and the `transform: scale()` on `.lcd` scales the screen by
 the product of `--scale` and `--zoom`. The width and height of `.lcd-frame` come from the same
 product, so the space the screen takes in the layout follows the scale and the page scrolls to reach
-it. The scaling is one transform because an outer `zoom` over an inner `transform` shifts the edges of
+it. The rows above and below the screen (`.chrome` / `.chrome-foot`) take the width of the glass, and no
+more than the window's width inside the page's margins, so only the frame runs past a narrow window.
+The scaling is one transform because an outer `zoom` over an inner `transform` shifts the edges of
 the parts drawn pixel by pixel by one screen pixel at some scales.
 
 Dragging a value looks only at the difference in the pointer's movement on the page, so the same
@@ -264,7 +266,10 @@ left the focus elsewhere (`tappedControl`), or on the control drawn in its place
 [Cancel] and [OK] opens with the focus on [Cancel], so an Enter pressed after the key that opened it does not carry out what
 the dialog asks; a dialog whose only button is [OK] opens with the focus on [OK]. A list opens with the focus on the value its box holds, or on its first choice where it holds none of them, and its choices
 are `role="option"`, the one held `aria-selected`. A loading modal holds nothing to operate, and Escape does not take it
-down. Meter animation stops under `prefers-reduced-motion`.
+down. Meter animation stops under `prefers-reduced-motion`. Under a forced palette such as a high-contrast theme
+(`forced-colors`), the glass keeps the unit's own colours, so a lit switch, a selection and a meter still read as
+they do on the unit (`forced-color-adjust: none` on `.lcd`); the rows above and under the glass take the browser's
+palette.
 
 Where the keys stand is drawn by the simulator, in a layer over the glass (`src/ui/focus-ring.ts`). No control draws a
 ring of its own, so neither a neighbour nor a parent box can cover it. The ring stands outside the box of the control
@@ -283,7 +288,9 @@ with the same words, or else, for a page step that goes, the one step the other 
 stands at that place (the shell's `focusPlace`). A value therefore turns press after press, and a switch can
 be pressed again without Tab. A screen put in place of the current one, as the four SSMCS screens step from one to
 the next, takes the focus onto its one control of the same kind and name, or else, for an arrow the screen at either
-end does not carry, onto its one arrow the other way. A rotary drawn beside a value box stays out of the Tab order, the box
+end does not carry, onto its one arrow the other way. The SCENE LIST and the card's lists likewise stay where they
+were scrolled before the redraw, so a row touched stays in view; the other bank of SCENE LIST and another folder on
+the card start from the top (the shell's `scrollPlace`). A rotary drawn beside a value box stays out of the Tab order, the box
 carrying its keys. A list's scroll bar answers the pointer alone; the keys scroll a list by moving through
 its rows, and the LICENSE text, which holds no rows, is a Tab stop of its own that rims its bar when it
 takes the focus. On SCENE LIST and the microSD lists the up and down arrow keys, Home and End move the focus
@@ -306,4 +313,6 @@ of the page drawn again ([Reset the unit], the model selector).
 
 On-screen controls keep the unit's dimensions (26px-high buttons on the 4.3-inch panel, and so on).
 The desktop GUI minimum touch target of 36x36 is met by the default `--scale` of 2 combined with a
-display scale of 100%. Below 100%, the actual size shrinks in proportion.
+display scale of 100%. The parts the unit draws under 18 screen pixels, the readout bar's page steps, the
+USER DEFINED KNOBS bank steps and a list's scroll bar and thumb, draw as they are and take a touch over
+18x18 screen pixels, ahead of what they reach over. Below 100%, the actual size shrinks in proportion.

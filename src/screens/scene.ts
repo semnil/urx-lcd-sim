@@ -303,7 +303,8 @@ export const sceneScreen: ScreenDef = {
     const list = listView("Scene List", ["No.", "Title", "Lock"], rows, "list-carded scene-list");
     const body = list.querySelector<HTMLElement>(".list-body");
     // The padding and the gaps between rows come to whole rows, as on the card's list.
-    const bar = body ? scrollbar(body, SCENE_TRACK_PX, SCENE_ROW_PITCH_PX, false, 0, LIST_THUMB_MIN_PX, { ctx, key: "scene.list" }) : null;
+    // A touch on a row leaves the list where it was scrolled; the other bank starts from its top.
+    const bar = body ? scrollbar(body, SCENE_TRACK_PX, SCENE_ROW_PITCH_PX, false, 0, LIST_THUMB_MIN_PX, { ctx, key: "scene.list", keep: bank }) : null;
     bar?.classList.add("scene-scrollbar");
 
     const main = el("div", {

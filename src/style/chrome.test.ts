@@ -20,6 +20,14 @@ describe("the chrome around the glass", () => {
     expect(/\b\d+px\b/.test(width ?? ""), `no fixed width in ${width}`).toBe(false);
   });
 
+  it("is bounded by a window narrower than the glass, which only the frame around the glass runs past", () => {
+    // The chrome's 100% is the column's width, and the column spans the window
+    // rather than growing to the frame's width.
+    expect(declarations(APP, "#app")["width"], "the column spans the window").toBe("100%");
+    // The controls wrap onto further rows inside the narrowed chrome.
+    expect(declarations(APP, ".chrome-controls")["flex-wrap"]).toBe("wrap");
+  });
+
   it("centres on the glass, which the frame around it is wider than", () => {
     expect(declarations(APP, ".chrome")["margin-inline"]).toBe("auto");
   });
@@ -40,5 +48,14 @@ describe("the chrome around the glass", () => {
   it("centres the frame around the glass in the column", () => {
     const panel = declarations(APP, ".panel");
     expect([panel["width"], panel["margin-inline"]]).toEqual(["fit-content", "auto"]);
+  });
+
+  it("takes the browser's forced palette, while the glass keeps the unit's own colours", () => {
+    // A forced palette (a high-contrast theme) recolours a page's backgrounds,
+    // text and borders and drops its shadows. The glass opts out once, and every
+    // part on it inherits that.
+    expect(declarations(LCD, ".lcd")["forced-color-adjust"]).toBe("none");
+    expect(LCD.match(/forced-color-adjust/g)?.length, "no part on the glass takes the forced palette back").toBe(1);
+    expect(APP.includes("forced-color-adjust"), "the title row and the notes take the forced palette").toBe(false);
   });
 });
