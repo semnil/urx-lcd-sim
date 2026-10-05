@@ -105,6 +105,29 @@ describe("[Unit model]", () => {
 });
 
 describe("[Device menu]", () => {
+  it("keeps the menu during an internal focus transition before the destination receives focus", async () => {
+    const app = await open(SAVED);
+    deviceControl().click();
+    const current = app.querySelector<HTMLElement>('[data-operation="current"]')!;
+    const all = app.querySelector<HTMLElement>('[data-operation="reset"]')!;
+    const active = vi.spyOn(document, "activeElement", "get").mockReturnValue(document.body);
+    try {
+      current.dispatchEvent(new FocusEvent("focusout", { bubbles: true, relatedTarget: all }));
+      await flush();
+      expect(app.querySelector<HTMLElement>('[role="menu"]')?.hidden).toBe(false);
+    } finally {
+      active.mockRestore();
+    }
+    all.focus();
+    all.click();
+    expect(app.querySelector(".chrome-reset-ask")?.textContent).toContain("Initialize all memories?");
+    expect(document.activeElement?.textContent).toBe("Cancel");
+    (document.activeElement as HTMLElement).click();
+    expect(app.querySelector(".chrome-reset-ask")).toBeNull();
+    expect(document.activeElement).toBe(deviceControl());
+    expect(await readSaved("URX44V")).toMatchObject({ "ch.ch1.level": -9 });
+  });
+
   it.each([
     ["ArrowDown", "Initialize Current Memories"],
     ["ArrowUp", "Initialize All Memories"],

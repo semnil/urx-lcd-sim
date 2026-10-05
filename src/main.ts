@@ -349,7 +349,8 @@ async function boot(
     drawDevice();
   };
   document.addEventListener("pointerdown", dismissDevice);
-  deviceBox.addEventListener("focusout", () => {
+  deviceBox.addEventListener("focusout", (ev) => {
+    if (ev.relatedTarget instanceof Node && deviceBox.contains(ev.relatedTarget)) return;
     queueMicrotask(() => {
       if (active !== "menu" || deviceBox.contains(document.activeElement)) return;
       active = null;
