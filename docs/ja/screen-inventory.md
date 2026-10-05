@@ -102,6 +102,7 @@ URX44V/44/22 ユーザーガイド (英語版 revision D0) が載せている LC
 | Simple Mode 全体 (Setup Assistant、ユースケース選択、Simple の HOME とチャンネルビュー) | p117-132 | このシミュレーターの範囲外 |
 | Cubase シリーズ専用画面 (Input settings / Hardware settings / MixKey channel editor) | p159-168 | このシミュレーターの範囲外 |
 | Initialize All Memories (工場出荷状態への初期化) | p169 | このシミュレーターの範囲外 |
+| Initialize Current Memories (シーンメモリーを残して現在値を初期化) | p169 | このシミュレーターの範囲外 |
 
 ## 画像で確認できていない表示
 
@@ -1656,7 +1657,7 @@ x6..95・x149..238・x291..380、字形は錠 16x21・ごみ箱 16x18・名前�
 
 実機のつまみで回すコントロールは、触れたもの 1 つだけがフォーカスを持ち、マゼンタ (`--accent-focus`) で示す。画面を
 開いた直後と画面を移ったときは、どれも持たない。例外は次のとおり: EQ は最後に選んだバンド (最初は LOW) を持った状態で開き、
-このバンドは全チャンネルの EQ で共通で、再読み込みでは残り、[Reset the unit] で LOW に戻る。SSMCS EQ はそこで最後に選んだバンド (最初は MID) を
+このバンドは全チャンネルの EQ で共通で、再読み込みでは残り、[Initialize All Memories] で LOW に戻る。SSMCS EQ はそこで最後に選んだバンド (最初は MID) を
 持った状態で開き、このバンドは全チャンネルで共通で、EQ のバンドとは別に覚える。1-knob がオンの COMP・EQ 画面は、
 レベルにフォーカスを固定した状態で開く (下記)。INS FX と FX チャンネルのエフェクトのページは、開いたときもページを送ったときも
 最初のつまみの値に枠を付ける (M.B.Comp は箱に出す値に付け、Compander-H と Compander-S はどれにも付けない)。

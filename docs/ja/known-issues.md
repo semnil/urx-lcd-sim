@@ -11,7 +11,7 @@
 | CH SETTING の Icon 選択 | CH SETTING の Icon の箱はチャンネルカラーの四角を置く。選択画面は開かない | アイコンの絵は再現が難しいため描かない |
 | Simple Mode 全体 (Setup Assistant、ユースケース選択、Simple の HOME とチャンネルビュー) | Operation Mode に Simple Mode のカードは並ぶが、選べない項目として描く | このシミュレーターの範囲外 |
 | Cubase シリーズ専用画面 (Input settings / Hardware settings / MixKey channel editor) | 画面自体が無い | このシミュレーターの範囲外 |
-| Initialize All Memories (工場出荷状態への初期化) | 画面自体が無い。画面の外にある [Reset the unit] が同じことをする | このシミュレーターの範囲外 |
+| Initialize All Memories / Initialize Current Memories (初期化) | 初期化画面は無い。画面外の Device メニューの [Initialize All Memories] は現在値とシーンメモリーを初期化し、[Initialize Current Memories] は現在値を初期化してシーンメモリーを残す。どちらも microSD カードはそのまま残す | このシミュレーターの範囲外 |
 
 ## コントロール
 

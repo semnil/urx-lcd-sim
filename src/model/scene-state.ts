@@ -50,6 +50,11 @@ export async function applyScene(store: DeviceStore, state: Record<string, Param
 /** What a bank keeps under a scene number: its title, its mixer and its protection. */
 const SCENE_MEMORY = /^scene\.[^.]+\.\d+\.(title|state|protect)$/;
 
+/** Whether a path holds a scene memory's title, mixer or protection. */
+export function isSceneMemory(path: ParamPath): boolean {
+  return SCENE_MEMORY.test(path);
+}
+
 /**
  * A settings file as it is put back. A scene number the file does not name
  * comes back empty: no title, no mixer, and unprotected.

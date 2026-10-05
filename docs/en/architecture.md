@@ -118,12 +118,17 @@ and `urx-lcd-sim.model`, is read while the record holds nothing, and let go once
 What is left out is **what the unit was doing** at that moment: a take or a playback running
 (`sd.rec` and the rest) and a name half typed (`ui.titleEntry.`, `ui.dateTimeDraft.`) come back
 stopped, as they do on a unit that has been switched off. The result of TOOLS' card test (`sd.tested`)
-is left out too, as a unit switched off no longer shows it. [Reset the unit], outside the screen, asks
-first, then starts again from the unit as it ships and stores it at once over what was stored. The card in the
-slot stays as it stands, with its takes, settings files and volume label ([Format microSD] on TOOLS
-empties it). The question sits on a panel laid over the page under the button, so the other controls
-and the glass stay where they are, and a click on its [Reset] does not answer as the second click of a
-double click or within 500 ms of the question appearing.
+is left out too, as a unit switched off no longer shows it. [Initialize All Memories] and [Initialize Current Memories],
+in the Device menu outside the screen, ask first, then start again from the unit as it ships and store it at once over what was stored.
+[Initialize Current Memories] puts back each scene memory's title, mixer and protection, but resets the current
+scene selection. [Initialize All Memories] resets the scene memories too. Both leave the card in the slot as it stands, with
+its takes, settings files and volume label ([Format microSD] on TOOLS empties it). Each confirmation warns which values return to factory defaults, which remain, and that initialization cannot be undone. Each question sits on a panel
+laid over the page under the selector row, so the other controls and the glass stay where they are. The two questions
+cannot stand open together. Initialization and model changes share a startup lock: once either begins, the model
+selector is disabled and Device accepts no action until the replacement unit is mounted. A confirmation alone
+does not lock model selection; choosing a model closes that confirmation.
+A click on [Initialize] does not answer as the second click of a double
+click or within 500 ms of the question appearing.
 
 A value stored in an earlier form is brought to the current one as it is read. A state stored while
 the channel view's [SAFE] was a switch apart from [Clip Safe] comes back with a [SAFE] that was on as
@@ -163,11 +168,11 @@ write. The look at the record and the write are one readwrite transaction, which
 other tab's, so no tab writes over a unit another tab stored after what it read, even while it is still putting the
 unit back. A tab tells the others the token of each write on a `BroadcastChannel` named `urx-lcd-sim.state`. A model
 picked is kept with the record's token as it was, so it stops no other tab, and each unit stored carries its own
-model. [Reset the unit] writes the unit as it ships over whatever the record holds.
+model. [Initialize All Memories] and [Initialize Current Memories] write their initialized unit over whatever the record holds.
 
 A tab that hears of another tab's write, or finds at its own write that the record has moved on, stops writing, so as
 not to write over the other tab's unit, and says so on the same banner, which, once closed, comes back at the next
-change to the unit. It writes again once it starts again, on a reload, a switch of model or [Reset the unit]. What a
+change to the unit. It writes again once it starts again, on a reload, a switch of model or either initialization control. What a
 tab left on leaving the page is taken in by the next start only where the record still holds the token that tab read
 or wrote last, or the token of its write still under way; otherwise it is dropped, and that start says on the banner
 that the last changes made before it were not kept. Where the browser refuses to take it in, it stays where it was left,
@@ -182,8 +187,8 @@ While the store is on a unit connected through a `BridgeTransport` (`store.kind`
 written to the unit, and the record keeps the simulated unit as it was stored. The write before a switch of model
 and the one on leaving the page go under that key too. A change not yet written when the store moves onto the unit,
 or back, is written just before the move, to the record or under that key as the transport it was made on has it;
-where a write of the record is under way, once that write lands. [Reset the unit] lets the key go as it stores the
-unit as it ships.
+where a write of the record is under way, once that write lands. Either initialization control lets the key go as it stores
+the initialized unit.
 
 ```mermaid
 flowchart LR
@@ -191,9 +196,11 @@ flowchart LR
   DB -->|"opening on the same model"| ST
   ST -->|"leaving the page"| LEFT["localStorage<br/>urx-lcd-sim.left.*"]
   LEFT -->|"the next start, where the record holds what that tab read"| DB
-  RS["[Reset the unit]"] -->|"ask, start again and store the unit as it ships"| DB
+  RS["[Initialize All Memories]"] -->|"confirm, keep the card and start with factory values"| INIT["Initialized unit"]
+  CM["[Initialize Current Memories]"] -->|"confirm, keep scenes and the card and start with factory values"| INIT
+  INIT -->|"store"| DB
   ST -->|"here instead while on a unit"| LB["localStorage<br/>urx-lcd-sim.bridge.state"]
-  RS -->|"lets it go"| LB
+  INIT -->|"clear connected state"| LB
 ```
 
 ## Addressing parameters
@@ -306,10 +313,14 @@ of the same face do, and nothing goes in while an IME is composing (`isComposing
 with the same key. While a dialog, a picker sheet or a pulldown's list is open, cancelling it takes precedence, and while a text
 input has focus (IME composition included) the input receives the key. Held down, the key acts once, as
 the back arrow held down does: a press that cancels a dialog leaves the screen behind it where it is. While a control off the glass has focus (the
-model and display scale selectors at the top of the page, [Reset the unit]) that control receives it, and the screen
-stays. `Escape` takes [Reset the unit]'s question back as [Cancel] does, and the focus returns to [Reset the unit].
-Once [Reset] starts the unit again, or the model selector changes the model, the focus stands on the same control
-of the page drawn again ([Reset the unit], the model selector).
+model and display scale selectors at the top of the page, Device and its menu or confirmation) that control
+receives it, and the screen stays. Device uses the selector style immediately to the left of the link indicator,
+with only initialization actions in its menu. Arrow keys, Home and End move between items. Escape closes the menu
+and returns focus to Device; a pointer or focus outside the Device control also closes it. Choosing an action
+replaces the menu with its confirmation.
+`Escape` takes either initialization question back as
+[Cancel] does, and the focus returns to Device. Once [Initialize] starts the unit again, the focus
+stands on Device; a change of model keeps it on the model selector.
 
 On-screen controls keep the unit's dimensions (26px-high buttons on the 4.3-inch panel, and so on).
 The desktop GUI minimum touch target of 36x36 is met by the default `--scale` of 2 combined with a
