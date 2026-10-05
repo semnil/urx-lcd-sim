@@ -105,6 +105,49 @@ describe("[Unit model]", () => {
 });
 
 describe("[Device menu]", () => {
+  it.each([
+    ["ArrowDown", "Initialize Current Memories"],
+    ["ArrowUp", "Reset the unit"],
+  ])("opens with %s and navigates to endpoints and around the menu", async (key, first) => {
+    await open(SAVED);
+    deviceControl().focus();
+    await press(key);
+    expect(document.activeElement?.textContent).toBe(first);
+    await press("Home");
+    expect(document.activeElement?.textContent).toBe("Initialize Current Memories");
+    await press("ArrowUp");
+    expect(document.activeElement?.textContent).toBe("Reset the unit");
+    await press("ArrowDown");
+    expect(document.activeElement?.textContent).toBe("Initialize Current Memories");
+    await press("End");
+    expect(document.activeElement?.textContent).toBe("Reset the unit");
+    await press("ArrowUp");
+    expect(document.activeElement?.textContent).toBe("Initialize Current Memories");
+    await press("Escape");
+    expect(document.activeElement).toBe(deviceControl());
+  });
+
+  it("leaves composing keys and inside pointers alone, and ignores an action from the replaced menu", async () => {
+    const app = await open(SAVED);
+    deviceControl().focus();
+    const composing = new KeyboardEvent("keydown", { key: "ArrowDown", isComposing: true, bubbles: true, cancelable: true });
+    deviceControl().dispatchEvent(composing);
+    expect(composing.defaultPrevented).toBe(false);
+    expect(app.querySelector<HTMLElement>(".chrome-device-popup")!.hidden).toBe(true);
+    await press("ArrowDown");
+    const menu = app.querySelector<HTMLElement>('[role="menu"]')!;
+    const action = menu.querySelector<HTMLButtonElement>('[data-operation="current"]')!;
+    action.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    expect(app.querySelector('[role="menu"]')).toBe(menu);
+    action.click();
+    const question = app.querySelector(".chrome-reset-ask");
+    action.click();
+    expect(app.querySelector(".chrome-reset-ask")).toBe(question);
+    expect(document.activeElement?.textContent).toBe("Cancel");
+    await press("Escape");
+    expect(await readSaved("URX44V")).toMatchObject({ "ch.ch1.level": -9 });
+  });
+
   it("uses the selector style before the link indicator and offers only actions without a selected item", async () => {
     const app = await open(SAVED);
     expect(deviceControl().classList.contains("chrome-select")).toBe(true);
@@ -305,8 +348,17 @@ describe("[Initialize Current Memories]", () => {
       now.mockReturnValue(500);
       idb.hold();
       const initialize = button("Initialize");
+      const cancel = button("Cancel");
       click(initialize);
+      const startingTrigger = deviceControl();
+      expect(startingTrigger.getAttribute("aria-disabled")).toBe("true");
       click(initialize);
+      click(cancel);
+      startingTrigger.click();
+      await press("ArrowDown");
+      await press("Escape");
+      expect(deviceControl()).toBe(startingTrigger);
+      expect(document.querySelector<HTMLElement>(".chrome-device-popup")!.hidden).toBe(true);
       idb.release();
       await until("the initialized unit", () => shownLevel() === "0");
       await idb.idle();

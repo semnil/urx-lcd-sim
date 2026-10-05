@@ -223,7 +223,6 @@ async function boot(
   const focusDevice = (): void => deviceBox.querySelector<HTMLButtonElement>(":scope > button")?.focus();
   let startingModel = modelId;
   const restart = async (how: "picked" | "reset" | "current", nextModel = modelId): Promise<void> => {
-    if (active === "starting") return;
     const refocusModel = document.activeElement === modelSelect;
     active = "starting";
     startingModel = nextModel;
