@@ -124,7 +124,9 @@ in the Device menu outside the screen, ask first, then start again from the unit
 scene selection. [Reset the unit] resets the scene memories too. Both leave the card in the slot as it stands, with
 its takes, settings files and volume label ([Format microSD] on TOOLS empties it). Each question sits on a panel
 laid over the page under the selector row, so the other controls and the glass stay where they are. The two questions
-cannot stand open together, and either operation blocks another initialization while the unit starts again.
+cannot stand open together. Initialization and model changes share a startup lock: once either begins, the model
+selector is disabled and Device accepts no action until the replacement unit is mounted. A confirmation alone
+does not lock model selection; choosing a model closes that confirmation.
 A click on [Reset] or [Initialize] does not answer as the second click of a double
 click or within 500 ms of the question appearing.
 

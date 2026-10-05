@@ -371,6 +371,83 @@ describe("[Initialize Current Memories]", () => {
   });
 });
 
+describe("initialization and model changes share one startup", () => {
+  it.each(["current", "reset"] as const)("keeps %s initialization exclusive until startup completes", async (operation) => {
+    window.localStorage.setItem(STATE_KEY, SAVED);
+    await openPage();
+    const { SimTransport } = await import("./device/sim-transport");
+    const snapshot = vi.spyOn(SimTransport.prototype, "snapshot");
+    const now = vi.spyOn(performance, "now").mockReturnValue(0);
+    try {
+      chooseDevice(operation);
+      expect(modelSelect()?.disabled).toBe(false);
+      now.mockReturnValue(500);
+      idb.hold();
+      document.querySelector<HTMLButtonElement>(".chrome-reset-panel .is-danger")!.click();
+      const select = modelSelect()!;
+      expect(select.disabled).toBe(true);
+      select.value = "URX22";
+      select.dispatchEvent(new Event("change"));
+      idb.release();
+      await until("initialized current values", () => shownLevel() === "0");
+      await idb.idle();
+      expect(snapshot).toHaveBeenCalledTimes(1);
+      expect(modelSelect()?.disabled).toBe(false);
+      expect([modelSelect()?.value, lcdModel(), (await keeper.read())?.model]).toEqual(["URX44V", "URX44V LCD", "URX44V"]);
+      const edited = await nudgeLevel("URX44V");
+      expect(document.querySelector(".chrome-notice")?.textContent).not.toMatch(/another tab/i);
+      await openPage();
+      expect([modelSelect()?.value, shownLevel()]).toEqual(["URX44V", edited]);
+      await chooseModel("URX22");
+      const changed = await nudgeLevel("URX22");
+      await openPage();
+      expect([modelSelect()?.value, shownLevel()]).toEqual(["URX22", changed]);
+    } finally {
+      idb.release();
+      now.mockRestore();
+      snapshot.mockRestore();
+    }
+  });
+
+  it.each(["current", "reset"] as const)("permits a model change during %s confirmation and blocks initialization during its startup", async (operation) => {
+    window.localStorage.setItem(STATE_KEY, SAVED);
+    await openPage();
+    const { SimTransport } = await import("./device/sim-transport");
+    const snapshot = vi.spyOn(SimTransport.prototype, "snapshot");
+    const now = vi.spyOn(performance, "now").mockReturnValue(0);
+    try {
+      chooseDevice(operation);
+      expect(modelSelect()?.disabled).toBe(false);
+      const confirm = document.querySelector<HTMLButtonElement>(".chrome-reset-panel .is-danger")!;
+      now.mockReturnValue(500);
+      idb.hold();
+      const select = modelSelect()!;
+      select.focus();
+      select.value = "URX22";
+      select.dispatchEvent(new Event("change"));
+      expect(select.disabled).toBe(true);
+      confirm.click();
+      select.value = "URX44";
+      select.dispatchEvent(new Event("change"));
+      idb.release();
+      await until("selected model", () => lcdModel() === "URX22 LCD");
+      await idb.idle();
+      expect(snapshot).toHaveBeenCalledTimes(1);
+      expect(document.activeElement).toBe(modelSelect());
+      expect(modelSelect()?.disabled).toBe(false);
+      expect((await keeper.read())?.model).toBe("URX22");
+      const edited = await nudgeLevel("URX22");
+      expect(document.querySelector(".chrome-notice")?.textContent).not.toMatch(/another tab/i);
+      await openPage();
+      expect([modelSelect()?.value, shownLevel()]).toEqual(["URX22", edited]);
+    } finally {
+      idb.release();
+      now.mockRestore();
+      snapshot.mockRestore();
+    }
+  });
+});
+
 describe("the page's landmarks", () => {
   it("holds the glass in the page's one main landmark, between the header and the footer", async () => {
     const app = await open(SAVED);

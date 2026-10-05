@@ -198,7 +198,11 @@ async function boot(
   }
   // The change still waiting is written before the picked model's start reads what is stored.
   modelSelect.addEventListener("change", () => {
-    void saving.settle().then((settled) => boot(modelSelect.value as ModelId, mount, "picked", {}, undefined, settled));
+    if (active === "starting") {
+      modelSelect.value = startingModel;
+      return;
+    }
+    void restart("picked", modelSelect.value as ModelId);
   });
 
   const zoomSelect = el("select", { class: "chrome-select", attrs: { "aria-label": "Display scale" } }) as HTMLSelectElement;
@@ -217,6 +221,23 @@ async function boot(
   const deviceBox = el("span", { class: "chrome-device" });
   let drawDevice: () => void;
   const focusDevice = (): void => deviceBox.querySelector<HTMLButtonElement>(":scope > button")?.focus();
+  let startingModel = modelId;
+  const restart = async (how: "picked" | "reset" | "current", nextModel = modelId): Promise<void> => {
+    if (active === "starting") return;
+    const refocusModel = document.activeElement === modelSelect;
+    active = "starting";
+    startingModel = nextModel;
+    modelSelect.disabled = true;
+    drawDevice();
+    if (!refocusModel) focusDevice();
+    const retained = how === "picked" ? {} : {
+      ...cardInSlot(store),
+      ...(how === "current" ? sceneMemories(store) : {}),
+    };
+    const settled = how === "picked" ? await saving.settle() : "kept";
+    await boot(nextModel, mount, how, retained, undefined, settled);
+    if (refocusModel) mount.querySelector<HTMLSelectElement>('[aria-label="Unit model"]')?.focus();
+  };
   const closeDevice = (): void => {
     if (active === "starting") return;
     active = null;
@@ -255,9 +276,6 @@ async function boot(
           el("button", { class: "chrome-button is-danger", text: verb, onTap: (ev) => {
             if (active !== kind) return;
             if (ev instanceof MouseEvent && (ev.detail > 1 || performance.now() - askedAt < CONFIRM_HOLD_MS)) return;
-            active = "starting";
-            drawDevice();
-            focusDevice();
             apply();
           } }),
           el("button", { class: "chrome-button", text: "Cancel", onTap: closeDevice }),
@@ -289,9 +307,9 @@ async function boot(
           model.hasSD
             ? "Initialize current memories? Scene memories and the microSD card will stay."
             : "Initialize current memories? Scene memories will stay.",
-          "Initialize", () => void boot(modelId, mount, "current", { ...cardInSlot(store), ...sceneMemories(store) }),
+          "Initialize", () => void restart("current"),
         ),
-        confirmation("reset", "Reset the unit", "Drop everything and start again?", "Reset", () => void boot(modelId, mount, "reset", cardInSlot(store))),
+        confirmation("reset", "Reset the unit", "Drop everything and start again?", "Reset", () => void restart("reset")),
       ],
     });
     popup.hidden = active === null || active === "starting";
