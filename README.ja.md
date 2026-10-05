@@ -48,6 +48,7 @@ pnpm dev
 | `pnpm build` | 型チェック + 本番ビルド |
 | `pnpm test` | ユニットテスト |
 | `pnpm test:coverage` | ユニットテスト + カバレッジレポート (`coverage/` に出力) |
+| `pnpm test:e2e` | Chromium での E2E テスト (先に一度 `pnpm exec playwright install chromium`) |
 | `pnpm typecheck` | 型チェックのみ |
 
 外部ランタイム依存は無い。開発用の依存は `package.json` の `devDependencies` に記載したもの。

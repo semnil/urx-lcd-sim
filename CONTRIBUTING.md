@@ -80,7 +80,11 @@ address that was not verified against a connected unit
   and crop.
 - The GitHub Pages workflow runs `pnpm test` and `pnpm build` on every pull request to `main`.
   The CI workflow runs `pnpm typecheck` and `pnpm test:coverage` on the same pull requests and
-  uploads the coverage report to Codecov.
+  uploads the coverage report to Codecov, and in a second job runs `pnpm test:e2e`.
+- `pnpm test:e2e` drives the built page in Chromium with real clicks and keys, which reach what a
+  click from a unit test skips: where a press lands, and where the focus moves on it. A change that
+  adds a menu, a dialog or a sheet adds an end-to-end test under `e2e/` that opens it and answers it
+  by clicks. A new screen adds a way onto it to `e2e/tour.ts`; `pnpm test` fails until it does.
 - A release is a pull request that changes nothing but `version` in `package.json`; see the
   README ("Hosting").
 

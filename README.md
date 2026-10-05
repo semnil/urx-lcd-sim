@@ -51,6 +51,7 @@ pnpm dev
 | `pnpm build` | Typecheck and production build |
 | `pnpm test` | Unit tests |
 | `pnpm test:coverage` | Unit tests with a coverage report in `coverage/` |
+| `pnpm test:e2e` | End-to-end tests in Chromium (`pnpm exec playwright install chromium` once first) |
 | `pnpm typecheck` | Typecheck only |
 
 No runtime dependencies. The dev dependencies are the ones `devDependencies` in `package.json` lists.
