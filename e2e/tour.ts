@@ -44,17 +44,12 @@ async function bank(page: Page, name: string): Promise<void> {
   await tapInto(page, button(page, name), "home");
 }
 
-/**
- * A block of the channel view, touched where the block itself answers: off the
- * switches and value boxes inside it, and clear of its band, where a quick tap
- * that sinks the block now misses it (the sunk face is clipped there before it
- * has slid down).
- */
+/** A block of the channel view, touched where the block itself answers: off the switches and value boxes inside it. */
 async function block(page: Page, name: string | RegExp, id: string): Promise<void> {
   const node = button(page, name, true);
   const at = await node.evaluate((n) => {
     const r = n.getBoundingClientRect();
-    for (let y = r.top + 4; y < r.bottom - 12; y += 4) {
+    for (let y = r.top + 4; y < r.bottom - 4; y += 4) {
       for (let x = r.left + 4; x < r.right - 4; x += 4) {
         const hit = document.elementFromPoint(x, y);
         if (hit && n.contains(hit) && hit.closest("button, [role='button'], [role='spinbutton'], [role='slider']") === n) return { x: x - r.left, y: y - r.top };
