@@ -27,7 +27,7 @@ import { LIST_THUMB_MIN_PX, SHORT_PROGRESS_MS, button, dialog, dropdown, listVie
 import { drawnLevels, pairMeterId } from "./meters";
 import { PLAYBACK_METER, listenedTap } from "./signal-flow";
 import { dateText } from "./date-time";
-import { formatClock, holdsFile, pausePlayback, pauseTake, playedSeconds, recState, recordMode, recordTake, releaseOnRateChange, startPlayback, stopPlayback, stopTake, takeOpen, takeRoom, takeSeconds } from "./recording";
+import { formatClock, holdsFile, pausePlayback, pauseTake, playedSeconds, recState, recordMode, recordTake, startPlayback, stopPlayback, stopTake, takeOpen, takeRoom, takeSeconds } from "./recording";
 import type { TitleDraft } from "./title-entry";
 import { draftTitle, titleEntryScreen } from "./title-entry";
 import type { ScreenBody, ScreenDef } from "./types";
@@ -498,7 +498,6 @@ function saveLoadAction(ctx: AppContext, label: string): void {
 function loadSettings(ctx: AppContext, entry: CardEntry): void {
   const held = ctx.store.str(filePath(entry), "");
   if (!held) return;
-  const before = ctx.store.num("setup.samplingFrequency", 48000);
   const pairs = pairStates(ctx);
   void applySettings(ctx.store, onDelayGrid(onSsmcsStops(onDynamicsTimeStops(fromJson(held) as Record<string, ParamValue>)))).then(() => {
     followRecall(ctx, pairs);
@@ -507,7 +506,6 @@ function loadSettings(ctx: AppContext, entry: CardEntry): void {
     dropInsertsOverRate(ctx, rate);
     dropTracksOverRate(ctx.store, rate);
     dropSendsOverRate(ctx.store, ctx.model, rate);
-    releaseOnRateChange(ctx.store, before, rate);
     followSceneCursor(ctx);
     ctx.repaint();
   });

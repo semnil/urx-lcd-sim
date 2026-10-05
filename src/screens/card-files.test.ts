@@ -257,30 +257,6 @@ describe("playing a file back", () => {
     expect([store.num("sd.playingFile", -1), store.bool("sd.playing", true), playedSeconds(store)], "44.1 kHz").toEqual([-1, false, 0]);
   });
 
-  it("lets go of the file it holds when a settings file brings another sampling frequency", async () => {
-    const shell = await mount({ id: "microsd.saveload" }, [
-      { name: "Recordings", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" },
-      { name: "take.wav", kind: "take", seconds: 10, tracks: 2, stamp: "", dir: "/" },
-    ]);
-    const store = shell.ctx.store;
-    await store.set("setup.samplingFrequency", 44_100);
-    action(shell, "Save as")?.click();
-    await flush();
-    await typeTitle(shell, "at441");
-    await store.set("setup.samplingFrequency", 48_000);
-    startPlayback(store, 1, Date.now() - 4_000);
-    pausePlayback(store);
-    await flush();
-    const row = readCard(store).findIndex((e) => e.name === "at441.urxf");
-    await store.set("sd.selectedFile", row);
-    await flush();
-    action(shell, "Load")?.click();
-    await flush();
-    await flush();
-    expect(store.num("setup.samplingFrequency", 0), "the file's frequency").toBe(44_100);
-    expect(store.num("sd.playingFile", -1)).toBe(-1);
-  });
-
   it("puts the sends into a bus on Pan Link where their sources are, whatever the loaded file holds", async () => {
     // A file saved while Pan Link left each send's own placing where it was.
     const shell = await mount({ id: "microsd.saveload" }, [{ name: "Recordings", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" }]);

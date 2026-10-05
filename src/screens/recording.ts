@@ -118,7 +118,6 @@ export function stopTake(store: DeviceStore, now = Date.now()): void {
     void store.set("sd.rec", "idle");
     void store.set("sd.recSeconds", 0);
     void store.set("sd.recSince", 0);
-    stopPlayback(store);
   });
 }
 
