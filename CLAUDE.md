@@ -13,7 +13,7 @@ YAMAHA URX22 / URX44 / URX44V の 4.3 インチ LCD タッチ画面 (480x272) �
 - docs は `docs/en/` と `docs/ja/`、README は `README.md` と `README.ja.md`、`CONTRIBUTING.md` と `CONTRIBUTING.ja.md`、`SECURITY.md` と `SECURITY.ja.md`、`CODE_OF_CONDUCT.md` と `CODE_OF_CONDUCT.ja.md`、`CHANGES.md` と `CHANGES_ja.md` が対。片方を直したら同じ変更で他方の同じ節を直す。Mermaid 図を含む docs を触ったら描画して確かめる
 - CONTRIBUTING の「描く範囲」「一次資料としてのユーザーガイド」「実機との接続」は、下の「描く範囲」「一次資料」「実機との関係」を外部の協力者向けに写したミラー。どちらかを直したら同じ変更で他方も直す
 - 作らないと決めたものは `docs/ja/known-issues.md` と `docs/en/known-issues.md` が家。決めた時点で書く
-- 画面の状態はブラウザに残る。出荷時の状態で確かめたいときは画面の外の [Reset the unit] (docs/ja/architecture.md「残る値」)
+- 画面の状態はブラウザに残る。出荷時の状態で確かめたいときは画面の外の [Initialize All Memories] (docs/ja/architecture.md「残る値」)
 
 ## 描く範囲
 

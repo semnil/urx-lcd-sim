@@ -20,7 +20,7 @@ body:
     id: steps
     attributes:
       label: Steps to reproduce
-      description: Say whether it still happens after [Reset the unit], above the screen.
+      description: Say whether it still happens after [Initialize All Memories], above the screen.
       placeholder: |
         1. Choose URX44V
         2. Open SETUP, then ...

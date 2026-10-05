@@ -19,6 +19,7 @@ import { FILES, filePath, readCard } from "../model/card";
 import { LEGACY_CLOCK } from "../model/clock";
 import { onDynamicsTimeStops } from "../model/dynamics-times";
 import { placeOfReading } from "../model/effects";
+import { isSceneMemory } from "../model/scene-state";
 import { dropTracksOverRate } from "../model/track-count";
 import type { UnitModel } from "../model/types";
 import { unitById } from "../model/units";
@@ -511,10 +512,17 @@ export function snapshot(store: DeviceStore): Record<string, ParamValue> {
 /** Where the card in the slot keeps what is on it, its files and its volume label. */
 const IN_THE_SLOT = /^sd\.(card|cardName|file\..+)$/;
 
-/** The card in the slot as it stands, which [Reset the unit] leaves where it is. */
+/** The card in the slot as it stands, which both initialization controls leave where it is. */
 export function cardInSlot(store: DeviceStore): Record<string, ParamValue> {
   const values: Record<string, ParamValue> = {};
   for (const path of store.paths()) if (IN_THE_SLOT.test(path)) values[path] = store.get(path, 0);
+  return values;
+}
+
+/** The scene memories held by the unit, without its current scene selection. */
+export function sceneMemories(store: DeviceStore): Record<string, ParamValue> {
+  const values: Record<string, ParamValue> = {};
+  for (const path of store.paths()) if (isSceneMemory(path)) values[path] = store.get(path, 0);
   return values;
 }
 
@@ -548,7 +556,7 @@ export interface From {
   keeper: Keeper | null;
   /** The record this start read; each write is made only while the record still holds what it names. */
   kept: Kept;
-  /** What to store at once: the model picked, or the whole unit as it stands ([Reset the unit]) over whatever is stored. */
+  /** What to store at once: the model picked, or the whole initialized unit over whatever is stored. */
   first?: "model" | "unit";
   /** Names what this tab leaves on leaving the page. */
   tab?: string;
@@ -572,7 +580,7 @@ export interface From {
  *
  * While the store is on a connected unit, its mirror is written under a key of
  * its own instead, and the record keeps the simulated unit as it was. A start
- * that stores the whole unit over what is stored ([Reset the unit]) lets that
+ * that stores the whole initialized unit over what is stored lets that
  * key go. A change not yet written when the store moves onto another transport
  * is written just before the move, with the mirror and in the place of the
  * transport it was made on; where a write of the record is under way, once that
