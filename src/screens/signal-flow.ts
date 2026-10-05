@@ -12,7 +12,7 @@ import type { DeviceStore } from "../device/store";
 import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, GATE_DEFAULTS, SSMCS_DEFAULTS, faderShipped } from "../model/defaults";
 import { COMPANDER_EXPANSION, COMP_KNEE_WIDTH, OVER_REDUCTION_MAX_DB, SSMCS_CORNER_FLOOR_DB, compReductionDb, companderResponse, duckerReductionDb, gateReductionDb, ssmcsCorner } from "../model/dynamics";
 import { bandResponse } from "../model/eq-response";
-import { SSMCS_BAND_KEYS, fourBandResponse, fourBands, pinkGainDb, ssmcsBand, ssmcsEqResponse, ssmcsSideChain, ssmcsSideChainResponse } from "../model/channel-eq";
+import { SSMCS_BAND_KEYS, eqOutOfUse, fourBandResponse, fourBands, pinkGainDb, ssmcsBand, ssmcsEqResponse, ssmcsSideChain, ssmcsSideChainResponse } from "../model/channel-eq";
 import { type EffectOption, FX_EFFECTS, FX_EFFECT_DEFAULT, INPUT_INSERT_EFFECTS, NO_EFFECT, OUTPUT_INSERT_EFFECTS, effectParams, guitarOutputDb } from "../model/effects";
 import {
   DETECTOR_OFFSET,
@@ -771,8 +771,7 @@ function stereoChannelsIn(f: FlowBuilder): void {
     const input = f.put(s.id, "input", inputLanes(store, s, f.at));
     const flipped = input.map((lane, i) => (store.bool(`${b}.phase.${i === 0 ? "l" : "r"}`, false) ? invert(lane) : lane));
     f.put(s.id, "preEq", flipped);
-    // The stereo channels' EQ is out of use above 96 kHz.
-    const eq = f.rate > 96000 ? FLAT : eqOf(store, b);
+    const eq = eqOutOfUse(s.kind, f.rate) ? FLAT : eqOf(store, b);
     const pre = f.put(s.id, "preFader", flipped.map((lane) => through(lane, eq)));
     f.put(s.id, "preDucker", f.on(s) ? pre.map((lane) => gain(lane, f.fader(s))) : [[], []]);
     f.carryOver(s.id, pre, "preDucker");

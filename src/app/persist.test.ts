@@ -265,6 +265,22 @@ describe("what a reload carries over", () => {
     expect(store.num("sd.trackCount", 0)).toBe(2);
   });
 
+  it("moves HOME's [Sends] off FX 2 on a unit stored at a rate that puts FX 2 out of reach, on each model", async () => {
+    // A unit an earlier version stored with [Sends] on FX 2 at the rate it ran at.
+    const seen: Record<string, string> = {};
+    const want: Record<string, string> = {};
+    for (const model of ["URX22", "URX44", "URX44V"] as const) {
+      for (const rate of [96000, 176400, 192000]) {
+        window.localStorage.setItem("urx-lcd-sim.state", JSON.stringify({ version: 1, model, values: { "setup.samplingFrequency": rate, "ui.sendsTarget": "FX2" } }));
+        const store = await unit(model);
+        await bring(store, model);
+        seen[`${model} ${rate}`] = `${store.num("setup.samplingFrequency", 0)} ${store.str("ui.sendsTarget", "")}`;
+        want[`${model} ${rate}`] = `${rate} ${rate > 96000 ? "FX1" : "FX2"}`;
+      }
+    }
+    expect(seen).toEqual(want);
+  });
+
   it("brings a GATE, COMP or DUCKER time stored off its stops back on the stop nearest it", async () => {
     // A unit stored by an earlier version: each time a detent up from where it ships, by that version's steps.
     const times: [string, number][] = [
@@ -280,8 +296,37 @@ describe("what a reload carries over", () => {
     await bring(store);
     expect(
       times.map(([p]) => store.num(p, 0)),
-      "each on its nearest stop, and the SSMCS strip's Attack as it is stored",
-    ).toEqual([20.17, 16, 150.2, 218, 1000, 4.124]);
+      "each on its nearest stop, the SSMCS strip's Attack on its own",
+    ).toEqual([20.17, 16, 150.2, 218, 1000, 4.122]);
+  });
+
+  it("brings an SSMCS frequency, Attack or Release stored off the stops back on the stop nearest it", async () => {
+    // A unit stored by an earlier version, on that version's stops.
+    window.localStorage.setItem(
+      "urx-lcd-sim.state",
+      JSON.stringify({
+        version: 1,
+        model: MODEL,
+        values: { "ch.ch1.ssmcs.sc.freq": 946, "ch.ch1.ssmcs.eq.high.freq": 532, "ch.ch1.ssmcs.comp.attack": 2.2, "ch.ch1.ssmcs.comp.release": 110.4 },
+      }),
+    );
+    const store = await unit();
+    await bring(store);
+    expect(
+      ["sc.freq", "eq.high.freq", "comp.attack", "comp.release"].map((k) => store.num(`ch.ch1.ssmcs.${k}`, 0)),
+    ).toEqual([950, 530, 2.197, 110.8]);
+  });
+
+  it("brings a delay time stored off 0.02 ms back on the 0.02 ms nearest it", async () => {
+    // Times an earlier version stored: a hundredth of a ms, and a meter and a feet step past 24 ms.
+    const back: number[] = [];
+    for (const held of [2.01, 24.0291545, 24.0088889]) {
+      window.localStorage.setItem("urx-lcd-sim.state", JSON.stringify({ version: 1, model: MODEL, values: { "ch.bus.stream.delay.ms": held } }));
+      const store = await unit();
+      await bring(store);
+      back.push(store.num("ch.bus.stream.delay.ms", 0));
+    }
+    expect(back).toEqual([2.02, 24.02, 24]);
   });
 
   it("leaves another model's unit alone", async () => {

@@ -63,6 +63,8 @@ export class Shell {
   private readonly onTab: (ev: KeyboardEvent) => void;
   private readonly onEscape: (ev: KeyboardEvent) => void;
   private readonly offStore: () => void;
+  private readonly offWriteRule: () => void;
+  private readonly offScreenOnly: () => void;
   private readonly press: Press;
   private readonly offFocusRing: () => void;
   private readonly offSwipe: () => void;
@@ -150,7 +152,7 @@ export class Shell {
     // puts each send into its bus where the send's source is.
     // They are installed here because every screen and every gesture
     // reaches the store through this one context.
-    store.setWriteRule(
+    this.offWriteRule = store.setWriteRule(
       combineWriteRules(
         pairWriteRule(store, model),
         dateDraftWriteRule(store),
@@ -160,7 +162,7 @@ export class Shell {
         panLinkWriteRule({ store, model }),
       ),
     );
-    store.setScreenOnly(screenOnly);
+    this.offScreenOnly = store.setScreenOnly(screenOnly);
     this.offSwipe = this.attachSwipe();
     this.attachBackdrop();
     this.press = attachPress(this.lcd);
@@ -177,8 +179,8 @@ export class Shell {
     window.removeEventListener("keydown", this.onTab);
     window.removeEventListener("keydown", this.onEscape);
     this.offStore();
-    this.ctx.store.setWriteRule(null);
-    this.ctx.store.setScreenOnly(null);
+    this.offWriteRule();
+    this.offScreenOnly();
     this.press.off();
     this.offFocusRing();
     this.offSwipe();
@@ -239,7 +241,7 @@ export class Shell {
     // USER DEFINED KNOBS mode replaces the readout strip with the bank
     // assignments, so it shows even where the screen suppresses the normal one.
     const udkMode = this.ctx.store.bool("ui.userDefinedKnobs", false);
-    const showStrip = udkMode || (def.knobStrip ?? this.knobs.some(Boolean));
+    const showStrip = udkMode || (body.knobStrip ?? def.knobStrip ?? this.knobs.some(Boolean));
     this.lcd.classList.toggle("has-knobs", showStrip);
     this.lcd.classList.toggle("is-udk", udkMode);
     this.lcd.classList.toggle("is-dimmed", def.dimsBehind === true);

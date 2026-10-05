@@ -1,16 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Shell } from "../app/shell";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
+import { readCard } from "../model/card";
 import { factoryState } from "../model/defaults";
 import type { UnitModel } from "../model/types";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
-import { applyScene, inScene } from "../model/scene-state";
+import { applyScene, captureScene, inScene } from "../model/scene-state";
 import { applySettings, captureSettings } from "../model/settings-file";
 import { recallScene, storeScene } from "./scene";
 import { setSignalType } from "./stereo-link";
 import { LEVEL_MIN_DB } from "../ui/param-spec";
+import { toJson } from "../device/value-json";
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -164,6 +166,37 @@ describe("storing and recalling a scene", () => {
     expect(shell.ctx.store.num("scene.current", -1)).toBe(0);
   });
 
+  it("brings an FX channel's and an output bus's BALANCE back from scene 00, and from a scene stored before it moved", async () => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    const strips = [...shell.ctx.model.inputs, ...shell.ctx.model.outputs].filter((x) => ["fx", "mix", "stereo"].includes(x.kind));
+    const paths = strips.map((x) => `ch.${x.id}.balance`);
+    const turn = async (): Promise<void> => {
+      for (const strip of strips) {
+        shell.ctx.nav.openTop({ id: "channel-view", strip: strip.id });
+        await flush();
+        for (let i = 0; i < 5; i++) {
+          shell.root
+            .querySelector('.knob-cell[role="slider"][aria-label="BALANCE"]')
+            ?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true, cancelable: true }));
+          await flush();
+        }
+      }
+      expect(paths.map((p) => s.num(p, 99)), "the channel view's BALANCE cell turns each").toEqual(paths.map(() => 5));
+    };
+    expect(paths).toEqual(["ch.fx1.balance", "ch.fx2.balance", "ch.bus.mix1.balance", "ch.bus.mix2.balance", "ch.bus.stereo.balance"]);
+
+    await s.set("scene.Standard.1.title", "take one");
+    await storeScene(shell.ctx, "Standard", 1);
+    await turn();
+    await recallScene(shell.ctx, 1);
+    expect(paths.map((p) => s.num(p, 99)), "a scene stored before it moved").toEqual(paths.map(() => 0));
+
+    await turn();
+    await recallScene(shell.ctx, 0);
+    expect(paths.map((p) => s.num(p, 99)), "scene 00").toEqual(paths.map(() => 0));
+  });
+
   it("lays each preset over the unit's own mixer, as the unit holds P01 to P03", async () => {
     const shell = await mount();
     const s = shell.ctx.store;
@@ -275,8 +308,88 @@ describe("storing and recalling a scene", () => {
     await recallScene(shell.ctx, 1);
     expect(
       older.map(([p]) => s.num(p, 0)),
-      "each on its nearest stop, and the SSMCS strip's Attack as the scene holds it",
-    ).toEqual([20.17, 150.2, 218, 20.17, 1000, 4.124]);
+      "each on its nearest stop, the SSMCS strip's Attack on its own",
+    ).toEqual([20.17, 150.2, 218, 20.17, 1000, 4.122]);
+  });
+
+  it("brings a BALANCE an older scene or settings file does not name back to the centre, and puts back one it names", async () => {
+    // A scene or a settings file stored before FX 1-2, MIX 1-2 and STEREO shipped a BALANCE, and before their
+    // BALANCE was turned, names none for them.
+    const shell = await mount();
+    const s = shell.ctx.store;
+    const absent = ["ch.fx1.balance", "ch.fx2.balance", "ch.bus.mix1.balance", "ch.bus.mix2.balance", "ch.bus.stereo.balance"];
+    const read = (): number[] => [...absent, "ch.ch_5_6.balance"].map((p) => s.num(p, 99));
+    await s.set("ch.ch_5_6.balance", 9);
+    const scene = captureScene(s);
+    const file = captureSettings(s);
+    for (const p of absent) {
+      delete scene[p];
+      delete file[p];
+    }
+    expect(absent.map((p) => s.has(p)), "the unit holds each").toEqual(absent.map(() => true));
+
+    await s.set("scene.Standard.1.title", "older");
+    await s.set("scene.Standard.1.state", toJson(scene));
+    await s.set("ch.ch_5_6.balance", 0);
+    for (const p of absent) await s.set(p, 5);
+    await recallScene(shell.ctx, 1);
+    expect(read(), "an older scene").toEqual([0, 0, 0, 0, 0, 9]);
+
+    await s.set("ch.ch_5_6.balance", 0);
+    for (const p of absent) await s.set(p, 7);
+    await applySettings(s, file);
+    expect(read(), "an older settings file").toEqual([0, 0, 0, 0, 0, 9]);
+  });
+
+  it("puts HOME's [Sends] on ST for a settings file that does not name its destination", async () => {
+    // A settings file an earlier version saved left the destination out.
+    const shell = await mount();
+    const s = shell.ctx.store;
+    await s.set("ui.sendsTarget", "MIX1");
+    const file = captureSettings(s);
+    expect(file["ui.sendsTarget"], "a file saved now names it").toBe("MIX1");
+    delete file["ui.sendsTarget"];
+    await s.set("ui.sendsTarget", "FX1");
+    await applySettings(s, file);
+    expect(s.str("ui.sendsTarget", "")).toBe("ST");
+  });
+
+  it("leaves HOME's [Sends] where it stands on a recall", async () => {
+    // As on the unit: a scene stored on MIX 1 and recalled over FX 1 leaves FX 1 (URX44V, 2026-10-04).
+    const shell = await mount();
+    const s = shell.ctx.store;
+    await s.set("ui.sendsTarget", "MIX1");
+    await s.set("ch.ch1.level", -10);
+    await s.set("scene.Standard.1.title", "SENDS");
+    await storeScene(shell.ctx, "Standard", 1);
+    await s.set("ui.sendsTarget", "FX1");
+    await s.set("ch.ch1.level", 0);
+    await recallScene(shell.ctx, 1);
+    expect(s.num("ch.ch1.level", 0), "the scene is recalled").toBe(-10);
+    expect(s.str("ui.sendsTarget", "")).toBe("FX1");
+  });
+
+  it("puts an SSMCS frequency, Attack or Release an older scene holds off the stops on the stop nearest it", async () => {
+    // CH 1's strip as an earlier version shipped it, with LOW at that version's top and MID on one of its stops.
+    const shell = await mount();
+    const s = shell.ctx.store;
+    const older: [string, number][] = [
+      ["ch.ch1.ssmcs.sc.freq", 89],
+      ["ch.ch1.ssmcs.eq.low.freq", 1002],
+      ["ch.ch1.ssmcs.eq.mid.freq", 946],
+      ["ch.ch1.ssmcs.eq.high.freq", 10024],
+      ["ch.ch1.ssmcs.comp.attack", 4.124],
+      ["ch.ch1.ssmcs.comp.release", 91.6],
+      ["ch.ch1.comp.attack", 4.124],
+    ];
+    for (const [p, v] of older) await s.set(p, v);
+    await s.set("scene.Standard.1.title", "older");
+    await storeScene(shell.ctx, "Standard", 1);
+    await recallScene(shell.ctx, 1);
+    expect(
+      older.map(([p]) => s.num(p, 0)),
+      "the strip's on its stops, and the COMP's own Attack on its own",
+    ).toEqual([90, 1000, 950, 10000, 4.122, 92, 4.122]);
   });
 
   it("stores the mixer when a number is named for the first time", async () => {
@@ -292,6 +405,8 @@ describe("storing and recalling a scene", () => {
     const field = shell.root.querySelector<HTMLElement>(".title-field");
     expect(field, "the title sheet opens on a number that holds nothing").not.toBeNull();
     [...shell.root.querySelectorAll<HTMLElement>(".pick-dialog-ok")][0]?.click();
+    await flush();
+    [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === "OK")?.click();
     await flush();
 
     await shell.ctx.store.set("ch.ch3.level", 0);
@@ -434,5 +549,77 @@ describe("what SCENE LIST's rows tell assistive technology", () => {
       shell.destroy();
       shell.root.remove();
     }
+  });
+});
+
+describe("drawing the glass over a recall and a load", () => {
+  const byText = (root: ParentNode, sel: string, text: string): HTMLElement | null =>
+    [...root.querySelectorAll<HTMLElement>(sel)].find((b) => b.textContent === text) ?? null;
+  /** Let the timers run until `done` holds, and once more for the drawing it asked for. */
+  const settle = async (done: () => boolean): Promise<void> => {
+    for (let i = 0; i < 50 && !done(); i++) await flush();
+    if (!done()) throw new Error("never settled");
+    await flush();
+  };
+  async function recallRow(shell: Shell, bank: "Simple" | "Standard", no: string, current: number): Promise<number> {
+    shell.ctx.nav.home();
+    shell.ctx.nav.push({ id: "scene" });
+    shell.ctx.nav.push({ id: "scene.list" });
+    await flush();
+    byText(shell.root, ".scene-banks .btn", bank)?.click();
+    await flush();
+    [...shell.root.querySelectorAll<HTMLElement>(".scene-list .list-row")].find((r) => r.querySelector(".scene-no")?.textContent?.endsWith(no))?.click();
+    await flush();
+    byText(shell.root, ".scene-actions .btn", "Recall")?.click();
+    await flush();
+    const ok = byText(shell.root, ".dialog-actions .btn", "OK");
+    if (!ok) throw new Error(`no [Recall] to confirm on ${bank} ${no}`);
+    const render = vi.spyOn(shell, "render");
+    ok.click();
+    await settle(() => shell.ctx.store.num("scene.current", -1) === current);
+    const renders = render.mock.calls.length;
+    render.mockRestore();
+    return renders;
+  }
+
+  it("draws the glass a few times for a recall of P01 and a load of a settings file, not once for every value put back", async () => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    const reference = await mount();
+    await recallScene(reference.ctx, 101);
+
+    const p01 = await recallRow(shell, "Simple", "P01", 101);
+    expect(captureScene(s), "P01's mixer, every value of it").toEqual(captureScene(reference.ctx.store));
+    expect(s.str("ch.ch1.name", ""), "P01's CH 1").toBe("Dyn.Mic");
+
+    // A settings file written with P01 in force, loaded over 00.
+    shell.ctx.nav.home();
+    shell.ctx.nav.push({ id: "microsd" });
+    shell.ctx.nav.push({ id: "microsd.saveload" });
+    await flush();
+    const saved = captureSettings(s);
+    byText(shell.root, ".sd-actions .btn", "Save as")?.click();
+    await flush();
+    await s.set("ui.titleEntry.text", "P1");
+    await flush();
+    shell.root.querySelector<HTMLElement>(".pick-dialog-ok")?.click();
+    await flush();
+    expect(readCard(s).some((e) => e.name === "P1.urxf"), "the file is on the card").toBe(true);
+    const back = await recallRow(shell, "Standard", "00", 0);
+    shell.ctx.nav.home();
+    shell.ctx.nav.push({ id: "microsd" });
+    shell.ctx.nav.push({ id: "microsd.saveload" });
+    await s.set("sd.selectedFile", readCard(s).findIndex((e) => e.name === "P1.urxf"));
+    await flush();
+    const load = byText(shell.root, ".sd-actions .btn", "Load");
+    if (!load) throw new Error("no [Load]");
+    const render = vi.spyOn(shell, "render");
+    load.click();
+    await settle(() => s.num("scene.current", -1) === 101);
+    const loaded = render.mock.calls.length;
+    render.mockRestore();
+    expect(captureSettings(s), "the file's values, every one").toEqual(saved);
+
+    expect(Math.max(p01, back, loaded), `drawn ${JSON.stringify({ p01, back, loaded })}`).toBeLessThanOrEqual(3);
   });
 });

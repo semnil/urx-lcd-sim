@@ -146,13 +146,16 @@ describe("the stereo link of a mono channel pair", () => {
     expect(marks(shell)).toHaveLength(0);
   });
 
-  it("marks nothing when the partner is not on screen beside it", async () => {
+  it("marks nothing for a half-applied link, nor in the gap before a pair", async () => {
     const { shell, store } = await mount();
-    // CH 3 pairs with CH 4, which stands to its right, so the gap on its left
-    // belongs to no pair.
     await link(store, "ch3");
     await goHome(shell);
-    expect(markedStrips(shell)).toEqual([]);
+    expect(markedStrips(shell), "CH 3 alone reading STEREO").toEqual([]);
+
+    // CH 3 pairs with CH 4, which stands to its right, so the gap on its left
+    // belongs to no pair.
+    await link(store, "ch4");
+    expect(markedStrips(shell)).toEqual(["CH 4"]);
   });
 
   it("keeps one meter on each channel of a linked pair", async () => {
@@ -547,6 +550,46 @@ describe("the values a stereo pair holds one of", () => {
     expect(store.num("ch.ch2.send.bus.mix1.balance", 0), "on the balance the pair holds one").toBe(20);
   });
 
+  describe("on 1-knob EQ's Intensity", () => {
+    /** Raise LOW, take [1-knob] on the EQ screen and set its level. */
+    const oneKnob = async (shell: Shell, id: string, low: number, level: number): Promise<void> => {
+      await shell.ctx.store.set(`ch.${id}.eq.low.gain`, low);
+      await open(shell, "channel-view", id);
+      await open(shell, "ch.eq", id);
+      shell.root.querySelector<HTMLElement>(".eq-screen .oneknob")?.click();
+      await flush();
+      await shell.ctx.store.set(`ch.${id}.eq.oneKnob.level`, level);
+    };
+    /** The LOW gain 1-knob scales, and LOW's gain. */
+    const low = (store: DeviceStore, id: string): [number, number] => [
+      store.num(`ch.${id}.eq.oneKnob.base.low`, NaN),
+      store.num(`ch.${id}.eq.low.gain`, NaN),
+    ];
+
+    it("links the pair on CH 1's curve as it stands, and its level goes on scaling CH 1's gains", async () => {
+      const { shell, store } = await mount();
+      await oneKnob(shell, "ch1", 6, 80);
+      expect(low(store, "ch1"), "level 80 scales +6 dB").toEqual([6, 9.6]);
+
+      await open(shell, "ch.setting", "ch1");
+      await pickSignalType(shell, "STEREO");
+      expect([low(store, "ch1"), low(store, "ch2")], "both channels hold CH 1's").toEqual([[6, 9.6], [6, 9.6]]);
+      await store.set("ch.ch1.eq.oneKnob.level", 81);
+      expect([low(store, "ch1"), low(store, "ch2")], "level 81").toEqual([[6, 9.7], [6, 9.7]]);
+    });
+
+    it("links the pair on CH 1's curve whatever CH 2's held", async () => {
+      const { shell, store } = await mount();
+      await oneKnob(shell, "ch2", 3, 50);
+      await oneKnob(shell, "ch1", 6, 80);
+      expect([low(store, "ch1"), low(store, "ch2")], "two curves before the link").toEqual([[6, 9.6], [3, 3]]);
+
+      await open(shell, "ch.setting", "ch1");
+      await pickSignalType(shell, "STEREO");
+      expect([low(store, "ch1"), low(store, "ch2")], "CH 1's on both").toEqual([[6, 9.6], [6, 9.6]]);
+    });
+  });
+
   it("leaves a pair that is not linked, and the strips beyond it, alone", async () => {
     const { shell, store } = await mount();
     await store.set("ch.ch1.level", -8);
@@ -562,5 +605,7 @@ describe("the values a stereo pair holds one of", () => {
     await store.set("ch.ch3.signalType", "STEREO");
     await store.set("ch.ch4.level", -3);
     expect(store.num("ch.ch3.level", 0), "a half-applied link carries nothing").toBe(0);
+    await store.set("ch.ch3.level", -7);
+    expect(store.num("ch.ch4.level", 0), "nor from the half reading STEREO").toBe(-3);
   });
 });

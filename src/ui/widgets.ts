@@ -596,6 +596,10 @@ export function attachSpin(
       return;
     }
     const size = fast ? (spec.fastStep ?? spec.step) : spec.step;
+    if (spec.turn) {
+      put(spec.turn(value(), steps * size));
+      return;
+    }
     put(onStep(spec, value() + steps * size));
   };
 
@@ -722,6 +726,11 @@ export function attachDrag(ctx: AppContext, node: HTMLElement, spec: NumericSpec
       }
       if (travel) {
         put(travel.valueAt(clamp(travel.position(anchorValue) + reach, 0, 1)));
+        return;
+      }
+      if (spec.turn) {
+        const steps = Math.round((reach * (spec.max - spec.min)) / spec.step);
+        put(steps === 0 ? anchorValue : spec.turn(anchorValue, steps * spec.step));
         return;
       }
       const raw = anchorValue + reach * (spec.max - spec.min);
@@ -1102,11 +1111,9 @@ export function dropdown(ctx: AppContext, spec: DropdownSpec): HTMLElement {
   return node;
 }
 
-/**
- * The confirmation box the guide describes under "Dialog box": a pale sheet
- * inside a blue frame, asking beside an information mark. Mount it with
- * ctx.overlay so it lands inside the screen frame.
- */
+/** How long the short progress modals stand, the same each time: a RECORDER tab loading, a scene being stored. */
+export const SHORT_PROGRESS_MS = 2000;
+
 /**
  * The modal the unit holds up while a screen loads: the dialog's frame with a
  * turning ring where the question mark goes, and no way to answer it. It is not
@@ -1136,6 +1143,11 @@ export function loadingDialog(message = "Loading..."): HTMLElement {
   return node;
 }
 
+/**
+ * The confirmation box the guide describes under "Dialog box": a pale sheet
+ * inside a blue frame, asking beside an information mark. Mount it with
+ * ctx.overlay so it lands inside the screen frame.
+ */
 export function dialog(options: DialogOptions): HTMLElement {
   const modal: Modal = {};
   const close = (): void => modal.close?.();

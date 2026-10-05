@@ -5,8 +5,9 @@
 import type { AppContext } from "../app/context";
 import type { ParamPath } from "../device/path";
 import type { Strip, StripKind, StripSide } from "../model/types";
-import { allStrips, bankCount, bankStrips, findStrip } from "../model/types";
+import { SENDS_TARGET_SHIPPED, allStrips, bankCount, bankStrips, findStrip } from "../model/types";
 import { CH_COLOR_OFF } from "../model/units";
+import { eqOutOfUse } from "../model/channel-eq";
 
 /**
  * The colour a strip is carrying: the one CH SETTING put on it, or the one it
@@ -174,8 +175,16 @@ export function channelLabel(strip: Strip, lane: 0 | 1, narrow: boolean): string
   }
 }
 
+/** What a mono channel's COMP / EQ type reads while the channel runs the morphing strip. */
+export const COMP_EQ_SSMCS = "SSMCS";
+
+/** Whether the strip is a mono channel whose COMP / EQ type is the morphing strip. */
+export function runsSsmcs(ctx: AppContext, strip: Strip): boolean {
+  return strip.kind === "monoIn" && ctx.store.str(`ch.${strip.id}.compEqOrder`, "COMP->EQ") === COMP_EQ_SSMCS;
+}
+
 export function sendsTarget(ctx: AppContext): string {
-  return ctx.store.str("ui.sendsTarget", "ST");
+  return ctx.store.str("ui.sendsTarget", SENDS_TARGET_SHIPPED);
 }
 
 /** The strip each Sends destination names. */
@@ -211,3 +220,8 @@ export function sendsDestination(ctx: AppContext): Strip | undefined {
 }
 
 export { sendsTo } from "../model/types";
+
+/** Whether the sampling frequency has put the strip's 4-band EQ out of use. */
+export function eqShut(ctx: AppContext, strip: Strip): boolean {
+  return eqOutOfUse(strip.kind, ctx.store.num("setup.samplingFrequency", 48000));
+}

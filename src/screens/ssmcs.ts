@@ -18,11 +18,13 @@
 import type { AppContext } from "../app/context";
 import type { Route } from "../app/navigator";
 import type { Strip } from "../model/types";
+import type { ParamPath, ParamValue } from "../device/path";
 import { clamp } from "../device/store";
 import { SSMCS_DEFAULTS } from "../model/defaults";
 import { grBarShare, ssmcsCorner } from "../model/dynamics";
+import { DYNAMICS_TIME_STOPS } from "../model/dynamics-times";
 import { type SsmcsBand, ssmcsBand, ssmcsEqResponse } from "../model/channel-eq";
-import { el, setPressed } from "../ui/dom";
+import { el, formatHz, hzUnit, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
 import { compRatioSpec, fineGainSpec, freqSpec, round, steps, stopsTravel } from "../ui/param-spec";
@@ -34,12 +36,15 @@ import {
   PLOT_MIN,
   PLOT_SPAN,
   PLOT_W,
+  carriesBlock,
   channelSelector,
   compResponse,
   dynMeters,
   dynSetting,
   hidePlotDrawing,
+  noBlock,
   noChannel,
+  notAvailable,
   plotCurve,
   plotHandle,
   plotRules,
@@ -49,6 +54,7 @@ import {
   titleBadge,
 } from "./channel";
 import { type GrSpec, blockReduction, drawnLevels, markReduction } from "./meters";
+import { fxShutOut } from "./effect-params";
 import { ssmcsSpec, tapId } from "./signal-flow";
 import type { ScreenBody, ScreenDef } from "./types";
 
@@ -58,10 +64,19 @@ const DRIVE_STOPS = steps(201, (i) => round(i / 20, 2));
 const MORPHING_STOPS = steps(121, (i) => i);
 /** The bell's width, from wide open to its narrowest. */
 const Q_STOPS = steps(61, (i) => round(0.5 * 32 ** (i / 60), 2));
-/** A twelfth of an octave a stop, 20 Hz to 20 kHz. */
-const FREQ_STOPS = steps(121, (i) => Math.round(20 * 10 ** (i / 40)));
-const ATTACK_STOPS = steps(227, (i) => round(0.092 * (80 / 0.092) ** (i / 226), 3));
-const RELEASE_STOPS = steps(277, (i) => round(9.3 * (999 / 9.3) ** (i / 276), 1));
+/** The R40 series of preferred numbers: forty to a decade, each to three figures. */
+const R40 = [
+  1, 1.06, 1.12, 1.18, 1.25, 1.32, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2, 2.12, 2.24, 2.36, 2.5, 2.65, 2.8, 3,
+  3.15, 3.35, 3.55, 3.75, 4, 4.25, 4.5, 4.75, 5, 5.3, 5.6, 6, 6.3, 6.7, 7.1, 7.5, 8, 8.5, 9, 9.5,
+];
+/** A fortieth of a decade a stop, about a twelfth of an octave, 20 Hz to 20 kHz, each on the R40 series. */
+const FREQ_STOPS = steps(121, (i) => Number(((R40[(i + 12) % 40] ?? 1) * 10 ** (1 + Math.floor((i + 12) / 40))).toPrecision(3)));
+
+/** Attack's three places under 10 ms and two from there. */
+const attackPlaces = (ms: number): number => (ms < 10 ? 3 : 2);
+/** Attack and Release stop where the COMP's own Attack and Release do. */
+const ATTACK_STOPS = DYNAMICS_TIME_STOPS["comp.attack"];
+const RELEASE_STOPS = DYNAMICS_TIME_STOPS["comp.release"];
 
 /** The three bands, in the order the graph lays them out. */
 export const SSMCS_BANDS = [
@@ -70,11 +85,11 @@ export const SSMCS_BANDS = [
   { key: "high", label: "High", letter: "H", marks: "updown" },
 ] as const;
 
-/** LOW stops at 1 kHz and HIGH starts near 500 Hz; MID takes the whole range. */
+/** LOW stops at 1 kHz and HIGH starts at 500 Hz; MID takes the whole range. */
 const BAND_FREQ_RANGE: Record<string, readonly [number, number]> = {
-  low: [20, 1002],
+  low: [20, 1000],
   mid: [20, 20000],
-  high: [501, 20000],
+  high: [500, 20000],
 };
 
 /** The list the [Sweet Spot Data] button drops. */
@@ -157,14 +172,29 @@ const qSpec = (path: string, label: string, fallback: number): NumericSpec =>
     (v) => v.toFixed(2),
   );
 
-const hzSpec = (path: string, label: string, fallback: number, range: readonly [number, number] = [20, 20000]): NumericSpec => ({
-  ...freqSpec(path, label, range[0], range[1], fallback),
-  travel: stopsTravel(FREQ_STOPS.filter((hz) => hz >= range[0] && hz <= range[1])),
-});
+/**
+ * A frequency the strip sets, running from the first stop in `range` to the
+ * last. A value off the stops reads as the stop it turns from.
+ */
+const hzSpec = (path: string, label: string, fallback: number, range: readonly [number, number] = [20, 20000]): NumericSpec => {
+  const stops = FREQ_STOPS.filter((hz) => hz >= range[0] && hz <= range[1]);
+  const travel = stopsTravel(stops);
+  const shown = (hz: number): number => travel.step(hz, 0);
+  return {
+    ...freqSpec(path, label, stops[0] ?? range[0], stops[stops.length - 1] ?? range[1], fallback),
+    travel,
+    format: (hz) => formatHz(shown(hz)),
+    unit: (hz) => hzUnit(shown(hz)),
+  };
+};
 
-/** A time the strip sets: three decimals under 10 ms, two under 100, one above. */
-const timeSpec = (path: string, label: string, stops: readonly number[], fallback: number): NumericSpec =>
-  spec(
+/**
+ * A time the strip sets, read to the places `places` gives it. A value off the
+ * stops reads as the stop it turns from.
+ */
+const timeSpec = (path: string, label: string, stops: readonly number[], fallback: number, places: (ms: number) => number): NumericSpec => {
+  const travel = stopsTravel(stops);
+  return spec(
     {
       path,
       label,
@@ -172,32 +202,63 @@ const timeSpec = (path: string, label: string, stops: readonly number[], fallbac
       max: stops[stops.length - 1] ?? 0,
       step: 0.001,
       fallback,
-      travel: stopsTravel(stops),
+      travel,
       unit: "ms",
       boxUnit: "m",
     },
-    (v) => (v < 10 ? v.toFixed(3) : v < 100 ? v.toFixed(2) : v.toFixed(1)),
+    (v) => {
+      const ms = travel.step(v, 0);
+      return ms.toFixed(places(ms));
+    },
   );
+};
 
 const ratioSpec = (b: string): NumericSpec => compRatioSpec(`${b}.ssmcs.comp.ratio`, SSMCS_DEFAULTS.ratio, true);
 
 const outGainSpec = (b: string): NumericSpec => gainSpec(`${b}.ssmcs.outGain`, "Out Gain", SSMCS_DEFAULTS.outGain);
-const attackSpec = (b: string): NumericSpec => timeSpec(`${b}.ssmcs.comp.attack`, "Attack", ATTACK_STOPS, SSMCS_DEFAULTS.attack);
-const releaseSpec = (b: string): NumericSpec => timeSpec(`${b}.ssmcs.comp.release`, "Release", RELEASE_STOPS, SSMCS_DEFAULTS.release);
+const attackSpec = (b: string): NumericSpec => timeSpec(`${b}.ssmcs.comp.attack`, "Attack", ATTACK_STOPS, SSMCS_DEFAULTS.attack, attackPlaces);
+const releaseSpec = (b: string): NumericSpec => timeSpec(`${b}.ssmcs.comp.release`, "Release", RELEASE_STOPS, SSMCS_DEFAULTS.release, () => 1);
 const scQSpec = (b: string): NumericSpec => qSpec(`${b}.ssmcs.sc.q`, "SC-Q", SSMCS_DEFAULTS.sc.q);
 const scFreqSpec = (b: string): NumericSpec => hzSpec(`${b}.ssmcs.sc.freq`, "SC-Freq.", SSMCS_DEFAULTS.sc.freq);
 const scGainSpec = (b: string): NumericSpec => gainSpec(`${b}.ssmcs.sc.gain`, "SC-Gain", SSMCS_DEFAULTS.sc.gain);
 
-/** One band's three values, named as the readout bar names them. */
-function bandSpecs(b: string, band: (typeof SSMCS_BANDS)[number]): NumericSpec[] {
+/**
+ * One band's three values, named as the readout bar names them. LOW and HIGH are
+ * shelves with no Q, and leave the Q's place empty.
+ */
+function bandSpecs(b: string, band: (typeof SSMCS_BANDS)[number]): (NumericSpec | null)[] {
   const p = `${b}.ssmcs.eq.${band.key}`;
   const factory = SSMCS_DEFAULTS.eq[band.key];
   const range = BAND_FREQ_RANGE[band.key] ?? [20, 20000];
   return [
-    qSpec(`${p}.q`, `${band.label} Q`, SSMCS_DEFAULTS.eq.mid.q),
+    band.key === "mid" ? qSpec(`${p}.q`, `${band.label} Q`, SSMCS_DEFAULTS.eq.mid.q) : null,
     hzSpec(`${p}.freq`, `${band.label} Freq.`, factory.freq, range),
     gainSpec(`${p}.gain`, `${band.label} Gain`, factory.gain),
   ];
+}
+
+/** A strip's frequencies, Attack and Release, each turned through its own stops. */
+const stoppedSpecs = (b: string): NumericSpec[] => [
+  scFreqSpec(b),
+  ...SSMCS_BANDS.flatMap((band) => bandSpecs(b, band)[1] ?? []),
+  attackSpec(b),
+  releaseSpec(b),
+];
+
+/**
+ * A saved state as it is put back, with each SSMCS frequency, Attack and Release
+ * on the stop nearest the value it holds. A value off the stops comes back on
+ * one, and the next save holds that stop.
+ */
+export function onSsmcsStops(state: Record<ParamPath, ParamValue>): Record<ParamPath, ParamValue> {
+  const out = { ...state };
+  for (const [path, value] of Object.entries(state)) {
+    const at = path.indexOf(".ssmcs.");
+    if (at < 0 || typeof value !== "number") continue;
+    const travel = stoppedSpecs(path.slice(0, at)).find((s) => s.path === path)?.travel;
+    if (travel) out[path] = travel.step(value, 0);
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------- the curves
@@ -465,6 +526,8 @@ export const ssmcsScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
+    if (!carriesBlock(ctx, strip, "SSMCS")) return noBlock(ctx, strip, route, "SSMCS");
     const b = `ch.${strip.id}`;
     const drive = driveSpec(b);
     const morphing = morphingSpec(b);
@@ -526,6 +589,8 @@ export const ssmcsScreen: ScreenDef = {
 function compFace(ctx: AppContext, route: Route, sideChain: boolean): ScreenBody {
   const strip = routeStrip(ctx, route);
   if (!strip) return noChannel();
+  if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
+  if (!carriesBlock(ctx, strip, "SSMCS")) return noBlock(ctx, strip, route, "SSMCS");
   const b = `ch.${strip.id}`;
   const drive = driveSpec(b);
   const ratio = ratioSpec(b);
@@ -614,6 +679,8 @@ export const ssmcsEqScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
+    if (!carriesBlock(ctx, strip, "SSMCS")) return noBlock(ctx, strip, route, "SSMCS");
     const b = `ch.${strip.id}`;
     const bandKey = ctx.store.str("ui.ssmcsBand", "mid");
     const band = SSMCS_BANDS.find((x) => x.key === bandKey) ?? SSMCS_BANDS[1];

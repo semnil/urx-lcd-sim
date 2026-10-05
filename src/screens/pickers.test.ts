@@ -566,7 +566,7 @@ describe("the pulldowns' names", () => {
       "CH 1 EQ, LOW": await screen({ id: "ch.eq", strip: "ch1" }, { "ui.eqBand": "low" }),
       "CH 1 EQ, HIGH": await screen({ id: "ch.eq", strip: "ch1" }, { "ui.eqBand": "high" }),
       "CH 1 EQ, 1-knob": await screen({ id: "ch.eq", strip: "ch1" }, { "ch.ch1.eq.oneKnob.on": true }),
-      "CH 1 SSMCS Comp": await screen({ id: "ch.ssmcs.comp", strip: "ch1" }),
+      "CH 1 SSMCS Comp": await screen({ id: "ch.ssmcs.comp", strip: "ch1" }, { "ch.ch1.compEqOrder": "SSMCS" }),
       "CH 5/6 DUCKER": await screen({ id: "ch.ducker", strip: "ch_5_6" }),
       "MIX 1 CH SETTING": await screen({ id: "ch.setting", strip: "bus.mix1" }),
     };

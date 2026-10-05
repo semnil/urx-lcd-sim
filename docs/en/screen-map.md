@@ -113,6 +113,14 @@ flowchart LR
 - **Name entry opens from two places.** A scene's name (`scene.title`) and a card folder's or file's
   name (`microsd.name`) are built the same way, and each returns where it was opened from.
 - **A channel screen carries its strip.** The arrows either side of the toolbar's channel name change
-  the strip without leaving the screen, and a block the strip does not carry opens no screen.
-- **The name box opens CH SETTING.** Every channel screen but CH SETTING opens CH SETTING for its strip
-  from the name box in the toolbar. The map draws that arrow from the channel view alone.
+  the strip without leaving the screen, and a block the strip does not carry opens no screen. The
+  channel view and any other channel screen stacked under it move to the strip stepped to as well, so
+  the back arrow returns to that strip's channel view and HOME keeps it selected. On a channel that does
+  not carry the block (COMP, EQ and SSMCS go by a mono channel's COMP / EQ type), the GATE, COMP, EQ,
+  DUCKER, DELAY and SSMCS screens draw no title and nothing to operate, only
+  `This channel has no GATE screen` (and so on) in the middle; at 176.4 / 192 kHz the EQ screen on a
+  stereo input says `This channel has no EQ screen at this sampling frequency`. On FX 2 at
+  176.4 / 192 kHz every channel screen does the same with
+  `This channel is not available at this sampling frequency`.
+- **The name box opens CH SETTING on the channel view.** There the name box in the toolbar opens CH
+  SETTING for its strip; on the screens under the channel view and on CH SETTING it opens nothing.

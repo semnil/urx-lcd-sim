@@ -22,7 +22,10 @@ import { placeOfReading } from "../model/effects";
 import { dropTracksOverRate } from "../model/track-count";
 import type { UnitModel } from "../model/types";
 import { unitById } from "../model/units";
+import { onDelayGrid } from "../screens/channel";
+import { dropSendsOverRate } from "../screens/effect-params";
 import { settlePanLink } from "../screens/mix-bus";
+import { onSsmcsStops } from "../screens/ssmcs";
 import { fromJson, toJson } from "../device/value-json";
 
 /** Where the browser keeps it: one record of one IndexedDB object store. */
@@ -450,14 +453,15 @@ export function modelOf(kept: Kept): string | null {
 
 /**
  * Put the unit `kept` holds for `model` back, one value after another. A GATE,
- * COMP or DUCKER time off its stops comes back on the stop nearest it. A
- * connected unit is left as it is.
+ * COMP or DUCKER time, and an SSMCS frequency, Attack or Release, off its stops
+ * comes back on the stop nearest it, and a delay time off 0.02 ms on the
+ * 0.02 ms nearest it. A connected unit is left as it is.
  */
 export async function restore(store: DeviceStore, model: UnitModel["id"], kept: Kept): Promise<void> {
   if (onConnectedUnit(store)) return;
   const saved = readUnit(kept, model);
   if (!saved) return;
-  const values = onDynamicsTimeStops(saved);
+  const values = onDelayGrid(onSsmcsStops(onDynamicsTimeStops(saved)));
   for (const [path, value] of Object.entries(values)) {
     // A clock that stood still is not put back: the clock runs with the computer's.
     if (LEGACY_SAFE.test(path) || LEGACY_CLOCK.test(path)) continue;
@@ -489,6 +493,9 @@ export async function restore(store: DeviceStore, model: UnitModel["id"], kept: 
   // A state written before the recorder followed the frequency can name a pair
   // the unit cannot hold, so it is taken through the same one-way drop.
   dropTracksOverRate(store, store.num("setup.samplingFrequency", 48000));
+  // A state written before HOME's [Sends] followed the frequency can name FX 2 at
+  // a rate that puts it out of reach; [Sends] goes to FX 1 the same way.
+  dropSendsOverRate(store, unitById(model), store.num("setup.samplingFrequency", 48000));
   // A state written while Pan Link left each send's own placing where it was, or
   // kept Pan Link on over a FIXED bus, comes back as the unit would hold it.
   settlePanLink({ store, model: unitById(model) });

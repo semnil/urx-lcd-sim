@@ -1,12 +1,10 @@
 // The title entry sheet: a keyboard that takes the glass over to rename a scene.
 
 import type { AppContext } from "../app/context";
-import { captureScene } from "../model/scene-state";
 import { el, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { button, dialog } from "../ui/widgets";
 import type { ScreenBody, ScreenDef } from "./types";
-import { toJson } from "../device/value-json";
 
 /** Where the sheet keeps the title being typed, and where it goes, until [OK]. */
 const DRAFT = "ui.titleEntry";
@@ -130,8 +128,6 @@ export interface TitleDraft {
   path: string;
   /** What the field holds when the sheet opens. */
   title: string;
-  /** The scene number [OK] makes the recalled scene, or -1 for none. */
-  recall?: number;
   /** What [OK] hands what is typed to. */
   onOk?: (text: string) => void;
   /** What stands at the top of the sheet. */
@@ -163,19 +159,15 @@ export function draftTitle(ctx: AppContext, draft: TitleDraft): void {
   void ctx.store.set(`${DRAFT}.keys`, draft.keys ?? "title");
   void ctx.store.set(`${DRAFT}.suffix`, draft.suffix ?? "");
   void ctx.store.set(`${DRAFT}.path`, path);
-  void ctx.store.set(`${DRAFT}.recall`, draft.recall ?? -1);
   void ctx.store.set(`${DRAFT}.text`, title);
   void ctx.store.set(`${DRAFT}.cursor`, title.length);
   void ctx.store.set(`${DRAFT}.layout`, "letters");
   void ctx.store.set(`${DRAFT}.shift`, 0);
 }
 
-/**
- * Open the sheet on a title. [OK] writes what is typed to `path` and, given a
- * scene number in `recall`, makes it the recalled scene.
- */
-export function openTitleEntry(ctx: AppContext, path: string, title: string, recall = -1): void {
-  draftTitle(ctx, { path, title, recall });
+/** Open the sheet on a title. [OK] writes what is typed to `path`. */
+export function openTitleEntry(ctx: AppContext, path: string, title: string): void {
+  draftTitle(ctx, { path, title });
   ctx.nav.push({ id: "scene.title" });
 }
 
@@ -332,17 +324,7 @@ export const titleEntryScreen: ScreenDef = {
             }
             pendingRefuse = null;
             const path = ctx.store.str(`${DRAFT}.path`, "");
-            const recall = ctx.store.num(`${DRAFT}.recall`, -1);
-            // The name, the mixer and the number recalled are one operation of the store.
-            ctx.store.operation(() => {
-              if (path) void ctx.store.set(path, named);
-              // Naming a number that holds nothing is the first half of storing to
-              // it: the mixer goes in with the name.
-              if (recall >= 0 && path.startsWith("scene.") && path.endsWith(".title")) {
-                void ctx.store.set(path.replace(/\.title$/, ".state"), toJson(captureScene(ctx.store)));
-              }
-              if (recall >= 0) void ctx.store.set("scene.current", recall);
-            });
+            if (path) void ctx.store.set(path, named);
             const handOver = pendingOk;
             pendingOk = null;
             ctx.nav.back();

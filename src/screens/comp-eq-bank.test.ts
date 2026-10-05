@@ -187,6 +187,52 @@ describe("the EQ 1-knob's chain", () => {
     ]);
   });
 
+  it("changes nothing when the curve in use is picked again, and switching the knob on still starts Intensity at 50", async () => {
+    const { shell, store } = await mount();
+    await store.set("ch.ch1.eq.low.gain", 6);
+    await open(shell, "channel-view", "ch1");
+    await open(shell, "ch.eq", "ch1");
+    const pick = async (type: string): Promise<void> => {
+      panel(shell)?.querySelector<HTMLElement>(".pulldown")?.click();
+      await flush();
+      [...shell.root.querySelectorAll<HTMLElement>(".dropdown-option")].find((o) => o.textContent === type)?.click();
+      await flush();
+    };
+    const held = (): (string | number)[] => [
+      store.str("ch.ch1.eq.oneKnob.type", ""),
+      store.num("ch.ch1.eq.oneKnob.level", -1),
+      ...["low", "lowMid", "highMid", "high"].map((b) => store.num(`ch.ch1.eq.${b}.gain`, NaN)),
+      store.num("ch.ch1.eq.oneKnob.base.low", NaN),
+    ];
+    shell.root.querySelector<HTMLElement>(".oneknob")?.click();
+    await flush();
+    await store.set("ch.ch1.eq.oneKnob.level", 80);
+    await flush();
+    expect(held(), "Intensity at 80 from LOW +6").toEqual(["Intensity", 80, 9.6, 0, 0, 0, 6]);
+    await pick("Intensity");
+    expect(held(), "Intensity picked again").toEqual(["Intensity", 80, 9.6, 0, 0, 0, 6]);
+
+    for (const [type, level] of [["Loudness", 40], ["Vocal", 30]] as const) {
+      await pick(type);
+      await store.set("ch.ch1.eq.oneKnob.level", level);
+      await flush();
+      const before = held();
+      await pick(type);
+      expect(held(), `${type} picked again`).toEqual(before);
+    }
+
+    // Off and on again: the knob takes Intensity back on its neutral point over the gains as they stand.
+    await pick("Intensity");
+    await store.set("ch.ch1.eq.oneKnob.level", 80);
+    await flush();
+    const gains80 = held().slice(2, 6);
+    panel(shell)?.querySelector<HTMLElement>(".oneknob")?.click();
+    await flush();
+    shell.root.querySelector<HTMLElement>(".oneknob")?.click();
+    await flush();
+    expect([store.bool("ch.ch1.eq.oneKnob.on", false), ...held().slice(0, 6)]).toEqual([true, "Intensity", 50, ...gains80]);
+  });
+
   it("takes the curve back to Intensity when the knob is switched on", async () => {
     const { shell, store } = await mount();
     await store.set("ch.ch1.eq.oneKnob.type", "Loudness");

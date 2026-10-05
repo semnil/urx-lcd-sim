@@ -82,7 +82,8 @@ the unit is asynchronous, which is why the values are held twice.
   `store.restore(path, value)`, which a scene recall and a settings file Load use to put stored values
   back, because those values already hold what the rule decided. A copy stored while Pan Link left each
   send's own placing where it was, or kept Pan Link on over a FIXED bus, does not, so after putting one
-  back they bring Pan Link to where the unit's screen leaves it.
+  back they bring Pan Link to where the unit's screen leaves it. Linking a stereo pair copies the
+  lower-numbered channel's values onto the other with `store.restore` as well, so the copy arrives as it stands.
 - **Changes on the device side** — arrive as notifies from the transport. Scene recall, turning a
   knob on the unit, and Auto Gain completing all take this path. A notify with `echo: false` is
   taken, unless a write to its path has yet to go out to the unit. The transport reports each
@@ -94,7 +95,9 @@ the unit is asynchronous, which is why the values are held twice.
   transport's responsibility (`BridgeTransport` for a unit); `DeviceStore` does not tell echoes
   apart and takes every notify that differs from the mirror, under the rule above.
 
-Change notifications are batched per microtask and fire once (`markChanged` → `flush`).
+Change notifications are batched per microtask and fire once (`markChanged` → `flush`). While a scene
+recall or a settings file load puts its values back one after another, the notification is held until
+the last of them is back and then fires once (`batch`).
 
 ## What survives a reload
 
@@ -130,7 +133,8 @@ stored as parts that stood still is not put back: the clock runs with the comput
 amp's Type or Amp Type stored by its name comes back at the place on its knob that reads that name,
 and a name the amp does not have is not put back. A state stored while Pan Link left each send's own placing where
 it was, or kept Pan Link on over a FIXED bus, comes back with Pan Link where the unit's screen leaves it. A GATE,
-COMP or DUCKER time stored off its stops comes back on the stop nearest it.
+COMP or DUCKER time, or an SSMCS frequency, Attack or Release, stored off its stops comes back on the stop nearest it,
+and a DELAY time stored off 0.02 ms on the 0.02 ms nearest it.
 A state stored while a settings file's contents were kept under the file's name alone gives those contents to
 every settings file of that name, whatever folder holds it (they are now kept under the folder and the name, so
 files of one name in two folders hold their own).
@@ -215,8 +219,9 @@ How the screens connect is drawn in [screen-map.md](screen-map.md).
 
 `Navigator` holds the screen stack. It matches the unit's toolbar, which has a back arrow and a home
 button: `back()` goes back one level and `home()` goes back to HOME. `openTop()` places a screen
-directly above HOME, so a single back from SETUP or MONITOR returns to HOME. `Escape` calls `back()`
-on every screen.
+directly above HOME, so a single back from SETUP or MONITOR returns to HOME. A channel screen's arrows
+call `stepStrip()`, which moves that screen and every channel screen stacked under it onto the strip
+stepped to. `Escape` calls `back()` on every screen.
 
 ## Coordinate system
 

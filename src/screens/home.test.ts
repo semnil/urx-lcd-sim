@@ -5,15 +5,17 @@ import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
 import { CH_COLOR_PALETTE, unitById } from "../model/units";
-import { bankStrips } from "../model/types";
+import type { Strip } from "../model/types";
+import { bankStrips, findStrip } from "../model/types";
 import { OSC_TARGETS } from "../model/oscillator";
-import { bankName, channelLabel } from "./strip-state";
+import { bankName, channelLabel, stripLane } from "./strip-state";
 import { buildRegistry } from "./index";
 import { meterLevels, setMeterSource, startMeterTicker } from "./meters";
 import { storeScene } from "./scene";
+import { captureSettings } from "../model/settings-file";
 import { declarations, declarationsOn, px, readStyle } from "../style/css-read";
 import { INTERACTIVE } from "../ui/dom";
-import { dialog } from "../ui/widgets";
+import { SHORT_PROGRESS_MS, dialog } from "../ui/widgets";
 import { udkAssignment } from "../model/udk";
 import { openDateTimeSet, openTimeZone } from "./date-time";
 import { version as packageVersion } from "../../package.json";
@@ -1290,6 +1292,51 @@ describe("a processing block on the channel view", () => {
     await flush();
     expect(store.num("ch.ch1.gate.threshold", Number.NaN)).toBe(gate + 1);
   });
+
+  it("turns DELAY's time as the DELAY screen's ms cell does a detent, with Shift held too, as the unit's detents went", async () => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "channel-view", strip: "bus.stream" });
+    await flush();
+    const ms = (): number => Math.round(shell.ctx.store.num("ch.bus.stream.delay.ms", 0) * 100);
+    // The time in hundredths of a ms after each detent on the block.
+    const turn = async (from: number, key: string, detents: number, shiftKey = false): Promise<number[]> => {
+      await shell.ctx.store.set("ch.bus.stream.delay.ms", from / 100);
+      await flush();
+      const went: number[] = [];
+      for (let n = 0; n < detents; n++) {
+        shell.root.querySelector<HTMLElement>(".cv-block-delay")?.dispatchEvent(new KeyboardEvent("keydown", { key, shiftKey, bubbles: true }));
+        await flush();
+        went.push(ms());
+      }
+      return went;
+    };
+    const seen = [
+      [...(await turn(100, "ArrowUp", 3)), ...(await turn(400, "ArrowDown", 3))],
+      [...(await turn(4586, "ArrowUp", 1)), ...(await turn(4686, "ArrowDown", 1))],
+    ];
+    expect(seen, "1.00 ms a detent, the hundredths kept").toEqual([
+      [200, 300, 400, 300, 200, 100],
+      [4686, 4586],
+    ]);
+    expect(shell.root.querySelector(".cv-delay-value")?.textContent).toBe("45.86");
+    // A time set off 0.02 ms lands on 0.02 ms by Math.round on its reading plus 1.00 ms, × 50:
+    // 46.87 ms × 50 is 2343.5, and the time goes to 46.88 ms.
+    expect(await turn(4587, "ArrowUp", 1), "onto 0.02 ms").toEqual([4688]);
+    expect([...(await turn(99912, "ArrowUp", 1)), ...(await turn(178, "ArrowDown", 1))], "stopped at either end").toEqual([100000, 100]);
+    // The DELAY block's knob does not push in, and Shift turns the same detent.
+    expect([...(await turn(4586, "ArrowUp", 1, true)), ...(await turn(2400, "ArrowDown", 1, true))], "1.00 ms with Shift too").toEqual([4686, 2300]);
+    expect([...(await turn(99912, "ArrowUp", 1, true)), ...(await turn(178, "ArrowDown", 1, true))], "and the ends with Shift").toEqual([100000, 100]);
+
+    // The wheel turns the block by the same detent, with Shift held or not.
+    await shell.ctx.store.set("ch.bus.stream.delay.ms", 45.86);
+    await flush();
+    shell.root.querySelector<HTMLElement>(".cv-block-delay")?.dispatchEvent(new WheelEvent("wheel", { deltaY: -1, bubbles: true, cancelable: true }));
+    await flush();
+    expect(ms(), "a wheel detent").toBe(4686);
+    shell.root.querySelector<HTMLElement>(".cv-block-delay")?.dispatchEvent(new WheelEvent("wheel", { deltaY: -1, shiftKey: true, bubbles: true, cancelable: true }));
+    await flush();
+    expect(ms(), "a wheel detent with Shift").toBe(4786);
+  });
 });
 
 describe("what a channel view's blocks draw", () => {
@@ -2275,7 +2322,8 @@ describe("the SCENE menu the scene box opens", () => {
   });
 
   it("asks before deleting a scene by its number, and clears it on OK alone", async () => {
-    const shell = await sceneList({ "scene.Standard.5.title": "Band", "scene.Standard.5.protect": 0, "scene.selected": 5, "scene.current": 5, "ui.sceneMenu": "Edit" });
+    const mixer = '{"ch.ch1.level":-3}';
+    const shell = await sceneList({ "scene.Standard.5.title": "Band", "scene.Standard.5.protect": 0, "scene.Standard.5.state": mixer, "scene.selected": 5, "scene.current": 5, "ui.sceneMenu": "Edit" });
     const sceneBox = (): string[] => [...(shell.root.querySelector(".scene-box")?.children ?? [])].map((c) => c.textContent ?? "");
     await tap(editButtons(shell)[1]);
     const box = shell.root.querySelector(".dialog");
@@ -2283,10 +2331,12 @@ describe("the SCENE menu the scene box opens", () => {
     expect([...(box?.querySelectorAll(".dialog-actions .btn") ?? [])].map((b) => b.textContent)).toEqual(["Cancel", "OK"]);
     await tap(pick(shell, ".dialog-actions .btn", "Cancel"));
     expect(shell.ctx.store.str("scene.Standard.5.title", ""), "Cancel keeps it").toBe("Band");
+    expect(shell.ctx.store.str("scene.Standard.5.state", ""), "and its mixer").toBe(mixer);
 
     await tap(editButtons(shell)[1]);
     await tap(pick(shell, ".dialog-actions .btn", "OK"));
     expect(shell.ctx.store.str("scene.Standard.5.title", "")).toBe("");
+    expect(shell.ctx.store.str("scene.Standard.5.state", "-"), "the mixer it stored goes too").toBe("");
     expect(shell.root.querySelectorAll(".scene-list .list-row")[5]?.querySelectorAll(".list-cell")[1]?.textContent, "the title goes with it").toBe("");
     expect(sceneBox(), "the recalled scene deleted leaves its number alone in the box").toEqual(["05", ""]);
   });
@@ -2429,31 +2479,64 @@ describe("the SCENE menu the scene box opens", () => {
     expect(tabs(), "and stays open on 00").toEqual([["Store/Recall", false, false], ["Edit", true, false]]);
   });
 
-  it("names an empty number on the title entry sheet when it is stored, and asks before storing over a stored scene", async () => {
+  it("stores on any number through the title entry sheet, on the recalled scene's title, then a question, then a store in progress", async () => {
     const shell = await sceneList({ "scene.Standard.4.title": "Band", "scene.selected": 7 });
+    const s = shell.ctx.store;
+    const stored = (no: number): [string, boolean, number] => [s.str(`scene.Standard.${no}.title`, ""), s.str(`scene.Standard.${no}.state`, "") !== "", s.num("scene.current", -1)];
+    const asked = (): string | null => shell.root.querySelector(".dialog .dialog-text")?.textContent ?? null;
+    /** [OK] on the question, and what stands over the list until the store is done. */
+    const confirm = async (): Promise<[string | null, string | null, string | null]> => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        pick(shell, ".dialog-actions .btn", "OK")?.click();
+        for (let i = 0; i < 5; i++) await Promise.resolve();
+        const at = (): string | null => shell.root.querySelector('.dialog-overlay[role="status"] .dialog-text')?.textContent ?? null;
+        const first = at();
+        vi.advanceTimersByTime(SHORT_PROGRESS_MS - 1);
+        const held = at();
+        vi.advanceTimersByTime(1);
+        return [first, held, at()];
+      } finally {
+        vi.useRealTimers();
+      }
+    };
+
     await tap(pick(shell, ".scene-actions .btn", "Store"));
     expect(shell.ctx.nav.current.id, "an empty number opens the sheet").toBe("scene.title");
     expect(shell.root.querySelector(".title-text")?.textContent, "on the recalled scene's title").toBe("Initial Data");
     await tap(pick(shell, ".pick-dialog-btn", "Cancel"));
-    expect([shell.ctx.store.str("scene.Standard.7.title", ""), shell.ctx.store.num("scene.current", 0)], "Cancel stores nothing").toEqual(["", 0]);
+    expect(stored(7), "the sheet's Cancel stores nothing").toEqual(["", false, 0]);
 
     await tap(pick(shell, ".scene-actions .btn", "Store"));
     await tap(pick(shell, ".title-key", "x"));
     await tap(pick(shell, ".pick-dialog-btn", "OK"));
-    expect([shell.ctx.nav.current.id, shell.ctx.store.str("scene.Standard.7.title", ""), shell.ctx.store.num("scene.current", 0)]).toEqual([
-      "scene.list", "Initial Datax", 7,
-    ]);
+    expect([shell.ctx.nav.current.id, asked()], "the sheet's OK asks on the list").toEqual(["scene.list", 'Store to "Scene Memory #07"?']);
+    expect(stored(7), "and has stored nothing yet").toEqual(["", false, 0]);
+    await tap(pick(shell, ".dialog-actions .btn", "Cancel"));
+    expect(stored(7), "the question's Cancel stores nothing").toEqual(["", false, 0]);
 
-    await shell.ctx.store.set("scene.selected", 4);
+    await tap(pick(shell, ".scene-actions .btn", "Store"));
+    await tap(pick(shell, ".title-key", "x"));
+    await tap(pick(shell, ".pick-dialog-btn", "OK"));
+    expect(await confirm(), "in progress, for as long as the short progress modals").toEqual([
+      "Scene store is in progress...",
+      "Scene store is in progress...",
+      null,
+    ]);
+    await flush();
+    expect(stored(7), "stored under the typed title and recalled").toEqual(["Initial Datax", true, 7]);
+
+    await s.set("scene.selected", 4);
     await flush();
     await tap(pick(shell, ".scene-actions .btn", "Store"));
-    expect(shell.ctx.nav.current.id, "a stored scene keeps the list").toBe("scene.list");
-    expect(shell.root.querySelector(".dialog .dialog-text")?.textContent).toBe('Store to "Scene Memory #04"?');
-    await tap(pick(shell, ".dialog-actions .btn", "Cancel"));
-    expect(shell.ctx.store.num("scene.current", 0), "Cancel leaves the recalled scene").toBe(7);
-    await tap(pick(shell, ".scene-actions .btn", "Store"));
-    await tap(pick(shell, ".dialog-actions .btn", "OK"));
-    expect([shell.ctx.store.num("scene.current", 0), shell.ctx.store.str("scene.Standard.4.title", "")]).toEqual([4, "Band"]);
+    expect(shell.ctx.nav.current.id, "a stored scene opens the sheet too").toBe("scene.title");
+    expect(shell.root.querySelector(".title-text")?.textContent, "on the recalled scene's title, not its own").toBe("Initial Datax");
+    await tap(pick(shell, ".pick-dialog-btn", "OK"));
+    expect(asked()).toBe('Store to "Scene Memory #04"?');
+    expect(stored(4), "nothing stored over it yet").toEqual(["Band", false, 7]);
+    await confirm();
+    await flush();
+    expect([shell.ctx.nav.current.id, ...stored(4)]).toEqual(["scene.list", "Initial Datax", true, 4]);
   });
 
   it("takes no more than 16 characters for a title", async () => {
@@ -3904,8 +3987,8 @@ describe("the readout bar with more parameters than divisions", () => {
 
   it("draws no step where four divisions hold everything", async () => {
     const shell = await mount();
-    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
-    shell.ctx.nav.push({ id: "ch.ducker", strip: "ch1" });
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch_5_6" });
+    shell.ctx.nav.push({ id: "ch.ducker", strip: "ch_5_6" });
     await flush();
     expect(shell.root.querySelectorAll(".knob-cell").length).toBe(4);
     expect(shell.root.querySelector(".knob-page-next")).toBeNull();
@@ -4231,13 +4314,41 @@ describe("EQ's shape list and Operation Mode's previews", () => {
     expect(released, "the shell drawn for it lets the store go").toBeGreaterThan(0);
     expect(declarations(CSS, ".mode-preview .lcd")["transform"]).toBe("scale(0.4146)");
   });
+
+  it("keeps the writes an edit carries once the still of HOME is let go", async () => {
+    for (const id of ["URX44V", "URX44", "URX22"] as const) {
+      const shell = await mount(id);
+      const store = shell.ctx.store;
+      shell.ctx.nav.push({ id: "setup" });
+      shell.ctx.nav.push({ id: "setup.mode" });
+      await flush();
+      expect(shell.root.querySelector(".mode-preview-standard .strip"), `${id}: the still is drawn`).not.toBeNull();
+      [...shell.root.querySelectorAll<HTMLButtonElement>(".wizard-btn")].find((b) => b.textContent === "Back")?.click();
+      await flush();
+      expect(shell.ctx.nav.current.id, `${id}: [Back] leaves Operation Mode`).toBe("setup");
+
+      // A linked pair takes an edit to one channel onto the other.
+      await store.set("ch.ch1.signalType", "STEREO");
+      await store.set("ch.ch2.signalType", "STEREO");
+      await store.set("ch.ch1.level", -12);
+      expect(store.num("ch.ch2.level"), `${id}: the pair's other channel`).toBe(-12);
+      // HI-Z brings its connector's A.Gain down to what it reaches.
+      await store.set("ch.ch1.gain", 60);
+      await store.set("ch.ch1.hiZ", true);
+      expect(store.num("ch.ch1.gain"), `${id}: A.Gain under HI-Z`).toBe(40);
+      shell.destroy();
+    }
+  });
 });
 
 describe("what the dedicated channel screens draw", () => {
+  /** DUCKER is a stereo input's block and DELAY STREAMING's; every other screen opens on CH 1. */
+  const BLOCK_STRIP: Record<string, string> = { "ch.ducker": "ch_5_6", "ch.delay": "bus.stream" };
   const open = async (id: string): Promise<Shell> => {
     const shell = await mount();
-    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
-    shell.ctx.nav.push({ id, strip: "ch1" });
+    const strip = BLOCK_STRIP[id] ?? "ch1";
+    shell.ctx.nav.push({ id: "channel-view", strip });
+    shell.ctx.nav.push({ id, strip });
     await flush();
     return shell;
   };
@@ -4369,7 +4480,7 @@ describe("what the dedicated channel screens draw", () => {
 
   it("prints a ducking decay past a second in seconds, and the shorter times in ms", async () => {
     const shell = await open("ch.ducker");
-    await shell.ctx.store.set("ch.ch1.ducker.decay", 4800);
+    await shell.ctx.store.set("ch.ch_5_6.ducker.decay", 4800);
     await flush();
     const cells = [...shell.root.querySelectorAll<HTMLElement>(".knob-cell")];
     const read = (label: string): string | undefined =>
@@ -4390,9 +4501,261 @@ describe("what the dedicated channel screens draw", () => {
     const boxes = (): (string | null)[] =>
       [...shell.root.querySelectorAll<HTMLElement>(".delay-cell .value-box")].map((n) => n.textContent);
     expect(boxes()).toEqual(["1.00", "0.03", "0.3", "1.1"]);
-    await shell.ctx.store.set("ch.ch1.delay.ms", 10);
+    await shell.ctx.store.set("ch.bus.stream.delay.ms", 10);
     await flush();
     expect(boxes(), "one value, four ways of naming it").toEqual(["10.00", "0.30", "3.4", "11.3"]);
+  });
+
+  it("reads the four delay cells as the unit does, to their places from the value as it is held in binary", async () => {
+    const shell = await open("ch.delay");
+    const boxes = (): (string | null)[] => [...shell.root.querySelectorAll<HTMLElement>(".delay-cell .value-box")].map((n) => n.textContent);
+    // A time in hundredths of a ms, the frame rate, and what ms / frame / meter / feet read.
+    const readings: [number, string, string[]][] = [
+      [100, "30", ["1.00", "0.03", "0.3", "1.1"]],
+      [400, "30", ["4.00", "0.12", "1.4", "4.5"]],
+      [2400, "30", ["24.00", "0.72", "8.2", "27.1"]],
+      [3260, "30", ["32.60", "0.98", "11.2", "36.7"]],
+      [4586, "30", ["45.86", "1.38", "15.8", "51.7"]],
+      [99800, "30", ["998.00", "29.94", "342.9", "1125.0"]],
+      [100000, "30", ["1000.00", "30.00", "343.6", "1127.3"]],
+      [400, "24", ["4.00", "0.10", "1.4", "4.5"]],
+      [2916, "24", ["29.16", "0.70", "10.0", "32.9"]],
+      // 0.025 and 0.035 frame stand on a half of the last place. Worked in double
+      // precision they come to 0.025 and 0.034999999999999996, × 100 to 2.5 and
+      // 3.4999999999999996, and the unit reads both 0.03.
+      [100, "25", ["1.00", "0.03", "0.3", "1.1"]],
+      [140, "25", ["1.40", "0.03", "0.5", "1.6"]],
+      // 508.00 ms is 572.65 ft, worked in double precision 572.6499999999999 and × 10
+      // 5726.499999999998, and the unit reads 572.6.
+      [50800, "30", ["508.00", "15.24", "174.5", "572.6"]],
+      [920, "25", ["9.20", "0.23", "3.2", "10.4"]],
+      [99700, "30", ["997.00", "29.91", "342.6", "1123.9"]],
+    ];
+    const seen: [number, string, (string | null)[]][] = [];
+    for (const [raw, rate] of readings) {
+      await shell.ctx.store.set("ch.bus.stream.delay.frameRate", rate);
+      await shell.ctx.store.set("ch.bus.stream.delay.ms", raw / 100);
+      await flush();
+      seen.push([raw, rate, boxes()]);
+    }
+    expect(seen).toEqual(readings);
+
+    // These cells were read on their own: 0.085 and 0.205 frame read 0.09 and 0.21, and 994.40 ms reads 1120.9 ft.
+    const cells: [number, string, number, string][] = [
+      [340, "25", 1, "0.09"],
+      [820, "25", 1, "0.21"],
+      [99440, "30", 3, "1120.9"],
+    ];
+    const read: [number, string, number, string | null | undefined][] = [];
+    for (const [raw, rate, cell] of cells) {
+      await shell.ctx.store.set("ch.bus.stream.delay.frameRate", rate);
+      await shell.ctx.store.set("ch.bus.stream.delay.ms", raw / 100);
+      await flush();
+      read.push([raw, rate, cell, boxes()[cell]]);
+    }
+    expect(read).toEqual(cells);
+  });
+
+  it("turns a delay cell from the reading it shows onto 0.02 ms, as the unit's detents went", async () => {
+    const shell = await open("ch.delay");
+    const cells = ["ms", "frame", "meter", "feet"];
+    const box = (cell: string): HTMLElement | undefined =>
+      [...shell.root.querySelectorAll<HTMLElement>(".delay-cell .value-box")][cells.indexOf(cell)];
+    // The cell turned, the time it starts at in hundredths of a ms, the way it
+    // turns, the frame rate, and the time after each detent.
+    const runs: [string, number, "ArrowUp" | "ArrowDown", string, number[]][] = [
+      ["ms", 100, "ArrowUp", "30", [200, 300, 400, 500]],
+      ["ms", 500, "ArrowDown", "30", [400]],
+      ["frame", 400, "ArrowUp", "30", [1066, 1734, 2400]],
+      ["meter", 2400, "ArrowUp", "30", [2678, 2968, 3260]],
+      ["feet", 3260, "ArrowUp", "30", [3700, 4142, 4586]],
+      ["ms", 4586, "ArrowUp", "30", [4686, 4786]],
+      ["ms", 4786, "ArrowDown", "30", [4686, 4586]],
+      ["frame", 4586, "ArrowUp", "30", [5266, 5934, 6600, 7266, 7934, 8600, 9266, 9934, 10600, 11266]],
+      ["frame", 11266, "ArrowDown", "30", [10600, 9934, 9266, 8600, 7934, 7266, 6600]],
+      ["frame", 6600, "ArrowUp", "30", [7266]],
+      ["frame", 7266, "ArrowDown", "30", [6600, 5934, 5266, 4600]],
+      ["meter", 4600, "ArrowUp", "30", [4890, 5180, 5472, 5762, 6054]],
+      ["meter", 6054, "ArrowDown", "30", [5762, 5472, 5180, 4890, 4598]],
+      ["feet", 4598, "ArrowUp", "30", [5038, 5482, 5926, 6370, 6812]],
+      ["feet", 6812, "ArrowDown", "30", [6370, 5926, 5482, 5038, 4596]],
+      // At the top a detent past 1000.00 ms stops there.
+      ["ms", 99800, "ArrowDown", "30", [99700, 99600, 99500]],
+      ["frame", 99500, "ArrowUp", "30", [100000]],
+      ["meter", 99800, "ArrowUp", "30", [100000]],
+      ["meter", 100000, "ArrowDown", "30", [99712]],
+      ["ms", 99712, "ArrowUp", "30", [99812, 99912, 100000]],
+      // At the bottom a detent past 1.00 ms stops there.
+      ["frame", 300, "ArrowDown", "30", [100]],
+      ["meter", 100, "ArrowUp", "30", [378]],
+      ["ms", 378, "ArrowDown", "30", [278, 178, 100]],
+      ["feet", 100, "ArrowUp", "30", [542]],
+      ["feet", 542, "ArrowDown", "30", [100]],
+      ["meter", 378, "ArrowDown", "30", [100]],
+      // frame counts 0.2 frame at the rate it reads in, a drop-frame rate by the number in its name.
+      ["frame", 1200, "ArrowUp", "24", [2042]],
+      ["frame", 2042, "ArrowUp", "25", [2840, 3640]],
+      ["frame", 3640, "ArrowUp", "29.97", [4304, 4972]],
+      ["frame", 4972, "ArrowUp", "29.97D", [5638, 6306]],
+      ["frame", 6306, "ArrowUp", "60", [6634, 6966]],
+      ["frame", 6966, "ArrowUp", "120", [7134, 7300]],
+      ["ms", 376, "ArrowDown", "25", [276, 176, 100]],
+      ["frame", 4584, "ArrowUp", "30D", [5266]],
+      ["frame", 5266, "ArrowDown", "30D", [4600]],
+      ["frame", 100000, "ArrowUp", "25", [100000]],
+      // frame stops at the smallest reading whose time is 1.00 ms or more, 0.03
+      // frame (1.20 ms) at 25 frames a second.
+      ["frame", 120, "ArrowDown", "25", [120]],
+      // frame from 1.40 ms reads 0.03 frame and goes to 0.23 frame, 9.20 ms; 15.60 ms at 24 reads 0.37 and goes to
+      // 0.57, 23.75 ms, which lands on the upper 0.02 ms.
+      ["frame", 140, "ArrowUp", "25", [920]],
+      ["frame", 1560, "ArrowUp", "24", [2376]],
+      ["frame", 400, "ArrowUp", "24", [1250, 2084, 2916]],
+    ];
+    const seen: [string, number, string, string, number[]][] = [];
+    const held: number[] = [];
+    for (const [cell, from, key, rate, want] of runs) {
+      await shell.ctx.store.set("ch.bus.stream.delay.frameRate", rate);
+      await shell.ctx.store.set("ch.bus.stream.delay.ms", from / 100);
+      await flush();
+      const went: number[] = [];
+      for (let n = 0; n < want.length; n++) {
+        box(cell)?.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+        await flush();
+        held.push(shell.ctx.store.num("ch.bus.stream.delay.ms", 0));
+        went.push(Math.round(shell.ctx.store.num("ch.bus.stream.delay.ms", 0) * 100));
+      }
+      seen.push([cell, from, key, rate, went]);
+    }
+    expect(seen).toEqual(runs);
+    expect(held.filter((v) => v !== Math.round(v * 100) / 100), "each time held as the double nearest its hundredths").toEqual([]);
+    expect(shell.ctx.store.num("ch.bus.stream.delay.ms", 0), "a time the unit holds, on 0.02 ms").toBe(29.16);
+  });
+
+  it("turns a delay cell by the unit's fine step at a Shift press, and stops at either end", async () => {
+    const shell = await open("ch.delay");
+    const cells = ["ms", "frame", "meter", "feet"];
+    const ms = (): number => Math.round(shell.ctx.store.num("ch.bus.stream.delay.ms", 0) * 100);
+    const at = async (from: number, rate = "30"): Promise<void> => {
+      await shell.ctx.store.set("ch.bus.stream.delay.frameRate", rate);
+      await shell.ctx.store.set("ch.bus.stream.delay.ms", from / 100);
+      await flush();
+    };
+    // The cell, the time it starts at in hundredths of a ms, the way it turns, the
+    // frame rate, and the time after each Shift press.
+    const runs: [string, number, "ArrowUp" | "ArrowDown", string, number[]][] = [
+      // The unit's knob pushed in as it turned took ms by 0.02 ms, and frame, meter
+      // and feet by their reading's last place, 0.01 frame, 0.1 m and 0.1 ft.
+      ["ms", 2400, "ArrowUp", "30", [2402]],
+      ["ms", 2402, "ArrowDown", "30", [2400]],
+      ["frame", 2400, "ArrowUp", "30", [2434]],
+      ["frame", 2434, "ArrowDown", "30", [2400]],
+      ["meter", 2400, "ArrowUp", "30", [2416]],
+      ["meter", 2416, "ArrowDown", "30", [2386]],
+      ["feet", 2386, "ArrowUp", "30", [2396]],
+      ["feet", 2396, "ArrowDown", "30", [2386]],
+      // ms keeps its hundredths.
+      ["ms", 4586, "ArrowUp", "30", [4588]],
+      // frame takes 0.01 frame at the rate it reads in.
+      ["frame", 4586, "ArrowUp", "60", [4600]],
+      ["frame", 4600, "ArrowDown", "60", [4584]],
+      // Past 1.00 ms or 1000.00 ms it stops there.
+      ...cells.map((c): [string, number, "ArrowUp" | "ArrowDown", string, number[]] => [c, 100, "ArrowDown", "30", [100]]),
+      ...cells.map((c): [string, number, "ArrowUp" | "ArrowDown", string, number[]] => [c, 100000, "ArrowUp", "30", [100000]]),
+      ["meter", 99990, "ArrowUp", "25", [100000]],
+      ["frame", 100000, "ArrowUp", "25", [100000]],
+      // frame stops at 0.03 frame (1.20 ms) at 25 frames a second, the smallest
+      // reading whose time is 1.00 ms or more.
+      ["frame", 140, "ArrowDown", "25", [120, 120]],
+      // 8.20 ms at 24 reads 0.20 frame and goes to 0.21, 8.75 ms, and 16.80 ms at 120 reads 2.02 and goes to 2.01,
+      // 16.75 ms: each lands on the upper 0.02 ms.
+      ["frame", 820, "ArrowUp", "24", [876]],
+      ["frame", 1680, "ArrowDown", "120", [1676]],
+      // feet reads 1127.26 ft a second, where meter reads 343.59 m.
+      ["meter", 99700, "ArrowUp", "30", [99740]],
+      ["feet", 99440, "ArrowUp", "30", [99444]],
+      ["feet", 99440, "ArrowDown", "30", [99426]],
+    ];
+    const seen: [string, number, string, string, number[]][] = [];
+    for (const [cell, from, key, rate, want] of runs) {
+      await at(from, rate);
+      const went: number[] = [];
+      for (let n = 0; n < want.length; n++) {
+        [...shell.root.querySelectorAll<HTMLElement>(".delay-cell .value-box")][cells.indexOf(cell)]?.dispatchEvent(
+          new KeyboardEvent("keydown", { key, shiftKey: true, bubbles: true }),
+        );
+        await flush();
+        went.push(ms());
+      }
+      seen.push([cell, from, key, rate, went]);
+    }
+    expect(seen).toEqual(runs);
+
+    // The rotary under the wheel and the knob under the screen take the same step with Shift.
+    await at(2400);
+    shell.root.querySelectorAll<HTMLElement>(".delay-cell .knob-graphic")[2]?.dispatchEvent(new WheelEvent("wheel", { deltaY: -1, shiftKey: true, bubbles: true, cancelable: true }));
+    await flush();
+    const went = [ms()];
+    await at(2386);
+    shell.root.querySelectorAll<HTMLElement>(".knob-strip .knob-cell")[3]?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", shiftKey: true, bubbles: true }));
+    await flush();
+    went.push(ms());
+    expect(went, "meter's rotary 8.2 m to 8.3 m, feet's knob 26.9 ft to 27.0 ft").toEqual([2416, 2396]);
+  });
+
+  it("lands 3.75 ms, held in binary half way between two 0.02 ms, on the upper one", async () => {
+    const shell = await open("ch.delay");
+    // At 24 frames a second 12.00 ms reads 0.29 frame, and 0.09 frame is 3.75 ms,
+    // which the unit took to 3.76 ms.
+    await shell.ctx.store.set("ch.bus.stream.delay.frameRate", "24");
+    await shell.ctx.store.set("ch.bus.stream.delay.ms", 12);
+    await flush();
+    [...shell.root.querySelectorAll<HTMLElement>(".delay-cell .value-box")][1]?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    await flush();
+    expect(shell.ctx.store.num("ch.bus.stream.delay.ms", 0)).toBe(3.76);
+  });
+
+  it("turns a delay cell by the same detent from its rotary, the knobs under the screen and a drag", async () => {
+    const shell = await open("ch.delay");
+    const ms = (): number => Math.round(shell.ctx.store.num("ch.bus.stream.delay.ms", 0) * 100);
+    await shell.ctx.store.set("ch.bus.stream.delay.ms", 24);
+    await flush();
+    // meter's rotary under the wheel: 8.2 m to 9.2 m.
+    shell.root.querySelectorAll<HTMLElement>(".delay-cell .knob-graphic")[2]?.dispatchEvent(new WheelEvent("wheel", { deltaY: -1, bubbles: true, cancelable: true }));
+    await flush();
+    const went = [ms()];
+    // meter's knob under the screen: 9.2 m to 10.2 m.
+    shell.root.querySelectorAll<HTMLElement>(".knob-strip .knob-cell")[2]?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
+    await flush();
+    went.push(ms());
+    expect(went).toEqual([2678, 2968]);
+
+    // A drag on feet counts whole steps of 5 ft from 4 px off the press, and back there it is where it started.
+    await shell.ctx.store.set("ch.bus.stream.delay.ms", 32.6);
+    await flush();
+    shell.root.querySelectorAll<HTMLElement>(".delay-cell .value-box")[3]?.dispatchEvent(new MouseEvent("pointerdown", { clientY: 200, bubbles: true }));
+    const dragged: number[] = [];
+    for (const y of [195.8, 195, 194, 196]) {
+      window.dispatchEvent(new MouseEvent("pointermove", { clientY: y }));
+      await flush();
+      dragged.push(ms());
+    }
+    window.dispatchEvent(new MouseEvent("pointerup", {}));
+    expect(dragged).toEqual([3260, 3700, 4142, 3260]);
+
+    // A drag on meter counts steps of 1 m in the time a metre names, 2.91 ms, the
+    // range in 192 px past the 4 px off the press: a pixel covers 5.20 ms, two steps, 8.2 m to 10.2 m.
+    await shell.ctx.store.set("ch.bus.stream.delay.ms", 24);
+    await flush();
+    shell.root.querySelectorAll<HTMLElement>(".delay-cell .value-box")[2]?.dispatchEvent(new MouseEvent("pointerdown", { clientY: 200, bubbles: true }));
+    const metres: number[] = [];
+    for (const y of [195, 196]) {
+      window.dispatchEvent(new MouseEvent("pointermove", { clientY: y }));
+      await flush();
+      metres.push(ms());
+    }
+    window.dispatchEvent(new MouseEvent("pointerup", {}));
+    expect(metres).toEqual([2968, 2400]);
   });
 
   it("picks the EQ band from the grips on the plot", async () => {
@@ -4445,6 +4808,146 @@ describe("what the dedicated channel screens draw", () => {
     }
   });
 
+  it("says a channel stepped to without the block has no such screen, and leaves nothing on it to operate", async () => {
+    // GATE is a mono input's, COMP a mono input's on COMP->EQ and SSMCS a mono
+    // input's on SSMCS, DUCKER a stereo input's, DELAY STREAMING's, and EQ a mono
+    // input's on COMP->EQ, a stereo input's, a MIX bus's and the stereo bus's.
+    const onSsmcs = new Set(["ch2", "ch4"]);
+    const mono = (s: Strip): boolean => s.kind === "monoIn";
+    const ssmcs = (s: Strip): boolean => mono(s) && onSsmcs.has(s.id);
+    const screens: [string, string, string, (s: Strip) => boolean][] = [
+      ["ch.gate", "GATE", "ch1", mono],
+      ["ch.comp", "COMP", "ch1", (s) => mono(s) && !onSsmcs.has(s.id)],
+      ["ch.ducker", "DUCKER", "ch_5_6", (s) => s.kind === "stIn"],
+      ["ch.delay", "DELAY", "bus.stream", (s) => s.kind === "streaming"],
+      ["ch.ssmcs", "SSMCS", "ch2", ssmcs],
+      ["ch.ssmcs.comp", "SSMCS", "ch2", ssmcs],
+      ["ch.ssmcs.sc", "SSMCS", "ch2", ssmcs],
+      ["ch.ssmcs.eq", "SSMCS", "ch2", ssmcs],
+      ["ch.eq", "EQ", "ch1", (s) => (mono(s) && !onSsmcs.has(s.id)) || ["stIn", "mix", "stereo"].includes(s.kind)],
+    ];
+    for (const [id, name, from, carries] of screens) {
+      const shell = await mount();
+      const store = shell.ctx.store;
+      for (const ch of onSsmcs) await store.set(`ch.${ch}.compEqOrder`, "SSMCS");
+      shell.ctx.nav.push({ id: "channel-view", strip: from });
+      shell.ctx.nav.push({ id, strip: from });
+      await flush();
+      const mixer = new Set(store.pathsUnder("ch"));
+      const landed = { with: 0, without: 0, monoWithout: 0 };
+      const here = (): [Strip, string] => {
+        const strip = findStrip(shell.ctx.model, shell.ctx.nav.current.strip ?? "");
+        if (!strip) throw new Error(`${id}: no strip ${shell.ctx.nav.current.strip}`);
+        return [strip, `${id} on ${strip.id} lane ${stripLane(shell.ctx, strip)}`];
+      };
+      const start = here()[1];
+      // Once round every channel, back to the one it opened on.
+      for (let step = 0; step === 0 || here()[1] !== start; step++) {
+        [...shell.root.querySelectorAll<HTMLElement>(".ch-arrow")].at(-1)?.click();
+        await flush();
+        const [strip, at] = here();
+        expect(shell.ctx.nav.current.id, `${at}: the screen stays`).toBe(id);
+        expect(shell.root.querySelector(".ch-chip-id")?.textContent, `${at}: the toolbar names the channel`).toBe(
+          channelLabel(strip, stripLane(shell.ctx, strip), true),
+        );
+        const title = shell.root.querySelector(".toolbar .badge-title")?.textContent;
+        const missing = shell.root.querySelector(".main .screen-missing")?.textContent;
+        if (carries(strip)) {
+          landed.with++;
+          expect([title, missing], `${at}: the block's own screen`).toEqual([name, undefined]);
+          continue;
+        }
+        landed.without++;
+        if (mono(strip)) landed.monoWithout++;
+        expect([title, missing], at).toEqual([undefined, `This channel has no ${name} screen`]);
+        const controls = [...shell.root.querySelectorAll<HTMLElement>(".main button, .main [role], .main [tabindex], .knob-strip [role]")];
+        expect(controls.map((c) => c.className), `${at}: nothing to operate`).toEqual([]);
+        expect(
+          [shell.root.classList.contains("has-knobs"), shell.root.querySelectorAll(".knob-strip .knob-cell.is-empty").length, shell.root.querySelector(".udk-toggle") !== null],
+          `${at}: the readout bar at the foot with its cells empty, and the USER DEFINED KNOBS button`,
+        ).toEqual([true, 4, true]);
+      }
+      expect(landed.with > 0 && landed.without > 0, `${id} lands both ways`).toBe(true);
+      if (name === "COMP" || name === "SSMCS" || name === "EQ") {
+        expect(landed.monoWithout, `${id} lands on a mono channel of the other COMP / EQ type`).toBeGreaterThan(0);
+      }
+      expect(store.pathsUnder("ch").filter((p) => !mixer.has(p)), `${id}: no value written`).toEqual([]);
+      shell.destroy();
+    }
+  });
+
+  it("says FX 2 is not available at 176.4 / 192 kHz on every channel screen the arrows step onto it, and leaves nothing on it to operate", async () => {
+    const LINE = "This channel is not available at this sampling frequency";
+    const screens = [
+      "channel-view", "ch.setting", "ch.input", "ch.gate", "ch.comp", "ch.eq", "ch.ducker", "ch.delay",
+      "ch.insfx", "ch.effect", "ch.sendto", "ch.ssmcs", "ch.ssmcs.comp", "ch.ssmcs.sc", "ch.ssmcs.eq",
+    ];
+    for (const id of screens) {
+      for (const rate of [96000, 176400, 192000]) {
+        const shell = await mount();
+        const store = shell.ctx.store;
+        await store.set("setup.samplingFrequency", rate);
+        // FX 1 R, the channel before FX 2 L.
+        await store.set("ui.lane.fx1", 1);
+        shell.ctx.nav.push({ id: "channel-view", strip: "fx1" });
+        if (id !== "channel-view") shell.ctx.nav.push({ id, strip: "fx1" });
+        await flush();
+        expect(shell.root.querySelector(".main .screen-missing")?.textContent, `${id} ${rate}: FX 1 R`).not.toBe(LINE);
+        const fx2 = (): string => JSON.stringify(store.pathsUnder("ch.fx2").map((p) => [p, store.get(p, "")]));
+        const held = fx2();
+        const seen: (string | null | undefined)[][] = [];
+        for (let i = 0; i < 3; i++) {
+          shell.root.querySelector<HTMLElement>('.ch-arrow[aria-label="Next channel"]')?.click();
+          await flush();
+          const chip = shell.root.querySelector<HTMLElement>(".ch-chip");
+          const missing = shell.root.querySelector(".main .screen-missing")?.textContent;
+          const at = `${id} ${rate} ${chip?.querySelector(".ch-chip-id")?.textContent}`;
+          if (missing !== LINE) {
+            seen.push([shell.ctx.nav.current.id, shell.ctx.nav.current.strip, chip?.querySelector(".ch-chip-id")?.textContent, "drawn"]);
+            continue;
+          }
+          const controls = [...shell.root.querySelectorAll<HTMLElement>(".main button, .main [role], .main [tabindex], .knob-strip [role]")];
+          expect(controls.map((c) => c.className), `${at}: nothing to operate`).toEqual([]);
+          expect(shell.root.querySelector(".toolbar .badge-title"), `${at}: no title`).toBeNull();
+          expect(
+            [shell.root.classList.contains("has-knobs"), shell.root.querySelectorAll(".knob-strip .knob-cell.is-empty").length, shell.root.querySelector(".udk-toggle") !== null],
+            `${at}: the readout bar at the foot with its cells empty, and the USER DEFINED KNOBS button`,
+          ).toEqual([true, 4, true]);
+          const depth = shell.ctx.nav.depth;
+          chip?.click();
+          await flush();
+          expect([shell.ctx.nav.current.id, shell.ctx.nav.depth], `${at}: the name opens nothing`).toEqual([id, depth]);
+          seen.push([shell.ctx.nav.current.id, shell.ctx.nav.current.strip, chip?.querySelector(".ch-chip-id")?.textContent, chip?.getAttribute("aria-disabled")]);
+        }
+        const shut = rate > 96000;
+        expect(seen, `${id} ${rate}`).toEqual([
+          [id, "fx2", "FX 2 L", shut ? "true" : "drawn"],
+          [id, "fx2", "FX 2 R", shut ? "true" : "drawn"],
+          [id, "bus.mix1", "MIX 1 L", "drawn"],
+        ]);
+        expect(fx2(), `${id} ${rate}: nothing written to FX 2`).toBe(held);
+        shell.destroy();
+      }
+    }
+
+    // Back from a screen the arrows carried onto FX 2 is FX 2's channel view, which says the same.
+    const shell = await mount();
+    await shell.ctx.store.set("setup.samplingFrequency", 192000);
+    await shell.ctx.store.set("ui.lane.fx1", 1);
+    shell.ctx.nav.push({ id: "channel-view", strip: "fx1" });
+    shell.ctx.nav.push({ id: "ch.effect", strip: "fx1" });
+    await flush();
+    shell.root.querySelector<HTMLElement>('.ch-arrow[aria-label="Next channel"]')?.click();
+    await flush();
+    shell.root.querySelector<HTMLElement>('.icon-btn[aria-label="Back"]')?.click();
+    await flush();
+    expect([shell.ctx.nav.current.id, shell.ctx.nav.current.strip, shell.root.querySelector(".main .screen-missing")?.textContent]).toEqual([
+      "channel-view",
+      "fx2",
+      LINE,
+    ]);
+  });
+
   it("steps from the channel the screen is drawn for, not from whatever HOME left selected", async () => {
     const shell = await mount();
     await shell.ctx.store.set("ui.selectedStrip", "ch1");
@@ -4456,21 +4959,316 @@ describe("what the dedicated channel screens draw", () => {
     expect(shell.ctx.nav.current.strip).toBe("ch4");
   });
 
-  it("does not open CH SETTING from the CH SETTING screen", async () => {
+  it("takes FX 2 off the Sends list, out of its SEND TO cell and off HOME's [Sends] at 176.4 / 192 kHz, and an FX send's placing at any rate", async () => {
+    const seen: Record<string, unknown> = {};
+    for (const rate of [96000, 176400, 192000]) {
+      const shell = await mount();
+      const store = shell.ctx.store;
+      // HOME's [Sends] on FX 2, then the rate picked on SETUP.
+      await store.set("ui.sendsTarget", "FX2");
+      shell.ctx.nav.openTop({ id: "setup.rate" });
+      await flush();
+      [...shell.root.querySelectorAll<HTMLElement>(".rate-btn")].find((b) => b.textContent === `${rate / 1000}kHz`)?.click();
+      await flush();
+      const target = store.str("ui.sendsTarget", "");
+      shell.ctx.nav.home();
+      shell.ctx.nav.push({ id: "sends-select" });
+      await flush();
+      const options = [...shell.root.querySelectorAll(".sends-option")].map((n) => n.textContent);
+      shell.ctx.nav.home();
+      shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+      await store.set("ui.sendToGroup", "FX");
+      shell.ctx.nav.push({ id: "ch.sendto", strip: "ch1" });
+      await flush();
+      const cells = [...shell.root.querySelectorAll(".sendto-cell")].map((cell) =>
+        [".sendto-title", ".sendto-name", ".btn-on", ".btn-pre", ".pan-slider", ".sendto-bal"].map((sel) => cell.querySelector(sel)?.textContent ?? null),
+      );
+      const bar = [...shell.root.querySelectorAll(".knob-strip .knob-cell")].slice(0, 2).map((c) => c.querySelector(".knob-cell-label")?.textContent ?? "");
+      // FX 2's own channel view: the name box without colour or name.
+      shell.ctx.nav.home();
+      await store.set("ui.lane.fx2", 0);
+      shell.ctx.nav.push({ id: "channel-view", strip: "fx2" });
+      await flush();
+      const chip = shell.root.querySelector<HTMLElement>(".ch-chip");
+      const box = [chip?.querySelector(".ch-chip-id")?.textContent, chip?.querySelector(".ch-chip-name")?.textContent, chip?.style.getPropertyValue("--rail")];
+      // Back down to 48 kHz, [Sends] stays where the higher rate left it.
+      shell.ctx.nav.openTop({ id: "setup.rate" });
+      await flush();
+      [...shell.root.querySelectorAll<HTMLElement>(".rate-btn")].find((b) => b.textContent === "48kHz")?.click();
+      await flush();
+      seen[rate] = { target, back: store.str("ui.sendsTarget", ""), options, cells, bar, box };
+      shell.destroy();
+    }
+    const fx1 = ["FX1", "FX 1", "ON", "PRE", null, null];
+    expect(seen[96000]).toEqual({
+      target: "FX2", back: "FX2", options: ["STEREO", "MIX 1", "MIX 2", "FX 1", "FX 2"], cells: [fx1, ["FX2", "FX 2", "ON", "PRE", null, null]], bar: ["Level", "Level"],
+      box: ["FX 2 L", "FX 2", (seen[96000] as { box: string[] }).box[2]],
+    });
+    expect((seen[96000] as { box: string[] }).box[2], "FX 2's colour at 96 kHz").not.toBe("var(--surface)");
+    for (const rate of [176400, 192000]) {
+      expect(seen[rate], `${rate}`).toEqual({
+        target: "FX1", back: "FX1", options: ["STEREO", "MIX 1", "MIX 2", "FX 1"], cells: [fx1, ["FX2", "", null, null, null, null]], bar: ["Level", ""],
+        box: ["FX 2 L", "", "var(--surface)"],
+      });
+    }
+  });
+
+  it("moves HOME's [Sends] off FX 2 on each model as the rate puts FX 2 out of reach, its knob with it, and leaves it on FX 1 back at 48 kHz", async () => {
+    // As on the unit: FX 2 picked, 192 kHz, [Sends] on FX 1 and still on FX 1 back at 48 kHz (URX44V, 2026-10-04).
+    const seen: Record<string, unknown> = {};
+    const want: Record<string, unknown> = {};
+    const controls: (string | null)[][] = [];
+    for (const model of ["URX22", "URX44", "URX44V"] as const) {
+      for (const rate of [96000, 176400, 192000]) {
+        const shell = await mount(model);
+        const store = shell.ctx.store;
+        await store.set("ch.ch1.send.fx1.level", -10);
+        await store.set("ch.ch1.send.fx2.level", -20);
+        const read = async (): Promise<(string | null)[]> => {
+          shell.ctx.nav.home();
+          await flush();
+          const strip = [...shell.root.querySelectorAll(".strip")].find((n) => n.querySelector(".strip-id")?.textContent === "CH 1");
+          return [
+            store.str("ui.sendsTarget", ""),
+            shell.root.querySelector(".sends-target")?.textContent ?? null,
+            strip?.querySelector(".strip-level-value")?.textContent ?? null,
+            String(captureSettings(store)["ui.sendsTarget"]),
+          ];
+        };
+        const pick = async (hz: number): Promise<void> => {
+          shell.ctx.nav.openTop({ id: "setup.rate" });
+          await flush();
+          [...shell.root.querySelectorAll<HTMLElement>(".rate-btn")].find((b) => b.textContent === `${hz / 1000}kHz`)?.click();
+          await flush();
+        };
+        // What HOME reads with [Sends] on each FX return at 48 kHz, where both are in reach.
+        await store.set("ui.sendsTarget", "FX1");
+        const onFx1 = await read();
+        await store.set("ui.sendsTarget", "FX2");
+        const onFx2 = await read();
+        controls.push([model, onFx1[2] ?? null, onFx2[2] ?? null]);
+        await pick(rate);
+        const up = await read();
+        await pick(48000);
+        seen[`${model} ${rate}`] = { up, back: await read() };
+        want[`${model} ${rate}`] = rate > 96000 ? { up: onFx1, back: onFx1 } : { up: onFx2, back: onFx2 };
+        shell.destroy();
+      }
+    }
+    expect(
+      controls.filter(([, fx1, fx2]) => fx1 === null || fx2 === null || fx1 === fx2),
+      "CH 1's knob reads each FX return's send apart, on every model",
+    ).toEqual([]);
+    expect(seen).toEqual(want);
+    expect((want["URX44V 192000"] as { up: unknown }).up, "FX 1 as HOME reads it").toEqual(["FX1", "FX 1", expect.any(String), "FX1"]);
+  });
+
+  it("leaves the pan slider and Bal off a send into an FX return, which is summed to one side", async () => {
     const shell = await mount();
     shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
-    shell.ctx.nav.push({ id: "ch.setting", strip: "ch1" });
+    await shell.ctx.store.set("ui.sendToGroup", "FX");
+    shell.ctx.nav.push({ id: "ch.sendto", strip: "ch1" });
     await flush();
-    const depth = shell.ctx.nav.depth;
-    shell.root.querySelector<HTMLElement>(".ch-chip")?.click();
+    const cells = (): (string | null)[][] =>
+      [...shell.root.querySelectorAll(".sendto-cell")].map((cell) =>
+        [".sendto-title", ".btn-on", ".btn-pre", ".pan-slider", ".sendto-bal"].map((sel) => (cell.querySelector(sel) ? (cell.querySelector(sel)?.textContent ?? "") : null)),
+      );
+    expect(cells(), "FX 1-2").toEqual([
+      ["FX1", "ON", "PRE", null, null],
+      ["FX2", "ON", "PRE", null, null],
+    ]);
+    await shell.ctx.store.set("ui.sendToGroup", "MIX");
     await flush();
-    expect(shell.ctx.nav.depth, "the name has nothing left to open").toBe(depth);
+    expect(cells().map((c) => c[3] !== null && c[4] !== null), "MIX 1-2 keep theirs").toEqual([true, true]);
+  });
 
-    shell.ctx.nav.replace({ id: "ch.input", strip: "ch1" });
+  it("puts a stereo channel's EQ out of use above 96 kHz on its channel view, on HOME and on the EQ screen", async () => {
+    // As on the unit: in use at 96 kHz, out of use at 176.4 and 192 kHz (URX44V, 2026-10-04).
+    const seen: Record<string, unknown> = {};
+    for (const rate of [96000, 176400, 192000]) {
+      const shell = await mount();
+      await shell.ctx.store.set("setup.samplingFrequency", rate);
+      await shell.ctx.store.set("ch.ch_5_6.eq.on", true);
+      // HOME's second bank holds CH 5/6.
+      await shell.ctx.store.set("ui.bank", 1);
+      await flush();
+      const strip = [...shell.root.querySelectorAll(".strip")].find((n) => n.querySelector(".strip-id")?.textContent === "CH 5/6");
+      if (!strip) throw new Error(`${rate}: no CH 5/6 strip on HOME`);
+      const badge = strip?.querySelector(".badge-eq")?.textContent ?? null;
+      shell.ctx.nav.push({ id: "channel-view", strip: "ch_5_6" });
+      await flush();
+      const blocks = [...shell.root.querySelectorAll(".cv-block")].map((n) => [...n.classList].find((c) => /^cv-block-/.test(c)));
+      shell.ctx.nav.home();
+      shell.ctx.nav.push({ id: "channel-view", strip: "ch4" });
+      shell.ctx.nav.push({ id: "ch.eq", strip: "ch4" });
+      await flush();
+      shell.root.querySelector<HTMLElement>('.ch-arrow[aria-label="Next channel"]')?.click();
+      await flush();
+      const screen = [
+        shell.ctx.nav.current.strip,
+        shell.root.querySelector(".toolbar .badge-title")?.textContent ?? null,
+        shell.root.querySelector(".main .screen-missing")?.textContent ?? null,
+        shell.root.querySelectorAll(".main button, .main [role], .knob-strip [role]").length,
+        shell.root.classList.contains("has-knobs"),
+      ];
+      seen[rate] = { badge, blocks, screen };
+      shell.destroy();
+    }
+    expect(seen).toEqual({
+      96000: { badge: "EQ", blocks: ["cv-block-eq", "cv-block-ducker"], screen: ["ch_5_6", "EQ", null, seen[96000] && (seen[96000] as { screen: number[] }).screen[3], true] },
+      176400: { badge: null, blocks: ["cv-block-ducker"], screen: ["ch_5_6", null, "This channel has no EQ screen at this sampling frequency", 0, true] },
+      192000: { badge: null, blocks: ["cv-block-ducker"], screen: ["ch_5_6", null, "This channel has no EQ screen at this sampling frequency", 0, true] },
+    });
+    expect((seen[96000] as { screen: number[] }).screen[3], "the EQ screen has controls at 96 kHz").toBeGreaterThan(0);
+  });
+
+  it("keeps the EQ of the other kinds of strip at 176.4 / 192 kHz: their blocks, their EQ mark on HOME and their EQ screen", async () => {
+    // As on the unit (URX44V, 2026-10-04): at 192 kHz CH 1 on COMP->EQ, CH 2 on SSMCS, FX 1, MIX 1, STEREO and
+    // STREAMING keep every block, CH 1, CH 3 and CH 4 at 176.4 and 192 kHz and MIX 1 and STEREO at 192 kHz keep the
+    // EQ mark, and the EQ screens of CH 1, MIX 1 and STEREO at 192 kHz draw their graph and knobs.
+    const read = async (rate: number) => {
+      const shell = await mount();
+      await shell.ctx.store.set("ch.ch2.compEqOrder", "SSMCS");
+      await shell.ctx.store.set("setup.samplingFrequency", rate);
+      const blocks: Record<string, (string | undefined)[]> = {};
+      for (const strip of ["ch1", "ch2", "fx1", "bus.mix1", "bus.stereo", "bus.stream"]) {
+        shell.ctx.nav.home();
+        shell.ctx.nav.push({ id: "channel-view", strip });
+        await flush();
+        blocks[strip] = [...shell.root.querySelectorAll(".cv-block")].map((n) => [...n.classList].find((c) => /^cv-block-/.test(c)));
+      }
+      const marks: Record<string, string | null> = {};
+      for (const [side, ids] of [["input", ["ch1", "ch3", "ch4"]], ["output", ["bus.mix1", "bus.stereo"]]] as const) {
+        shell.ctx.nav.home();
+        await shell.ctx.store.set("ui.bankSide", side);
+        await shell.ctx.store.set("ui.bank", 0);
+        await flush();
+        for (const id of ids) {
+          const label = findStrip(shell.ctx.model, id)?.label;
+          const strip = [...shell.root.querySelectorAll(".strip")].find((n) => n.querySelector(".strip-id")?.textContent === label);
+          if (!strip) throw new Error(`${rate}: no ${id} strip on HOME`);
+          marks[id] = strip.querySelector(".badge-eq")?.textContent ?? null;
+        }
+      }
+      const screens: Record<string, (string | null)[]> = {};
+      for (const strip of ["ch1", "bus.mix1", "bus.stereo"]) {
+        shell.ctx.nav.home();
+        shell.ctx.nav.push({ id: "channel-view", strip });
+        shell.ctx.nav.push({ id: "ch.eq", strip });
+        await flush();
+        screens[strip] = [
+          shell.root.querySelector(".toolbar .badge-title")?.textContent ?? null,
+          shell.root.querySelector(".main .screen-missing")?.textContent ?? null,
+          shell.root.querySelector(".main .eq-screen .eq-grip") ? "graph" : null,
+        ];
+      }
+      shell.destroy();
+      return { blocks, marks, screens };
+    };
+    const at48 = await read(48000);
+    expect(
+      Object.entries(at48.blocks).filter(([, blocks]) => blocks.includes("cv-block-eq")).map(([strip]) => strip),
+      "the strips that draw an EQ block at 48 kHz",
+    ).toEqual(["ch1", "bus.mix1", "bus.stereo"]);
+    expect(at48.marks).toEqual({ ch1: "EQ", ch3: "EQ", ch4: "EQ", "bus.mix1": "EQ", "bus.stereo": "EQ" });
+    expect(at48.screens).toEqual({ ch1: ["EQ", null, "graph"], "bus.mix1": ["EQ", null, "graph"], "bus.stereo": ["EQ", null, "graph"] });
+    const at192 = await read(192000);
+    expect(at192, "192 kHz as 48 kHz").toEqual(at48);
+    const at176 = await read(176400);
+    expect([at176.marks.ch1, at176.marks.ch3, at176.marks.ch4], "the mono channels' EQ mark at 176.4 kHz").toEqual(["EQ", "EQ", "EQ"]);
+  });
+
+  it("shows SSMCS in COMP's place under HPF, and no EQ, on HOME's strip of a channel on SSMCS, cyan while it is on", async () => {
+    // As on the unit: CH 1 on COMP->EQ reads HPF, GATE, COMP, EQ, INS FX and CH 2 on SSMCS HPF, GATE, SSMCS, INS FX,
+    // SSMCS under HPF, cyan while on and grey while off (URX44V, 2026-10-04).
+    const shell = await mount();
+    await shell.ctx.store.set("ch.ch2.compEqOrder", "SSMCS");
     await flush();
-    shell.root.querySelector<HTMLElement>(".ch-chip")?.click();
+    const rows = (label: string): string[][] => {
+      const strip = [...shell.root.querySelectorAll(".strip")].find((n) => n.querySelector(".strip-id")?.textContent === label);
+      return [...(strip?.querySelectorAll(".ind-row") ?? [])].slice(1).map((r) => [...r.querySelectorAll(".ind-cell")].map((c) => c.textContent ?? ""));
+    };
+    expect(rows("CH 1")).toEqual([["HPF", "GATE"], ["COMP", "EQ"], ["INS FX", ""]]);
+    expect(rows("CH 2")).toEqual([["HPF", "GATE"], ["SSMCS", ""], ["INS FX", ""]]);
+    const lit = (): boolean | undefined => shell.root.querySelector(".strip .badge-ssmcs")?.classList.contains("is-on");
+    const lits: (boolean | undefined)[] = [];
+    for (const on of [true, false]) {
+      await shell.ctx.store.set("ch.ch2.ssmcs.on", on);
+      await flush();
+      lits.push(lit());
+    }
+    expect(lits, "lit while on, unlit while off").toEqual([true, false]);
+  });
+
+  it("goes back to the channel view of the channel the arrows stepped to, and HOME keeps that channel selected", async () => {
+    const seen: (string | number | null)[][] = [];
+    const want: (string | number | null)[][] = [];
+    for (const [model, walked] of [["URX44V", "ch3"], ["URX22", "ch_3_4"]] as const) {
+      for (const screen of ["ch.gate", "ch.input", "ch.setting", "ch.sendto", "ch.insfx", "ch.ssmcs.sc"]) {
+        const shell = await mount(model);
+        const icon = (name: string): HTMLElement | null => shell.root.querySelector<HTMLElement>(`.icon-btn[aria-label="${name}"]`);
+        const label = findStrip(shell.ctx.model, walked)?.label ?? "";
+        shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+        shell.ctx.nav.push({ id: screen, strip: "ch1" });
+        await flush();
+        for (let i = 0; i < 2; i++) {
+          shell.root.querySelector<HTMLElement>('.ch-arrow[aria-label="Next channel"]')?.click();
+          await flush();
+        }
+        const walkedTo = shell.ctx.nav.current.strip ?? null;
+        icon("Back")?.click();
+        await flush();
+        const back = [shell.ctx.nav.current.id, shell.ctx.nav.current.strip ?? null, shell.ctx.nav.depth, shell.ctx.store.str("ui.selectedStrip", "")];
+        icon("HOME")?.click();
+        await flush();
+        const home = [shell.ctx.store.str("ui.selectedStrip", ""), shell.root.querySelector(".strip.is-selected .strip-id")?.textContent ?? null];
+        seen.push([model, screen, walkedTo, ...back, ...home]);
+        want.push([model, screen, walked, "channel-view", walked, 2, walked, walked, label]);
+        shell.destroy();
+      }
+    }
+    expect(seen).toEqual(want);
+  });
+
+  it("opens CH SETTING from the channel view's name alone, and keeps the name on the screens under it and on CH SETTING out of reach", async () => {
+    const shell = await mount();
+    const chip = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".ch-chip");
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
     await flush();
-    expect(shell.ctx.nav.current.id, "from anywhere else it still opens it").toBe("ch.setting");
+    expect(chip()?.hasAttribute("aria-disabled"), "the channel view's name is in reach").toBe(false);
+    chip()?.click();
+    await flush();
+    expect(shell.ctx.nav.current.id, "and opens CH SETTING").toBe("ch.setting");
+
+    await shell.ctx.store.set("ch.ch3.compEqOrder", "SSMCS");
+    const screens: [string, string][] = [
+      ["ch.setting", "ch1"],
+      ["ch.input", "ch1"],
+      ["ch.gate", "ch1"],
+      ["ch.comp", "ch1"],
+      ["ch.eq", "ch1"],
+      ["ch.insfx", "ch1"],
+      ["ch.sendto", "ch1"],
+      ["ch.ssmcs", "ch3"],
+      ["ch.ssmcs.comp", "ch3"],
+      ["ch.ssmcs.sc", "ch3"],
+      ["ch.ssmcs.eq", "ch3"],
+      ["ch.ducker", "ch_5_6"],
+      ["ch.delay", "bus.stream"],
+      ["ch.effect", "fx1"],
+    ];
+    const seen: [string, string | null, string, number][] = [];
+    for (const [id, strip] of screens) {
+      shell.ctx.nav.home();
+      shell.ctx.nav.push({ id: "channel-view", strip });
+      shell.ctx.nav.push({ id, strip });
+      await flush();
+      const outOfReach = chip()?.getAttribute("aria-disabled") ?? null;
+      chip()?.click();
+      await flush();
+      seen.push([id, outOfReach, shell.ctx.nav.current.id, shell.ctx.nav.depth]);
+    }
+    expect(seen, "out of reach, and a touch opens nothing").toEqual(screens.map(([id]) => [id, "true", id, 3]));
   });
 
   it("names CH SETTING and INPUT in the wider box, and SEND TO in the narrow one", async () => {
@@ -4569,10 +5367,10 @@ describe("what the dedicated channel screens draw", () => {
 describe("the grips on a dedicated screen's graph", () => {
   // User guide, "GATE screen", "COMP screen", "DUCKER screen" and "EQ screen":
   // the values are set by working the graph directly.
-  const open = async (id: string): Promise<Shell> => {
+  const open = async (id: string, strip = "ch1"): Promise<Shell> => {
     const shell = await mount();
-    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
-    shell.ctx.nav.push({ id, strip: "ch1" });
+    shell.ctx.nav.push({ id: "channel-view", strip });
+    shell.ctx.nav.push({ id, strip });
     await flush();
     return shell;
   };
@@ -4602,15 +5400,10 @@ describe("the grips on a dedicated screen's graph", () => {
     // R stands on the curve's far end, which a higher ratio takes down.
     expect(await moved(comp, '[aria-label^="R handle"]', 0, 20, ["ch.ch1.comp.ratio"]), "COMP R down").toEqual([1]);
 
-    const ducker = await open("ch.ducker");
-    // The factory state leaves these to the screen's own fallbacks, which the store does not hold.
-    await ducker.ctx.store.set("ch.ch1.ducker.range", -24);
-    await ducker.ctx.store.set("ch.ch1.ducker.attack", 20.17);
-    await ducker.ctx.store.set("ch.ch1.ducker.decay", 1000);
-    await flush();
-    expect(await moved(ducker, '[aria-label^="R handle"]', 0, -20, ["ch.ch1.ducker.range"]), "DUCKER R up").toEqual([1]);
-    expect(await moved(ducker, '[aria-label^="A handle"]', 40, 0, ["ch.ch1.ducker.attack"]), "DUCKER A right").toEqual([1]);
-    expect(await moved(ducker, '[aria-label^="D handle"]', 40, 0, ["ch.ch1.ducker.decay"]), "DUCKER D right").toEqual([1]);
+    const ducker = await open("ch.ducker", "ch_5_6");
+    expect(await moved(ducker, '[aria-label^="R handle"]', 0, -20, ["ch.ch_5_6.ducker.range"]), "DUCKER R up").toEqual([1]);
+    expect(await moved(ducker, '[aria-label^="A handle"]', 40, 0, ["ch.ch_5_6.ducker.attack"]), "DUCKER A right").toEqual([1]);
+    expect(await moved(ducker, '[aria-label^="D handle"]', 40, 0, ["ch.ch_5_6.ducker.decay"]), "DUCKER D right").toEqual([1]);
   });
 
   it("takes a grip's value to either end of its range by Home and End", async () => {
@@ -5472,6 +6265,29 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
     shell.ctx.nav.push({ id: "channel-view", strip: "bus.stream" });
     await flush();
     expect(shell.root.querySelector(".cv-block-value.cv-delay-value")).not.toBeNull();
+  });
+
+  it("holds a RECORDER tab's loading up as long as a scene store's", async () => {
+    /** The modal's words as the touch leaves it, a moment before the short time is up, and once it is. */
+    const watch = async (shell: Shell, touch: () => void): Promise<(string | null)[]> => {
+      const at = (): string | null => shell.root.querySelector('.dialog-overlay[role="status"] .dialog-text')?.textContent ?? null;
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        touch();
+        const first = at();
+        vi.advanceTimersByTime(SHORT_PROGRESS_MS - 1);
+        const held = at();
+        vi.advanceTimersByTime(1);
+        return [first, held, at()];
+      } finally {
+        vi.useRealTimers();
+      }
+    };
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "microsd.recorder" });
+    await flush();
+    const play = [...shell.root.querySelectorAll<HTMLElement>(".side-tab")].find((t) => t.textContent === "Play");
+    expect(await watch(shell, () => play?.click()), "a RECORDER tab").toEqual(["Loading...", "Loading...", null]);
   });
 
   it("gives TOOLS the eject button and reports a test once it has run, holding a modal up while it runs", async () => {

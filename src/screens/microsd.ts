@@ -14,13 +14,16 @@ import { applySettings, captureSettings } from "../model/settings-file";
 import { onDynamicsTimeStops } from "../model/dynamics-times";
 import { TRACK_COUNTS, dropTracksOverRate, trackCountCeiling } from "../model/track-count";
 import { dropInsertsOverRate } from "./insert-fx";
+import { dropSendsOverRate } from "./effect-params";
 import { followSceneCursor } from "./scene";
 import { followRecall, pairStates } from "./stereo-link";
 import { settlePanLink } from "./mix-bus";
+import { onSsmcsStops } from "./ssmcs";
+import { onDelayGrid } from "./channel";
 import { allStrips, channelPairs } from "../model/types";
 import { el, markShut, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
-import { LIST_THUMB_MIN_PX, button, dialog, dropdown, listView, loadingDialog, menuButton, menuGrid, meter, pickerGrid, pickerSheet, scrollbar, sideTab, toggle } from "../ui/widgets";
+import { LIST_THUMB_MIN_PX, SHORT_PROGRESS_MS, button, dialog, dropdown, listView, loadingDialog, menuButton, menuGrid, meter, pickerGrid, pickerSheet, scrollbar, sideTab, toggle } from "../ui/widgets";
 import { drawnLevels, pairMeterId } from "./meters";
 import { PLAYBACK_METER, listenedTap } from "./signal-flow";
 import { dateText } from "./date-time";
@@ -488,18 +491,23 @@ function saveLoadAction(ctx: AppContext, label: string): void {
   ctx.overlay(dialog({ message: REPLACE_ASK, onOk: () => saveSettings(ctx, entry.name, row) }));
 }
 
-/** Put a settings file back on the unit, a GATE, COMP or DUCKER time off its stops on the stop nearest it. */
+/**
+ * Put a settings file back on the unit, a GATE, COMP or DUCKER time, and an SSMCS
+ * frequency, Attack or Release, off its stops on the stop nearest it, and a delay
+ * time off 0.02 ms on the 0.02 ms nearest it.
+ */
 function loadSettings(ctx: AppContext, entry: CardEntry): void {
   const held = ctx.store.str(filePath(entry), "");
   if (!held) return;
   const before = ctx.store.num("setup.samplingFrequency", 48000);
   const pairs = pairStates(ctx);
-  void applySettings(ctx.store, onDynamicsTimeStops(fromJson(held) as Record<string, ParamValue>)).then(() => {
+  void applySettings(ctx.store, onDelayGrid(onSsmcsStops(onDynamicsTimeStops(fromJson(held) as Record<string, ParamValue>)))).then(() => {
     followRecall(ctx, pairs);
     settlePanLink(ctx);
     const rate = ctx.store.num("setup.samplingFrequency", 48000);
     dropInsertsOverRate(ctx, rate);
     dropTracksOverRate(ctx.store, rate);
+    dropSendsOverRate(ctx.store, ctx.model, rate);
     releaseOnRateChange(ctx.store, before, rate);
     followSceneCursor(ctx);
     ctx.repaint();
@@ -939,7 +947,7 @@ const SD_TAB_ICON: Record<string, () => SVGSVGElement> = {
 };
 
 /** How long the recorder holds its loading modal up before the tab appears, the same each time. */
-const SD_TAB_LOADING_MS = 2000;
+const SD_TAB_LOADING_MS = SHORT_PROGRESS_MS;
 
 /**
  * Whether RECORDER's tab `to` opens: recording mode keeps the tab it is in, and

@@ -15,7 +15,7 @@ import { FX_EFFECT_DEFAULT, effectParams } from "./effects";
 import { OSC_TARGETS } from "./oscillator";
 import { SOURCES_SHIPPED_DOWN, digitalGainPath, digitalGainShipped } from "./source-gain";
 import type { Strip, UnitModel } from "./types";
-import { channelPairs, sendsTo } from "./types";
+import { SENDS_TARGET_SHIPPED, channelPairs, sendsTo } from "./types";
 import { UDK_BANKS, UDK_KNOBS, UDK_SHIPPED, UDK_UNASSIGNED, udkPath } from "./udk";
 
 /**
@@ -83,8 +83,8 @@ export const COMP_DEFAULTS = {
 
 /**
  * Factory SSMCS (Sweet Spot Morphing Channel Strip), on the mono input channels
- * that switch their COMP / EQ type to it. LOW and HIGH are shelves and carry no Q
- * of their own; the Q the screen shows on them is MID's.
+ * that switch their COMP / EQ type to it. LOW and HIGH are shelves and carry no
+ * Q; MID's is the only one.
  */
 export const SSMCS_DEFAULTS = {
   on: true,
@@ -93,14 +93,14 @@ export const SSMCS_DEFAULTS = {
   morphing: 0,
   outGain: 0,
   knee: "Medium",
-  attack: 4.124,
-  release: 91.6,
+  attack: 4.122,
+  release: 92,
   ratio: 2.5,
-  sc: { on: true, q: 1, freq: 89, gain: -4.7 },
+  sc: { on: true, q: 1, freq: 90, gain: -4.7 },
   eq: {
     low: { freq: 100, gain: 0 },
-    mid: { q: 1, freq: 1002, gain: 0 },
-    high: { freq: 10024, gain: 0 },
+    mid: { q: 1, freq: 1000, gain: 0 },
+    high: { freq: 10000, gain: 0 },
   },
 } as const;
 
@@ -164,12 +164,9 @@ export function ssmcsBankDefaults(): readonly [string, ParamValue][] {
     ["ssmcs.sc.gain", SSMCS_DEFAULTS.sc.gain],
   ];
   for (const [band, values] of Object.entries(SSMCS_DEFAULTS.eq)) {
-    out.push(
-      [`ssmcs.eq.${band}.on`, true],
-      [`ssmcs.eq.${band}.q`, "q" in values ? values.q : SSMCS_DEFAULTS.eq.mid.q],
-      [`ssmcs.eq.${band}.freq`, values.freq],
-      [`ssmcs.eq.${band}.gain`, values.gain],
-    );
+    out.push([`ssmcs.eq.${band}.on`, true]);
+    if ("q" in values) out.push([`ssmcs.eq.${band}.q`, values.q]);
+    out.push([`ssmcs.eq.${band}.freq`, values.freq], [`ssmcs.eq.${band}.gain`, values.gain]);
   }
   return out;
 }
@@ -257,6 +254,9 @@ function seedStrip(out: Map<ParamPath, ParamValue>, strip: Strip, model: UnitMod
     out.set(p("busType"), "VARI");
     out.set(p("panLink"), false);
   }
+
+  // An FX channel and the MIX and stereo buses ship with their BALANCE at the centre.
+  if (strip.kind === "fx" || strip.kind === "mix" || strip.kind === "stereo") out.set(p("balance"), 0);
 
   if (strip.side === "output") {
     out.set(p("insFx.on"), false);
@@ -359,7 +359,7 @@ export function factoryState(model: UnitModel): Map<ParamPath, ParamValue> {
 
   // Session-local UI state the unit also keeps across screens.
   out.set(path("ui", "selectedStrip"), model.inputs[0]?.id ?? "");
-  out.set(path("ui", "sendsTarget"), "ST");
+  out.set(path("ui", "sendsTarget"), SENDS_TARGET_SHIPPED);
   out.set(path("ui", "bankSide"), "input");
   out.set(path("ui", "bank"), 0);
   out.set(path("ui", "userDefinedKnobs"), false);

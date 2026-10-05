@@ -111,7 +111,7 @@ sequenceDiagram
 writes a bound one」)。編集は、書き込み規則が連れていく書き込み ([architecture.md](architecture.md) の「1 つの編集が
 連れていく書き込み」) と一緒に実機へ送られ、画面が 1 つの設定とそれに従う値をまとめて書く操作は 1 つとして送られる
 (`DeviceStore.operation()`)。BUS Type、Signal Type、PAN/BAL、COMP / EQ、1-knob EQ、エフェクト、入力ソース、サンプリング
-周波数、Pitch Fix の鍵盤とスケール、SCENE のバンク、シーンの保存と命名、レコーダー、再生、カードの操作がこれに当たる。
+周波数、Pitch Fix の鍵盤とスケール、SCENE のバンク、題を付けたシーンの保存、レコーダー、再生、カードの操作がこれに当たる。
 そのどれかの経路にアドレスが無いと `BridgeTransport.writable()` が答えると、どれも送らず、ミラーを前の値に戻し、その経路ごとの
 拒否を知らせる。束縛していない HI-Z を入れても A.Gain は送られず、束縛していない BUS Type や Signal Type を選んでも、それが
 連れていく送り・定位などの値は何も送られない (同じファイルの「sends none of the writes the Shell's rule carries with an edit

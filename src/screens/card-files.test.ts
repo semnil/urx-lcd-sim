@@ -18,8 +18,8 @@ import { openTitleEntry } from "./title-entry";
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
-async function mount(route: Route, card?: CardEntry[]): Promise<Shell> {
-  const model = unitById("URX44V");
+async function mount(route: Route, card?: CardEntry[], id: "URX44V" | "URX44" | "URX22" = "URX44V"): Promise<Shell> {
+  const model = unitById(id);
   const store = new DeviceStore();
   await store.attach(new SimTransport(factoryState(model)));
   const shell = new Shell(buildRegistry(), store, model);
@@ -334,7 +334,40 @@ describe("playing a file back", () => {
     action(shell, "Load")?.click();
     await flush();
     await flush();
-    expect(times.map(([p]) => store.num(p, 0)), "each on its nearest stop, and the SSMCS strip's Attack as the file holds it").toEqual([16, 34.58, 1000, 4.124]);
+    expect(times.map(([p]) => store.num(p, 0)), "each on its nearest stop, the SSMCS strip's Attack on its own").toEqual([16, 34.58, 1000, 4.122]);
+  });
+
+  it("puts an SSMCS frequency, Attack or Release an older settings file holds off the stops on the stop nearest it", async () => {
+    // A file saved by an earlier version, with the side chain and Release where that version shipped them.
+    const shell = await mount({ id: "microsd.saveload" }, [{ name: "Recordings", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" }]);
+    const store = shell.ctx.store;
+    await store.set("ch.ch1.ssmcs.sc.freq", 89);
+    await store.set("ch.ch1.ssmcs.comp.release", 91.6);
+    action(shell, "Save as")?.click();
+    await flush();
+    await typeTitle(shell, "older");
+    await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === "older.urxf"));
+    await flush();
+    action(shell, "Load")?.click();
+    await flush();
+    await flush();
+    expect([store.num("ch.ch1.ssmcs.sc.freq", 0), store.num("ch.ch1.ssmcs.comp.release", 0)]).toEqual([90, 92]);
+  });
+
+  it("puts a delay time an older settings file holds off 0.02 ms on the 0.02 ms nearest it", async () => {
+    // A file saved by an earlier version, with STREAMING's delay where that version's meter step of 0.01 m left it from 45.86 ms.
+    const shell = await mount({ id: "microsd.saveload" }, [{ name: "Recordings", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" }]);
+    const store = shell.ctx.store;
+    await store.set("ch.bus.stream.delay.ms", 45.86 + 0.01 / 0.343);
+    action(shell, "Save as")?.click();
+    await flush();
+    await typeTitle(shell, "older");
+    await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === "older.urxf"));
+    await flush();
+    action(shell, "Load")?.click();
+    await flush();
+    await flush();
+    expect(store.num("ch.bus.stream.delay.ms", 0)).toBe(45.88);
   });
 
   it("stops at the end of the file and lets it go", async () => {
@@ -871,6 +904,9 @@ describe("what the card's own actions do to it", () => {
       [...shell.root.querySelectorAll<HTMLElement>(".scene-actions .btn")].find((b) => b.textContent === "Store")?.click();
       await flush();
       await typeTitle(shell, title);
+      // The sheet's [OK] asks before it stores.
+      [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === "OK")?.click();
+      await flush();
       shell.ctx.nav.back();
       await flush();
     };
@@ -1062,6 +1098,65 @@ describe("what the card's own actions do to it", () => {
     expect(store.num("ch.ch1.level", 0), "the settings the file was saved with").toBe(-10);
     expect(store.num("setup.udk.bank", 0), "the bank the file was saved on").toBe(2);
   });
+
+  it("moves HOME's [Sends] off FX 2 when a file holding a rate that puts FX 2 out of reach is loaded, on each model", async () => {
+    // A file holding [Sends] on FX 2 at its rate, as no unit writes one at 176.4 or 192 kHz.
+    const seen: Record<string, string> = {};
+    const want: Record<string, string> = {};
+    for (const model of ["URX22", "URX44", "URX44V"] as const) {
+      for (const rate of [96000, 176400, 192000]) {
+        const shell = await mount({ id: "microsd.saveload" }, card, model);
+        const store = shell.ctx.store;
+        await store.set("setup.samplingFrequency", rate);
+        await store.set("ui.sendsTarget", "FX2");
+        await flush();
+        action(shell, "Save as")?.click();
+        await flush();
+        await typeTitle(shell, "fx2");
+
+        await store.set("setup.samplingFrequency", 48000);
+        await store.set("ui.sendsTarget", "ST");
+        await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === "fx2.urxf"));
+        await flush();
+        action(shell, "Load")?.click();
+        await okDialog(shell);
+        await flush();
+        seen[`${model} ${rate}`] = `${store.num("setup.samplingFrequency", 0)} ${store.str("ui.sendsTarget", "")}`;
+        want[`${model} ${rate}`] = `${rate} ${rate > 96000 ? "FX1" : "FX2"}`;
+        shell.destroy();
+      }
+    }
+    expect(seen).toEqual(want);
+  });
+
+  for (const [saved, over, why] of [
+    [{ rate: 48_000, target: "MIX1" }, { rate: 48_000, target: "FX1" }, "saved on MIX 1 and loaded over FX 1"],
+    [{ rate: 192_000, target: "ST" }, { rate: 48_000, target: "FX2" }, "saved on ST at 192 kHz and loaded over FX 2 at 48 kHz"],
+  ] as const) {
+    it(`brings back the destination HOME's [Sends] showed when the file was saved: ${why}`, async () => {
+      // As on the unit (URX44V, 2026-10-04).
+      const shell = await mount({ id: "microsd.saveload" }, card);
+      const store = shell.ctx.store;
+      await store.set("setup.samplingFrequency", saved.rate);
+      await store.set("ui.sendsTarget", saved.target);
+      await store.set("ch.ch1.level", -10);
+      await flush();
+      action(shell, "Save as")?.click();
+      await flush();
+      await typeTitle(shell, "mine");
+
+      await store.set("setup.samplingFrequency", over.rate);
+      await store.set("ui.sendsTarget", over.target);
+      await store.set("ch.ch1.level", 0);
+      await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === "mine.urxf"));
+      await flush();
+      action(shell, "Load")?.click();
+      await okDialog(shell);
+      await flush();
+      expect(store.num("ch.ch1.level", 0), "the file is loaded").toBe(-10);
+      expect([store.num("setup.samplingFrequency", 0), store.str("ui.sendsTarget", "")], "the rate and the destination it was saved with").toEqual([saved.rate, saved.target]);
+    });
+  }
 
   it("keeps what a settings file holds when it is renamed", async () => {
     const shell = await mount({ id: "microsd.saveload" }, card);

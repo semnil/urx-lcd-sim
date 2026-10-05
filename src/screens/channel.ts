@@ -10,7 +10,7 @@ import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, GATE_DEFAULTS, compEqBankDefaults
 import { COMP_KNEE_WIDTH, compResponse, grBarShare, levelBarShare } from "../model/dynamics";
 import { DYNAMICS_TIME_STOPS, type DynamicsTime } from "../model/dynamics-times";
 import { EQ_SHAPES, eqBandOn, eqBandShape, fourBandResponse } from "../model/channel-eq";
-import type { Strip } from "../model/types";
+import type { Strip, StripKind } from "../model/types";
 import { findStrip, sendsTo } from "../model/types";
 import { CH_COLOR_NONE, CH_COLOR_OFF, CH_COLOR_PALETTE } from "../model/units";
 import { el, makeTappable, setPressed } from "../ui/dom";
@@ -27,14 +27,61 @@ import { homeSide, sceneBox } from "./home";
 import { headAmp, headAmpSwitch } from "./head-amp";
 import { inputSourceSheet, sourceBoxLabel } from "./input-source";
 import { NO_EFFECT, insertBase } from "./insert-fx";
-import { effectSettingsScreen, insFxScreen, openEffectParams } from "./effect-params";
+import { effectSettingsScreen, fxShutOut, insFxScreen, openEffectParams } from "./effect-params";
 import { ssmcsArea } from "./ssmcs";
-import { channelLabel, phasePath, selectStrip, selectedStripId, sendsTarget, stepChannel, stripColor, stripLane, stripLanes } from "./strip-state";
+import { COMP_EQ_SSMCS, channelLabel, eqShut, phasePath, runsSsmcs, selectStrip, selectedStripId, sendsTarget, stepChannel, stripColor, stripLane, stripLanes } from "./strip-state";
 import type { ScreenBody, ScreenDef } from "./types";
 
 /** What a channel screen shows when the route names no channel. */
 export function noChannel(): ScreenBody {
   return { main: el("div", { class: "screen-missing", text: "No channel selected" }) };
+}
+
+/** The kind of strip each block with a screen of its own belongs to, EQ aside. */
+const BLOCK_STRIPS = { GATE: "monoIn", COMP: "monoIn", SSMCS: "monoIn", DUCKER: "stIn", DELAY: "streaming" } satisfies Record<string, StripKind>;
+
+/** A block with a screen of its own. */
+type Block = keyof typeof BLOCK_STRIPS | "EQ";
+
+/**
+ * Whether the strip carries the block. A mono channel carries COMP and EQ or
+ * SSMCS, whichever its COMP / EQ type is; a stereo channel, a MIX bus and the
+ * stereo bus carry an EQ.
+ */
+export function carriesBlock(ctx: AppContext, strip: Strip, block: Block): boolean {
+  if (block === "EQ") return strip.kind === "monoIn" ? !runsSsmcs(ctx, strip) : strip.kind === "stIn" || strip.kind === "mix" || strip.kind === "stereo";
+  if (strip.kind !== BLOCK_STRIPS[block]) return false;
+  if (block === "COMP") return !runsSsmcs(ctx, strip);
+  if (block === "SSMCS") return runsSsmcs(ctx, strip);
+  return true;
+}
+
+/**
+ * What a block's screen shows on a strip the arrows step to that does not carry
+ * the block, or whose block the sampling frequency has put out of use (`atRate`):
+ * the channel's name in the toolbar, no title, a line saying so in the middle,
+ * the knob readout strip with its cells empty, and nothing to operate.
+ */
+export function noBlock(ctx: AppContext, strip: Strip, route: Route, block: Block, atRate = false): ScreenBody {
+  return {
+    main: el("div", { class: "screen-missing", text: `This channel has no ${block} screen${atRate ? " at this sampling frequency" : ""}` }),
+    headerLeft: channelSelector(ctx, strip, route, true),
+    knobStrip: true,
+  };
+}
+
+/**
+ * What every channel screen shows on an FX channel the sampling frequency has
+ * put out of reach: the channel's name in the toolbar, no title, a line saying
+ * so in the middle, the knob readout strip with its cells empty, and nothing to
+ * operate.
+ */
+export function notAvailable(ctx: AppContext, strip: Strip, route: Route, narrow = true): ScreenBody {
+  return {
+    main: el("div", { class: "screen-missing", text: "This channel is not available at this sampling frequency" }),
+    headerLeft: channelSelector(ctx, strip, route, narrow),
+    knobStrip: true,
+  };
 }
 
 /**
@@ -80,7 +127,6 @@ const REC_POINTS = [
 const REC_POINT_DEFAULT = "PRE FADER";
 
 /** What the channel's COMP and EQ are used as, per the guide's CH SETTING. */
-const COMP_EQ_SSMCS = "SSMCS";
 const COMP_EQ_ORDERS = ["COMP->EQ", COMP_EQ_SSMCS];
 
 /**
@@ -89,7 +135,7 @@ const COMP_EQ_ORDERS = ["COMP->EQ", COMP_EQ_SSMCS];
  */
 function recPoints(ctx: AppContext, strip: Strip): string[] {
   const mono = strip.kind === "monoIn";
-  const ssmcs = mono && ctx.store.str(`ch.${strip.id}.compEqOrder`, "COMP->EQ") === COMP_EQ_SSMCS;
+  const ssmcs = runsSsmcs(ctx, strip);
   return REC_POINTS.filter((p) => (mono || p.stereo) && !(ssmcs && p.label === "PRE EQ")).map((p) => p.label);
 }
 
@@ -145,32 +191,38 @@ export function titleBox(label: string, extraClass = ""): HTMLElement {
 export function channelSelector(ctx: AppContext, strip: Strip, route: Route, narrow = false): HTMLElement {
   const move = (delta: number): void => {
     const next = stepChannel(ctx, delta, strip);
-    ctx.nav.replace({ ...route, strip: next.id });
+    ctx.nav.stepStrip(next.id);
   };
+  // The name opens the screen that sets it on the screen a channel opens on,
+  // the one that carries the copy mark. On the screens under it and on CH
+  // SETTING, and on a channel the sampling frequency has put out of reach, it
+  // is out of reach: it neither sinks nor opens anything.
+  const shut = fxShutOut(ctx, strip);
+  const opens = !narrow && route.id !== "ch.setting" && !shut;
+  // On an FX channel the sampling frequency has put out of reach the box carries
+  // no colour and names the channel alone.
+  const colour = shut ? "var(--surface)" : stripColor(ctx, strip);
   return el("div", {
     class: "ch-selector",
     children: [
       el("button", { class: "ch-arrow", children: [Icons.chevronLeft()], onTap: () => move(-1), attrs: { "aria-label": "Previous channel" } }),
       el("button", {
         class: `ch-chip${narrow ? " is-narrow" : ""}`,
-        style: { "--rail": stripColor(ctx, strip) },
-        // The name opens the screen that sets it, except where that is the
-        // screen already up.
-        onTap: () => {
-          if (route.id !== "ch.setting") ctx.nav.push({ id: "ch.setting", strip: strip.id });
-        },
+        style: { "--rail": colour },
+        ...(opens ? {} : { attrs: { "aria-disabled": "true" } }),
+        onTap: opens ? () => ctx.nav.push({ id: "ch.setting", strip: strip.id }) : () => undefined,
         children: [
-          el("span", { class: "ch-chip-icon", style: { background: stripColor(ctx, strip) } }),
+          el("span", { class: "ch-chip-icon", style: { background: colour } }),
           el("span", {
             class: "ch-chip-labels",
             children: [
               el("span", { class: "ch-chip-id", text: channelLabel(strip, stripLane(ctx, strip), narrow) }),
-              el("span", { class: "ch-chip-name", text: ctx.store.str(`ch.${strip.id}.name`, "") }),
+              el("span", { class: "ch-chip-name", text: shut ? "" : ctx.store.str(`ch.${strip.id}.name`, "") }),
             ],
           }),
           // The copy mark stands beside the name on the screen a channel opens
           // on, and not on the screens under it nor on CH SETTING.
-          narrow || route.id === "ch.setting" ? null : el("span", { class: "ch-chip-copy", children: [Icons.copy()] }),
+          opens ? el("span", { class: "ch-chip-copy", children: [Icons.copy()] }) : null,
         ],
       }),
       el("button", { class: "ch-arrow", children: [Icons.chevronRight()], onTap: () => move(1), attrs: { "aria-label": "Next channel" } }),
@@ -344,7 +396,8 @@ const duckerThreshold = (b: string): NumericSpec => dbSpec(`${b}.ducker.threshol
 /** One of GATE's, COMP's and DUCKER's times, on its own stops, read to `digits` places under 100 ms. */
 const dynTime = (b: string, time: DynamicsTime, label: string, fallback: number, digits?: number): NumericSpec =>
   stoppedMsSpec(`${b}.${time}`, label, DYNAMICS_TIME_STOPS[time], fallback, digits);
-const delayTime = (b: string): NumericSpec => ({ ...msSpec(`${b}.delay.ms`, "ms", 1, DELAY_MAX_MS, 1), step: 0.01, unit: "", boxUnit: "", sweep: DELAY_SWEEP_DEG });
+// DELAY's time turns 1.00 ms a detent on the channel view with Shift held too.
+const delayTime = (b: string): NumericSpec => ({ ...msSpec(`${b}.delay.ms`, "ms", 1, DELAY_MAX_MS, 1), ...delayDetents(DELAY_UNITS[0], MS_SCALE), fastStep: DELAY_UNITS[0].step, unit: "", boxUnit: "", sweep: DELAY_SWEEP_DEG });
 /** How deep [1-knob] works COMP or EQ, in percent. */
 const oneKnobDepth = (path: string): NumericSpec => intSpec(path, "1-knob", 0, 100, 0, "%");
 
@@ -382,6 +435,7 @@ export const channelViewScreen: ScreenDef = {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
     selectStrip(ctx, strip.id);
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route, false);
     const base = `ch.${strip.id}`;
     const mono = strip.kind === "monoIn";
     const { spec: gainSpec, connector } = headAmp(ctx, strip);
@@ -510,7 +564,7 @@ export const channelViewScreen: ScreenDef = {
       const gate = gateThreshold(base);
       const gateValue = readout(gate);
       // While 1-knob turns COMP, the knob sets its depth instead of the threshold.
-      const ssmcs = ctx.store.str(`${base}.compEqOrder`, "COMP->EQ") === COMP_EQ_SSMCS;
+      const ssmcs = runsSsmcs(ctx, strip);
       const compOneKnob = ctx.store.bool(`${base}.comp.oneKnob.on`, false);
       const comp = compOneKnob ? oneKnobDepth(`${base}.comp.oneKnob.level`) : compThreshold(base);
       const compValue = readout(comp, "", compOneKnob ? "%" : "");
@@ -538,8 +592,9 @@ export const channelViewScreen: ScreenDef = {
     } else if (strip.kind === "stIn") {
       const ducker = duckerThreshold(base);
       const duckerValue = readout(ducker);
+      // Above 96 kHz the EQ is out of use and its block gone; DUCKER keeps its place.
       blocks.push(
-        eqBlock(),
+        ...(eqShut(ctx, strip) ? [] : [eqBlock()]),
         block(ctx, "DUCKER", "ducker", `${base}.ducker.on`, false,
           el("div", { class: "cv-block-body", children: [duckerValue, duckerLamps(ctx, strip, base)] }),
           () => ctx.nav.push({ id: "ch.ducker", strip: strip.id }),
@@ -698,6 +753,7 @@ export const chSettingScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return { main: el("div", { class: "screen-missing", text: "No channel selected" }) };
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route, false);
     const base = `ch.${strip.id}`;
     const field = (caption: string, slot: string, node: HTMLElement): HTMLElement =>
       el("div", { class: `chs-field chs-${slot}-field`, children: [el("span", { class: "chs-caption", text: caption }), node] });
@@ -811,6 +867,7 @@ export const inputScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
     const base = `ch.${strip.id}`;
     const mono = strip.kind === "monoIn";
     // A head amp belongs to a channel. A bus is fed from inside the mixer, so
@@ -1143,6 +1200,8 @@ export const gateScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
+    if (!carriesBlock(ctx, strip, "GATE")) return noBlock(ctx, strip, route, "GATE");
     const b = `ch.${strip.id}`;
     const threshold = gateThreshold(b);
     const range = dbSpec(`${b}.gate.range`, "Range", -73, 0, GATE_DEFAULTS.range, 1, 0);
@@ -1196,6 +1255,8 @@ export const compScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
+    if (!carriesBlock(ctx, strip, "COMP")) return noBlock(ctx, strip, route, "COMP");
     const b = `ch.${strip.id}`;
     // While 1-knob is on, its level holds the focus and no other value on the screen turns.
     const oneKnob = ctx.store.bool(`${b}.comp.oneKnob.on`, false);
@@ -1292,6 +1353,8 @@ export const duckerScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
+    if (!carriesBlock(ctx, strip, "DUCKER")) return noBlock(ctx, strip, route, "DUCKER");
     const b = `ch.${strip.id}`;
     const threshold = duckerThreshold(b);
     const range = dbSpec(`${b}.ducker.range`, "Range", -70, 0, -24, 1, 0);
@@ -1379,14 +1442,86 @@ const DUCK_FALL = [0.162, 0.318] as const;
 const DUCK_HOLD = 0.546;
 const DUCK_RISE = [0.899, 1] as const;
 
-/** How the DELAY screen names one time in four units. */
+/** Sound covers 343.59 m a second on the meter cell and 1127.26 ft a second on the feet cell. */
+const SOUND_M_PER_S = 343.59;
+const SOUND_FT_PER_S = 1127.26;
+
+/**
+ * A time as a delay cell's value and that value as a time, worked in double
+ * precision in this order: ms × (the frame rate / 1000), and back by / the frame
+ * rate × 1000; ms / 1000 × the speed of sound in metres or in feet a second, and
+ * back by the same steps undone.
+ */
+interface DelayScale {
+  of(ms: number): number;
+  ms(value: number): number;
+  /** The lowest reading a turn goes to, where the cell has one of its own. */
+  lowest?: number;
+}
+
+const MS_SCALE: DelayScale = { of: (ms) => ms, ms: (v) => v };
+const METER_SCALE: DelayScale = { of: (ms) => (ms / 1000) * SOUND_M_PER_S, ms: (v) => (v / SOUND_M_PER_S) * 1000 };
+const FEET_SCALE: DelayScale = { of: (ms) => (ms / 1000) * SOUND_FT_PER_S, ms: (v) => (v / SOUND_FT_PER_S) * 1000 };
+
+/**
+ * frame at `fps`. A turn stops at the smallest reading on two places whose time
+ * is 1.00 ms or more, 0.03 frame (1.20 ms) at 25 frames a second. At the top
+ * the rate itself, 25.00 at 25, names 1000.00 ms, where the time stops.
+ */
+const frameScale = (fps: number): DelayScale => ({ of: (ms) => ms * (fps / 1000), ms: (v) => (v / fps) * 1000, lowest: Math.ceil(fps / 10) / 100 });
+
+/**
+ * How the DELAY screen names one time in four units: its scale at a frame rate,
+ * the places its reading runs to, how far a detent moves that reading, and how
+ * far a fine detent moves it.
+ */
 const DELAY_UNITS = [
-  { label: "ms", per: 1, digits: 2 },
-  { label: "frame", per: 0, digits: 2 },
-  // Sound covers 0.343 m in a millisecond, which is 1.125 feet.
-  { label: "meter", per: 0.343, digits: 1 },
-  { label: "feet", per: 1.125, digits: 1 },
+  { label: "ms", scale: (): DelayScale => MS_SCALE, digits: 2, step: 1, fine: 0.02 },
+  { label: "frame", scale: frameScale, digits: 2, step: 0.2, fine: 0.01 },
+  { label: "meter", scale: (): DelayScale => METER_SCALE, digits: 1, step: 1, fine: 0.1 },
+  { label: "feet", scale: (): DelayScale => FEET_SCALE, digits: 1, step: 5, fine: 0.1 },
 ] as const;
+
+/** A delay cell's value to its places by Math.round on the value × 10 to its places, worked in double precision. */
+const delayRound = (v: number, digits: number): number => Math.round(v * 10 ** digits) / 10 ** digits;
+
+/** A delay time lands on 0.02 ms. */
+const DELAY_GRID_MS = 0.02;
+
+/** `ms` on the nearest 0.02 ms, a half going up. */
+const onDelayGridMs = (ms: number): number => Number((Math.round(ms / DELAY_GRID_MS + 1e-9) * DELAY_GRID_MS).toFixed(2));
+
+/**
+ * A delay cell's turn of `by` ms: the cell's reading moves by as much of its own
+ * unit, rounded to its places and held no lower than the cell's lowest reading,
+ * and the time that reading names lands on the nearest 0.02 ms, a half going up.
+ */
+function delayTurn(scale: DelayScale, per: number, digits: number): (ms: number, by: number) => number {
+  const lowest = scale.lowest ?? -Infinity;
+  return (ms, by) => onDelayGridMs(scale.ms(Math.max(lowest, delayRound(delayRound(scale.of(ms), digits) + by * per, digits))));
+}
+
+/**
+ * How a delay cell in `u` on `scale` turns the time: a detent moves the cell's
+ * reading by the unit's step, and one with Shift by its fine step, as the
+ * unit's knob turns finer while it is pushed in as it turns.
+ */
+function delayDetents(u: (typeof DELAY_UNITS)[number], scale: DelayScale): Pick<NumericSpec, "step" | "fastStep" | "turn"> {
+  const per = scale.of(1);
+  return { step: u.step / per, fastStep: u.fine / per, turn: delayTurn(scale, per, u.digits) };
+}
+
+/**
+ * A saved state as it is put back, with a delay time on the 0.02 ms nearest the
+ * value it holds. The next save holds that time.
+ */
+export function onDelayGrid(state: Record<ParamPath, ParamValue>): Record<ParamPath, ParamValue> {
+  const out = { ...state };
+  for (const [path, value] of Object.entries(state)) {
+    if (path.startsWith("ch.") && path.endsWith(".delay.ms") && typeof value === "number") out[path] = onDelayGridMs(value);
+  }
+  return out;
+}
 
 /** The frame rates the DELAY screen counts a time in. `D` is drop frame. */
 const DELAY_FRAME_RATES = ["24", "25", "29.97D", "29.97", "30D", "30", "60", "120"] as const;
@@ -1420,23 +1555,24 @@ export const delayScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
+    if (!carriesBlock(ctx, strip, "DELAY")) return noBlock(ctx, strip, route, "DELAY");
     const b = `ch.${strip.id}`;
     const on = ctx.store.bool(`${b}.delay.on`, false);
     const rate = delayFrameRate(ctx, b);
     // One delay time, named in four units. Turning any of them turns the time.
     const ms = delayTime(b);
     // The value stays in milliseconds; each cell prints it in its own unit and
-    // turns it by the step that unit reads in.
+    // turns it from that reading, by its fine step with Shift.
     const specs = DELAY_UNITS.map((u) => {
-      const per = u.label === "frame" ? frameRateOf(rate) / 1000 : u.per;
+      const scale = u.scale(frameRateOf(rate));
       return {
         ...ms,
         label: u.label,
         // Each cell is framed on its own, though the four turn one time.
         focusKey: `${b}.delay.${u.label}`,
-        step: 0.01 / per,
-        fastStep: 0.1 / per,
-        format: (v: number) => (v * per).toFixed(u.digits),
+        ...delayDetents(u, scale),
+        format: (v: number) => delayRound(scale.of(v), u.digits).toFixed(u.digits),
       };
     });
     ctx.setKnobs(specs);
@@ -1503,6 +1639,9 @@ export const eqScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
+    if (!carriesBlock(ctx, strip, "EQ")) return noBlock(ctx, strip, route, "EQ");
+    if (eqShut(ctx, strip)) return noBlock(ctx, strip, route, "EQ", true);
     const base = `ch.${strip.id}`;
     const bandKey = ctx.store.str("ui.eqBand", "low");
     const band = EQ_BANDS.find((b) => b.key === bandKey) ?? EQ_BANDS[0];
@@ -1679,18 +1818,24 @@ const EQ_ONE_KNOB_TYPES = ["Intensity", "Vocal", "Loudness"] as const;
 const EQ_ONE_KNOB_NEUTRAL: Record<string, number> = { Intensity: 50, Vocal: 0, Loudness: 0 };
 
 /** Taking a kind of curve puts the level on that curve's neutral point, in one operation of the store. */
-function setEqOneKnobType(ctx: AppContext, base: string, type: string): void {
+function takeEqOneKnobType(ctx: AppContext, base: string, type: string): void {
   ctx.store.operation(() => {
     void ctx.store.set(`${base}.eq.oneKnob.type`, type);
     void ctx.store.set(`${base}.eq.oneKnob.level`, EQ_ONE_KNOB_NEUTRAL[type] ?? 0);
   });
 }
 
+/** Picking a kind of curve in the box takes it; picking the one in use changes nothing. */
+function setEqOneKnobType(ctx: AppContext, base: string, type: string): void {
+  if (ctx.store.str(`${base}.eq.oneKnob.type`, "Intensity") === type) return;
+  takeEqOneKnobType(ctx, base, type);
+}
+
 /** Switching 1-knob on takes the curve back to Intensity at its neutral point, in one operation of the store. */
 function setEqOneKnob(ctx: AppContext, base: string, on: boolean): void {
   ctx.store.operation(() => {
     void ctx.store.set(`${base}.eq.oneKnob.on`, on);
-    if (on) setEqOneKnobType(ctx, base, "Intensity");
+    if (on) takeEqOneKnobType(ctx, base, "Intensity");
   });
 }
 
@@ -1750,8 +1895,9 @@ const EQ_VOCAL_GAIN: Record<"lowMid" | "highMid" | "high", readonly number[]> = 
 const EQ_ONE_KNOB_GAIN_MAX = 1800;
 
 /**
- * What 1-knob EQ does to the four bands. Switching it on, and taking Intensity
- * while it is on, keep the gains as they stand; the Intensity level then sets
+ * What 1-knob EQ does to the four bands. Switching it on, and changing to
+ * Intensity from another curve while it is on, keep the gains as they stand
+ * (picking the curve in use writes nothing); the Intensity level then sets
  * each band to that gain times level / 50. Taking Loudness or Vocal sets that
  * curve's own switches and shapes with no gain, whatever the bands held.
  * Loudness's level sets each band's gain at the band's own rate per percent;
@@ -1855,6 +2001,7 @@ export const sendToScreen: ScreenDef = {
   build(ctx, route): ScreenBody {
     const strip = routeStrip(ctx, route);
     if (!strip) return noChannel();
+    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
     const base = `ch.${strip.id}`;
     const groups = sendGroups(ctx, strip);
     // A strip that has no send into the group last picked shows its first one,
@@ -1865,8 +2012,11 @@ export const sendToScreen: ScreenDef = {
     // A bus taking its sends at a fixed level reads `Fixed` under the level and
     // gives the knob nothing to turn, and the stereo bus takes a channel at its
     // own fader, with no level of its own.
+    // An FX return the sampling frequency has put out of reach names itself and
+    // offers nothing to set.
+    const shut = (t: Strip): boolean => t.kind === "fx" && fxShutOut(ctx, t);
     const specs = targets.map((t) =>
-      t.kind === "stereo"
+      t.kind === "stereo" || shut(t)
         ? null
         : sendLocks(ctx, t).busFixed
           ? { label: "Level", text: FIXED_LEVEL_TEXT }
@@ -1892,8 +2042,10 @@ export const sendToScreen: ScreenDef = {
           const balSpec = panSpec(toStereo ? stripPosition(ctx, strip).path : sendPanPath(ctx, strip, t), `${t.label} ${placing}`);
           const balance = ctx.store.num(balSpec.path, 0);
           // A fixed bus takes the send at one level, so the unit offers neither
-          // the tap nor the placing. Both keep their place on the cell.
+          // the tap nor the placing, and an FX return takes the send summed to
+          // one side, so it offers no placing. Each keeps its place on the cell.
           const empty = (cls: string): HTMLElement => el("span", { class: `sendto-empty ${cls}` });
+          const noPlacing = busFixed || t.kind === "fx";
           return el("div", {
             class: "sendto-cell",
             children: [
@@ -1901,18 +2053,18 @@ export const sendToScreen: ScreenDef = {
                 class: "sendto-head",
                 children: [
                   el("span", { class: "sendto-title", text: t.label }),
-                  el("span", { class: "sendto-name", text: ctx.store.str(`ch.${t.id}.name`, "") }),
+                  el("span", { class: "sendto-name", text: shut(t) ? "" : ctx.store.str(`ch.${t.id}.name`, "") }),
                 ],
               }),
               el("div", {
                 class: "sendto-body",
-                children: [
+                children: shut(t) ? [] : [
                   toggle("ON", ctx.store.bool(onPath, sendShipsOn(strip, t)), () => void ctx.store.set(onPath, !ctx.store.bool(onPath, sendShipsOn(strip, t))), "btn-switch btn-on"),
                   noTap
                     ? empty("sendto-empty-pre")
                     : toggle("PRE", ctx.store.bool(prePath, false), () => void ctx.store.set(prePath, !ctx.store.bool(prePath, false)), "btn-switch btn-pre"),
-                  busFixed ? empty("sendto-empty-slider") : panSlider(balance),
-                  busFixed
+                  noPlacing ? empty("sendto-empty-slider") : panSlider(balance),
+                  noPlacing
                     ? empty("sendto-empty-bal")
                     : el("div", {
                         class: "sendto-bal",
@@ -1961,13 +2113,16 @@ export const sendsSelectScreen: ScreenDef = {
     // tab and the level knob.
     const option = (label: string, id: string, accent: string): HTMLElement =>
       toggle(label, current === id, () => pick(id), `sends-option ${accent}`);
+    // FX 2 leaves the list while the sampling frequency has put it out of reach.
+    const fx2 = findStrip(ctx.model, "fx2");
+    const fx2Shut = fx2 !== undefined && fxShutOut(ctx, fx2);
     return {
       main: el("div", {
         class: "sends-popup",
         children: [
           option("STEREO", "ST", "sends-stereo"),
           el("div", { class: "sends-row", children: [option("MIX 1", "MIX1", "sends-mix"), option("MIX 2", "MIX2", "sends-mix")] }),
-          el("div", { class: "sends-row sends-fx-row", children: [option("FX 1", "FX1", "sends-fx"), option("FX 2", "FX2", "sends-fx")] }),
+          el("div", { class: "sends-row sends-fx-row", children: [option("FX 1", "FX1", "sends-fx"), ...(fx2Shut ? [] : [option("FX 2", "FX2", "sends-fx")])] }),
         ],
       }),
       side: homeSide(ctx),

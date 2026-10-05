@@ -1828,7 +1828,8 @@
   color: var(--block-delay);
 }
 
-.ind-row .badge-insfx.is-on {
+.ind-row .badge-insfx.is-on,
+.ind-row .badge-ssmcs.is-on {
   color: var(--block-fx);
 }
 

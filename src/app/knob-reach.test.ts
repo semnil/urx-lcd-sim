@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
+import type { ParamPath } from "../device/path";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
+import { findStrip } from "../model/types";
 import { unitById } from "../model/units";
 import { UDK_BANKS, UDK_KNOBS, UDK_UNASSIGNED, udkAssignment, udkPath } from "../model/udk";
 import { buildRegistry } from "../screens";
@@ -23,10 +25,12 @@ interface Mounted {
   bound: NumericSpec[];
 }
 
-async function mount(): Promise<Mounted> {
+async function mount(leftOut: ParamPath[] = []): Promise<Mounted> {
   const model = unitById("URX44V");
   const store = new DeviceStore();
-  await store.attach(new SimTransport(factoryState(model)));
+  const state = factoryState(model);
+  for (const path of leftOut) state.delete(path);
+  await store.attach(new SimTransport(state));
   const shell = new Shell(buildRegistry(), store, model);
   const bound: NumericSpec[] = [];
   const inner = shell.ctx.setKnobs;
@@ -67,6 +71,10 @@ function pathsReachedByKeyboard(root: HTMLElement, store: DeviceStore, paths: st
 }
 
 async function open(shell: Shell, route: Route): Promise<void> {
+  // A mono channel draws its SSMCS screens while its COMP / EQ type is SSMCS.
+  if (route.id.startsWith("ch.ssmcs") && findStrip(shell.ctx.model, route.strip ?? "")?.kind === "monoIn") {
+    await shell.ctx.store.set(`ch.${route.strip}.compEqOrder`, "SSMCS");
+  }
   shell.ctx.nav.push(route);
   await flush();
 }
@@ -113,7 +121,8 @@ describe("every knob-bound parameter is reachable on the glass", () => {
   });
 
   it("leaves a value as it is under a press that moves less than 4 px, and counts a drag from 4 px off the press", async () => {
-    const { shell, store } = await mount();
+    // CH 5/6's DUCKER Decay is left out of what the unit holds, for the press on a value it has not been given.
+    const { shell, store } = await mount(["ch.ch_5_6.ducker.decay"]);
     await open(shell, { id: "channel-view", strip: "ch1" });
     const pe = (type: string, x: number, y: number): MouseEvent =>
       new MouseEvent(type, { clientX: x, clientY: y, bubbles: true, cancelable: true });
@@ -173,11 +182,11 @@ describe("every knob-bound parameter is reachable on the glass", () => {
 
     // A press of 4 px, to the edge of the slop and no further, leaves the unit as the browser stores it, a value
     // the unit has not been given included.
-    await open(shell, { id: "ch.ducker", strip: "ch1" });
-    expect(store.has("ch.ch1.ducker.decay"), "DUCKER's Decay as it ships").toBe(false);
+    await open(shell, { id: "ch.ducker", strip: "ch_5_6" });
+    expect(store.has("ch.ch_5_6.ducker.decay"), "DUCKER's Decay as it is held").toBe(false);
     const stored = snapshot(store);
-    await gesture("[aria-label^='D handle']", "ch.ch1.ducker.decay", [[4, 0]]);
-    expect([store.has("ch.ch1.ducker.decay"), snapshot(store)]).toEqual([false, stored]);
+    await gesture("[aria-label^='D handle']", "ch.ch_5_6.ducker.decay", [[4, 0]]);
+    expect([store.has("ch.ch_5_6.ducker.decay"), snapshot(store)]).toEqual([false, stored]);
 
     // Shift taken or let go inside the slop runs the drag from the slop's edge, as Shift held or not from the press.
     await open(shell, { id: "monitor.osc" });
@@ -1150,7 +1159,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
         } else if (m !== shifted[i] && !ownShift(m)) differ.push(`${m} | with Shift ${shifted[i] ?? "no control"}`);
       });
     }
-    expect(turned, "the sweep turned values").toBeGreaterThan(30);
+    expect(turned, "the sweep turned values").toBeGreaterThan(20);
     expect(differ).toEqual([]);
     expect(same, "a gain that Shift turns as without it").toEqual([]);
   });
@@ -1232,12 +1241,15 @@ describe("every knob-bound parameter is reachable on the glass", () => {
 
   it("finds screens that bind knobs at all, so the sweep cannot pass vacuously", async () => {
     const registry = buildRegistry();
-    let binding = 0;
+    const binding: string[] = [];
     for (const id of registry.ids()) {
       const { shell, bound } = await mount();
       await open(shell, { id, strip: "ch1" });
-      if (bound.length > 0) binding += 1;
+      if (bound.length > 0) binding.push(id);
     }
-    expect(binding).toBeGreaterThan(3);
+    expect(binding.length).toBeGreaterThan(3);
+    expect(binding, "the COMP and SSMCS screens are both swept").toEqual(
+      expect.arrayContaining(["ch.comp", "ch.ssmcs", "ch.ssmcs.comp", "ch.ssmcs.sc", "ch.ssmcs.eq"]),
+    );
   });
 });

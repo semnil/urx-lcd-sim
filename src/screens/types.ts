@@ -16,6 +16,8 @@ export interface ScreenBody {
   headerCenter?: HTMLElement;
   /** What the screen puts in the toolbar just left of the shell's icon row. */
   headerRight?: HTMLElement;
+  /** Whether this drawing of the screen shows the knob readout strip, over the screen's own `knobStrip`. */
+  knobStrip?: boolean;
 }
 
 export interface ScreenDef {

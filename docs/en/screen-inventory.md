@@ -22,7 +22,7 @@ Which screen leads to which is drawn in [screen-map.md](screen-map.md).
 | Sends destination picker | `sends-select` | p51 | Built. A sheet over HOME's main area; the side rail stays HOME's |
 | SCENE (menu) | `scene` | p72 | Built. Opened from the scene name at HOME's top left |
 | SCENE LIST | `scene.list` | p72-75 | Built (Store/Recall and Edit) |
-| Title entry | `scene.title` | — | Built. Opened from [Title] on SCENE LIST's Edit tab and from [Store] on a number with nothing stored. [Save as], [New folder] and [Rename] on SAVE/LOAD, [Rename] on RECORDER and [Format microSD] on TOOLS open the same screen as `microsd.name` ([Save as], [New folder] and [Rename] open it on the card's keyboard, with the extension outside the field; [Format microSD] titles it `Volume Label`, takes up to 11 characters and lets [OK] go on with the field empty). The guide has no figure of it |
+| Title entry | `scene.title` | — | Built. Opened from [Title] on SCENE LIST's Edit tab and from [Store] on its Store/Recall tab. [Save as], [New folder] and [Rename] on SAVE/LOAD, [Rename] on RECORDER and [Format microSD] on TOOLS open the same screen as `microsd.name` ([Save as], [New folder] and [Rename] open it on the card's keyboard, with the extension outside the field; [Format microSD] titles it `Volume Label`, takes up to 11 characters and lets [OK] go on with the field empty). The guide has no figure of it |
 
 ### SETUP
 
@@ -438,7 +438,8 @@ The status panel is 2 columns by 2 rows: +48V, Φ / HPF, HI-Z for a mono channel
 source is not MIC/LINE, the +48V and HI-Z cells are empty. The text is 13px, the same as
 captions. A lit mark takes the colour of that item's own button: red for +48V, orange for Φ and cyan
 for HPF and HI-Z. HOME's strip does the same — red for +48V, orange for Φ, cyan for HPF, and its
-button's cyan for the INS FX mark.
+button's cyan for the INS FX mark. On a mono channel whose COMP / EQ type is SSMCS, HOME's strip shows `SSMCS` in COMP's
+place, under HPF, and no `EQ`, lit in its switch's cyan while SSMCS is on (URX44V, the operator, 2026-10-04).
 
 Φ is drawn as a 10x11 mark rather than a letter, the same drawing on HOME's strip, the channel view and
 INPUT's [Φ] button: a bar 2 wide runs through a ring 7 high and out of it by 2px at each end (p047-1,
@@ -464,6 +465,9 @@ edge, GATE's and DUCKER's 13px (the same figures). Unlit is the pale `--badge-of
 face (white for COMP). A block with a value the knob turns takes the focus at the first touch on the rest of the block and
 opens that block's screen at the next: GATE, COMP and DUCKER turn their threshold, DELAY its time, and COMP and EQ their
 depth while 1-knob is on. EQ with 1-knob off and INS FX open the screen at the first touch.
+DELAY's block turns its time as the DELAY screen's ms cell does, 1.00 ms a detent with the hundredths kept
+(45.86 ms goes to 46.86 ms), and the same 1.00 ms with Shift held: the knob of STREAMING's channel view DELAY
+block does not push in, so it turns the time no finer (URX44V, the operator, 2026-10-03).
 The touch that only brings the focus does not sink the panel, which gains its frame alone; the touch that opens the
 screen sinks it.
 
@@ -532,8 +536,26 @@ drawing, and wrap to the other end at either end of the list. A mono input is on
 CH 1 … CH 12, FX 1 L, FX 1 R, FX 2 L, FX 2 R, MIX 1 L, MIX 1 R, MIX 2 L, MIX 2 R, STEREO L, STEREO R, STREAMING L, STREAMING R.
 The name's first line is the channel in view: a single number such as `CH 6` on a stereo input, L / R on the others. The narrow
 box writes STEREO as `ST` and STREAMING as `STR`. The second line is the name set on the strip, the same on either channel. A
-two-channel strip meters the channel in view alone in its gain column. The name box opens CH SETTING, but
-opens nothing while CH SETTING is showing.
+two-channel strip meters the channel in view alone in its gain column. The name box opens CH SETTING only on the
+channel and bus detail screens, where it is the wide box with the copy mark. On the screens further below them and on
+CH SETTING it neither sinks nor opens anything when touched.
+
+GATE belongs to the mono inputs, COMP to a mono input whose COMP / EQ type is not SSMCS and SSMCS to one whose type
+is, DUCKER to the stereo inputs, DELAY to STREAMING, and EQ to a mono input whose type is not SSMCS, the stereo inputs,
+the MIX buses and the stereo bus. Stepped to a channel that does not carry the block (a mono channel on SSMCS on the
+COMP screen, for one), these screens keep the channel's name in the toolbar, draw no title, and show `This channel has
+no GATE screen` (`COMP`, `EQ`, `DUCKER`, `DELAY` and `SSMCS` in the same form) in the middle, with the knob readout bar
+at the foot, its cells empty, the USER DEFINED KNOBS button at the bottom right, nothing to operate and nothing written
+(URX44V, the operator, 2026-10-02 and 2026-10-04).
+
+At 176.4 and 192 kHz the stereo inputs' EQ is out of use: their channel view draws no EQ block, DUCKER keeping its
+place, HOME's strip leaves its `EQ` mark out, and the EQ screen stepped to one of them shows `This channel has no EQ
+screen at this sampling frequency` in the same form (URX44V, the operator, 2026-10-04). The EQ keeps its settings, and
+the signal passes it untouched until the rate comes back down. At 96 kHz a stereo input keeps its EQ block and its `EQ`
+mark (URX44V, the operator, 2026-10-04, on CH 5/6). The other strips keep their EQ at 176.4 and 192 kHz: CH 1, CH 3 and
+CH 4 keep their `EQ` mark at both rates, and at 192 kHz CH 1, MIX 1 and STEREO keep their EQ block, MIX 1 and STEREO
+their `EQ` mark, and the EQ screens of CH 1, MIX 1 and STEREO draw the graph and the knobs (URX44V, the operator,
+2026-10-04).
 
 The screen name does not wrap.
 
@@ -659,8 +681,10 @@ graph's ground `--graph-bg`, that picks nothing. The curve's line turns from the
 `--accent-focus`.
 
 1-knob's Level rewrites the EQ's four bands ("How 1-knob EQ works" in the user guide). It takes the four gains as they
-stand when 1-knob goes on, or when Intensity is chosen while it is on, and Intensity's Level sets each gain to that gain
-times Level / 50 (as set at 50, flat at 0, twice at 100). Choosing Loudness sets LOW to Bell, Q 0.56, 90 Hz, L-MID to
+stand when 1-knob goes on, or when the curve is changed to Intensity from another while it is on, and Intensity's Level sets
+each gain to that gain times Level / 50 (as set at 50, flat at 0, twice at 100). Changing the kind of curve puts the Level on
+the new curve's neutral point (50 for Intensity, 0 for Vocal and Loudness). Choosing the kind already in use changes nothing:
+the Level and the gains stay as they are. Choosing Loudness sets LOW to Bell, Q 0.56, 90 Hz, L-MID to
 Q 1.00, 400 Hz, H-MID to Q 1.00, 2 kHz and HIGH to H.Shelf, Q 1.00, 6 kHz with every band on and no gain, and its Level gives each percent
 +0.20 dB to LOW, −0.20 dB to L-MID, +0.02 dB to H-MID and +0.10 dB to HIGH. Choosing Vocal sets LOW to HPF, 80 Hz, L-MID
 to 335 Hz, H-MID to 3 kHz and HIGH to Bell, 8 kHz (Q 0.71 on all four) with no gain, and switches LOW off and the other
@@ -695,6 +719,15 @@ When the sampling frequency puts every effect an FX channel offers past its ceil
 mark, no second line, and none of the indicators, meter, [ON] / [CUE], rotary or level reading under
 them. The strip's own face stays, and the rail along its foot is drawn dark grey in place of the
 channel's colour. The strip can still be selected, and touching it no longer opens the channel view.
+`‹` `›` still step onto FX 2 L and FX 2 R. There every channel screen, the channel view among them, keeps the
+channel's name in the toolbar, draws no title, and shows `This channel is not available at this sampling frequency` in
+the middle, with the knob readout bar at the foot, its cells empty, and nothing to operate: the name opens nothing, and
+nothing is written. The name box there carries no colour, its icon square and rail the box's own face, and names the
+channel on its first line alone. The Sends destination sheet leaves FX 2 out, and HOME's [Sends] on FX 2 moves to FX 1
+when the rate goes up and stays on FX 1 when it comes back down. On SEND TO's FX 1-2 tab the FX 2 cell keeps its
+`FX2` and nothing under it: no second line, no [ON], no [PRE], and no Level on the knob (URX44V, the operator,
+2026-10-04). A settings file loaded, or a unit coming back from storage, at 176.4 or 192 kHz with [Sends] on FX 2 puts
+[Sends] on FX 1 the same way.
 
 The guide carries no figure of either, so **the arrangement is this project's own**. What the guide
 does fix is that the controls stand in the middle of the screen (the middle of p113-1 is what
@@ -891,7 +924,7 @@ drawn on a face that does nothing when touched. Three things put an effect out o
 
 | Why | Which |
 | --- | --- |
-| The sampling frequency is past its ceiling | Pitch Fix to 48kHz; the guitar amps, the companders and M.B.Comp to 96kHz; FX 2's effects to 96kHz |
+| The sampling frequency is past its ceiling | Pitch Fix to 48kHz; the guitar amps, the companders and M.B.Comp to 96kHz |
 | The channel is carrying one stereo signal | The four guitar amps and Pitch Fix |
 | Another channel is holding the same one | One holder for the four guitar amps, one for Pitch Fix, one for the two companders, and one shared by M.B.Comp and the two companders across the outputs |
 
@@ -906,7 +939,7 @@ title opens the `EFFECT TYPE` sheet.
 Raising the sampling frequency past an effect's ceiling takes the insert off the channel, which then
 reads [No Effect], and lowering the frequency again does not put it back. An FX channel has no
 [No Effect] to fall to, so the effect it is running stays, and while the frequency is past the
-ceiling nothing on its sheet can be picked. Moving Signal Type takes the insert off both channels of
+ceiling the channel's screens show `This channel is not available at this sampling frequency`. Moving Signal Type takes the insert off both channels of
 the pair whichever way it moves. A stereo-linked pair shares one insert, held on the lower-numbered
 channel.
 
@@ -920,8 +953,30 @@ Measured on p115-1. The top row has the Frame rate caption (x15..76), the dropdo
 y48..87, its value 20px in from the left and its ▼ a 9x6 `--drop-mark` at x151..159 / y64..69) and `Frame / s` (from x178). Below it is the `Delay Time` band (x12..411 / y110..133, face `--dialog-sheet`). Four
 86x84 cells are spaced evenly across the band's width (x12..411 / y144..227), each holding a unit
 name, a 60x22 value box (y163..184) and a 38 knob stacked vertically. One time is shown four ways, in ms / frame /
-meter / feet, and turning any of them moves the same value (sound travels 0.343 m = 1.125 feet in one
-millisecond).
+meter / feet, and turning any of them moves the same value.
+
+The time runs 1.00..1000.00 ms and is held on 0.02 ms. The four cells work it in double precision as ms × (the
+frame rate / 1000) in frames, and ms / 1000 × 343.59 in metres and × 1127.26 in feet, and read it to their places, ms and
+frame to two and meter and feet to one, by Math.round on the value × 100 on ms and frame and × 10 on meter and
+feet, that product worked in double precision. At 25 frames a second 1.00 ms (0.025 frame) reads 0.03, and so does
+1.40 ms (0.035 frame), and 508.00 ms (572.65 ft) reads 572.6 ft (URX44V, the operator, 2026-10-03); the products
+come to 2.5, 3.4999999999999996 and 5726.499999999998. 3.40 ms (0.085 frame) reads 0.09 and 8.20 ms (0.205 frame)
+0.21 at 25 frames a second, and 994.40 ms reads 1120.9 ft (URX44V, the operator, 2026-10-04). A detent (an arrow key, the wheel or a knob under the screen;
+a drag turns as many detents as it covers) adds the cell's step to the reading the cell shows, rounds the sum to
+the cell's places and turns that back into a time by the same steps undone. The step is 1.00 ms on ms (45.86 goes
+to 46.86), 0.2 frame on frame, 1.0 m on meter and 5.0 ft on feet: 24.00 ms reads 8.2 m, so a detent up on meter
+goes to 9.2 m (26.78 ms). The time reached lands on the nearest 0.02 ms, a half going up (0.09 frame at 24
+frames a second, 3.75 ms, goes to 3.76 ms), and a detent past 1.00 ms or 1000.00 ms stops there (URX44V, the
+operator, 2026-10-03; frame at 24, 25, 29.97, 29.97D, 30, 30D, 60 and 120 frames a second). The frame cell's
+reading stops at the smallest and the largest one on two places whose time lies in 1.00..1000.00 ms, 0.03 frame
+(1.20 ms) and 25.00 at 25 frames a second (URX44V, the operator, 2026-10-03). A detent with Shift held turns a
+finer step the same way, as the unit's knob turns finer while it is pushed in as it turns: 0.02 ms on ms, and the
+reading's last place on frame, meter and feet, 0.01 frame, 0.1 m or 0.1 ft. From 24.00 ms it goes to 24.02 ms on
+ms, 24.34 ms on frame (0.73 frame) and 24.16 ms on meter (8.3 m) (URX44V, the operator, 2026-10-03; at 30 frames a
+second). At 24 frames a second frame goes from 8.20 ms (0.20 frame) to 0.21 frame, 8.75 ms, which lands on 8.76 ms
+(URX44V, the operator, 2026-10-04). It stops at the same ends as a detent does: at 25 frames a second frame goes down from 1.40 ms to 1.20 ms
+and no further (URX44V, the operator, 2026-10-03). A time that a browser save or a settings file holds off 0.02 ms
+comes back on the 0.02 ms nearest it, and the next save holds that time.
 
 ## EQ screen
 
@@ -1006,15 +1061,19 @@ EQ (measured on p112-1). The [EQ] title box at the top left (93x38, x0/y-1) and 
 beside it (93x38, x105/y-1, the title box's own lit face and band). The graph is the same 416x138
 frame the EQ screen uses, and the bands are the three L, M and H. LOW and HIGH are shelves, MID a
 bell. Dragging a handle moves its frequency across the graph and its gain up it (c under the SSMCS EQ screen in
-the user guide).
+the user guide). MID alone has a Q: while LOW or HIGH is picked, the knob readout bar's first cell, the Q's, is empty,
+with nothing to turn.
 
 The ranges: Comp Drive 0.00..10.00 in steps of 0.05, Morphing 0..120, Out Gain ±18.0 dB in 0.1 (1.0 a detent),
 Ratio 1.00:1..INF:1 (sixty stops of 0.05 from 1.00:1 to 4.00:1; from there 4.00..4.90 in 0.1, 5.00..6.80 in 0.2, 7.00..9.50 in 0.5,
 10.0..20.0 in 1 and 22.0..38.0 in 2, then 40.0, 45.0, 50.0, 55.0, 60.0, 65.0, 70.0, 80.0, 90.0, 100, 150, 200, 300,
 500 and INF; every stop URX44V, the operator, 2026-09-22 and 23; read to three figures: two places under 10, one under
-100, whole from 100, and the top carries its `:1` too, `INF:1`), Attack 0.092..80.000 ms, Release 9.3..999.0 ms, Knee Soft / Medium / Hard, Q
-0.50..16.00, frequency 20 Hz..20 kHz in twelfths of an octave (LOW to 1002 Hz, HIGH from 501 Hz), and
-gain ±18.0 dB.
+100, whole from 100, and the top carries its `:1` too, `INF:1`), Attack 0.092..80.00 ms over 227 stops (read to three places under 10 ms and two from there), Release
+9.3..999.0 ms over 277 stops (read to one place), both on the stops of the COMP's own Attack and Release, Knee Soft / Medium / Hard, Q
+0.50..16.00, frequency 20 Hz..20 kHz in twelfths of an octave, the stops being numbers of the R40 series of preferred
+numbers (forty to a decade: 1.00, 1.06, 1.12, 1.18, 1.25 and on) read to three figures (LOW to 1.00 kHz, HIGH from
+500 Hz), and gain ±18.0 dB. A frequency, Attack or Release that a browser save, a settings file or a scene holds off
+these stops comes back on the stop nearest it, and the next save holds that stop.
 
 The compressor makes up no gain. Under the corner the curve runs at the height of the input, and Out
 Gain is the only thing that lifts the whole of it (p110-1 reads -76.9 dB out for -76 dB in and
@@ -1113,7 +1172,8 @@ confirmed on a URX44V on 2026-10-04).
 A cell is a column like a HOME strip, 98px wide and 181px high: under a 36px `--surface-raised` band
 naming the destination come [ON], [PRE], the send's own pan slider, and `Bal` with its value (measured
 on p116-1: ON y95, PRE y146, slider y197, value y207..228). The send level is not in the cell; the knob
-and its readout bar hold it.
+and its readout bar hold it. A send into FX 1 or FX 2 is summed to one side, so its cell has no pan slider
+and no `Bal` (URX44V, the operator, 2026-10-04).
 
 Tabs on the rail are 57px high and 3px apart for SEND TO, and 52px high and 7px apart for the menu
 screens (MONITOR, SCENE, OSCILLATOR, Software Integration). The SEND TO tabs and the menu tabs have a
@@ -1719,17 +1779,21 @@ that is open in case alone asks nothing and writes over that file, which keeps i
 that differs from a folder's in case alone asks nothing and writes nothing. On a card with no room for one more settings
 file, a [Save as] under a new name writes nothing and shows nothing, and writing over a settings file there still goes
 through (what the unit does with a full card is in `known-issues.md`). [Save] and [Load] stand out of reach until a settings file is under the
-cursor. A settings file carries every value but the screen's own state (`ui.`, and the tabs OUTPUT
-PATCH, PERIPHERAL and SCENE LIST's Standard / Simple stand on), the card itself (`sd.`), the clock ("SETUP
-screen") and what a linked pair's COMP hears (`pair.`, "The three dynamics screens (GATE / COMP / DUCKER)"),
+cursor. A settings file carries every value but the screen's own state (`ui.` bar the destination HOME's [Sends]
+shows, and the tabs OUTPUT PATCH, PERIPHERAL and SCENE LIST's Standard / Simple stand on), the card itself (`sd.`), the clock
+("SETUP screen") and what a linked pair's COMP hears (`pair.`, "The three dynamics screens (GATE / COMP / DUCKER)"),
 so a load leaves those tabs where they stand, as on the unit (URX44V, the operator, 2026-10-04). SCENE LIST's
 cursor is in the file, and a load puts it back on the row it stood on when the file was saved, as on
 the unit (URX44V, the operator, 2026-10-04, on Standard's list). Where the tab standing open does not
 list that row, SCENE LIST opens the tab that does; a row both tabs list leaves the open tab where it
 stands (URX44V, the operator, 2026-10-04, for Simple's P02 and 09 loaded with Standard open, and Standard's 00 loaded with Simple open). The bank USER DEFINED KNOBS
 stands on is in the file, and a load brings back the bank the file was saved on, as on the unit
-(URX44V, the operator, 2026-10-03). A source the file holds no D.Gain for comes back to 0 dB when it
-is loaded, and a scene number the file holds nothing under comes back empty.
+(URX44V, the operator, 2026-10-03). A load brings [Sends] back to the destination the file was saved on,
+as on the unit (URX44V, the operator, 2026-10-04, for a file saved on MIX 1 and loaded over FX 1, and one
+saved on ST at 192 kHz and loaded over FX 2 at 48 kHz). A source the file holds no D.Gain for comes back
+to 0 dB when it is loaded, a BALANCE the file holds none for comes back to the centre, [Sends] comes back
+on ST from a file that names no destination, and a scene number the file holds nothing under comes back
+empty.
 
 A playback runs against the take's length, writing the counter and the bar in place once a second.
 At the end of the file playback lets the file go, as [■] does: the triangle leaves the microSD icon, and RECORDER's card-eject
@@ -1763,17 +1827,23 @@ of a scene the unit ships with (00 and P01 to P03) carries a factory: a sawtooth
 The heading `Title` starts at x122 rather than over the middle of its column, and `No.` and `Lock` stand over the
 middle of their cells.
 
-[Store] opens the title entry sheet on the last recalled scene's title for a number with nothing stored, and on [OK]
-stores the scene and makes it the recalled one. On a stored number it asks `Store to "Scene Memory #05"?` (the number is
-the picked scene's) with [Cancel] / [OK], and on [OK] stores over it and makes it the recalled one.
+[Store] opens the title entry sheet on the last recalled scene's title, on a number with nothing stored and on a stored
+one alike. The sheet's [OK] goes back to the list and asks `Store to "Scene Memory #05"?` (the number is the picked
+scene's) with [Cancel] / [OK]; [OK] stores the typed title and the mixer under the number, makes it the recalled scene, and
+holds a `Scene store is in progress...` modal up for 2 seconds, as long as a RECORDER tab's `Loading...`. On the unit
+the modal stood for about 1 to 3 seconds, a little longer or shorter each time (URX44V, the operator, 2026-10-04), and
+the simulator holds it the same 2 seconds each time (the operator's choice). [Cancel] on the sheet and on the question
+stores nothing.
 
 [Recall] cannot be used on a number with nothing stored, and a press asks nothing. On a stored number and on a factory scene
 it asks `Recall scene "Band"?` (the title is the picked scene's) with [Cancel] / [OK], and on [OK] puts that scene's mixer
-back and makes it the recalled one. A source the scene holds no D.Gain for comes back to 0 dB. 00 Initial Data puts the
-factory mixer back. P01 to P03 lay settings of their own over the factory mixer. The main ones are below; the whole of what
-a preset changes is in `src/model/scene-presets.ts`. The table's channels go onto the mono and the stereo channels from the lowest number
-up, the mono channels on a HI-Z connector (CH 3-4 in the table) apart from the rest: on a URX22, CH 1 takes the table's CH 1,
-CH 2 on its HI-Z connector takes the table's CH 3, and CH 3/4 to 9/10 take its four stereo channels.
+back and makes it the recalled one. A source the scene holds no D.Gain for comes back to 0 dB, and a BALANCE the scene holds
+none for comes back to the centre. A recall leaves the destination HOME's [Sends] shows where it stands, as on the unit
+(URX44V, the operator, 2026-10-04, for a scene stored on MIX 1 and recalled over FX 1). 00 Initial Data puts the factory
+mixer back. P01 to P03 lay settings of their own over the factory mixer. The main ones are below; the whole of what a preset
+changes is in `src/model/scene-presets.ts`. The table's channels go onto the mono and the stereo channels from the lowest
+number up, the mono channels on a HI-Z connector (CH 3-4 in the table) apart from the rest: on a URX22, CH 1 takes the
+table's CH 1, CH 2 on its HI-Z connector takes the table's CH 3, and CH 3/4 to 9/10 take its four stereo channels.
 
 | Preset | Mono channels | Stereo channels (lowest number first) |
 | --- | --- | --- |
@@ -1806,7 +1876,7 @@ The Edit tab (p074-1) sets glyph-only buttons [Protect], [Delete] and [Title] al
 
 ## The title entry sheet
 
-The sheet that [Title], and [Store] on a number with nothing stored, open covers the glass with the `--dialog-sheet` face. [Cancel] stands at the top left and [OK] at
+The sheet that [Title] and [Store] open covers the glass with the `--dialog-sheet` face. [Cancel] stands at the top left and [OK] at
 the top right (the buttons of the DATE / TIME dialog), a black field under the gap between them (x124..361 / y49..89,
 the title in 15px bold, a clear button at its right end), and the keyboard across the foot. The keys stand in four rows
 (y96..135, y137..176, y178..217, y219..257) on forty columns, four to a key (x7..470, 2px between keys, 15px type).
@@ -1823,8 +1893,9 @@ wide), space (three keys wide), `@`, `.`, and `<` and `>` (one and three quarter
 
 [Shift] turns on and off at each tap; while on, its face is `--accent-selected` and the letter keys draw and type
 capitals. A title takes up to 16 characters, and a key typed past that changes nothing. `<` and `>` move the cursor a character at a time, and typing and backspace act at the cursor. The clear
-button empties the field. The sheet opens on the letters with Shift off, and [OK] writes the title. [OK] does nothing
-while the field is empty, and [Cancel] writes nothing.
+button empties the field. The sheet opens on the letters with Shift off; [OK] on [Title]'s sheet writes the title, and
+[OK] on [Store]'s goes on to the question before storing. [OK] does nothing while the field is empty, and [Cancel] writes
+nothing.
 
 A name on the card ([Save as], [New folder] and [Rename] on SAVE/LOAD, and [Rename] on RECORDER) opens the sheet on
 the card's keyboard. Its letters and row 4 are the title's, and its numbers and symbols run as below. A row shorter

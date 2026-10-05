@@ -2,17 +2,17 @@
 // and "Other operations > Storing a scene").
 
 import type { AppContext } from "../app/context";
-import { applyScene, captureScene, readScene } from "../model/scene-state";
+import { applyScene, asPutBack, captureScene, readScene } from "../model/scene-state";
 import { shippedScene } from "../model/scene-presets";
 import { onDynamicsTimeStops } from "../model/dynamics-times";
-import { withEverySourceGain } from "../model/source-gain";
 import { dropInsertsOverRate } from "./insert-fx";
 import { followRecall, pairStates } from "./stereo-link";
 import { settlePanLink } from "./mix-bus";
+import { onSsmcsStops } from "./ssmcs";
 import { el, markShut } from "../ui/dom";
 import { Icons } from "../ui/icons";
-import { LIST_THUMB_MIN_PX, button, dialog, listView, menuButton, menuGrid, scrollbar, sideTab, toggle } from "../ui/widgets";
-import { openTitleEntry } from "./title-entry";
+import { LIST_THUMB_MIN_PX, SHORT_PROGRESS_MS, button, dialog, listView, loadingDialog, menuButton, menuGrid, scrollbar, sideTab, toggle } from "../ui/widgets";
+import { draftTitle, openTitleEntry } from "./title-entry";
 import type { ScreenBody, ScreenDef } from "./types";
 import { toJson } from "../device/value-json";
 
@@ -80,13 +80,14 @@ function statePath(bank: string, no: number): string {
  * scenes — 00 and the presets — hold the mixers the unit ships with, which
  * nothing stores over, so they are put back from those rather than from a stored
  * copy. A source whose digital gain the scene does not name comes back to 0 dB,
- * and a GATE, COMP or DUCKER time it holds off its stops on the stop nearest it.
+ * a BALANCE it does not name to the centre, and a GATE, COMP or DUCKER time or an
+ * SSMCS frequency, Attack or Release it holds off its stops on the stop nearest it.
  */
 export async function recallScene(ctx: AppContext, no: number): Promise<void> {
   const bank = storedBank(ctx, no);
   const state = bank ? readScene(ctx.store, statePath(bank, no)) : isFactoryLocked(no) ? shippedScene(ctx.model, isPreset(no) ? no - PRESET_BASE : 0) : undefined;
   const pairs = pairStates(ctx);
-  if (state) await applyScene(ctx.store, onDynamicsTimeStops(withEverySourceGain(ctx.store, state)));
+  if (state) await applyScene(ctx.store, onSsmcsStops(onDynamicsTimeStops(asPutBack(ctx.store, state))));
   followRecall(ctx, pairs);
   // A scene stored while Pan Link left each send's own placing where it was, or
   // kept Pan Link on over a FIXED bus, comes back as the unit would hold it.
@@ -96,6 +97,22 @@ export async function recallScene(ctx: AppContext, no: number): Promise<void> {
   // can come back onto a unit that is running too fast for it.
   dropInsertsOverRate(ctx, ctx.store.num("setup.samplingFrequency", 48000));
   ctx.repaint();
+}
+
+/**
+ * What [Store] does once it is answered: the mixer goes in under the number with
+ * the title typed for it and becomes the scene recalled, the title, the mixer and
+ * the number in one operation of the store, and `Scene store is in progress...`
+ * stands over the list as long as the other short progress modals.
+ */
+function storeTitled(ctx: AppContext, bank: string, no: number, title: string): void {
+  ctx.store.operation(() => {
+    void ctx.store.set(`scene.${bank}.${no}.title`, title);
+    void storeScene(ctx, bank, no);
+  });
+  let close = (): void => undefined;
+  const timer = window.setTimeout(() => close(), SHORT_PROGRESS_MS);
+  close = ctx.overlay(loadingDialog("Scene store is in progress..."), () => window.clearTimeout(timer));
 }
 
 /** Take the mixer as it stands into a scene number, and recall it, the scene and the number in one operation of the store. */
@@ -245,17 +262,21 @@ export const sceneScreen: ScreenDef = {
     const storeShut = isFactoryLocked(selected) || guarded || readOnly;
     const store = markShut(button("Store", () => {
       if (storeShut) return;
-      // A number with nothing stored is named on the title entry sheet, starting from the recalled scene's title.
-      if (owner === null) {
-        openTitleEntry(ctx, `scene.${bank}.${selected}.title`, sceneTitle(ctx, current), selected);
-        return;
-      }
-      ctx.overlay(
-        dialog({
-          message: `Store to "Scene Memory #${sceneNumber(selected)}"?`,
-          onOk: () => void storeScene(ctx, bank, selected),
-        }),
-      );
+      // Any number is named on the title entry sheet first, starting from the
+      // recalled scene's title, and [OK] there asks before anything is stored.
+      draftTitle(ctx, {
+        path: "",
+        title: sceneTitle(ctx, current),
+        onOk: (typed) => {
+          ctx.overlay(
+            dialog({
+              message: `Store to "Scene Memory #${sceneNumber(selected)}"?`,
+              onOk: () => storeTitled(ctx, bank, selected, typed),
+            }),
+          );
+        },
+      });
+      ctx.nav.push({ id: "scene.title" });
     }), storeShut);
 
     // Only a stored scene can be protected, and only one left unprotected deleted or renamed.
@@ -271,6 +292,7 @@ export const sceneScreen: ScreenDef = {
             onOk: () => {
               void ctx.store.set(titlePath, "");
               void ctx.store.set(protectPath, 0);
+              void ctx.store.set(statePath(`${owner}`, selected), "");
             },
           }),
         );
