@@ -1919,7 +1919,7 @@ title's keyboard.
 
 Of the controls the unit's knob turns, only the one touched holds the focus, shown in magenta (`--accent-focus`). None
 holds it when a screen opens or after moving to another screen, with these exceptions: EQ opens holding the band picked
-last (LOW at first), one band shared by every channel's EQ, which a reload keeps and [Reset the unit] brings back to
+last (LOW at first), one band shared by every channel's EQ, which a reload keeps and [Initialize All Memories] brings back to
 LOW; SSMCS EQ opens holding the band picked last there (MID at first), one band shared by every channel and kept apart
 from EQ's; the COMP and EQ screens with 1-knob on open with the focus pinned on the level (below); an effect's page on
 INS FX or an FX channel opens, and is stepped to, with its first knob's value framed (M.B.Comp's with the value it sets

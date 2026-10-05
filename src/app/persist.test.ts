@@ -353,7 +353,7 @@ describe("what a reload carries over", () => {
   });
 
   it("stores the unit as it ships at once when it starts again from it", async () => {
-    // [Reset the unit]: the unit as it ships takes the place of what was stored.
+    // [Initialize All Memories]: the unit as it ships takes the place of what was stored.
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const store = await unit();
     const first = await start(store);
@@ -438,7 +438,7 @@ describe("what a reload carries over", () => {
   });
 
   it("drops a change still waiting when it stops, and leaves nothing behind for the next start", async () => {
-    // [Reset the unit] stops the unit before it starts again: the change is not stored.
+    // [Initialize All Memories] stops the unit before it starts again: the change is not stored.
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const store = await unit();
     const { saving } = await start(store, MODEL, { tab: "a" });
@@ -828,7 +828,7 @@ describe("one tab at a time", () => {
     expect([readUnit(one.kept, MODEL)?.["ch.ch1.level"], readUnit(two.kept, MODEL)?.["ch.ch1.level"], one.kept.token === two.kept.token]).toEqual([-9, -9, true]);
   });
 
-  it("lets [Reset the unit] in one tab stand over another tab's change, with its card and model, and tells that tab", async () => {
+  it("lets [Initialize All Memories] in one tab stand over another tab's change, with its card and model, and tells that tab", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const { a, tabA } = await twoTabs();
     await a.set("ch.ch1.level", -9);

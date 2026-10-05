@@ -304,11 +304,17 @@ async function boot(
         confirmation(
           "current", "Initialize Current Memories",
           model.hasSD
-            ? "Initialize current memories? Scene memories and the microSD card will stay."
-            : "Initialize current memories? Scene memories will stay.",
+            ? "Initialize current memories? Current values and settings will return to factory defaults. Saved scene memories and the microSD card will stay. This cannot be undone."
+            : "Initialize current memories? Current values and settings will return to factory defaults. Saved scene memories will stay. This cannot be undone.",
           "Initialize", () => void restart("current"),
         ),
-        confirmation("reset", "Reset the unit", "Drop everything and start again?", "Reset", () => void restart("reset")),
+        confirmation(
+          "reset", "Initialize All Memories",
+          model.hasSD
+            ? "Initialize all memories? Current values, settings and saved scene memories will return to factory defaults. The microSD card will stay. This cannot be undone."
+            : "Initialize all memories? Current values, settings and saved scene memories will return to factory defaults. This cannot be undone.",
+          "Initialize", () => void restart("reset"),
+        ),
       ],
     });
     popup.hidden = active === null || active === "starting";
@@ -398,7 +404,7 @@ async function boot(
   const stopMeters = startMeterTicker(store, shell.root);
   const stopClock = startRecorderClock(store, shell.root);
   const stopDateTime = startDateTimeClock(store, shell.root);
-  // Tearing down drops a change still waiting to be stored, as [Reset the unit]
+  // Tearing down drops a change still waiting to be stored, as [Initialize All Memories]
   // does; picking another model writes it first, and leaving the page leaves it
   // for the next start.
   disposeMounted = (): void => {

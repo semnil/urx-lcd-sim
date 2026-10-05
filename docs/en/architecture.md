@@ -118,16 +118,16 @@ and `urx-lcd-sim.model`, is read while the record holds nothing, and let go once
 What is left out is **what the unit was doing** at that moment: a take or a playback running
 (`sd.rec` and the rest) and a name half typed (`ui.titleEntry.`, `ui.dateTimeDraft.`) come back
 stopped, as they do on a unit that has been switched off. The result of TOOLS' card test (`sd.tested`)
-is left out too, as a unit switched off no longer shows it. [Reset the unit] and [Initialize Current Memories],
+is left out too, as a unit switched off no longer shows it. [Initialize All Memories] and [Initialize Current Memories],
 in the Device menu outside the screen, ask first, then start again from the unit as it ships and store it at once over what was stored.
 [Initialize Current Memories] puts back each scene memory's title, mixer and protection, but resets the current
-scene selection. [Reset the unit] resets the scene memories too. Both leave the card in the slot as it stands, with
-its takes, settings files and volume label ([Format microSD] on TOOLS empties it). Each question sits on a panel
+scene selection. [Initialize All Memories] resets the scene memories too. Both leave the card in the slot as it stands, with
+its takes, settings files and volume label ([Format microSD] on TOOLS empties it). Each confirmation warns which values return to factory defaults, which remain, and that initialization cannot be undone. Each question sits on a panel
 laid over the page under the selector row, so the other controls and the glass stay where they are. The two questions
 cannot stand open together. Initialization and model changes share a startup lock: once either begins, the model
 selector is disabled and Device accepts no action until the replacement unit is mounted. A confirmation alone
 does not lock model selection; choosing a model closes that confirmation.
-A click on [Reset] or [Initialize] does not answer as the second click of a double
+A click on [Initialize] does not answer as the second click of a double
 click or within 500 ms of the question appearing.
 
 A value stored in an earlier form is brought to the current one as it is read. A state stored while
@@ -168,7 +168,7 @@ write. The look at the record and the write are one readwrite transaction, which
 other tab's, so no tab writes over a unit another tab stored after what it read, even while it is still putting the
 unit back. A tab tells the others the token of each write on a `BroadcastChannel` named `urx-lcd-sim.state`. A model
 picked is kept with the record's token as it was, so it stops no other tab, and each unit stored carries its own
-model. [Reset the unit] and [Initialize Current Memories] write their initialized unit over whatever the record holds.
+model. [Initialize All Memories] and [Initialize Current Memories] write their initialized unit over whatever the record holds.
 
 A tab that hears of another tab's write, or finds at its own write that the record has moved on, stops writing, so as
 not to write over the other tab's unit, and says so on the same banner, which, once closed, comes back at the next
@@ -196,7 +196,7 @@ flowchart LR
   DB -->|"opening on the same model"| ST
   ST -->|"leaving the page"| LEFT["localStorage<br/>urx-lcd-sim.left.*"]
   LEFT -->|"the next start, where the record holds what that tab read"| DB
-  RS["[Reset the unit]"] -->|"confirm, keep the card and start with factory values"| INIT["Initialized unit"]
+  RS["[Initialize All Memories]"] -->|"confirm, keep the card and start with factory values"| INIT["Initialized unit"]
   CM["[Initialize Current Memories]"] -->|"confirm, keep scenes and the card and start with factory values"| INIT
   INIT -->|"store"| DB
   ST -->|"here instead while on a unit"| LB["localStorage<br/>urx-lcd-sim.bridge.state"]
@@ -319,7 +319,7 @@ with only initialization actions in its menu. Arrow keys, Home and End move betw
 and returns focus to Device; a pointer or focus outside the Device control also closes it. Choosing an action
 replaces the menu with its confirmation.
 `Escape` takes either initialization question back as
-[Cancel] does, and the focus returns to Device. Once [Reset] or [Initialize] starts the unit again, the focus
+[Cancel] does, and the focus returns to Device. Once [Initialize] starts the unit again, the focus
 stands on Device; a change of model keeps it on the model selector.
 
 On-screen controls keep the unit's dimensions (26px-high buttons on the 4.3-inch panel, and so on).
