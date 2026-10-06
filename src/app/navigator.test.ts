@@ -6,6 +6,15 @@ describe("Navigator", () => {
     expect(new Navigator().current.id).toBe("home");
   });
 
+  it("starts on the top of what it is given over HOME, and steps back down to HOME", () => {
+    const nav = new Navigator({ id: "home" }, [{ id: "channel-view", strip: "ch1" }, { id: "ch.eq", strip: "ch1" }]);
+    expect([nav.current, nav.depth]).toEqual([{ id: "ch.eq", strip: "ch1" }, 3]);
+    nav.back();
+    expect(nav.current).toEqual({ id: "channel-view", strip: "ch1" });
+    nav.back();
+    expect([nav.current.id, nav.canGoBack]).toEqual(["home", false]);
+  });
+
   it("pops one screen per back, and never past HOME", () => {
     const nav = new Navigator();
     nav.push({ id: "setup" });

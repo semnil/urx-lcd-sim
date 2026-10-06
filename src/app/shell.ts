@@ -29,7 +29,7 @@ import { screenOnly } from "../screens/screen-only";
 import { bankSide, bankTotal, currentBank, stepBank } from "../screens/strip-state";
 import type { AppContext, KnobReadout } from "./context";
 import { Navigator } from "./navigator";
-import type { RouteChange } from "./navigator";
+import type { Route, RouteChange } from "./navigator";
 import { scrimFilter } from "../ui/scrim";
 
 /** Divisions the multi-function readout bar has. */
@@ -69,12 +69,18 @@ export class Shell {
   private readonly offFocusRing: () => void;
   private readonly offSwipe: () => void;
 
+  /**
+   * `start` is what stands over HOME as the shell comes up, and the first screen
+   * it draws is the top of it. The simulator opens on HOME; a test that reads one
+   * screen opens on that screen, rather than drawing HOME only to leave it.
+   */
   constructor(
     private readonly registry: ScreenRegistry,
     store: DeviceStore,
     model: UnitModel,
+    start: Route[] = [],
   ) {
-    const nav = new Navigator({ id: "home" });
+    const nav = new Navigator({ id: "home" }, start);
     const focus = new FocusController();
     this.ctx = {
       store,

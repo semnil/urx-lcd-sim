@@ -20,8 +20,9 @@ export class Navigator {
   private stack: Route[];
   private readonly listeners = new Set<RouteListener>();
 
-  constructor(home: Route = { id: "home" }) {
-    this.stack = [home];
+  /** `above` is what stands over HOME from the start, the top of it the screen up. */
+  constructor(home: Route = { id: "home" }, above: Route[] = []) {
+    this.stack = [home, ...above];
   }
 
   get current(): Route {
