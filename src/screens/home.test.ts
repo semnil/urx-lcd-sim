@@ -4931,61 +4931,62 @@ describe("what the dedicated channel screens draw", () => {
     }
   });
 
-  it("says FX 2 is not available at 176.4 / 192 kHz on every channel screen the arrows step onto it, and leaves nothing on it to operate", async () => {
-    const LINE = "This channel is not available at this sampling frequency";
-    const screens = [
-      "channel-view", "ch.setting", "ch.input", "ch.gate", "ch.comp", "ch.eq", "ch.ducker", "ch.delay",
-      "ch.insfx", "ch.effect", "ch.sendto", "ch.ssmcs", "ch.ssmcs.comp", "ch.ssmcs.sc", "ch.ssmcs.eq",
-    ];
-    for (const id of screens) {
-      for (const rate of [96000, 176400, 192000]) {
-        const shell = await mount();
-        const store = shell.ctx.store;
-        await store.set("setup.samplingFrequency", rate);
-        // FX 1 R, the channel before FX 2 L.
-        await store.set("ui.lane.fx1", 1);
-        shell.ctx.nav.push({ id: "channel-view", strip: "fx1" });
-        if (id !== "channel-view") shell.ctx.nav.push({ id, strip: "fx1" });
-        await flush();
-        expect(shell.root.querySelector(".main .screen-missing")?.textContent, `${id} ${rate}: FX 1 R`).not.toBe(LINE);
-        const fx2 = (): string => JSON.stringify(store.pathsUnder("ch.fx2").map((p) => [p, store.get(p, "")]));
-        const held = fx2();
-        const seen: (string | null | undefined)[][] = [];
-        for (let i = 0; i < 3; i++) {
-          shell.root.querySelector<HTMLElement>('.ch-arrow[aria-label="Next channel"]')?.click();
-          await flush();
-          const chip = shell.root.querySelector<HTMLElement>(".ch-chip");
-          const missing = shell.root.querySelector(".main .screen-missing")?.textContent;
-          const at = `${id} ${rate} ${chip?.querySelector(".ch-chip-id")?.textContent}`;
-          if (missing !== LINE) {
-            seen.push([shell.ctx.nav.current.id, shell.ctx.nav.current.strip, chip?.querySelector(".ch-chip-id")?.textContent, "drawn"]);
-            continue;
-          }
-          const controls = [...shell.root.querySelectorAll<HTMLElement>(".main button, .main [role], .main [tabindex], .knob-strip [role]")];
-          expect(controls.map((c) => c.className), `${at}: nothing to operate`).toEqual([]);
-          expect(shell.root.querySelector(".toolbar .badge-title"), `${at}: no title`).toBeNull();
-          expect(
-            [shell.root.classList.contains("has-knobs"), shell.root.querySelectorAll(".knob-strip .knob-cell.is-empty").length, shell.root.querySelector(".udk-toggle") !== null],
-            `${at}: the readout bar at the foot with its cells empty, and the USER DEFINED KNOBS button`,
-          ).toEqual([true, 4, true]);
-          const depth = shell.ctx.nav.depth;
-          chip?.click();
-          await flush();
-          expect([shell.ctx.nav.current.id, shell.ctx.nav.depth], `${at}: the name opens nothing`).toEqual([id, depth]);
-          seen.push([shell.ctx.nav.current.id, shell.ctx.nav.current.strip, chip?.querySelector(".ch-chip-id")?.textContent, chip?.getAttribute("aria-disabled")]);
-        }
-        const shut = rate > 96000;
-        expect(seen, `${id} ${rate}`).toEqual([
-          [id, "fx2", "FX 2 L", shut ? "true" : "drawn"],
-          [id, "fx2", "FX 2 R", shut ? "true" : "drawn"],
-          [id, "bus.mix1", "MIX 1 L", "drawn"],
-        ]);
-        expect(fx2(), `${id} ${rate}: nothing written to FX 2`).toBe(held);
-        shell.destroy();
-      }
-    }
+  const FX2_LINE = "This channel is not available at this sampling frequency";
 
-    // Back from a screen the arrows carried onto FX 2 is FX 2's channel view, which says the same.
+  // One test a screen: as one, the 15 screens at three rates took a parallel run
+  // under load near the 5,000 ms limit.
+  it.each([
+    "channel-view", "ch.setting", "ch.input", "ch.gate", "ch.comp", "ch.eq", "ch.ducker", "ch.delay",
+    "ch.insfx", "ch.effect", "ch.sendto", "ch.ssmcs", "ch.ssmcs.comp", "ch.ssmcs.sc", "ch.ssmcs.eq",
+  ])("says FX 2 is not available at 176.4 / 192 kHz on %s as the arrows step onto it, and leaves nothing on it to operate", async (id) => {
+    for (const rate of [96000, 176400, 192000]) {
+      const shell = await mount();
+      const store = shell.ctx.store;
+      await store.set("setup.samplingFrequency", rate);
+      // FX 1 R, the channel before FX 2 L.
+      await store.set("ui.lane.fx1", 1);
+      shell.ctx.nav.push({ id: "channel-view", strip: "fx1" });
+      if (id !== "channel-view") shell.ctx.nav.push({ id, strip: "fx1" });
+      await flush();
+      expect(shell.root.querySelector(".main .screen-missing")?.textContent, `${id} ${rate}: FX 1 R`).not.toBe(FX2_LINE);
+      const fx2 = (): string => JSON.stringify(store.pathsUnder("ch.fx2").map((p) => [p, store.get(p, "")]));
+      const held = fx2();
+      const seen: (string | null | undefined)[][] = [];
+      for (let i = 0; i < 3; i++) {
+        shell.root.querySelector<HTMLElement>('.ch-arrow[aria-label="Next channel"]')?.click();
+        await flush();
+        const chip = shell.root.querySelector<HTMLElement>(".ch-chip");
+        const missing = shell.root.querySelector(".main .screen-missing")?.textContent;
+        const at = `${id} ${rate} ${chip?.querySelector(".ch-chip-id")?.textContent}`;
+        if (missing !== FX2_LINE) {
+          seen.push([shell.ctx.nav.current.id, shell.ctx.nav.current.strip, chip?.querySelector(".ch-chip-id")?.textContent, "drawn"]);
+          continue;
+        }
+        const controls = [...shell.root.querySelectorAll<HTMLElement>(".main button, .main [role], .main [tabindex], .knob-strip [role]")];
+        expect(controls.map((c) => c.className), `${at}: nothing to operate`).toEqual([]);
+        expect(shell.root.querySelector(".toolbar .badge-title"), `${at}: no title`).toBeNull();
+        expect(
+          [shell.root.classList.contains("has-knobs"), shell.root.querySelectorAll(".knob-strip .knob-cell.is-empty").length, shell.root.querySelector(".udk-toggle") !== null],
+          `${at}: the readout bar at the foot with its cells empty, and the USER DEFINED KNOBS button`,
+        ).toEqual([true, 4, true]);
+        const depth = shell.ctx.nav.depth;
+        chip?.click();
+        await flush();
+        expect([shell.ctx.nav.current.id, shell.ctx.nav.depth], `${at}: the name opens nothing`).toEqual([id, depth]);
+        seen.push([shell.ctx.nav.current.id, shell.ctx.nav.current.strip, chip?.querySelector(".ch-chip-id")?.textContent, chip?.getAttribute("aria-disabled")]);
+      }
+      const shut = rate > 96000;
+      expect(seen, `${id} ${rate}`).toEqual([
+        [id, "fx2", "FX 2 L", shut ? "true" : "drawn"],
+        [id, "fx2", "FX 2 R", shut ? "true" : "drawn"],
+        [id, "bus.mix1", "MIX 1 L", "drawn"],
+      ]);
+      expect(fx2(), `${id} ${rate}: nothing written to FX 2`).toBe(held);
+      shell.destroy();
+    }
+  });
+
+  it("goes back from a screen the arrows carried onto FX 2 at 176.4 / 192 kHz to FX 2's channel view, which says the same", async () => {
     const shell = await mount();
     await shell.ctx.store.set("setup.samplingFrequency", 192000);
     await shell.ctx.store.set("ui.lane.fx1", 1);
@@ -4999,7 +5000,7 @@ describe("what the dedicated channel screens draw", () => {
     expect([shell.ctx.nav.current.id, shell.ctx.nav.current.strip, shell.root.querySelector(".main .screen-missing")?.textContent]).toEqual([
       "channel-view",
       "fx2",
-      LINE,
+      FX2_LINE,
     ]);
   });
 
