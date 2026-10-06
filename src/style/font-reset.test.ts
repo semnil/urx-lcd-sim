@@ -107,9 +107,9 @@ async function drawScreen(id: string): Promise<HTMLElement[]> {
     await store.attach(new SimTransport(factoryState(model)));
     // A mono channel draws its SSMCS screens while its COMP / EQ type is SSMCS.
     if (id.startsWith("ch.ssmcs") && findStrip(model, strip)?.kind === "monoIn") await store.set(`ch.${strip}.compEqOrder`, "SSMCS");
-    const shell = new Shell(registry, store, model);
-    shell.ctx.nav.push({ id, strip });
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    // On the screen itself: HOME, drawn first and left, was most of what the sweep drew.
+    const shell = new Shell(registry, store, model, [{ id, strip }]);
+    await new Promise((resolve) => setImmediate(resolve));
     return shell.root;
   };
   for (const strip of STRIPS) roots.push(await draw(id, strip));
@@ -124,7 +124,7 @@ async function drawScreen(id: string): Promise<HTMLElement[]> {
   for (const i of kinds.values()) {
     const root = await draw(id, STRIPS[0] ?? "ch1");
     controls(root)[i]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setImmediate(resolve));
     if (root.querySelector("[data-overlay]")) roots.push(root);
   }
   return roots;
