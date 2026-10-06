@@ -16,7 +16,7 @@ import type { Route } from "./navigator";
 // screen hands to the multi-function knobs has to be turnable on the glass. If
 // it is not, the value is stranded: visible and unchangeable.
 
-const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+const flush = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 
 interface Mounted {
   shell: Shell;
@@ -700,9 +700,10 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     return { shell, store, node };
   }
 
-  it("turns EQ's, COMP's and SSMCS's gains 1 dB a detent and 0.1 dB with Shift, as the unit's knob turns them and turns them pushed in", async () => {
-    const turned: unknown[] = [];
-    for (const g of FINE_GAINS) {
+  // One test a gain: as one, the 17 gains took a parallel run under load past 3 s.
+  it.each(FINE_GAINS.map((g) => [g.path, g] as const))(
+    "turns %s 1 dB a detent and 0.1 dB with Shift, as the unit's knob turns it and turns it pushed in",
+    async (_path, g) => {
       const { shell, store, node } = await onGain(g);
       const value = (): number => store.num(g.path, NaN);
       const key = async (k: string, shiftKey = false): Promise<number> => {
@@ -730,13 +731,15 @@ describe("every knob-bound parameter is reachable on the glass", () => {
       const top = [await key("ArrowUp"), await key("ArrowUp", true)];
       await from(min + 0.5);
       const bottom = [await key("ArrowDown"), await key("ArrowDown", true)];
-      turned.push({ gain: g.path, keys, wheels, top, bottom });
       shell.destroy();
-    }
-    expect(turned, "a detent up, one with Shift up and down, and one down; the wheel the same way; and none past either end").toEqual(
-      FINE_GAINS.map((g) => ({ gain: g.path, keys: [1.5, 1.6, 1.5, 0.5], wheels: [0.4, 1.4, 1.3, 0.3], top: [g.range[1], g.range[1]], bottom: [g.range[0], g.range[0]] })),
-    );
-  });
+      expect({ keys, wheels, top, bottom }, "a detent up, one with Shift up and down, and one down; the wheel the same way; and none past either end").toEqual({
+        keys: [1.5, 1.6, 1.5, 0.5],
+        wheels: [0.4, 1.4, 1.3, 0.3],
+        top: [max, max],
+        bottom: [min, min],
+      });
+    },
+  );
 
   it("reaches every gain the unit's knob does, by a detent, a detent with Shift and a drag", async () => {
     const reached: unknown[] = [];
@@ -1140,7 +1143,10 @@ describe("every knob-bound parameter is reachable on the glass", () => {
 
   // FX 2 ships Mono Delay, whose delay turns 5 ms a detent, and STREAMING's channel view turns its DELAY block's
   // time: the knob on that DELAY block does not push in (URX44V, the operator, 2026-10-03).
-  it.each([...STRIPS, "fx2", "bus.stream"])("turns a value a detent with Shift as without it, and a gain the knob turns finer pushed in by a finer one (%s)", async (strip) => {
+  // A test a strip and a half of the screens: the channel screens, and the rest. As one a strip, the sweep mounted a
+  // unit twice for each of the 46 screens and took a parallel run under load past 4 s.
+  const CHANNEL_SCREENS = (id: string): boolean => id === "channel-view" || id.startsWith("ch.");
+  it.each([...STRIPS, "fx2", "bus.stream"].flatMap((strip) => [[strip, "channel"], [strip, "other"]] as const))("turns a value a detent with Shift as without it, and a gain the knob turns finer pushed in by a finer one (%s, %s screens)", async (strip, half) => {
     // The DELAY screen's cells turn their time by a step of their own with Shift.
     const ownShift = (move: string): boolean => move.startsWith("ch.delay ");
     // EQ's, COMP's and SSMCS's gains, which Shift turns 0.1 dB where a detent turns 1 dB.
@@ -1149,7 +1155,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     const differ: string[] = [];
     const same: string[] = [];
     let turned = 0;
-    for (const id of registry.ids()) {
+    for (const id of registry.ids().filter((x) => CHANNEL_SCREENS(x) === (half === "channel"))) {
       const plain = await detents(id, strip, false);
       const shifted = await detents(id, strip, true);
       turned += plain.filter((m) => !m.endsWith(": nothing")).length;
@@ -1159,7 +1165,8 @@ describe("every knob-bound parameter is reachable on the glass", () => {
         } else if (m !== shifted[i] && !ownShift(m)) differ.push(`${m} | with Shift ${shifted[i] ?? "no control"}`);
       });
     }
-    expect(turned, "the sweep turned values").toBeGreaterThan(20);
+    // Each half turns some: the fewest, the stereo bus's channel screens, turn 7.
+    expect(turned, "the sweep turned values").toBeGreaterThan(0);
     expect(differ).toEqual([]);
     expect(same, "a gain that Shift turns as without it").toEqual([]);
   });
