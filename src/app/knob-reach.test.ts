@@ -3,10 +3,10 @@ import type { ParamPath } from "../device/path";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
-import { findStrip } from "../model/types";
+import { findStrip, type UnitModel } from "../model/types";
 import { unitById } from "../model/units";
 import { UDK_BANKS, UDK_KNOBS, UDK_UNASSIGNED, udkAssignment, udkPath } from "../model/udk";
-import { buildRegistry } from "../screens";
+import { ScreenRegistry, buildRegistry } from "../screens";
 import type { NumericSpec } from "../ui/param-spec";
 import { snapshot } from "./persist";
 import { Shell } from "./shell";
@@ -25,22 +25,62 @@ interface Mounted {
   bound: NumericSpec[];
 }
 
-async function mount(leftOut: ParamPath[] = []): Promise<Mounted> {
+/**
+ * The screens, each recording the specs it hands to setKnobs into `bound` as it
+ * is drawn, from nothing: a screen that hands none leaves it empty, as the shell
+ * keeps none from the screen before.
+ */
+function recording(bound: NumericSpec[]): ScreenRegistry {
+  const screens = buildRegistry();
+  const out = new ScreenRegistry();
+  for (const id of screens.ids()) {
+    const def = screens.get(id);
+    if (!def) continue;
+    out.register({
+      ...def,
+      build: (ctx, route) => {
+        bound.length = 0;
+        const inner = ctx.setKnobs;
+        ctx.setKnobs = (specs): void => {
+          bound.length = 0;
+          // A readout names no value to turn.
+          for (const s of specs) if (s && "path" in s) bound.push(s);
+          inner(specs);
+        };
+        try {
+          return def.build(ctx, route);
+        } finally {
+          ctx.setKnobs = inner;
+        }
+      },
+    });
+  }
+  return out;
+}
+
+/**
+ * A unit as it ships, less `leftOut`, on HOME, or on `start` over HOME without
+ * HOME drawn first: a sweep mounts a unit for each screen it reads, and HOME was
+ * most of what it drew.
+ */
+async function mount(leftOut: ParamPath[] = [], start?: Route): Promise<Mounted> {
   const model = unitById("URX44V");
   const store = new DeviceStore();
   const state = factoryState(model);
   for (const path of leftOut) state.delete(path);
   await store.attach(new SimTransport(state));
-  const shell = new Shell(buildRegistry(), store, model);
+  if (start) await ssmcsFor(store, model, start);
   const bound: NumericSpec[] = [];
-  const inner = shell.ctx.setKnobs;
-  shell.ctx.setKnobs = (specs): void => {
-    bound.length = 0;
-    // A readout names no value to turn.
-    for (const s of specs) if (s && "path" in s) bound.push(s);
-    inner(specs);
-  };
+  const shell = new Shell(recording(bound), store, model, start ? [start] : []);
+  await flush();
   return { shell, store, bound };
+}
+
+/** A mono channel draws its SSMCS screens while its COMP / EQ type is SSMCS. */
+async function ssmcsFor(store: DeviceStore, model: UnitModel, route: Route): Promise<void> {
+  if (route.id.startsWith("ch.ssmcs") && findStrip(model, route.strip ?? "")?.kind === "monoIn") {
+    await store.set(`ch.${route.strip}.compEqOrder`, "SSMCS");
+  }
 }
 
 /** Every control that claims to turn a value, in render order. */
@@ -71,10 +111,7 @@ function pathsReachedByKeyboard(root: HTMLElement, store: DeviceStore, paths: st
 }
 
 async function open(shell: Shell, route: Route): Promise<void> {
-  // A mono channel draws its SSMCS screens while its COMP / EQ type is SSMCS.
-  if (route.id.startsWith("ch.ssmcs") && findStrip(shell.ctx.model, route.strip ?? "")?.kind === "monoIn") {
-    await shell.ctx.store.set(`ch.${route.strip}.compEqOrder`, "SSMCS");
-  }
+  await ssmcsFor(shell.ctx.store, shell.ctx.model, route);
   shell.ctx.nav.push(route);
   await flush();
 }
@@ -1053,9 +1090,8 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     const registry = buildRegistry();
     const stranded: string[] = [];
     for (const id of registry.ids()) {
-      const { shell, store, bound } = await mount();
       // The channel screens are scoped to a strip; the rest ignore the field.
-      await open(shell, { id, strip });
+      const { shell, store, bound } = await mount([], { id, strip });
       const paths = bound.map((s) => s.path);
       if (paths.length === 0) continue;
       const reached = pathsReachedByKeyboard(shell.root, store, paths);
@@ -1073,8 +1109,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     const unreadable: string[] = [];
     let checked = 0;
     for (const id of registry.ids()) {
-      const { shell } = await mount();
-      await open(shell, { id, strip });
+      const { shell } = await mount([], { id, strip });
       for (const node of turnables(shell.root)) {
         const min = Number(node.getAttribute("aria-valuemin"));
         const max = Number(node.getAttribute("aria-valuemax"));
@@ -1101,8 +1136,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     const unread: string[] = [];
     let checked = 0;
     for (const id of registry.ids()) {
-      const { shell } = await mount();
-      await open(shell, { id, strip });
+      const { shell } = await mount([], { id, strip });
       for (const node of turnables(shell.root)) {
         checked += 1;
         const attrs = ["aria-valuenow", "aria-valuemin", "aria-valuemax"].map((a) => node.getAttribute(a));
@@ -1119,8 +1153,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
    * the same unit and press the same controls in the same order, so their lists line up.
    */
   async function detents(id: string, strip: string, shiftKey: boolean): Promise<string[]> {
-    const { shell, store } = await mount();
-    await open(shell, { id, strip });
+    const { shell, store } = await mount([], { id, strip });
     const numbers = (): Map<string, number> =>
       new Map(store.paths().flatMap((p) => (typeof store.get(p, 0) === "number" ? [[p, store.num(p)] as const] : [])));
     const moves: string[] = [];
@@ -1213,8 +1246,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     const loose: string[] = [];
     const seen = { drags: 0, drawn: 0, lists: 0 };
     for (const id of registry.ids()) {
-      const { shell } = await mount();
-      await open(shell, { id, strip });
+      const { shell } = await mount([], { id, strip });
       const drags = shell.root.querySelectorAll(
         '[role="slider"]:not([aria-disabled="true"]), [role="spinbutton"]:not([aria-disabled="true"]), .knob-graphic.is-control, .eq-grip:not(.is-fixed)',
       );
