@@ -1143,7 +1143,10 @@ describe("every knob-bound parameter is reachable on the glass", () => {
 
   // FX 2 ships Mono Delay, whose delay turns 5 ms a detent, and STREAMING's channel view turns its DELAY block's
   // time: the knob on that DELAY block does not push in (URX44V, the operator, 2026-10-03).
-  it.each([...STRIPS, "fx2", "bus.stream"])("turns a value a detent with Shift as without it, and a gain the knob turns finer pushed in by a finer one (%s)", async (strip) => {
+  // A test a strip and a half of the screens: the channel screens, and the rest. As one a strip, the sweep mounted a
+  // unit twice for each of the 46 screens and took a parallel run under load past 4 s.
+  const CHANNEL_SCREENS = (id: string): boolean => id === "channel-view" || id.startsWith("ch.");
+  it.each([...STRIPS, "fx2", "bus.stream"].flatMap((strip) => [[strip, "channel"], [strip, "other"]] as const))("turns a value a detent with Shift as without it, and a gain the knob turns finer pushed in by a finer one (%s, %s screens)", async (strip, half) => {
     // The DELAY screen's cells turn their time by a step of their own with Shift.
     const ownShift = (move: string): boolean => move.startsWith("ch.delay ");
     // EQ's, COMP's and SSMCS's gains, which Shift turns 0.1 dB where a detent turns 1 dB.
@@ -1152,7 +1155,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     const differ: string[] = [];
     const same: string[] = [];
     let turned = 0;
-    for (const id of registry.ids()) {
+    for (const id of registry.ids().filter((x) => CHANNEL_SCREENS(x) === (half === "channel"))) {
       const plain = await detents(id, strip, false);
       const shifted = await detents(id, strip, true);
       turned += plain.filter((m) => !m.endsWith(": nothing")).length;
@@ -1162,7 +1165,8 @@ describe("every knob-bound parameter is reachable on the glass", () => {
         } else if (m !== shifted[i] && !ownShift(m)) differ.push(`${m} | with Shift ${shifted[i] ?? "no control"}`);
       });
     }
-    expect(turned, "the sweep turned values").toBeGreaterThan(20);
+    // Each half turns some: the fewest, the stereo bus's channel screens, turn 7.
+    expect(turned, "the sweep turned values").toBeGreaterThan(0);
     expect(differ).toEqual([]);
     expect(same, "a gain that Shift turns as without it").toEqual([]);
   });
