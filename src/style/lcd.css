@@ -2336,6 +2336,16 @@
   color: var(--tab-name-lit);
 }
 
+/* How far the sunk face has slid down, from 0 to the band's depth (`--press`). The
+ * cut at the foot goes down with the face, in step with its translate, so the
+ * control's foot stays where it was at rest: a quick tap let go while the face
+ * is still sliding lands on the control, band and all. */
+@property --press-at {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
 /* A control with a band under its face sinks while a pointer or a key holds it: the band
  * goes, the face moves down its depth (the translate the script sets), and what
  * falls outside the control's own edges is cut away, the cut rounded at the
@@ -2343,8 +2353,9 @@
  * of the top corners, so the sunk face keeps its corners at its new foot. */
 .lcd .is-pressed {
   box-shadow: none !important;
-  clip-path: inset(0 0 var(--press) 0 round var(--press-radius));
-  transition: translate 30ms ease-out;
+  --press-at: var(--press);
+  clip-path: inset(0 0 var(--press-at) 0 round var(--press-radius));
+  transition: translate 30ms ease-out, --press-at 30ms ease-out;
   /* The corner cut at the foot follows the face down, so a sunk button keeps the
    * outline it has at rest. */
   --px-foot-off: var(--press);

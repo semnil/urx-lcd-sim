@@ -3432,11 +3432,17 @@ describe("the marks on the control holding the focus", () => {
 
   it("sinks a pressed control's face over its band, its foot keeping the corners of its head", () => {
     const pressed = declarations(CSS, ".lcd .is-pressed");
-    expect([pressed["box-shadow"], pressed["clip-path"], pressed["transition"]]).toEqual([
+    expect([pressed["box-shadow"], pressed["--press-at"], pressed["clip-path"], pressed["transition"]]).toEqual([
       "none !important",
-      "inset(0 0 var(--press) 0 round var(--press-radius))",
-      "translate 30ms ease-out",
+      "var(--press)",
+      "inset(0 0 var(--press-at) 0 round var(--press-radius))",
+      "translate 30ms ease-out, --press-at 30ms ease-out",
     ]);
+    // The cut at the foot slides down with the face rather than ahead of it, so a
+    // quick tap let go mid-slide still lands on the control (e2e/press.spec.ts).
+    expect(CSS, "a length the browser can slide").toMatch(
+      /@property --press-at\s*\{\s*syntax: "<length>";\s*inherits: false;\s*initial-value: 0px;\s*\}/,
+    );
     expect(
       [pressed["--px-band"], pressed["--px-band-a"], pressed["--px-band-b"], pressed["--px-band-c"]],
       "the pixel corners over the band take the shades of the top corners",
