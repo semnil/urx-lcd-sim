@@ -16,7 +16,7 @@ import type { Route } from "./navigator";
 // screen hands to the multi-function knobs has to be turnable on the glass. If
 // it is not, the value is stranded: visible and unchangeable.
 
-const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+const flush = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 
 interface Mounted {
   shell: Shell;

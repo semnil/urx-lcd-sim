@@ -20,7 +20,7 @@ import { udkAssignment } from "../model/udk";
 import { openDateTimeSet, openTimeZone } from "./date-time";
 import { version as packageVersion } from "../../package.json";
 
-const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+const flush = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 /** What a control is called: its label where it carries one, else its words, as a mark drawn instead of a letter is named. */
 const accessibleName = (n: Element): string => n.getAttribute("aria-label") ?? n.textContent ?? "";
 

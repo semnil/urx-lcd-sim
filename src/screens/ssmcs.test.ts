@@ -12,7 +12,7 @@ import { compResponse, plotY } from "./channel";
 import { meterLevels } from "./meters";
 import { declarations, px, readStyle, styleRules, subject } from "../style/css-read";
 
-const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+const flush = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 
 async function mount(): Promise<Shell> {
   const store = new DeviceStore();
