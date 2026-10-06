@@ -430,7 +430,11 @@ describe("the compressor the strip runs", () => {
     for (const [i, p] of flat.entries()) expect(p[1], `${i - 80} dB`).toBe(y(i - 80));
   });
 
-  it("reads Attack and Release on the unit's stops, and ships each on one of them", async () => {
+  // Walking every stop of Attack and of Release draws the screen again for each
+  // of some 500 presses, so the reading as it ships and each walk are tests of
+  // their own: as one, a parallel run under load took it past the 5,000 ms limit.
+  /** Attack's and Release's cells on the strip's COMP screen, read through key presses. */
+  const timeCells = async () => {
     const shell = await strip("ch.ssmcs.comp");
     const cell = (label: string): HTMLElement | undefined =>
       [...shell.root.querySelectorAll<HTMLElement>(".knob-cell")].find((c) => c.querySelector(".knob-cell-label")?.textContent === label);
@@ -447,19 +451,29 @@ describe("the compressor the strip runs", () => {
       for (let i = 1; i < stops; i++) read.push(await press(label, "ArrowUp"));
       return read;
     };
+    return { shell, press, walk };
+  };
 
+  /** Each stop is a value of its own, rising. */
+  const rises = (read: string[]): boolean =>
+    new Set(read).size === read.length && read.map((r) => Number.parseFloat(r)).every((v, i, all) => i === 0 || v > (all[i - 1] ?? 0));
+
+  it("ships Attack and Release on one of the unit's stops, and reads a value off the stops as the stop it turns from", async () => {
+    const { shell, press } = await timeCells();
     expect([await press("Attack", "ArrowUp", 0), await press("Attack", "ArrowDown"), await press("Attack", "ArrowUp")], "Attack as it ships, down and back").toEqual([
       "4.122ms", "4.000ms", "4.122ms",
     ]);
     expect([await press("Release", "ArrowUp", 0), await press("Release", "ArrowUp"), await press("Release", "ArrowDown")], "Release as it ships, up and back").toEqual([
       "92.0ms", "93.5ms", "92.0ms",
     ]);
-    // A value off the stops reads as the stop it turns from.
     await shell.ctx.store.set("ch.ch1.ssmcs.comp.attack", 4.124);
     await shell.ctx.store.set("ch.ch1.ssmcs.comp.release", 91.6);
     await flush();
     expect([await press("Attack", "ArrowUp", 0), await press("Release", "ArrowUp", 0)]).toEqual(["4.122ms", "92.0ms"]);
+  });
 
+  it("reads Attack on the unit's stops, rising to 80 ms, p110-1's 2.197 among them", async () => {
+    const { press, walk } = await timeCells();
     const attack = await walk("Attack", 227);
     expect(await press("Attack", "ArrowUp"), "Attack's top").toBe("80.00ms");
     // What the unit's LCD read at these stops.
@@ -471,7 +485,12 @@ describe("the compressor the strip runs", () => {
       221: "68.87", 226: "80.00",
     };
     for (const [i, text] of Object.entries(attackAt)) expect(attack[Number(i)], `Attack stop ${i}`).toBe(`${text}ms`);
+    expect(rises(attack), "Attack rises, a value a stop").toBe(true);
+    expect(attack, "p110-1's Attack").toContain("2.197ms");
+  });
 
+  it("reads Release on the unit's stops, rising to 999 ms, p110-1's 110.8 among them", async () => {
+    const { press, walk } = await timeCells();
     const release = await walk("Release", 277);
     expect(await press("Release", "ArrowUp"), "Release's top").toBe("999.0ms");
     const releaseAt: Record<number, string> = {
@@ -483,12 +502,8 @@ describe("the compressor the strip runs", () => {
       276: "999.0",
     };
     for (const [i, text] of Object.entries(releaseAt)) expect(release[Number(i)], `Release stop ${i}`).toBe(`${text}ms`);
-
-    // Each stop is a value of its own, rising, and the two p110-1 draws are stops.
-    for (const read of [attack, release]) expect(new Set(read).size).toBe(read.length);
-    expect(attack.map((r) => Number.parseFloat(r)).every((v, i, all) => i === 0 || v > (all[i - 1] ?? 0)), "Attack rises").toBe(true);
-    expect(release.map((r) => Number.parseFloat(r)).every((v, i, all) => i === 0 || v > (all[i - 1] ?? 0)), "Release rises").toBe(true);
-    expect([attack.includes("2.197ms"), release.includes("110.8ms")], "p110-1's Attack 2.197 and Release 110.8").toEqual([true, true]);
+    expect(rises(release), "Release rises, a value a stop").toBe(true);
+    expect(release, "p110-1's Release").toContain("110.8ms");
   });
 
   it("ships every value the strip turns on a stop of its own, so a press up and one down come back to it", async () => {
