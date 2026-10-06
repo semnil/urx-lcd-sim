@@ -700,9 +700,10 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     return { shell, store, node };
   }
 
-  it("turns EQ's, COMP's and SSMCS's gains 1 dB a detent and 0.1 dB with Shift, as the unit's knob turns them and turns them pushed in", async () => {
-    const turned: unknown[] = [];
-    for (const g of FINE_GAINS) {
+  // One test a gain: as one, the 17 gains took a parallel run under load past 3 s.
+  it.each(FINE_GAINS.map((g) => [g.path, g] as const))(
+    "turns %s 1 dB a detent and 0.1 dB with Shift, as the unit's knob turns it and turns it pushed in",
+    async (_path, g) => {
       const { shell, store, node } = await onGain(g);
       const value = (): number => store.num(g.path, NaN);
       const key = async (k: string, shiftKey = false): Promise<number> => {
@@ -730,13 +731,15 @@ describe("every knob-bound parameter is reachable on the glass", () => {
       const top = [await key("ArrowUp"), await key("ArrowUp", true)];
       await from(min + 0.5);
       const bottom = [await key("ArrowDown"), await key("ArrowDown", true)];
-      turned.push({ gain: g.path, keys, wheels, top, bottom });
       shell.destroy();
-    }
-    expect(turned, "a detent up, one with Shift up and down, and one down; the wheel the same way; and none past either end").toEqual(
-      FINE_GAINS.map((g) => ({ gain: g.path, keys: [1.5, 1.6, 1.5, 0.5], wheels: [0.4, 1.4, 1.3, 0.3], top: [g.range[1], g.range[1]], bottom: [g.range[0], g.range[0]] })),
-    );
-  });
+      expect({ keys, wheels, top, bottom }, "a detent up, one with Shift up and down, and one down; the wheel the same way; and none past either end").toEqual({
+        keys: [1.5, 1.6, 1.5, 0.5],
+        wheels: [0.4, 1.4, 1.3, 0.3],
+        top: [max, max],
+        bottom: [min, min],
+      });
+    },
+  );
 
   it("reaches every gain the unit's knob does, by a detent, a detent with Shift and a drag", async () => {
     const reached: unknown[] = [];
