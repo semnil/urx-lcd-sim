@@ -30,7 +30,7 @@ import type { DeviceStore } from "../device/store";
 import { SENDS_TARGET_SHIPPED, findStrip, type Strip, type UnitModel } from "../model/types";
 import { el } from "../ui/dom";
 import { Icons } from "../ui/icons";
-import { COMPANDER_EXPANSION, compResponse, companderResponse, grBarShare } from "../model/dynamics";
+import { COMPANDER_EXPANSION, compResponse, companderCurve, grBarShare } from "../model/dynamics";
 import type { NumericSpec } from "../ui/param-spec";
 import { unitOf } from "../ui/param-spec";
 import { knobControl, pulldown, toggle, valueBox } from "../ui/widgets";
@@ -329,7 +329,7 @@ function companderBody(ctx: AppContext, strip: Strip, holder: EffectHolder): { m
   const [threshold, ratio, width, gain, attack, release] = specs;
   const at = (spec: NumericSpec | undefined): number =>
     spec ? (values[spec.path.slice(holder.base.length + 1)] ?? spec.fallback) : 0;
-  const outAt = companderResponse(
+  const outAt = companderCurve(
     at(threshold),
     at(ratio),
     at(width),

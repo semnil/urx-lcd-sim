@@ -1039,6 +1039,18 @@ describe("a compander", () => {
     expect((at(-16) - at(-26)) / 10, "the slope below the band").toBeCloseTo(5, 1);
   });
 
+  it("draws the whole curve under the crossing where the threshold and the ratio would lift its flat past 18 dB", async () => {
+    // URX44V, 2026-10-08: at -54 dB and 20:1 the line right of the crossing stands under it. The flat
+    // would lift 54 x (1 - 1/20) = 51.3 dB; it lifts 18, so the whole curve stands 33.3 dB lower.
+    const shell = await openParams("ch2", "Compander-S");
+    await shell.ctx.store.set("ch.ch2.insFx.threshold", -54);
+    await shell.ctx.store.set("ch.ch2.insFx.ratio", 20);
+    await flush();
+    const at = curve(shell);
+    expect(at(10), "the line right of the crossing").toBeCloseTo(-33.3, 1);
+    expect(at(-70) - -70, "the flat lifts 18 dB").toBeCloseTo(18, 1);
+  });
+
   it("pulls what falls below the band down harder on Compander-H than on Compander-S", async () => {
     // Measured through the unit: H at 5:1 against S's 1.5:1.
     const h = curve(await openParams("ch1", "Compander-H"));
