@@ -847,7 +847,9 @@ function pitchKeyboard(ctx: AppContext, holder: EffectHolder): HTMLElement {
 /**
  * The page the scale is set on: the three lists down its left, the keyboard beside
  * them. Choosing a named scale, or a key while one is named, fills the keyboard in;
- * `Custom` leaves whatever is there.
+ * `Custom` leaves whatever is there. MIDI Control moved onto `Setting` or `Real Time`
+ * empties the keyboard and leaves the scale on `Custom` while the scale is `Custom`
+ * or `Chromatic`; moved onto `Off` it leaves both as they are.
  */
 function pitchNotes(ctx: AppContext, holder: EffectHolder, params: readonly EffectParam[]): HTMLElement {
   const lists = params.filter((p): p is EffectSelect => p.kind === "select");
@@ -863,7 +865,12 @@ function pitchNotes(ctx: AppContext, holder: EffectHolder, params: readonly Effe
   // A list's choice and the keyboard it fills in are one operation of the store.
   const take = (p: EffectSelect, v: string): void =>
     ctx.store.operation(() => {
+      const clears = p.key === "midiControl" && v !== "Off" && v !== at(p.key) && [PITCH_CUSTOM, "Chromatic"].includes(at("scale"));
       void ctx.store.set(`${holder.base}.${p.key}`, v);
+      if (clears) {
+        void ctx.store.set(`${holder.base}.scale`, PITCH_CUSTOM);
+        for (let semitone = 0; semitone < PITCH_NOTE_NAMES.length; semitone++) void ctx.store.set(`${holder.base}.${pitchNoteKey(semitone)}`, false);
+      }
       if (p.key === "scale") fill(at("key"), v);
       if (p.key === "key") fill(v, at("scale"));
     });

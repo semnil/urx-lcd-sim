@@ -819,6 +819,48 @@ describe("the screen an effect is set on", () => {
     expect(lit(), "Single takes the key alone").toEqual(["F"]);
   });
 
+  it("empties Pitch Fix's keyboard onto Custom as MIDI Control takes Setting or Real Time over Custom or Chromatic, as the unit does", async () => {
+    // URX44V, 2026-10-08: the unit clears the notes and the Scale reads Custom; the named scales
+    // keep theirs, and taking MIDI Control back to Off puts nothing back.
+    const shell = await openParams("ch1", "Pitch Fix");
+    await click(shell, ".efx-page-next");
+    const keys = (): HTMLElement[] => [...shell.root.querySelectorAll<HTMLElement>(".pitch-key, .pitch-key-black")];
+    const lit = (): string[] => keys().filter((n) => n.getAttribute("aria-pressed") === "true").map((n) => n.textContent ?? "");
+    const choose = async (caption: string, name: string): Promise<void> => {
+      [...shell.root.querySelectorAll<HTMLElement>(".pitch-row")]
+        .find((r) => r.querySelector(".pitch-row-caption")?.textContent === caption)
+        ?.querySelector<HTMLElement>(".pulldown")
+        ?.click();
+      await flush();
+      [...shell.root.querySelectorAll<HTMLElement>(".dropdown-option, .source-btn")].find((b) => b.textContent === name)?.click();
+      await flush();
+    };
+    const press = async (...names: string[]): Promise<void> => {
+      for (const name of names) {
+        keys().find((n) => n.textContent === name)?.click();
+        await flush();
+      }
+    };
+    const scale = (): string => shell.ctx.store.str("ch.ch1.insFx.scale", "");
+
+    expect(lit().length, "Chromatic, as it ships").toBe(12);
+    await choose("MIDI Control", "Setting");
+    expect([lit(), scale()], "Chromatic onto Setting").toEqual([[], "Custom"]);
+    await press("C", "E", "G");
+    expect(lit(), "the keyboard takes notes under Setting").toEqual(["C", "E", "G"]);
+    await choose("MIDI Control", "Real Time");
+    expect([lit(), scale()], "a Custom keyboard onto Real Time from Setting").toEqual([[], "Custom"]);
+    await press("C", "E", "G");
+    await choose("MIDI Control", "Off");
+    expect([lit(), scale()], "Off leaves the keyboard").toEqual([["C", "E", "G"], "Custom"]);
+    await choose("Scale", "Major");
+    await choose("MIDI Control", "Setting");
+    expect([lit(), scale()], "a named scale keeps its notes").toEqual([["C", "D", "E", "F", "G", "A", "B"], "Major"]);
+    await press("B");
+    await choose("MIDI Control", "Setting");
+    expect([lit(), scale()], "Setting chosen again over Setting moves nothing").toEqual([["C", "D", "E", "F", "G", "A"], "Custom"]);
+  });
+
   it("opens on the first page, whichever page the effect before it was left on", async () => {
     const shell = await openParams("ch1", "Clean");
     await click(shell, ".efx-page-next");

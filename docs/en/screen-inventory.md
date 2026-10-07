@@ -826,6 +826,9 @@ beside it where it does not. Touching a circle turns that note over and takes th
 Choosing a named scale fills the twelve in, and so does changing the Key while one is named. While the
 Scale reads `Custom`, neither choosing `Custom` again nor changing the Key moves them, and nothing takes
 the Scale back out of `Custom` on its own (URX44V, the operator, 2026-09-23).
+Taking MIDI Control onto `Setting` or `Real Time` (from `Off`, or from one to the other) turns all twelve off and
+takes the Scale to `Custom` while the Scale reads `Custom` or `Chromatic`. Under a named scale, and taking it back to
+`Off`, it moves neither (URX44V, 2026-10-08).
 The readout bar is empty.
 
 Page three carries Limit Low / Limit High / Speed / Tolerance in the lower row under the

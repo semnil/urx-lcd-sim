@@ -724,6 +724,8 @@ Pitch Fix も 3 ページに分かれる (URX44V、2026-09-23 操作者確認)�
 同じ面の色で描く。丸を押すとその音が裏返り、Scale が `Custom` になる。Scale に名前のある音階を選ぶと 12 音を
 その音階で埋め直し、Key を替えたときも同じように埋め直す。`Custom` のあいだは、`Custom` を選び直しても
 Key を替えても 12 音は動かず、名前のある音階へ自動で戻ることもない (URX44V、2026-09-23 操作者確認)。
+MIDI Control を `Setting` か `Real Time` へ替えると (`Off` からでも、2 つの間でも)、Scale が `Custom` か `Chromatic` のときは
+12 音をすべて外して Scale を `Custom` にする。名前のある音階のときと、`Off` へ戻すときは何も変えない (URX44V、2026-10-08)。
 読み出し帯は空。
 
 3 ページ目は `Note Limit Low/High` の帯の下に Limit Low / Limit High / Speed / Tolerance を下段へ、
