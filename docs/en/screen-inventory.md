@@ -623,6 +623,10 @@ DUCKER; GATE's Hold 0.02 ms..1.96 s over 214; GATE's Decay and COMP's Release 9.
 same 277; and DUCKER's Decay 1.3 ms..5.0 s over 122. A detent of the arrow keys or the wheel moves one
 stop, with Shift held or not, and a drag runs evenly over the stops. A time that a browser save, a settings file
 or a scene holds off these stops comes back on the stop nearest it, and the next save holds that stop.
+Each reads to the places the unit prints it to: Attack to three places under 10 ms (`0.097m`) and two from there
+(`10.12m`); GATE's Decay and COMP's Release to one (`9.7m`, `100.1m`); GATE's Hold to two under 10 ms (`9.75m`), one
+below a second and two in seconds from there (`1.96s`); DUCKER's Decay to one, in seconds from a second too (`5.0s`)
+(URX44V, the operator, 2026-10-04).
 
 The handles (G / T / R / A / D) are 32px in diameter (face `--handle-face`, a 3px `--handle-ring`
 rim), pulled in from the left and right ends of the panel by their radius. The handle touched takes the focus,

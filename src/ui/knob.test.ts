@@ -260,12 +260,12 @@ describe("the stops of a time", () => {
    * value each ships at is one of its stops.
    */
   const TIMES = [
-    { route: { id: "ch.gate", strip: "ch1" }, label: "Attack", per: 1000, count: 227, ends: [92, 80000], sum: 2707666, reads: ["0.09ms", "80.00ms"] },
-    { route: { id: "ch.gate", strip: "ch1" }, label: "Hold", per: 100, count: 214, ends: [2, 196000], sum: 4532608, reads: ["0.0ms", "2.0s"] },
-    { route: { id: "ch.gate", strip: "ch1" }, label: "Decay", per: 10, count: 277, ends: [93, 9990], sum: 590007, reads: ["9.30ms", "999.0ms"] },
-    { route: { id: "ch.comp", strip: "ch1" }, label: "Attack", per: 1000, count: 227, ends: [92, 80000], sum: 2707666, reads: ["0.09ms", "80.00ms"] },
-    { route: { id: "ch.comp", strip: "ch1" }, label: "Release", per: 10, count: 277, ends: [93, 9990], sum: 590007, reads: ["9.30ms", "999.0ms"] },
-    { route: { id: "ch.ducker", strip: "ch_5_6" }, label: "Attack", per: 1000, count: 227, ends: [92, 80000], sum: 2707666, reads: ["0.09ms", "80.00ms"] },
+    { route: { id: "ch.gate", strip: "ch1" }, label: "Attack", per: 1000, count: 227, ends: [92, 80000], sum: 2707666, reads: ["0.092ms", "80.00ms"] },
+    { route: { id: "ch.gate", strip: "ch1" }, label: "Hold", per: 100, count: 214, ends: [2, 196000], sum: 4532608, reads: ["0.02ms", "1.96s"] },
+    { route: { id: "ch.gate", strip: "ch1" }, label: "Decay", per: 10, count: 277, ends: [93, 9990], sum: 590007, reads: ["9.3ms", "999.0ms"] },
+    { route: { id: "ch.comp", strip: "ch1" }, label: "Attack", per: 1000, count: 227, ends: [92, 80000], sum: 2707666, reads: ["0.092ms", "80.00ms"] },
+    { route: { id: "ch.comp", strip: "ch1" }, label: "Release", per: 10, count: 277, ends: [93, 9990], sum: 590007, reads: ["9.3ms", "999.0ms"] },
+    { route: { id: "ch.ducker", strip: "ch_5_6" }, label: "Attack", per: 1000, count: 227, ends: [92, 80000], sum: 2707666, reads: ["0.092ms", "80.00ms"] },
     { route: { id: "ch.ducker", strip: "ch_5_6" }, label: "Decay", per: 10, count: 122, ends: [13, 50000], sum: 742257, reads: ["1.3ms", "5.0s"] },
   ] as const;
 

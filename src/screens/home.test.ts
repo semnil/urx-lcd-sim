@@ -4545,6 +4545,42 @@ describe("what the dedicated channel screens draw", () => {
     expect(read("Attack")).toBe("20.17ms");
   });
 
+  it.each([
+    // URX44V, 2026-10-04: the time each block's screen was read at, and what it printed.
+    ["ch.comp", "comp.attack", "Attack", [[0.097, "0.097m"], [9.826, "9.826m"], [10.12, "10.12m"], [80, "80.00m"]]],
+    ["ch.comp", "comp.release", "Release", [[9.7, "9.7m"], [98.4, "98.4m"], [100.1, "100.1m"], [999, "999.0m"]]],
+    ["ch.gate", "gate.attack", "Attack", [[0.097, "0.097m"], [9.826, "9.826m"]]],
+    ["ch.gate", "gate.decay", "Decay", [[9.7, "9.7m"], [98.4, "98.4m"]]],
+    ["ch.gate", "gate.hold", "Hold", [[9.75, "9.75m"], [10.4, "10.4m"], [106, "106.0m"], [978, "978.0m"], [1020, "1.02s"], [1960, "1.96s"]]],
+  ] as const)("prints %s's %s to the places the unit prints it", async (id, time, label, readings) => {
+    const shell = await open(id);
+    for (const [ms, shown] of readings) {
+      await shell.ctx.store.set(`ch.ch1.${time}`, ms);
+      await flush();
+      expect(shell.root.querySelector(`.value-box[aria-label='${label}']`)?.textContent, `${ms} ms`).toBe(shown);
+    }
+  });
+
+  it("prints DUCKER's times to the places the unit prints them", async () => {
+    const shell = await open("ch.ducker");
+    const read = (label: string): string | undefined =>
+      [...shell.root.querySelectorAll<HTMLElement>(".knob-cell")]
+        .find((c) => c.querySelector(".knob-cell-label")?.textContent === label)
+        ?.querySelector(".knob-cell-value")?.textContent ?? undefined;
+    // URX44V, 2026-10-04: DUCKER's Attack and Decay, read beside the graph's A and D.
+    for (const [time, label, ms, shown] of [
+      ["ducker.attack", "Attack", 0.097, "0.097ms"],
+      ["ducker.decay", "Decay", 1.3, "1.3ms"],
+      ["ducker.decay", "Decay", 64, "64.0ms"],
+      ["ducker.decay", "Decay", 1000, "1.0s"],
+      ["ducker.decay", "Decay", 5000, "5.0s"],
+    ] as const) {
+      await shell.ctx.store.set(`ch.ch_5_6.${time}`, ms);
+      await flush();
+      expect(read(label), `${time} ${ms} ms`).toBe(shown);
+    }
+  });
+
   it("names one delay time in four units, all turning the same value", async () => {
     const shell = await open("ch.delay");
     expect([...shell.root.querySelectorAll<HTMLElement>(".delay-cell-caption")].map((n) => n.textContent)).toEqual([

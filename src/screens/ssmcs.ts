@@ -22,7 +22,7 @@ import type { ParamPath, ParamValue } from "../device/path";
 import { clamp } from "../device/store";
 import { SSMCS_DEFAULTS } from "../model/defaults";
 import { grBarShare, ssmcsCorner } from "../model/dynamics";
-import { DYNAMICS_TIME_STOPS } from "../model/dynamics-times";
+import { DYNAMICS_TIME_PLACES, DYNAMICS_TIME_STOPS } from "../model/dynamics-times";
 import { type SsmcsBand, ssmcsBand, ssmcsEqResponse } from "../model/channel-eq";
 import { el, formatHz, hzUnit, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
@@ -72,8 +72,6 @@ const R40 = [
 /** A fortieth of a decade a stop, about a twelfth of an octave, 20 Hz to 20 kHz, each on the R40 series. */
 const FREQ_STOPS = steps(121, (i) => Number(((R40[(i + 12) % 40] ?? 1) * 10 ** (1 + Math.floor((i + 12) / 40))).toPrecision(3)));
 
-/** Attack's three places under 10 ms and two from there. */
-const attackPlaces = (ms: number): number => (ms < 10 ? 3 : 2);
 /** Attack and Release stop where the COMP's own Attack and Release do. */
 const ATTACK_STOPS = DYNAMICS_TIME_STOPS["comp.attack"];
 const RELEASE_STOPS = DYNAMICS_TIME_STOPS["comp.release"];
@@ -216,8 +214,8 @@ const timeSpec = (path: string, label: string, stops: readonly number[], fallbac
 const ratioSpec = (b: string): NumericSpec => compRatioSpec(`${b}.ssmcs.comp.ratio`, SSMCS_DEFAULTS.ratio, true);
 
 const outGainSpec = (b: string): NumericSpec => gainSpec(`${b}.ssmcs.outGain`, "Out Gain", SSMCS_DEFAULTS.outGain);
-const attackSpec = (b: string): NumericSpec => timeSpec(`${b}.ssmcs.comp.attack`, "Attack", ATTACK_STOPS, SSMCS_DEFAULTS.attack, attackPlaces);
-const releaseSpec = (b: string): NumericSpec => timeSpec(`${b}.ssmcs.comp.release`, "Release", RELEASE_STOPS, SSMCS_DEFAULTS.release, () => 1);
+const attackSpec = (b: string): NumericSpec => timeSpec(`${b}.ssmcs.comp.attack`, "Attack", ATTACK_STOPS, SSMCS_DEFAULTS.attack, DYNAMICS_TIME_PLACES["comp.attack"].ms);
+const releaseSpec = (b: string): NumericSpec => timeSpec(`${b}.ssmcs.comp.release`, "Release", RELEASE_STOPS, SSMCS_DEFAULTS.release, DYNAMICS_TIME_PLACES["comp.release"].ms);
 const scQSpec = (b: string): NumericSpec => qSpec(`${b}.ssmcs.sc.q`, "SC-Q", SSMCS_DEFAULTS.sc.q);
 const scFreqSpec = (b: string): NumericSpec => hzSpec(`${b}.ssmcs.sc.freq`, "SC-Freq.", SSMCS_DEFAULTS.sc.freq);
 const scGainSpec = (b: string): NumericSpec => gainSpec(`${b}.ssmcs.sc.gain`, "SC-Gain", SSMCS_DEFAULTS.sc.gain);

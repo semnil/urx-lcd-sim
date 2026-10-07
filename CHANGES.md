@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Print GATE's, COMP's and DUCKER's times to the places the unit prints them to: Attack to three places under 10 ms, GATE's Decay and COMP's Release to one, and GATE's Hold to two under 10 ms and to two in seconds from a second. Attack read `0.10ms` for 0.097 ms, Decay and Release `9.70ms` for 9.7 ms, and Hold `2.0s` for 1.96 s, so neighbouring stops could read the same.
 - Take a quick tap on the bottom of a control drawn with a band under its face, such as a channel-view block or a menu button: the cut at its foot now goes down with the face as it sinks. A tap let go before the face had slid down missed the control on its bottom three screen pixels, the depth of the band, and opened nothing.
 - Keep the Device menu open while focus moves between its items. Clicking Initialize All Memories closed the menu before its warning could appear.
 - Add [Initialize Current Memories] outside the screen and group it with [Initialize All Memories] in the Device menu. Each item warns which values will be initialized, which will stay, and that the operation cannot be undone. Current-memory initialization resets the current values and scene selection while keeping scene memories and the microSD card; [Initialize All Memories] continues to reset scene memories as well. Initialization and model changes block competing startup operations until the replacement unit is mounted.
