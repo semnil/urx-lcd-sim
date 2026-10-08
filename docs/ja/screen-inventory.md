@@ -804,6 +804,8 @@ Compander-H / Compander-S だけはパネルで並べず、チャンネルの CO
 さらに急に落ち、その傾きはエフェクトごとに決まっている: **Compander-H が 5:1、Compander-S が 1.5:1**
 (実測値。Width や Ratio では変わらない)。(T) と (W) のあいだの持ち上げ (−Threshold × (1 − 1/Ratio)) が 18 dB を超える設定では、
 持ち上げは 18 dB で止まり、カーブ全体がその差だけ下がって、交点より右の水平線も交点より下に引く (URX44V、2026-10-08 操作者確認)。
+伸張は出力では -62 dB より下を聞かないが (「ブロック」)、カーブは (W) より下を -62 dB の下でも同じ傾きのまま引く (Compander-H を
+Threshold -36 dB・Ratio 2.0:1・Width 24 dB、Compander-S を Threshold -36 dB・Ratio 2.0:1・Width 6 dB にして、URX44V、2026-10-08 操作者確認)。
 
 ### エフェクトの選択
 

@@ -925,7 +925,10 @@ crossing down to (T), Ratio lays the slope down; between (T) and (W) — the ban
 is 1.0:1; and below (W) it falls harder still, at a slope that belongs to the effect: **5:1 for
 Compander-H and 1.5:1 for Compander-S** (measured; neither Width nor Ratio moves it). Where the lift between (T) and
 (W), -Threshold x (1 - 1/Ratio), would pass 18 dB, it stops at 18 dB and the whole curve stands lower by the
-difference, the line right of the crossing under the crossing too (URX44V, the operator, 2026-10-08).
+difference, the line right of the crossing under the crossing too (URX44V, the operator, 2026-10-08). The
+expansion hears nothing under -62 dB in what the effect puts out ("Blocks"), but the curve below (W) runs on at the same
+slope under -62 dB (Compander-H at Threshold -36 dB, Ratio 2.0:1 and Width 24 dB, and Compander-S at Threshold -36 dB, Ratio
+2.0:1 and Width 6 dB, URX44V, the operator, 2026-10-08).
 
 ### Choosing an effect
 
