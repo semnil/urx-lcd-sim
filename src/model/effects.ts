@@ -6,7 +6,7 @@
 // (THRU, -inf) or a reading that follows another value. Those are held as the
 // place on the control's own scale, and the table below gives the reading.
 
-import type { ParamPath } from "../device/path";
+import type { ParamPath, ParamValue } from "../device/path";
 import type { DeviceStore, WriteRule } from "../device/store";
 import { clamp } from "../device/store";
 import { OFF_MARK, formatHz, hzUnit } from "../ui/dom";
@@ -451,6 +451,30 @@ export const PITCH_NOTE_NAMES: readonly string[] = SEMITONES;
 /** Where the note a semitone above C is kept. */
 export function pitchNoteKey(semitone: number): string {
   return `note${semitone}`;
+}
+
+/** Where an insert keeps Pitch Fix's MIDI Control: `ch.<strip>.insFx.midiControl`. */
+const PITCH_MIDI_CONTROL_PATH = /^(ch\.[^.]+\.insFx)\.midiControl$/;
+
+/**
+ * A saved state as it is put back, with each Pitch Fix's Scale and keyboard as its
+ * MIDI Control leaves them: under `Real Time` every note off and a scale other than
+ * `Single` on `Custom`, and under `Setting` a `Chromatic` keyboard off onto `Custom`.
+ * A `Custom` or named keyboard under `Setting`, and everything under `Off`, stays.
+ * A Scale or a note the state does not name is taken as it ships.
+ */
+export function onPitchMidiControl(state: Record<ParamPath, ParamValue>): Record<ParamPath, ParamValue> {
+  const out = { ...state };
+  for (const [path, mode] of Object.entries(state)) {
+    const base = PITCH_MIDI_CONTROL_PATH.exec(path)?.[1];
+    if (!base || (mode !== "Real Time" && mode !== "Setting")) continue;
+    const held = state[`${base}.scale`];
+    const scale = typeof held === "string" ? held : "Chromatic";
+    if (mode === "Setting" && scale !== "Chromatic") continue;
+    if (!(mode === "Real Time" && scale === "Single")) out[`${base}.scale`] = "Custom";
+    for (let semitone = 0; semitone < SEMITONES.length; semitone++) out[`${base}.${pitchNoteKey(semitone)}`] = false;
+  }
+  return out;
 }
 
 const SP_TYPES = ["BS 4x12", "AC 2x12", "AC 1x12", "AC 4x10", "BC 2x12", "AM 4x12", "YC 4x12", "JC 2x12"];

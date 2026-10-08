@@ -405,10 +405,23 @@ const MS_IN_SECOND = 1000;
 /**
  * A time in milliseconds that stops on `stops`, in rising order, from the first
  * to the last: a detent moves one stop and stops at either end, and a drag runs
- * evenly over the stops.
+ * evenly over the stops. It reads to `places.ms` places under a second and, where
+ * it runs past one, to `places.s` places in seconds.
  */
-export function stoppedMsSpec(path: ParamPath, label: string, stops: readonly number[], fallback: number, digits = 2): NumericSpec {
-  return { ...msSpec(path, label, stops[0] ?? 0, stops.at(-1) ?? 0, fallback, undefined, digits), travel: stopsTravel(stops) };
+export function stoppedMsSpec(
+  path: ParamPath,
+  label: string,
+  stops: readonly number[],
+  fallback: number,
+  places: { ms: (ms: number) => number; s: number },
+): NumericSpec {
+  const spec = msSpec(path, label, stops[0] ?? 0, stops.at(-1) ?? 0, fallback);
+  const long = (v: number): boolean => spec.max > MS_IN_SECOND && v >= MS_IN_SECOND;
+  return {
+    ...spec,
+    travel: stopsTravel(stops),
+    format: (v) => (long(v) ? (v / MS_IN_SECOND).toFixed(places.s) : v.toFixed(places.ms(v))),
+  };
 }
 
 /** The ratios a compressor stops on from 4.00:1 to the top of its travel, the last one ∞. */

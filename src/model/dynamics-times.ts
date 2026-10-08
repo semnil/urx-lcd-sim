@@ -85,6 +85,22 @@ export const DYNAMICS_TIME_STOPS: Readonly<Record<DynamicsTime, readonly number[
   "ducker.decay": inMs(DUCKER_DECAY_100US, 10),
 };
 
+/**
+ * How the unit prints each time: the places under a second as a function of the
+ * time in milliseconds, and the places in seconds where the time runs past one.
+ * Attack takes three places under 10 ms and two from there, Hold two under 10 ms,
+ * one to a second and two in seconds, and the rest one.
+ */
+export const DYNAMICS_TIME_PLACES: Readonly<Record<DynamicsTime, { ms: (ms: number) => number; s: number }>> = {
+  "gate.attack": { ms: (ms) => (ms < 10 ? 3 : 2), s: 2 },
+  "gate.hold": { ms: (ms) => (ms < 10 ? 2 : 1), s: 2 },
+  "gate.decay": { ms: () => 1, s: 1 },
+  "comp.attack": { ms: (ms) => (ms < 10 ? 3 : 2), s: 2 },
+  "comp.release": { ms: () => 1, s: 1 },
+  "ducker.attack": { ms: (ms) => (ms < 10 ? 3 : 2), s: 2 },
+  "ducker.decay": { ms: () => 1, s: 1 },
+};
+
 /** Where a channel keeps one of these times: `ch.<strip>.<block>.<value>`. */
 const TIME_PATH = /^ch\.[^.]+\.((?:gate|comp|ducker)\.(?:attack|hold|decay|release))$/;
 

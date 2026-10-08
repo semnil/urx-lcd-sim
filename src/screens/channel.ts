@@ -8,7 +8,7 @@ import type { DeviceStore, WriteRule } from "../device/store";
 import { clamp } from "../device/store";
 import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, GATE_DEFAULTS, compEqBankDefaults, faderShipped, sendShipsOn, ssmcsBankDefaults } from "../model/defaults";
 import { COMP_KNEE_WIDTH, compResponse, grBarShare, levelBarShare } from "../model/dynamics";
-import { DYNAMICS_TIME_STOPS, type DynamicsTime } from "../model/dynamics-times";
+import { DYNAMICS_TIME_PLACES, DYNAMICS_TIME_STOPS, type DynamicsTime } from "../model/dynamics-times";
 import { EQ_SHAPES, eqBandOn, eqBandShape, fourBandResponse } from "../model/channel-eq";
 import type { Strip, StripKind } from "../model/types";
 import { findStrip, sendsTo } from "../model/types";
@@ -393,9 +393,9 @@ const clampFraction = (v: number): number => Math.min(1, Math.max(0, v));
 const gateThreshold = (b: string): NumericSpec => dbSpec(`${b}.gate.threshold`, "Threshold", -72, 0, GATE_DEFAULTS.threshold, 1, 0);
 const compThreshold = (b: string): NumericSpec => dbSpec(`${b}.comp.threshold`, "Threshold", COMP_THRESHOLD_MIN, 0, COMP_DEFAULTS.threshold, 1, 0);
 const duckerThreshold = (b: string): NumericSpec => dbSpec(`${b}.ducker.threshold`, "Threshold", -60, 0, -40, 1, 0);
-/** One of GATE's, COMP's and DUCKER's times, on its own stops, read to `digits` places under 100 ms. */
-const dynTime = (b: string, time: DynamicsTime, label: string, fallback: number, digits?: number): NumericSpec =>
-  stoppedMsSpec(`${b}.${time}`, label, DYNAMICS_TIME_STOPS[time], fallback, digits);
+/** One of GATE's, COMP's and DUCKER's times, on its own stops, read to the places the unit prints it to. */
+const dynTime = (b: string, time: DynamicsTime, label: string, fallback: number): NumericSpec =>
+  stoppedMsSpec(`${b}.${time}`, label, DYNAMICS_TIME_STOPS[time], fallback, DYNAMICS_TIME_PLACES[time]);
 // DELAY's time turns 1.00 ms a detent on the channel view with Shift held too.
 const delayTime = (b: string): NumericSpec => ({ ...msSpec(`${b}.delay.ms`, "ms", 1, DELAY_MAX_MS, 1), ...delayDetents(DELAY_UNITS[0], MS_SCALE), fastStep: DELAY_UNITS[0].step, unit: "", boxUnit: "", sweep: DELAY_SWEEP_DEG });
 /** How deep [1-knob] works COMP or EQ, in percent. */
@@ -1206,7 +1206,7 @@ export const gateScreen: ScreenDef = {
     const threshold = gateThreshold(b);
     const range = dbSpec(`${b}.gate.range`, "Range", -73, 0, GATE_DEFAULTS.range, 1, 0);
     const attack = dynTime(b, "gate.attack", "Attack", GATE_DEFAULTS.attack);
-    const hold = dynTime(b, "gate.hold", "Hold", GATE_DEFAULTS.hold, 1);
+    const hold = dynTime(b, "gate.hold", "Hold", GATE_DEFAULTS.hold);
     const decay = dynTime(b, "gate.decay", "Decay", GATE_DEFAULTS.decay);
     ctx.setKnobs([threshold, range, attack, hold, decay]);
     const on = ctx.store.bool(`${b}.gate.on`, false);
@@ -1359,7 +1359,7 @@ export const duckerScreen: ScreenDef = {
     const threshold = duckerThreshold(b);
     const range = dbSpec(`${b}.ducker.range`, "Range", -70, 0, -24, 1, 0);
     const attack = dynTime(b, "ducker.attack", "Attack", 20.17);
-    const decay = dynTime(b, "ducker.decay", "Decay", 1000, 1);
+    const decay = dynTime(b, "ducker.decay", "Decay", 1000);
     ctx.setKnobs([range, attack, decay, threshold]);
     const on = ctx.store.bool(`${b}.ducker.on`, false);
     const rangeDb = ctx.store.num(range.path, range.fallback);

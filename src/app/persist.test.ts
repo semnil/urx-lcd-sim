@@ -99,6 +99,20 @@ function unitTexts(stringify: { mock: { calls: unknown[][] } }): number {
   return stringify.mock.calls.filter(([value]) => typeof value === "object" && value !== null && "values" in value && "version" in value).length;
 }
 
+// Pitch Fix as an earlier version could leave it: Real Time over Chromatic with every note on (CH 1), Setting over
+// Chromatic (CH 3) and Real Time over Single with its note on (CH 2), beside a Custom keyboard under Setting (CH 4).
+const PITCH_OLD: [string, string | boolean][] = [
+  ["ch.ch1.insFx.midiControl", "Real Time"], ["ch.ch1.insFx.scale", "Chromatic"],
+  ["ch.ch3.insFx.midiControl", "Setting"], ["ch.ch3.insFx.scale", "Chromatic"],
+  ["ch.ch2.insFx.midiControl", "Real Time"], ["ch.ch2.insFx.scale", "Single"], ["ch.ch2.insFx.note0", true],
+  ["ch.ch4.insFx.midiControl", "Setting"], ["ch.ch4.insFx.scale", "Custom"],
+  ...Array.from({ length: 12 }, (_, i): [string, boolean] => [`ch.ch4.insFx.note${i}`, i === 0 || i === 4 || i === 7]),
+];
+/** Each channel's Scale and the notes it holds on, read back. */
+const pitchRead = (str: (p: string) => string, on: (p: string) => boolean): string[] =>
+  ["ch1", "ch3", "ch2", "ch4"].map((ch) => `${str(`ch.${ch}.insFx.scale`)}:${Array.from({ length: 12 }, (_, i) => i).filter((i) => on(`ch.${ch}.insFx.note${i}`)).join(",")}`);
+const PITCH_PUT_BACK = ["Custom:", "Custom:", "Single:", "Custom:0,4,7"];
+
 describe("what a reload carries over", () => {
   it("leaves out what the unit was doing at that moment", () => {
     for (const path of ["ch.ch1.level", "setup.brightness", "sd.card", "ui.selectedStrip", "ui.eqBand", "scene.Standard.1.state"]) {
@@ -279,6 +293,20 @@ describe("what a reload carries over", () => {
       }
     }
     expect(seen).toEqual(want);
+  });
+
+  it("brings Pitch Fix back as its MIDI Control leaves it, and a Custom keyboard under Setting as it was", async () => {
+    window.localStorage.setItem("urx-lcd-sim.state", JSON.stringify({ version: 1, model: MODEL, values: Object.fromEntries(PITCH_OLD) }));
+    const store = await unit();
+    await bring(store);
+    expect(pitchRead((p) => store.str(p, ""), (p) => store.bool(p, true))).toEqual(PITCH_PUT_BACK);
+  });
+
+  it("brings Pitch Fix stored under Setting with no Scale back off the Chromatic keyboard it ships on", async () => {
+    window.localStorage.setItem("urx-lcd-sim.state", JSON.stringify({ version: 1, model: MODEL, values: { "ch.ch1.insFx.midiControl": "Setting" } }));
+    const store = await unit();
+    await bring(store);
+    expect(pitchRead((p) => store.str(p, ""), (p) => store.bool(p, true))[0]).toBe("Custom:");
   });
 
   it("brings a GATE, COMP or DUCKER time stored off its stops back on the stop nearest it", async () => {

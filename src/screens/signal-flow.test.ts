@@ -565,6 +565,51 @@ describe("an insert's compander and M.B.Comp", () => {
     expect(blockReduction(store, spec, AT)).toBeCloseTo(flat - (outL - inL), 6);
   });
 
+  const mix1Compander = { kind: "over" as const, base: "ch.bus.mix1.insFx", level: tapId("bus.mix1", "preIns"), makeup: 0, on: { path: "ch.bus.mix1.insFx.on", fallback: false } };
+
+  /** MIX 1's compander `effect` at threshold, ratio and width, the oscillator's tone into it at `level`: out - in and its reduction. */
+  async function companderAt(effect: string, threshold: number, ratio: number, width: number, level: number): Promise<{ gain: number; reduction: number }> {
+    const store = await unit();
+    await into(store, level, true);
+    await store.set("ch.bus.mix1.insFx.effect", effect);
+    await store.set("ch.bus.mix1.insFx.on", true);
+    await store.set("ch.bus.mix1.insFx.threshold", threshold);
+    await store.set("ch.bus.mix1.insFx.ratio", ratio);
+    await store.set("ch.bus.mix1.insFx.width", width);
+    const [inL = 0] = read(store, tapId("bus.mix1", "preIns"));
+    const [outL = 0] = read(store, tapId("bus.mix1", "post"));
+    const detector = effect === "Compander-H" ? ("companderH" as const) : ("companderS" as const);
+    return { gain: outL - inL, reduction: blockReduction(store, { ...mix1Compander, detector }, AT) };
+  }
+
+  it.each(["Compander-S", "Compander-H"])("lifts the flat of %s's curve no more than 18 dB, as the unit does", async (effect) => {
+    // Threshold, ratio, and the lift the unit read on the flat at -70 dB: the threshold under the ratio, up to 18 dB.
+    for (const [threshold, ratio, lift] of [[-30, 2, 15], [-38, 2, 18], [-54, 2, 18], [-54, 20, 18]] as const) {
+      const { gain, reduction } = await companderAt(effect, threshold, ratio, 90, -70);
+      expect(gain, `T ${threshold} / R ${ratio}`).toBeCloseTo(lift, 6);
+      expect(reduction, `T ${threshold} / R ${ratio}: the flat takes nothing off`).toBeCloseTo(0, 6);
+    }
+  });
+
+  it.each([
+    // Effect, threshold, ratio, width, and the reduction the unit stopped at: (threshold - width + 62) x (expansion - 1).
+    ["Compander-S", -20, 2, 20, 11],
+    ["Compander-H", -54, 2, 4, 16],
+  ] as const)("takes off no more under %s's band than its expansion makes of -62 dB, as the unit does", async (effect, threshold, ratio, width, stop) => {
+    const deep = await companderAt(effect, threshold, ratio, width, -80);
+    const deeper = await companderAt(effect, threshold, ratio, width, -90);
+    expect(deep.reduction).toBeCloseTo(stop, 6);
+    expect(deeper.reduction).toBeCloseTo(stop, 6);
+    expect(deeper.gain).toBeCloseTo(deep.gain, 6);
+  });
+
+  it("deepens Compander-S's expansion with the level down to -62 dB", async () => {
+    const nearer = await companderAt("Compander-S", -20, 2, 20, -50);
+    const further = await companderAt("Compander-S", -20, 2, 20, -56);
+    expect(nearer.reduction).toBeGreaterThan(0);
+    expect(further.reduction - nearer.reduction).toBeCloseTo(3, 6);
+  });
+
   it("puts out M.B.Comp's level along the unit's own table", async () => {
     const store = await unit();
     await into(store, -20, true);

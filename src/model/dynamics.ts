@@ -102,7 +102,7 @@ export const COMPANDER_EXPANSION: Record<string, number> = { "Compander-H": 5, "
  * far as the threshold, from there down through the width the slope is the one it
  * has at 1.0:1, and below the width it falls by the expansion.
  */
-export function companderResponse(threshold: number, ratio: number, width: number, gain: number, expansion: number): (db: number) => number {
+function companderResponse(threshold: number, ratio: number, width: number, gain: number, expansion: number): (db: number) => number {
   const r = Math.max(1, ratio);
   const foot = threshold - width;
   const atThreshold = gain + threshold / r;
@@ -111,6 +111,38 @@ export function companderResponse(threshold: number, ratio: number, width: numbe
     if (db >= threshold) return gain + db / r;
     if (db >= foot) return atThreshold - (threshold - db);
     return atThreshold - width - (foot - db) * expansion;
+  };
+}
+
+/** The most a compander lifts the flat of its curve, in dB, whatever its threshold and ratio. */
+export const COMPANDER_LIFT_MAX_DB = 18;
+
+/** The quietest level a compander's expansion hears, in dB at its detector. */
+export const COMPANDER_HEARD_FLOOR_DB = -62;
+
+/** How far a compander lifts the flat of its curve: its threshold under the ratio, up to 18 dB. */
+export const companderLiftDb = (threshold: number, ratio: number): number =>
+  Math.min(-threshold * (1 - 1 / Math.max(1, ratio)), COMPANDER_LIFT_MAX_DB);
+
+/**
+ * A compander's curve as it works and as its screen draws it: the curve, the
+ * whole of it standing no higher than its flat lifted by 18 dB.
+ */
+export function companderCurve(threshold: number, ratio: number, width: number, gain: number, expansion: number): (db: number) => number {
+  const curve = companderResponse(threshold, ratio, width, gain, expansion);
+  const over = -threshold * (1 - 1 / Math.max(1, ratio)) - companderLiftDb(threshold, ratio);
+  return (db) => curve(db) - over;
+}
+
+/**
+ * The gain a compander gives a level its detector hears as `heard`: its curve's,
+ * the expansion taking a level quieter than -62 dB as -62 dB.
+ */
+export function companderGainDb(threshold: number, ratio: number, width: number, gain: number, expansion: number): (heard: number) => number {
+  const curve = companderCurve(threshold, ratio, width, gain, expansion);
+  return (heard) => {
+    const at = Math.max(heard, COMPANDER_HEARD_FLOOR_DB);
+    return curve(at) - at;
   };
 }
 

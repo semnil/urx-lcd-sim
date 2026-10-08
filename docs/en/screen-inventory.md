@@ -623,6 +623,10 @@ DUCKER; GATE's Hold 0.02 ms..1.96 s over 214; GATE's Decay and COMP's Release 9.
 same 277; and DUCKER's Decay 1.3 ms..5.0 s over 122. A detent of the arrow keys or the wheel moves one
 stop, with Shift held or not, and a drag runs evenly over the stops. A time that a browser save, a settings file
 or a scene holds off these stops comes back on the stop nearest it, and the next save holds that stop.
+Each reads to the places the unit prints it to: Attack to three places under 10 ms (`0.097m`) and two from there
+(`10.12m`); GATE's Decay and COMP's Release to one (`9.7m`, `100.1m`); GATE's Hold to two under 10 ms (`9.75m`), one
+below a second and two in seconds from there (`1.96s`); DUCKER's Decay to one, in seconds from a second too (`5.0s`)
+(URX44V, the operator, 2026-10-04).
 
 The handles (G / T / R / A / D) are 32px in diameter (face `--handle-face`, a 3px `--handle-ring`
 rim), pulled in from the left and right ends of the panel by their radius. The handle touched takes the focus,
@@ -822,6 +826,14 @@ beside it where it does not. Touching a circle turns that note over and takes th
 Choosing a named scale fills the twelve in, and so does changing the Key while one is named. While the
 Scale reads `Custom`, neither choosing `Custom` again nor changing the Key moves them, and nothing takes
 the Scale back out of `Custom` on its own (URX44V, the operator, 2026-09-23).
+MIDI Control decides the Scale's list and the twelve (URX44V, the operator, 2026-10-08). `Off` lists every scale,
+`Setting` all but `Chromatic`, and `Real Time` only `Custom` and `Single`. Under `Real Time` all twelve are off, and a
+scale or a Key chosen there fills none in. Under `Setting` and `Real Time` a touch on a circle turns nothing over and
+leaves the Scale as it is. Taking it onto `Real Time` turns the twelve off and takes any scale but
+`Single` to `Custom`. Taking it from `Off` onto `Setting` turns them off onto `Custom` under `Custom` or `Chromatic`,
+and leaves a named scale as it is. Taking it from `Real Time` back onto `Setting` or `Off` fills a named scale in
+again at the Key it then reads, and leaves `Custom` empty. A browser save, a settings file or a scene that holds a
+pairing these rules do not leave (notes lit under `Real Time`, `Chromatic` under `Setting`) is put back by the same rules.
 The readout bar is empty.
 
 Page three carries Limit Low / Limit High / Speed / Tolerance in the lower row under the
@@ -911,7 +923,9 @@ The curve holds the output at **the crossing of the rules** (0.0dB in, 0.0dB out
 lowering Gain takes that flat top, and the whole line with it, down by the same amount. From the
 crossing down to (T), Ratio lays the slope down; between (T) and (W) — the band, as wide as Width — it
 is 1.0:1; and below (W) it falls harder still, at a slope that belongs to the effect: **5:1 for
-Compander-H and 1.5:1 for Compander-S** (measured; neither Width nor Ratio moves it).
+Compander-H and 1.5:1 for Compander-S** (measured; neither Width nor Ratio moves it). Where the lift between (T) and
+(W), -Threshold x (1 - 1/Ratio), would pass 18 dB, it stops at 18 dB and the whole curve stands lower by the
+difference, the line right of the crossing under the crossing too (URX44V, the operator, 2026-10-08).
 
 ### Choosing an effect
 
@@ -1353,7 +1367,10 @@ and URX44 run the same laws, bar the number of channels.
   noise 2.7 dB under on Compander-S and 7.1 dB under on Compander-H (fitted to the unit's sweeps at the
   defaults and at a -24 dB threshold; within 1.1 dB on a tone and 4 to 7 dB on pink noise). Its reduction bar
   reads how far the gain is under the gain on the flat of the curve, between the width and the threshold, as
-  the unit's GR meter does. M.B.Comp puts out what a table of pink noise and of a tone taken through the unit
+  the unit's GR meter does. The flat of the curve is lifted no more than 18 dB, whatever the threshold and the ratio;
+  a setting that would lift it further takes the whole curve down by the difference. The expansion hears nothing
+  under -62 dB at the detector, and takes a quieter input down as far as it takes -62 dB (both Compander-S and
+  Compander-H, the unit's inputs and outputs, 2026-10-03 and 2026-10-08). M.B.Comp puts out what a table of pink noise and of a tone taken through the unit
   at the effect's own values says (`MBC_CURVES`), moved dB for dB by its Out Gain from the +4 dB it ships at,
   as on the unit.
 - An FX channel returns what goes into it at a level set by the effect it runs (the pink noise difference

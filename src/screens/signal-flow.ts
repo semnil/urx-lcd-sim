@@ -10,7 +10,7 @@
 
 import type { DeviceStore } from "../device/store";
 import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, GATE_DEFAULTS, SSMCS_DEFAULTS, faderShipped } from "../model/defaults";
-import { COMPANDER_EXPANSION, COMP_KNEE_WIDTH, OVER_REDUCTION_MAX_DB, SSMCS_CORNER_FLOOR_DB, compReductionDb, companderResponse, duckerReductionDb, gateReductionDb, ssmcsCorner } from "../model/dynamics";
+import { COMPANDER_EXPANSION, COMP_KNEE_WIDTH, OVER_REDUCTION_MAX_DB, SSMCS_CORNER_FLOOR_DB, compReductionDb, companderGainDb, companderLiftDb, duckerReductionDb, gateReductionDb, ssmcsCorner } from "../model/dynamics";
 import { bandResponse } from "../model/eq-response";
 import { SSMCS_BAND_KEYS, eqOutOfUse, fourBandResponse, fourBands, pinkGainDb, ssmcsBand, ssmcsEqResponse, ssmcsSideChain, ssmcsSideChainResponse } from "../model/channel-eq";
 import { type EffectOption, FX_EFFECTS, FX_EFFECT_DEFAULT, INPUT_INSERT_EFFECTS, NO_EFFECT, OUTPUT_INSERT_EFFECTS, effectParams, guitarOutputDb } from "../model/effects";
@@ -353,15 +353,16 @@ function outputLevelDb(store: DeviceStore, base: string, effect: string): number
 /**
  * What an insert's compander named by `spec` does when it hears `heard`: the gain
  * its curve gives the level, and how far that is under the gain on the flat of the
- * curve between the width and the threshold, which its reduction bar reads.
+ * curve between the width and the threshold, which its reduction bar reads. The
+ * flat lifts no more than 18 dB, and the expansion hears nothing under -62 dB.
  */
 function compander(store: DeviceStore, spec: GrSpec, heard: number): { gain: number; reduction: number } | undefined {
   const name = spec.detector ? COMPANDER_OF[spec.detector] : undefined;
   if (!name) return undefined;
   const value = (key: string): number => effectValue(store, spec.base, name, key).value;
   const [threshold, ratio, width, out] = [value("threshold"), Math.max(1, value("ratio")), value("width"), value("gain")];
-  const gain = companderResponse(threshold, ratio, width, out, COMPANDER_EXPANSION[name] ?? 1)(heard) - heard;
-  const flat = out - threshold * (1 - 1 / ratio);
+  const gain = companderGainDb(threshold, ratio, width, out, COMPANDER_EXPANSION[name] ?? 1)(heard);
+  const flat = out + companderLiftDb(threshold, ratio);
   return { gain, reduction: Math.max(0, flat - gain) };
 }
 

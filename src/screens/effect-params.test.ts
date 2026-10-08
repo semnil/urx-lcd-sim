@@ -819,6 +819,75 @@ describe("the screen an effect is set on", () => {
     expect(lit(), "Single takes the key alone").toEqual(["F"]);
   });
 
+  it("follows MIDI Control with Pitch Fix's keyboard and the scales its list offers, as the unit does", async () => {
+    // URX44V, 2026-10-08: Off offers every scale, Setting all but Chromatic, Real Time Custom and Single.
+    // Real Time empties the keyboard and turns any scale but Single to Custom; Setting from Off empties a
+    // Custom or Chromatic keyboard onto Custom and leaves a named scale; leaving Real Time fills a named
+    // scale in again, at the key chosen under it.
+    const shell = await openParams("ch1", "Pitch Fix");
+    await click(shell, ".efx-page-next");
+    const lit = (): string[] =>
+      [...shell.root.querySelectorAll<HTMLElement>(".pitch-key, .pitch-key-black")].filter((n) => n.getAttribute("aria-pressed") === "true").map((n) => n.textContent ?? "");
+    const pulldown = (caption: string): HTMLElement | null | undefined =>
+      [...shell.root.querySelectorAll<HTMLElement>(".pitch-row")]
+        .find((r) => r.querySelector(".pitch-row-caption")?.textContent === caption)
+        ?.querySelector<HTMLElement>(".pulldown");
+    const options = (): HTMLElement[] => [...shell.root.querySelectorAll<HTMLElement>(".dropdown-option, .source-btn")];
+    const choose = async (caption: string, name: string): Promise<void> => {
+      pulldown(caption)?.click();
+      await flush();
+      options().find((b) => b.textContent === name)?.click();
+      await flush();
+    };
+    const offered = async (): Promise<string[]> => {
+      pulldown("Scale")?.click();
+      await flush();
+      const names = options().map((b) => b.textContent ?? "");
+      options().find((b) => b.textContent === shell.ctx.store.str("ch.ch1.insFx.scale", ""))?.click();
+      await flush();
+      return names;
+    };
+    const scale = (): string => shell.ctx.store.str("ch.ch1.insFx.scale", "");
+    const named = ["Single", "Major", "Natural Minor", "Harmonic Minor", "Melodic Minor", "Pentatonic"];
+
+    expect([lit().length, await offered()], "Off, as it ships").toEqual([12, ["Custom", ...named, "Chromatic"]]);
+    await choose("MIDI Control", "Setting");
+    expect([lit(), scale(), await offered()], "Chromatic onto Setting").toEqual([[], "Custom", ["Custom", ...named]]);
+    const press = async (name: string): Promise<void> => {
+      [...shell.root.querySelectorAll<HTMLElement>(".pitch-key, .pitch-key-black")].find((n) => n.textContent === name)?.click();
+      await flush();
+    };
+    await press("C");
+    expect([lit(), scale()], "a key touched under Setting moves nothing").toEqual([[], "Custom"]);
+    await choose("MIDI Control", "Real Time");
+    await press("C");
+    expect([lit(), scale()], "nor under Real Time").toEqual([[], "Custom"]);
+    await choose("MIDI Control", "Off");
+    await press("C");
+    expect([lit(), scale()], "and under Off a key turns over again").toEqual([["C"], "Custom"]);
+    await press("C");
+    await choose("Scale", "Major");
+    await choose("MIDI Control", "Off");
+    await choose("MIDI Control", "Setting");
+    expect([lit(), scale()], "a named scale onto Setting keeps its notes").toEqual([["C", "D", "E", "F", "G", "A", "B"], "Major"]);
+    await choose("MIDI Control", "Setting");
+    expect(scale(), "Setting chosen again over Setting moves nothing").toBe("Major");
+    await choose("MIDI Control", "Real Time");
+    expect([lit(), scale(), await offered()], "Major onto Real Time").toEqual([[], "Custom", ["Custom", "Single"]]);
+    await choose("Scale", "Single");
+    await choose("Key", "D");
+    expect([lit(), scale()], "a scale and a key chosen under Real Time fill nothing in").toEqual([[], "Single"]);
+    await choose("MIDI Control", "Off");
+    expect([lit(), scale()], "off Real Time, Single fills in at D").toEqual([["D"], "Single"]);
+    await choose("MIDI Control", "Real Time");
+    expect([lit(), scale()], "Single onto Real Time keeps the scale").toEqual([[], "Single"]);
+    await choose("MIDI Control", "Setting");
+    expect([lit(), scale()], "and Setting from Real Time fills it in again").toEqual([["D"], "Single"]);
+    await choose("Scale", "Custom");
+    await choose("MIDI Control", "Setting");
+    expect([lit(), scale()], "Setting chosen again over a Custom keyboard under Setting moves nothing").toEqual([["D"], "Custom"]);
+  });
+
   it("opens on the first page, whichever page the effect before it was left on", async () => {
     const shell = await openParams("ch1", "Clean");
     await click(shell, ".efx-page-next");
@@ -1037,6 +1106,18 @@ describe("a compander", () => {
     expect(at(-16) - at(-10), "the band itself is 1.0:1").toBeCloseTo(-6, 1);
     expect(at(-26), "and what falls below it is pulled down 5:1").toBeCloseTo(-58.86, 1);
     expect((at(-16) - at(-26)) / 10, "the slope below the band").toBeCloseTo(5, 1);
+  });
+
+  it("draws the whole curve under the crossing where the threshold and the ratio would lift its flat past 18 dB", async () => {
+    // URX44V, 2026-10-08: at -54 dB and 20:1 the line right of the crossing stands under it. The flat
+    // would lift 54 x (1 - 1/20) = 51.3 dB; it lifts 18, so the whole curve stands 33.3 dB lower.
+    const shell = await openParams("ch2", "Compander-S");
+    await shell.ctx.store.set("ch.ch2.insFx.threshold", -54);
+    await shell.ctx.store.set("ch.ch2.insFx.ratio", 20);
+    await flush();
+    const at = curve(shell);
+    expect(at(10), "the line right of the crossing").toBeCloseTo(-33.3, 1);
+    expect(at(-70) - -70, "the flat lifts 18 dB").toBeCloseTo(18, 1);
   });
 
   it("pulls what falls below the band down harder on Compander-H than on Compander-S", async () => {
