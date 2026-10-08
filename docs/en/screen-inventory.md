@@ -832,7 +832,8 @@ scale or a Key chosen there fills none in. Under `Setting` and `Real Time` a tou
 leaves the Scale as it is. Taking it onto `Real Time` turns the twelve off and takes any scale but
 `Single` to `Custom`. Taking it from `Off` onto `Setting` turns them off onto `Custom` under `Custom` or `Chromatic`,
 and leaves a named scale as it is. Taking it from `Real Time` back onto `Setting` or `Off` fills a named scale in
-again at the Key it then reads, and leaves `Custom` empty.
+again at the Key it then reads, and leaves `Custom` empty. A browser save, a settings file or a scene that holds a
+pairing these rules do not leave (notes lit under `Real Time`, `Chromatic` under `Setting`) is put back by the same rules.
 The readout bar is empty.
 
 Page three carries Limit Low / Limit High / Speed / Tolerance in the lower row under the

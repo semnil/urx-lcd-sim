@@ -46,6 +46,20 @@ const typeTitle = async (shell: Shell, text: string): Promise<void> => {
   await flush();
 };
 
+// Pitch Fix as an earlier version could leave it: Real Time over Chromatic with every note on (CH 1), Setting over
+// Chromatic (CH 3) and Real Time over Single with its note on (CH 2), beside a Custom keyboard under Setting (CH 4).
+const PITCH_OLD: [string, string | boolean][] = [
+  ["ch.ch1.insFx.midiControl", "Real Time"], ["ch.ch1.insFx.scale", "Chromatic"],
+  ["ch.ch3.insFx.midiControl", "Setting"], ["ch.ch3.insFx.scale", "Chromatic"],
+  ["ch.ch2.insFx.midiControl", "Real Time"], ["ch.ch2.insFx.scale", "Single"], ["ch.ch2.insFx.note0", true],
+  ["ch.ch4.insFx.midiControl", "Setting"], ["ch.ch4.insFx.scale", "Custom"],
+  ...Array.from({ length: 12 }, (_, i): [string, boolean] => [`ch.ch4.insFx.note${i}`, i === 0 || i === 4 || i === 7]),
+];
+/** Each channel's Scale and the notes it holds on, read back. */
+const pitchRead = (str: (p: string) => string, on: (p: string) => boolean): string[] =>
+  ["ch1", "ch3", "ch2", "ch4"].map((ch) => `${str(`ch.${ch}.insFx.scale`)}:${Array.from({ length: 12 }, (_, i) => i).filter((i) => on(`ch.${ch}.insFx.note${i}`)).join(",")}`);
+const PITCH_PUT_BACK = ["Custom:", "Custom:", "Single:", "Custom:0,4,7"];
+
 describe("the card the simulator ships with", () => {
   it("is in the slot with nothing on it", async () => {
     const shell = await mount({ id: "microsd.saveload" });
@@ -289,6 +303,21 @@ describe("playing a file back", () => {
     await flush();
     await flush();
     expect(store.num("ch.ch1.ssmcs.comp.ratio", 0)).toBe(Number.POSITIVE_INFINITY);
+  });
+
+  it("loads Pitch Fix from a settings file as its MIDI Control leaves it, and a Custom keyboard under Setting as it was", async () => {
+    const shell = await mount({ id: "microsd.saveload" }, [{ name: "Recordings", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" }]);
+    const store = shell.ctx.store;
+    for (const [p, v] of PITCH_OLD) await store.set(p, v);
+    action(shell, "Save as")?.click();
+    await flush();
+    await typeTitle(shell, "older");
+    await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === "older.urxf"));
+    await flush();
+    action(shell, "Load")?.click();
+    await flush();
+    await flush();
+    expect(pitchRead((p) => store.str(p, ""), (p) => store.bool(p, true))).toEqual(PITCH_PUT_BACK);
   });
 
   it("puts a GATE, COMP or DUCKER time an older settings file holds off its stops on the stop nearest it", async () => {

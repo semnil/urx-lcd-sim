@@ -24,6 +24,20 @@ async function mount(model: UnitModel["id"] = "URX44V"): Promise<Shell> {
   return shell;
 }
 
+// Pitch Fix as an earlier version could leave it: Real Time over Chromatic with every note on (CH 1), Setting over
+// Chromatic (CH 3) and Real Time over Single with its note on (CH 2), beside a Custom keyboard under Setting (CH 4).
+const PITCH_OLD: [string, string | boolean][] = [
+  ["ch.ch1.insFx.midiControl", "Real Time"], ["ch.ch1.insFx.scale", "Chromatic"],
+  ["ch.ch3.insFx.midiControl", "Setting"], ["ch.ch3.insFx.scale", "Chromatic"],
+  ["ch.ch2.insFx.midiControl", "Real Time"], ["ch.ch2.insFx.scale", "Single"], ["ch.ch2.insFx.note0", true],
+  ["ch.ch4.insFx.midiControl", "Setting"], ["ch.ch4.insFx.scale", "Custom"],
+  ...Array.from({ length: 12 }, (_, i): [string, boolean] => [`ch.ch4.insFx.note${i}`, i === 0 || i === 4 || i === 7]),
+];
+/** Each channel's Scale and the notes it holds on, read back. */
+const pitchRead = (str: (p: string) => string, on: (p: string) => boolean): string[] =>
+  ["ch1", "ch3", "ch2", "ch4"].map((ch) => `${str(`ch.${ch}.insFx.scale`)}:${Array.from({ length: 12 }, (_, i) => i).filter((i) => on(`ch.${ch}.insFx.note${i}`)).join(",")}`);
+const PITCH_PUT_BACK = ["Custom:", "Custom:", "Single:", "Custom:0,4,7"];
+
 describe("what a scene carries", () => {
   it("takes the mixer and leaves the unit's own settings where they are", () => {
     // Measured from a unit's own settings file: a scene holds the routing, the
@@ -299,6 +313,16 @@ describe("storing and recalling a scene", () => {
     await s.set("source.usb-main-a.digitalGain", -3);
     await applySettings(s, file);
     expect([s.num("source.usb-daw-1-2.digitalGain", 99), s.num("source.usb-main-a.digitalGain", 99)]).toEqual([0, 6]);
+  });
+
+  it("recalls Pitch Fix from a scene as its MIDI Control leaves it, and a Custom keyboard under Setting as it was", async () => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    for (const [p, v] of PITCH_OLD) await s.set(p, v);
+    await s.set("scene.Standard.1.title", "older");
+    await storeScene(shell.ctx, "Standard", 1);
+    await recallScene(shell.ctx, 1);
+    expect(pitchRead((p) => s.str(p, ""), (p) => s.bool(p, true))).toEqual(PITCH_PUT_BACK);
   });
 
   it("puts a GATE, COMP or DUCKER time an older scene holds off its stops on the stop nearest it", async () => {

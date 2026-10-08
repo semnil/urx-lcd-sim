@@ -4,7 +4,7 @@
 
 - GATE・COMP・DUCKER の時間を、実機と同じ桁で読むようにした。Attack は 10 ms 未満を小数第 3 位、GATE の Decay と COMP の Release は小数第 1 位、GATE の Hold は 10 ms 未満を小数第 2 位、1 秒からは秒の小数第 2 位。これまでは 0.097 ms の Attack が `0.10ms`、9.7 ms の Decay と Release が `9.70ms`、1.96 s の Hold が `2.0s` と読み、隣り合う段が同じ読みになることがあった。
 - インサートのコンパンダーの曲線の平らな所の持ち上げを、出力・リダクションのバー・画面が描く曲線のどれでも 18 dB までにした。それを超える設定では、曲線はグリッドの交点より下に引く。伸張は -62 dB より下を聞かないようにした。どれも実機と同じ。これまでは低いしきい値と高い比率でメーターと曲線が最大 51 dB 持ち上がり、伸張は無音まで深くなり続けた。
-- Pitch Fix の MIDI Control に合わせて、Scale の一覧と鍵盤を実機と同じく変えるようにした。Setting では一覧から Chromatic を外し、Real Time では Custom と Single だけを出す。Real Time では鍵盤を空にし、Single 以外の音階を Custom にして、そのあいだは何も埋めない。Off から Setting へ替えると Custom と Chromatic の鍵盤を空にして Custom にし、Real Time を出ると名前のある音階を埋め直す。Setting と Real Time のあいだは、鍵盤に触れても何も変わらない。これまでは MIDI Control を替えても一覧も鍵盤も変わらなかった。
+- Pitch Fix の MIDI Control に合わせて、Scale の一覧と鍵盤を実機と同じく変えるようにした。Setting では一覧から Chromatic を外し、Real Time では Custom と Single だけを出す。Real Time では鍵盤を空にし、Single 以外の音階を Custom にして、そのあいだは何も埋めない。Off から Setting へ替えると Custom と Chromatic の鍵盤を空にして Custom にし、Real Time を出ると名前のある音階を埋め直す。Setting と Real Time のあいだは、鍵盤に触れても何も変わらない。以前の版のブラウザへの保存・設定ファイル・シーンも、同じ規則で戻す。これまでは MIDI Control を替えても一覧も鍵盤も変わらなかった。
 - 面の下に帯のあるコントロール (チャンネル画面のブロックやメニューのボタンなど) の下端を素早くタップしても押せるようにした。沈むときに足元を切る範囲が、面が下がるのに合わせて広がる。面が下がりきる前に離すタップは、コントロールの下端 3 画素 (帯の深さ) に当たらず、何も開かなかった。
 - Device メニュー内の項目間でフォーカスが移る間もメニューを維持するようにした。Initialize All Memories をクリックすると、警告を表示する前にメニューが閉じていた。
 - 画面外に [Initialize Current Memories] を追加し、[Initialize All Memories] とともに Device メニューにまとめた。各項目の確認に初期化するもの・残るもの・取り消せないことを明示した。現在値の初期化は現在値とシーン選択を初期化し、シーンメモリーと microSD カードを残す。[Initialize All Memories] は引き続きシーンメモリーも初期化する。初期化と機種変更は、新しい本体の表示が完了するまで競合する起動操作を受け付けない。

@@ -12,6 +12,7 @@ import { CARD_ROOT, TAKE_SUFFIX, changeCard, filePath, folderPath, formatFree, f
 import { clockParts } from "../model/clock";
 import { applySettings, captureSettings } from "../model/settings-file";
 import { onDynamicsTimeStops } from "../model/dynamics-times";
+import { onPitchMidiControl } from "../model/effects";
 import { TRACK_COUNTS, dropTracksOverRate, trackCountCeiling } from "../model/track-count";
 import { dropInsertsOverRate } from "./insert-fx";
 import { dropSendsOverRate } from "./effect-params";
@@ -499,7 +500,7 @@ function loadSettings(ctx: AppContext, entry: CardEntry): void {
   const held = ctx.store.str(filePath(entry), "");
   if (!held) return;
   const pairs = pairStates(ctx);
-  void applySettings(ctx.store, onDelayGrid(onSsmcsStops(onDynamicsTimeStops(fromJson(held) as Record<string, ParamValue>)))).then(() => {
+  void applySettings(ctx.store, onDelayGrid(onSsmcsStops(onDynamicsTimeStops(onPitchMidiControl(fromJson(held) as Record<string, ParamValue>))))).then(() => {
     followRecall(ctx, pairs);
     settlePanLink(ctx);
     const rate = ctx.store.num("setup.samplingFrequency", 48000);

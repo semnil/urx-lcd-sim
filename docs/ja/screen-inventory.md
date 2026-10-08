@@ -729,7 +729,8 @@ MIDI Control は Scale の一覧と 12 音を変える (URX44V、2026-10-08 操�
 `Setting` と `Real Time` のあいだは、丸に触れても音は裏返らず、Scale も変わらない。
 `Real Time` へ替えると 12 音を外し、`Single` 以外の音階は `Custom` になる。`Off` から `Setting` へ替えると、`Custom` と `Chromatic` は
 12 音を外して `Custom` になり、名前のある音階はそのまま残る。`Real Time` から `Setting` か `Off` へ戻すと、名前のある音階は
-そのときの Key で 12 音を埋め直し、`Custom` は外れたまま。
+そのときの Key で 12 音を埋め直し、`Custom` は外れたまま。ブラウザへの保存・設定ファイル・シーンがこれに合わない組み合わせ
+(`Real Time` で 12 音が点いている、`Setting` で `Chromatic` など) を持つときは、戻すときに同じ規則で直す。
 読み出し帯は空。
 
 3 ページ目は `Note Limit Low/High` の帯の下に Limit Low / Limit High / Speed / Tolerance を下段へ、
