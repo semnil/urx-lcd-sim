@@ -805,11 +805,13 @@ const PITCH_BLACK_W = 30;
  * The scale Pitch Fix snaps to, drawn on an octave of a keyboard: every note
  * carries a circle with its name, lit where the correction takes it. Touching one
  * turns that note over and takes the Scale to `Custom`, which is the set the
- * operator has made rather than a scale the unit fills in.
+ * operator has made rather than a scale the unit fills in. While MIDI Control is
+ * `Setting` or `Real Time` a touch moves nothing.
  */
 function pitchKeyboard(ctx: AppContext, holder: EffectHolder): HTMLElement {
   const white = [0, 2, 4, 5, 7, 9, 11];
   const black = [1, 3, 6, 8, 10];
+  const held = ctx.store.str(`${holder.base}.midiControl`, "Off") !== "Off";
   // The whole key answers the touch; the circle on it is only the note's face.
   const key = (semitone: number, cls: string, style?: Record<string, string>): HTMLElement => {
     const path = `${holder.base}.${pitchNoteKey(semitone)}`;
@@ -818,9 +820,10 @@ function pitchKeyboard(ctx: AppContext, holder: EffectHolder): HTMLElement {
     const node = el("button", {
       class: cls,
       ...(style ? { style } : {}),
-      attrs: { "aria-label": name, "aria-pressed": on ? "true" : "false" },
+      attrs: { "aria-label": name, "aria-pressed": on ? "true" : "false", ...(held ? { "aria-disabled": "true" } : {}) },
       // The note and the scale it leaves are one operation of the store.
       onTap: () =>
+        !held &&
         ctx.store.operation(() => {
           void ctx.store.set(path, !on);
           void ctx.store.set(`${holder.base}.scale`, PITCH_CUSTOM);
@@ -847,9 +850,13 @@ function pitchKeyboard(ctx: AppContext, holder: EffectHolder): HTMLElement {
 /**
  * The page the scale is set on: the three lists down its left, the keyboard beside
  * them. Choosing a named scale, or a key while one is named, fills the keyboard in;
- * `Custom` leaves whatever is there. MIDI Control moved onto `Setting` or `Real Time`
- * empties the keyboard and leaves the scale on `Custom` while the scale is `Custom`
- * or `Chromatic`; moved onto `Off` it leaves both as they are.
+ * `Custom` leaves whatever is there. MIDI Control decides which scales the list offers
+ * and what the keyboard holds:
+ * - `Off` offers every scale, `Setting` all but `Chromatic`, `Real Time` `Custom` and `Single`.
+ * - Under `Real Time` the keyboard is empty, and a scale or a key chosen there fills nothing in.
+ * - Taken onto `Real Time`, the keyboard empties and a scale other than `Single` turns `Custom`.
+ * - Taken from `Off` onto `Setting`, a `Custom` or `Chromatic` keyboard empties onto `Custom`.
+ * - Taken from `Real Time` onto `Setting` or `Off`, a named scale fills the keyboard in again.
  */
 function pitchNotes(ctx: AppContext, holder: EffectHolder, params: readonly EffectParam[]): HTMLElement {
   const lists = params.filter((p): p is EffectSelect => p.kind === "select");
@@ -863,17 +870,36 @@ function pitchNotes(ctx: AppContext, holder: EffectHolder, params: readonly Effe
     }
   };
   // A list's choice and the keyboard it fills in are one operation of the store.
+  const empty = (): void => {
+    for (let semitone = 0; semitone < PITCH_NOTE_NAMES.length; semitone++) void ctx.store.set(`${holder.base}.${pitchNoteKey(semitone)}`, false);
+  };
   const take = (p: EffectSelect, v: string): void =>
     ctx.store.operation(() => {
-      const clears = p.key === "midiControl" && v !== "Off" && v !== at(p.key) && [PITCH_CUSTOM, "Chromatic"].includes(at("scale"));
+      const was = at(p.key);
+      const scale = at("scale");
       void ctx.store.set(`${holder.base}.${p.key}`, v);
-      if (clears) {
-        void ctx.store.set(`${holder.base}.scale`, PITCH_CUSTOM);
-        for (let semitone = 0; semitone < PITCH_NOTE_NAMES.length; semitone++) void ctx.store.set(`${holder.base}.${pitchNoteKey(semitone)}`, false);
+      if (p.key === "midiControl" && v !== was) {
+        if (v === "Real Time") {
+          if (scale !== "Single") void ctx.store.set(`${holder.base}.scale`, PITCH_CUSTOM);
+          empty();
+        } else if (was === "Real Time") {
+          fill(at("key"), scale);
+        } else if (v === "Setting" && [PITCH_CUSTOM, "Chromatic"].includes(scale)) {
+          void ctx.store.set(`${holder.base}.scale`, PITCH_CUSTOM);
+          empty();
+        }
       }
+      if (at("midiControl") === "Real Time") return;
       if (p.key === "scale") fill(at("key"), v);
       if (p.key === "key") fill(v, at("scale"));
     });
+  const offered = (p: EffectSelect): readonly string[] => {
+    if (p.key !== "scale") return p.options;
+    const mode = at("midiControl");
+    if (mode === "Real Time") return p.options.filter((o) => o === PITCH_CUSTOM || o === "Single");
+    if (mode === "Setting") return p.options.filter((o) => o !== "Chromatic");
+    return p.options;
+  };
   return el("div", {
     class: "pitch-notes",
     children: [
@@ -882,7 +908,7 @@ function pitchNotes(ctx: AppContext, holder: EffectHolder, params: readonly Effe
           class: "pitch-row",
           children: [
             el("span", { class: "pitch-row-caption", text: p.label }),
-            pulldown(ctx, at(p.key), p.options, (v) => take(p, v), { label: p.label }),
+            pulldown(ctx, at(p.key), offered(p), (v) => take(p, v), { label: p.label }),
           ],
         }),
       ),

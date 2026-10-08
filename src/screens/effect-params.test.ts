@@ -819,46 +819,73 @@ describe("the screen an effect is set on", () => {
     expect(lit(), "Single takes the key alone").toEqual(["F"]);
   });
 
-  it("empties Pitch Fix's keyboard onto Custom as MIDI Control takes Setting or Real Time over Custom or Chromatic, as the unit does", async () => {
-    // URX44V, 2026-10-08: the unit clears the notes and the Scale reads Custom; the named scales
-    // keep theirs, and taking MIDI Control back to Off puts nothing back.
+  it("follows MIDI Control with Pitch Fix's keyboard and the scales its list offers, as the unit does", async () => {
+    // URX44V, 2026-10-08: Off offers every scale, Setting all but Chromatic, Real Time Custom and Single.
+    // Real Time empties the keyboard and turns any scale but Single to Custom; Setting from Off empties a
+    // Custom or Chromatic keyboard onto Custom and leaves a named scale; leaving Real Time fills a named
+    // scale in again, at the key chosen under it.
     const shell = await openParams("ch1", "Pitch Fix");
     await click(shell, ".efx-page-next");
-    const keys = (): HTMLElement[] => [...shell.root.querySelectorAll<HTMLElement>(".pitch-key, .pitch-key-black")];
-    const lit = (): string[] => keys().filter((n) => n.getAttribute("aria-pressed") === "true").map((n) => n.textContent ?? "");
-    const choose = async (caption: string, name: string): Promise<void> => {
+    const lit = (): string[] =>
+      [...shell.root.querySelectorAll<HTMLElement>(".pitch-key, .pitch-key-black")].filter((n) => n.getAttribute("aria-pressed") === "true").map((n) => n.textContent ?? "");
+    const pulldown = (caption: string): HTMLElement | null | undefined =>
       [...shell.root.querySelectorAll<HTMLElement>(".pitch-row")]
         .find((r) => r.querySelector(".pitch-row-caption")?.textContent === caption)
-        ?.querySelector<HTMLElement>(".pulldown")
-        ?.click();
+        ?.querySelector<HTMLElement>(".pulldown");
+    const options = (): HTMLElement[] => [...shell.root.querySelectorAll<HTMLElement>(".dropdown-option, .source-btn")];
+    const choose = async (caption: string, name: string): Promise<void> => {
+      pulldown(caption)?.click();
       await flush();
-      [...shell.root.querySelectorAll<HTMLElement>(".dropdown-option, .source-btn")].find((b) => b.textContent === name)?.click();
+      options().find((b) => b.textContent === name)?.click();
       await flush();
     };
-    const press = async (...names: string[]): Promise<void> => {
-      for (const name of names) {
-        keys().find((n) => n.textContent === name)?.click();
-        await flush();
-      }
+    const offered = async (): Promise<string[]> => {
+      pulldown("Scale")?.click();
+      await flush();
+      const names = options().map((b) => b.textContent ?? "");
+      options().find((b) => b.textContent === shell.ctx.store.str("ch.ch1.insFx.scale", ""))?.click();
+      await flush();
+      return names;
     };
     const scale = (): string => shell.ctx.store.str("ch.ch1.insFx.scale", "");
+    const named = ["Single", "Major", "Natural Minor", "Harmonic Minor", "Melodic Minor", "Pentatonic"];
 
-    expect(lit().length, "Chromatic, as it ships").toBe(12);
+    expect([lit().length, await offered()], "Off, as it ships").toEqual([12, ["Custom", ...named, "Chromatic"]]);
     await choose("MIDI Control", "Setting");
-    expect([lit(), scale()], "Chromatic onto Setting").toEqual([[], "Custom"]);
-    await press("C", "E", "G");
-    expect(lit(), "the keyboard takes notes under Setting").toEqual(["C", "E", "G"]);
+    expect([lit(), scale(), await offered()], "Chromatic onto Setting").toEqual([[], "Custom", ["Custom", ...named]]);
+    const press = async (name: string): Promise<void> => {
+      [...shell.root.querySelectorAll<HTMLElement>(".pitch-key, .pitch-key-black")].find((n) => n.textContent === name)?.click();
+      await flush();
+    };
+    await press("C");
+    expect([lit(), scale()], "a key touched under Setting moves nothing").toEqual([[], "Custom"]);
     await choose("MIDI Control", "Real Time");
-    expect([lit(), scale()], "a Custom keyboard onto Real Time from Setting").toEqual([[], "Custom"]);
-    await press("C", "E", "G");
+    await press("C");
+    expect([lit(), scale()], "nor under Real Time").toEqual([[], "Custom"]);
     await choose("MIDI Control", "Off");
-    expect([lit(), scale()], "Off leaves the keyboard").toEqual([["C", "E", "G"], "Custom"]);
+    await press("C");
+    expect([lit(), scale()], "and under Off a key turns over again").toEqual([["C"], "Custom"]);
+    await press("C");
     await choose("Scale", "Major");
+    await choose("MIDI Control", "Off");
     await choose("MIDI Control", "Setting");
-    expect([lit(), scale()], "a named scale keeps its notes").toEqual([["C", "D", "E", "F", "G", "A", "B"], "Major"]);
-    await press("B");
+    expect([lit(), scale()], "a named scale onto Setting keeps its notes").toEqual([["C", "D", "E", "F", "G", "A", "B"], "Major"]);
     await choose("MIDI Control", "Setting");
-    expect([lit(), scale()], "Setting chosen again over Setting moves nothing").toEqual([["C", "D", "E", "F", "G", "A"], "Custom"]);
+    expect(scale(), "Setting chosen again over Setting moves nothing").toBe("Major");
+    await choose("MIDI Control", "Real Time");
+    expect([lit(), scale(), await offered()], "Major onto Real Time").toEqual([[], "Custom", ["Custom", "Single"]]);
+    await choose("Scale", "Single");
+    await choose("Key", "D");
+    expect([lit(), scale()], "a scale and a key chosen under Real Time fill nothing in").toEqual([[], "Single"]);
+    await choose("MIDI Control", "Off");
+    expect([lit(), scale()], "off Real Time, Single fills in at D").toEqual([["D"], "Single"]);
+    await choose("MIDI Control", "Real Time");
+    expect([lit(), scale()], "Single onto Real Time keeps the scale").toEqual([[], "Single"]);
+    await choose("MIDI Control", "Setting");
+    expect([lit(), scale()], "and Setting from Real Time fills it in again").toEqual([["D"], "Single"]);
+    await choose("Scale", "Custom");
+    await choose("MIDI Control", "Setting");
+    expect([lit(), scale()], "Setting chosen again over a Custom keyboard under Setting moves nothing").toEqual([["D"], "Custom"]);
   });
 
   it("opens on the first page, whichever page the effect before it was left on", async () => {
