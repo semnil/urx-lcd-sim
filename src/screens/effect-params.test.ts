@@ -1120,6 +1120,20 @@ describe("a compander", () => {
     expect(at(-70) - -70, "the flat lifts 18 dB").toBeCloseTo(18, 1);
   });
 
+  it.each([
+    ["Compander-H", "ch1", 24, -66, 5],
+    ["Compander-S", "ch2", 6, -72, 1.5],
+  ] as const)("draws %s's expansion on at its own slope under -62 dB, where its output stops it", async (effect, ch, width, under, slope) => {
+    // The band's foot stands above -62 dB, so the curve under -62 dB is all expansion.
+    const shell = await openParams(ch, effect);
+    await shell.ctx.store.set(`ch.${ch}.insFx.threshold`, -36);
+    await shell.ctx.store.set(`ch.${ch}.insFx.ratio`, 2);
+    await shell.ctx.store.set(`ch.${ch}.insFx.width`, width);
+    await flush();
+    const at = curve(shell);
+    expect((at(-62) - at(under)) / (-62 - under)).toBeCloseTo(slope, 1);
+  });
+
   it("pulls what falls below the band down harder on Compander-H than on Compander-S", async () => {
     // Measured through the unit: H at 5:1 against S's 1.5:1.
     const h = curve(await openParams("ch1", "Compander-H"));

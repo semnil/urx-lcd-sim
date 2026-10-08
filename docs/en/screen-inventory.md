@@ -925,7 +925,10 @@ crossing down to (T), Ratio lays the slope down; between (T) and (W) — the ban
 is 1.0:1; and below (W) it falls harder still, at a slope that belongs to the effect: **5:1 for
 Compander-H and 1.5:1 for Compander-S** (measured; neither Width nor Ratio moves it). Where the lift between (T) and
 (W), -Threshold x (1 - 1/Ratio), would pass 18 dB, it stops at 18 dB and the whole curve stands lower by the
-difference, the line right of the crossing under the crossing too (URX44V, the operator, 2026-10-08).
+difference, the line right of the crossing under the crossing too (URX44V, the operator, 2026-10-08). The
+expansion hears nothing under -62 dB in what the effect puts out ("Blocks"), but the curve below (W) runs on at the same
+slope under -62 dB (Compander-H at Threshold -36 dB, Ratio 2.0:1 and Width 24 dB, and Compander-S at Threshold -36 dB, Ratio
+2.0:1 and Width 6 dB, URX44V, the operator, 2026-10-08).
 
 ### Choosing an effect
 
@@ -1678,11 +1681,12 @@ pressed. Recording mode goes on off the RECORDER screen, and a 14px dot of `--tr
 the microSD icon on the HOME and channel view toolbars (x364..377 / y22..35) and left of the name on the microSD menu's
 [Recorder] (x62..75, 4px from the name). On the microSD menu everything but [Recorder] ([Save/Load], [Tools], [USB Storage Mode] and the eject
 button) takes the face of a button that cannot be used and does nothing when pressed. SETUP's [Sampling Frequency] takes
-that face too, as the unit does, and does not open the SAMPLING FREQUENCY screen.
+that face too, as the unit does, and does not open the SAMPLING FREQUENCY screen (with a take paused too, URX44V, the operator, 2026-10-08).
 
 While playback holds a file, playing or paused, the microSD icon on the HOME and channel view toolbars carries a
 triangle of `--transport-play` pointing right where recording mode puts its dot (d under "Toolbar" in the user guide;
-paused as well as playing, in the same shape and place, URX44V, the operator, 2026-10-03). The triangle stands on the dot's rows and is as tall, 14px
+paused as well as playing, in the same shape and place, URX44V, the operator, 2026-10-03; on a channel view's toolbar, playing and
+paused, 2026-10-08). The triangle stands on the dot's rows and is as tall, 14px
 (y22..35), and 10px wide 3px in from the dot's left (x367..376). It goes once the file is let go, by [■] or at the
 end of the file ("What is on the card").
 
@@ -1716,7 +1720,8 @@ it brings the cursor to that file (f under Play in the user guide's "RECORDER me
 the plain face with its mark greyed, as [↑] does, and a touch on it does nothing. While a file is held, a touch on a
 folder on the Play tab only brings the cursor to it and does not open it, [↑] on the path field takes the face of a
 button that cannot be used and does nothing when pressed (playing and paused, URX44V, the operator, 2026-10-03), and
-the Record and Edit tabs take the face of a tab that cannot be used and do nothing when pressed, as the unit does. [■]
+the Record and Edit tabs take the face of a tab that cannot be used and do nothing when pressed, as the unit does (with a file
+playing, two touches on a folder open nothing, the Edit tab does nothing, and playback goes on, URX44V, the operator, 2026-10-08). [■]
 lets the file go, as the end of the file does, and they come back.
 
 While playback holds a file, playing or paused, the card-eject button cannot be used (a dimmed face in p081-1, the
@@ -1783,7 +1788,8 @@ compared as it will stand, its extension on: a settings file renamed `qz` beside
 renamed `take` beside `take.wav` becomes `take.urxf`, and one renamed `Fold` beside the folder `fold.urxf` is refused
 (URX44V, the operator, 2026-10-04). The extension goes on whatever is typed, so `new.urxf` typed becomes `new.urxf.urxf`,
 and so does `zz.urxf` typed beside the folder `zz.urxf`; a name typed as a file of the folder is named, in any case, is refused as well,
-`mix.urxf` typed beside `mix.urxf` and `CC.urxf` typed beside `cc.urxf` (URX44V, the operator, 2026-10-04). A file renamed onto its own name in other case takes it (a settings
+`mix.urxf` typed beside `mix.urxf` and `CC.urxf` typed beside `cc.urxf` (URX44V, the operator, 2026-10-04). A take renamed with RECORDER's [Rename] takes `.wav` after what is typed and is
+listed under that name (`rn1` typed lists as `rn1.wav`, URX44V, the operator, 2026-10-08). A file renamed onto its own name in other case takes it (a settings
 file, URX44V, the operator, 2026-10-03). [New folder] under a name the folder already carries, a folder's or a file's, spelt the same or
 in other case, brings up `Directory already exists.` with the i mark and [OK] alone and makes nothing, and [OK] goes
 back to the name sheet, as the unit does (a file's name spelt the same and in other case, and a folder's in other case,
@@ -1795,7 +1801,8 @@ back on the unit. Writing over a file that is already there, or a [Save as] unde
 that is open, asks `File already exists. Replace it?` first; loading asks nothing. Under a folder's name, [OK] leaves
 the folder as it is and writes nothing, as the unit does. A [Save as] name that differs from a settings file's in the folder
 that is open in case alone asks nothing and writes over that file, which keeps its name as it was spelt, as the unit does; one
-that differs from a folder's in case alone asks nothing and writes nothing. On a card with no room for one more settings
+that differs from a folder's in case alone asks nothing and writes nothing. The name is compared with its `.urxf` on: `wk`
+typed beside the folder `Wk` writes `wk.urxf` (URX44V, the operator, 2026-10-08). On a card with no room for one more settings
 file, a [Save as] under a new name writes nothing and shows nothing, and writing over a settings file there still goes
 through (what the unit does with a full card is in `known-issues.md`). [Save] and [Load] stand out of reach until a settings file is under the
 cursor. A settings file carries every value but the screen's own state (`ui.` bar the destination HOME's [Sends]
@@ -1812,7 +1819,7 @@ as on the unit (URX44V, the operator, 2026-10-04, for a file saved on MIX 1 and 
 saved on ST at 192 kHz and loaded over FX 2 at 48 kHz). A source the file holds no D.Gain for comes back
 to 0 dB when it is loaded, a BALANCE the file holds none for comes back to the centre, [Sends] comes back
 on ST from a file that names no destination, and a scene number the file holds nothing under comes back
-empty.
+empty (URX44V, the operator, 2026-10-08).
 
 A playback runs against the take's length, writing the counter and the bar in place once a second.
 At the end of the file playback lets the file go, as [■] does: the triangle leaves the microSD icon, and RECORDER's card-eject
@@ -1918,7 +1925,8 @@ button empties the field. The sheet opens on the letters with Shift off; [OK] on
 nothing.
 
 A name on the card ([Save as], [New folder] and [Rename] on SAVE/LOAD, and [Rename] on RECORDER) opens the sheet on
-the card's keyboard. Its letters and row 4 are the title's, and its numbers and symbols run as below. A row shorter
+the card's keyboard. Its letters and row 4 are the title's, and its numbers and symbols run as below (the same on [New folder]
+and on RECORDER's [Rename], URX44V, the operator, 2026-10-08). A row shorter
 than the title's stands centred between the keys at its ends, as the title's rows do.
 
 | Layout | Row 1 | Row 2 | Row 3 |
