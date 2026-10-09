@@ -21,14 +21,29 @@ const onScreen = async (page: Page, id: string, timeout: number): Promise<boolea
     .then(() => true, () => false);
 
 /**
+ * A touch on `target`, settled: it resolves once the page has handled the
+ * release and run what the release queued at once, the redraw included.
+ */
+async function settledClick(page: Page, target: Locator, at?: { x: number; y: number }): Promise<void> {
+  await page.evaluate(() => {
+    (window as { tapSettled?: Promise<void> }).tapSettled = new Promise((resolve) =>
+      window.addEventListener("pointerup", () => setTimeout(resolve, 0), { once: true, capture: true }),
+    );
+  });
+  await target.click(at ? { position: at } : {});
+  await page.evaluate(() => (window as { tapSettled?: Promise<void> }).tapSettled);
+}
+
+/**
  * Touch `target` until screen `id` is up. A block or a strip that is not yet
  * selected takes the first touch to select it and opens its screen on the
- * second, so a second touch goes in where the first opened nothing.
+ * second, so a second touch goes in where the first, once the page has handled
+ * it, opened nothing.
  */
 export async function tapInto(page: Page, target: Locator, id: string, at?: { x: number; y: number }): Promise<void> {
-  await target.click(at ? { position: at } : {});
-  if (await onScreen(page, id, 500)) return;
-  await target.click(at ? { position: at } : {});
+  await settledClick(page, target, at);
+  const up = await page.evaluate(() => document.querySelector(".lcd[data-screen]:not([inert])")?.getAttribute("data-screen"));
+  if (up !== id) await settledClick(page, target, at);
   if (!(await onScreen(page, id, 2000))) throw new Error(`a touch on ${String(target)} left ${await screenOf(page)} up, not ${id}`);
 }
 
