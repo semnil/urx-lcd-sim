@@ -74,7 +74,8 @@ jobs:
         with:
           script: |
             const { readFile } = await import('node:fs/promises');
-            const { ensureRelease } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/release.mjs`);
+            const { pathToFileURL } = await import('node:url');
+            const { ensureRelease } = await import(pathToFileURL(`${process.env.GITHUB_WORKSPACE}/scripts/release.mjs`).href);
             const { version } = JSON.parse(await readFile('package.json', 'utf8'));
             const release = await ensureRelease(github, { ...context.repo, sha: context.sha, version });
             core.info(`Release: ${release.html_url}`);

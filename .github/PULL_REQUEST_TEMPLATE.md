@@ -14,8 +14,8 @@
 
 <!-- Only what this PR's own checks do not already report. The GitHub Pages workflow runs
      `pnpm test` and `pnpm build` (typecheck included) and the CI workflow runs
-     `pnpm test:coverage` on every pull request to main, and their results are in the checks
-     above — do not restate them here.
+     `pnpm test:coverage`, `pnpm test:e2e` and, on Windows, `pnpm test` on every pull request to
+     main, and their results are in the checks above — do not restate them here.
 
      The assumptions line is answered, never used to defer: an observation you could take
      yourself is taken before opening this, and what is left names what would settle it. -->

@@ -10,7 +10,7 @@ GitHub Pages の公開構成、CI のワークフロー、依存関係、Git の
 | 対象 | 現在の構成 | 確認方法 |
 | --- | --- | --- |
 | デプロイ権限 | ビルドは `contents: read`。Release 作成ジョブだけに `contents: write`、デプロイだけに `pages: write` と `id-token: write` を付与する | `.github/workflows/pages.yml` のジョブ別権限を照合 |
-| CI の権限 | CI のワークフローのテストのジョブは `contents: read` と `id-token: write`。Codecov の Action がジョブの OIDC トークンでカバレッジレポートを送り、リポジトリには Codecov のトークンも他の secret も置かない。E2E のジョブは `contents: read` だけで、失敗したテストのトレースをワークフローのアーティファクトとして上げる | `.github/workflows/ci.yml` のジョブ別権限を照合し、リポジトリと `github-pages` 環境の secret を GitHub API で列挙 |
+| CI の権限 | CI のワークフローのテストのジョブは `contents: read` と `id-token: write`。Codecov の Action がジョブの OIDC トークンでカバレッジレポートを送り、リポジトリには Codecov のトークンも他の secret も置かない。Windows のテストのジョブは `contents: read` だけ。E2E のジョブは `contents: read` だけで、失敗したテストのトレースをワークフローのアーティファクトとして上げる | `.github/workflows/ci.yml` のジョブ別権限を照合し、リポジトリと `github-pages` 環境の secret を GitHub API で列挙 |
 | 配信条件 | `main` への push で `package.json` の `version` が変わり、テストとビルドが成功した場合に配信する。プルリクエストと通常のマージは配信せず、手動の迂回経路も設けない | 一時 Git 履歴でデプロイ判定を実行し、成果物とジョブの条件・`needs: build` を照合、`actionlint` を実行 |
 | バージョン比較 | push 前後のコミットを読み、manifest の内容をコードとして実行しない。コミットの読み取り失敗や不正な manifest はビルドを失敗させる | バージョン変更の有無・複数コミットの push・ブランチ作成・対象外イベント・コミット欠落・不正な manifest をテスト |
 | イベントの制限 | 成果物のアップロードとデプロイは、それぞれバージョン判定スクリプトの出力とは別に `main` への push を条件にする | 判定出力を配信可にして、PR・手動実行・別ブランチ・タグに対する workflow の条件式を評価。`main` への push を陽性対照として確認 |
