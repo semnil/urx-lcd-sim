@@ -1465,9 +1465,13 @@
   color: var(--dialog-caution);
 }
 
-/* The question, beside the mark it is asked with. */
+/* The question, beside the mark it is asked with and centred on the mark's
+ * middle. The row keeps the mark's height, so lines taller than the mark run
+ * past it evenly above and below while the mark keeps its place. */
 .dialog-ask {
   display: flex;
+  align-items: center;
+  height: 44px;
   gap: 15px;
 }
 

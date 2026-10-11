@@ -90,6 +90,36 @@ test("the eject button asks, then says the card may come out, and [OK] takes it 
   await expect(button(page, "Recorder", true)).toHaveCount(0);
 });
 
+test.describe("the question beside its mark", () => {
+  // The middle of a box's height, and its top, in page pixels.
+  const middle = async (page: Page, selector: string): Promise<{ mid: number; top: number }> => {
+    const box = (await lcd(page).locator(`.dialog ${selector}`).boundingBox())!;
+    return { mid: box.y + box.height / 2, top: box.y };
+  };
+
+  for (const [lines, id, open, message] of [
+    [1, "microsd", "Eject the card", "Eject the microSD card?"],
+    [2, "setup.power", "Enable", /Disabling this function will increase power/],
+    [3, "microsd.tools", "Format microSD", /Formatting will erase ALL data on this card/],
+  ] as const) {
+    test(`stands ${lines} line(s) on the mark's middle, the mark where a line's would stand`, async ({ page }) => {
+      await go(page, id);
+      await button(page, open, id === "setup.power").click();
+      if (id === "microsd.tools") await button(page, "OK", true).click();
+      await expect(dialog(page, message)).toBeVisible();
+      const text = (await lcd(page).locator(".dialog .dialog-text").boundingBox())!;
+      const mark = await middle(page, ".dialog-mark");
+      const sheet = (await lcd(page).locator(".dialog").boundingBox())!;
+      const scale = sheet.width / 414;
+      // The box is as tall as its lines, so its middle is theirs.
+      expect(Math.abs(text.height / scale - 18 * lines)).toBeLessThan(0.5);
+      expect(Math.abs(text.y + text.height / 2 - mark.mid)).toBeLessThan(0.5);
+      // The mark keeps its place under the frame however many lines stand beside it.
+      expect(Math.abs((mark.top - sheet.y) / scale - (4 + 74))).toBeLessThan(0.5);
+    });
+  }
+});
+
 test("a pulldown's list takes a touch on a row, and goes on a touch on the dark around it", async ({ page }) => {
   await go(page, "ch.setting");
   const pulldown = button(page, "COMP / EQ");
