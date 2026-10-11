@@ -494,7 +494,7 @@ function saveLoadAction(ctx: AppContext, label: string): void {
 /**
  * Put a settings file back on the unit, a GATE, COMP or DUCKER time, and an SSMCS
  * frequency, Attack or Release, off its stops on the stop nearest it, and a delay
- * time off 0.02 ms on the 0.02 ms nearest it.
+ * time off the hundredths of a ms on the hundredth nearest it.
  */
 function loadSettings(ctx: AppContext, entry: CardEntry): void {
   const held = ctx.store.str(filePath(entry), "");

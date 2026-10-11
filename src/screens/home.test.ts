@@ -1319,9 +1319,8 @@ describe("a processing block on the channel view", () => {
       [4686, 4586],
     ]);
     expect(shell.root.querySelector(".cv-delay-value")?.textContent).toBe("45.86");
-    // A time set off 0.02 ms lands on 0.02 ms by Math.round on its reading plus 1.00 ms, × 50:
-    // 46.87 ms × 50 is 2343.5, and the time goes to 46.88 ms.
-    expect(await turn(4587, "ArrowUp", 1), "onto 0.02 ms").toEqual([4688]);
+    // A time off 0.02 ms keeps its hundredths, as the unit's knob took 3.41 ms to 4.41 ms and back.
+    expect([...(await turn(4587, "ArrowUp", 1)), ...(await turn(341, "ArrowUp", 1)), ...(await turn(441, "ArrowDown", 1))], "an odd hundredth kept").toEqual([4687, 441, 341]);
     expect([...(await turn(99912, "ArrowUp", 1)), ...(await turn(178, "ArrowDown", 1))], "stopped at either end").toEqual([100000, 100]);
     // The DELAY block's knob does not push in, and Shift turns the same detent.
     expect([...(await turn(4586, "ArrowUp", 1, true)), ...(await turn(2400, "ArrowDown", 1, true))], "1.00 ms with Shift too").toEqual([4686, 2300]);
@@ -4647,7 +4646,7 @@ describe("what the dedicated channel screens draw", () => {
     expect(read).toEqual(cells);
   });
 
-  it("turns a delay cell from the reading it shows onto 0.02 ms, as the unit's detents went", async () => {
+  it("turns a delay cell from the reading it shows, the ms cell keeping the hundredths and the others onto 0.02 ms, as the unit's detents went", async () => {
     const shell = await open("ch.delay");
     const cells = ["ms", "frame", "meter", "feet"];
     const box = (cell: string): HTMLElement | undefined =>
@@ -4662,6 +4661,10 @@ describe("what the dedicated channel screens draw", () => {
       ["feet", 3260, "ArrowUp", "30", [3700, 4142, 4586]],
       ["ms", 4586, "ArrowUp", "30", [4686, 4786]],
       ["ms", 4786, "ArrowDown", "30", [4686, 4586]],
+      // ms keeps an odd hundredth, as the unit's knob took 3.41 ms to 4.41 ms and back; 3.40 ms is the control.
+      ["ms", 341, "ArrowUp", "30", [441, 541]],
+      ["ms", 541, "ArrowDown", "30", [441, 341]],
+      ["ms", 340, "ArrowUp", "30", [440]],
       ["frame", 4586, "ArrowUp", "30", [5266, 5934, 6600, 7266, 7934, 8600, 9266, 9934, 10600, 11266]],
       ["frame", 11266, "ArrowDown", "30", [10600, 9934, 9266, 8600, 7934, 7266, 6600]],
       ["frame", 6600, "ArrowUp", "30", [7266]],
@@ -4745,8 +4748,11 @@ describe("what the dedicated channel screens draw", () => {
       ["meter", 2416, "ArrowDown", "30", [2386]],
       ["feet", 2386, "ArrowUp", "30", [2396]],
       ["feet", 2396, "ArrowDown", "30", [2386]],
-      // ms keeps its hundredths.
+      // ms keeps its hundredths, an odd one too, as the unit's knob pushed in took 3.41 ms to 3.43 ms and back.
       ["ms", 4586, "ArrowUp", "30", [4588]],
+      ["ms", 341, "ArrowUp", "30", [343]],
+      ["ms", 343, "ArrowDown", "30", [341]],
+      ["ms", 4587, "ArrowDown", "30", [4585]],
       // frame takes 0.01 frame at the rate it reads in.
       ["frame", 4586, "ArrowUp", "60", [4600]],
       ["frame", 4600, "ArrowDown", "60", [4584]],
