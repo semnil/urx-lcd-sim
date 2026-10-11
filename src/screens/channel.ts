@@ -1470,35 +1470,39 @@ const FEET_SCALE: DelayScale = { of: (ms) => (ms / 1000) * SOUND_FT_PER_S, ms: (
  */
 const frameScale = (fps: number): DelayScale => ({ of: (ms) => ms * (fps / 1000), ms: (v) => (v / fps) * 1000, lowest: Math.ceil(fps / 10) / 100 });
 
+/** The unit holds a delay time in hundredths of a ms. */
+const DELAY_HELD_MS = 0.01;
+
+/** A turn of the frame, meter or feet cell lands its time on 0.02 ms. */
+const DELAY_GRID_MS = 0.02;
+
 /**
  * How the DELAY screen names one time in four units: its scale at a frame rate,
- * the places its reading runs to, how far a detent moves that reading, and how
- * far a fine detent moves it.
+ * the places its reading runs to, how far a detent moves that reading, how far
+ * a fine detent moves it, and the ms the time a turn reaches lands on.
  */
 const DELAY_UNITS = [
-  { label: "ms", scale: (): DelayScale => MS_SCALE, digits: 2, step: 1, fine: 0.02 },
-  { label: "frame", scale: frameScale, digits: 2, step: 0.2, fine: 0.01 },
-  { label: "meter", scale: (): DelayScale => METER_SCALE, digits: 1, step: 1, fine: 0.1 },
-  { label: "feet", scale: (): DelayScale => FEET_SCALE, digits: 1, step: 5, fine: 0.1 },
+  { label: "ms", scale: (): DelayScale => MS_SCALE, digits: 2, step: 1, fine: 0.02, grid: DELAY_HELD_MS },
+  { label: "frame", scale: frameScale, digits: 2, step: 0.2, fine: 0.01, grid: DELAY_GRID_MS },
+  { label: "meter", scale: (): DelayScale => METER_SCALE, digits: 1, step: 1, fine: 0.1, grid: DELAY_GRID_MS },
+  { label: "feet", scale: (): DelayScale => FEET_SCALE, digits: 1, step: 5, fine: 0.1, grid: DELAY_GRID_MS },
 ] as const;
 
 /** A delay cell's value to its places by Math.round on the value × 10 to its places, worked in double precision. */
 const delayRound = (v: number, digits: number): number => Math.round(v * 10 ** digits) / 10 ** digits;
 
-/** A delay time lands on 0.02 ms. */
-const DELAY_GRID_MS = 0.02;
-
-/** `ms` on the nearest 0.02 ms, a half going up. */
-const onDelayGridMs = (ms: number): number => Number((Math.round(ms / DELAY_GRID_MS + 1e-9) * DELAY_GRID_MS).toFixed(2));
+/** `ms` on the nearest multiple of `grid` ms, a half going up. */
+const onDelayGridMs = (ms: number, grid: number): number => Number((Math.round(ms / grid + 1e-9) * grid).toFixed(2));
 
 /**
  * A delay cell's turn of `by` ms: the cell's reading moves by as much of its own
  * unit, rounded to its places and held no lower than the cell's lowest reading,
- * and the time that reading names lands on the nearest 0.02 ms, a half going up.
+ * and the time that reading names lands on the nearest multiple of `grid` ms, a
+ * half going up.
  */
-function delayTurn(scale: DelayScale, per: number, digits: number): (ms: number, by: number) => number {
+function delayTurn(scale: DelayScale, per: number, digits: number, grid: number): (ms: number, by: number) => number {
   const lowest = scale.lowest ?? -Infinity;
-  return (ms, by) => onDelayGridMs(scale.ms(Math.max(lowest, delayRound(delayRound(scale.of(ms), digits) + by * per, digits))));
+  return (ms, by) => onDelayGridMs(scale.ms(Math.max(lowest, delayRound(delayRound(scale.of(ms), digits) + by * per, digits))), grid);
 }
 
 /**
@@ -1508,17 +1512,17 @@ function delayTurn(scale: DelayScale, per: number, digits: number): (ms: number,
  */
 function delayDetents(u: (typeof DELAY_UNITS)[number], scale: DelayScale): Pick<NumericSpec, "step" | "fastStep" | "turn"> {
   const per = scale.of(1);
-  return { step: u.step / per, fastStep: u.fine / per, turn: delayTurn(scale, per, u.digits) };
+  return { step: u.step / per, fastStep: u.fine / per, turn: delayTurn(scale, per, u.digits, u.grid) };
 }
 
 /**
- * A saved state as it is put back, with a delay time on the 0.02 ms nearest the
- * value it holds. The next save holds that time.
+ * A saved state as it is put back, with a delay time on the hundredth of a ms
+ * nearest the value it holds. The next save holds that time.
  */
 export function onDelayGrid(state: Record<ParamPath, ParamValue>): Record<ParamPath, ParamValue> {
   const out = { ...state };
   for (const [path, value] of Object.entries(state)) {
-    if (path.startsWith("ch.") && path.endsWith(".delay.ms") && typeof value === "number") out[path] = onDelayGridMs(value);
+    if (path.startsWith("ch.") && path.endsWith(".delay.ms") && typeof value === "number") out[path] = onDelayGridMs(value, DELAY_HELD_MS);
   }
   return out;
 }

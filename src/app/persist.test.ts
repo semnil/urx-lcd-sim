@@ -345,16 +345,17 @@ describe("what a reload carries over", () => {
     ).toEqual([950, 530, 2.197, 110.8]);
   });
 
-  it("brings a delay time stored off 0.02 ms back on the 0.02 ms nearest it", async () => {
-    // Times an earlier version stored: a hundredth of a ms, and a meter and a feet step past 24 ms.
+  it("keeps a delay time's hundredths of a ms, and brings one stored off them back on the hundredth nearest it", async () => {
+    // Times the unit holds, odd hundredths among them, times an earlier version stored a meter and a feet step past
+    // 24 ms, and a time half way between two hundredths, held in binary just under the half, which goes up.
     const back: number[] = [];
-    for (const held of [2.01, 24.0291545, 24.0088889]) {
+    for (const held of [2.01, 3.41, 3.4, 24.0291545, 24.0088889, 2.005]) {
       window.localStorage.setItem("urx-lcd-sim.state", JSON.stringify({ version: 1, model: MODEL, values: { "ch.bus.stream.delay.ms": held } }));
       const store = await unit();
       await bring(store);
       back.push(store.num("ch.bus.stream.delay.ms", 0));
     }
-    expect(back).toEqual([2.02, 24.02, 24]);
+    expect(back).toEqual([2.01, 3.41, 3.4, 24.03, 24.01, 2.01]);
   });
 
   it("leaves another model's unit alone", async () => {

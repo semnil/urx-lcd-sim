@@ -359,7 +359,7 @@ describe("playing a file back", () => {
     expect([store.num("ch.ch1.ssmcs.sc.freq", 0), store.num("ch.ch1.ssmcs.comp.release", 0)]).toEqual([90, 92]);
   });
 
-  it("puts a delay time an older settings file holds off 0.02 ms on the 0.02 ms nearest it", async () => {
+  it("keeps a delay time's hundredths of a ms from a settings file, and puts one an older file holds off them on the hundredth nearest it", async () => {
     // A file saved by an earlier version, with STREAMING's delay where that version's meter step of 0.01 m left it from 45.86 ms.
     const shell = await mount({ id: "microsd.saveload" }, [{ name: "Recordings", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" }]);
     const store = shell.ctx.store;
@@ -372,7 +372,20 @@ describe("playing a file back", () => {
     action(shell, "Load")?.click();
     await flush();
     await flush();
-    expect(store.num("ch.bus.stream.delay.ms", 0)).toBe(45.88);
+    expect(store.num("ch.bus.stream.delay.ms", 0), "off the hundredths").toBe(45.89);
+
+    // A time the unit holds, on an odd hundredth.
+    await store.set("ch.bus.stream.delay.ms", 3.41);
+    action(shell, "Save as")?.click();
+    await flush();
+    await typeTitle(shell, "odd");
+    await store.set("ch.bus.stream.delay.ms", 24);
+    await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === "odd.urxf"));
+    await flush();
+    action(shell, "Load")?.click();
+    await flush();
+    await flush();
+    expect(store.num("ch.bus.stream.delay.ms", 0), "an odd hundredth").toBe(3.41);
   });
 
   it("stops at the end of the file and lets it go", async () => {
