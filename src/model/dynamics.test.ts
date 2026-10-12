@@ -84,16 +84,33 @@ describe("the level meters' scale", () => {
 });
 
 describe("what a ducker takes off", () => {
-  // URX44V, 2026-10-12: CH 7/8's DUCKER keyed by CH3 at -20 dB, range -24, its threshold stepped 2 dB at a time. The
-  // detector hears a tone 1 dB over the meter and pink noise around 1 kHz 2 dB under it, so each threshold is a
-  // distance of the key over it.
-  it("takes the whole range for a tone a dB over the threshold and none a dB under it", () => {
-    expect(duckerReductionDb(-19, -20, -24, true), "-20: GR -24").toBe(24);
-    expect(duckerReductionDb(-19, -18, -24, true), "-18: no GR").toBe(0);
+  // URX44V, 2026-10-12: CH 7/8's DUCKER keyed by CH3 at about -20 dB, its threshold stepped 2 dB at a time at
+  // ranges of -6, -12, -24, -48 and -70. The detector hears a tone 1 dB over the meter and pink noise around
+  // 1 kHz 2 dB under it, so each threshold is a distance of the key over it.
+  it("takes the whole range for a tone a dB over the threshold and none a dB under it, at every range", () => {
+    for (const range of [-6, -12, -24, -48, -70]) {
+      expect(duckerReductionDb(-19, -20, range, true), `${range}: threshold -20`).toBe(-range);
+      expect(duckerReductionDb(-19, -18, range, true), `${range}: threshold -18`).toBe(0);
+    }
   });
 
-  it("takes the range off a noise-like key across 8 dB around the threshold", () => {
-    const read: [number, number][] = [[-26, 24], [-24, 21], [-22, 14], [-20, 4], [-18, 1], [-16, 0]];
-    for (const [threshold, gr] of read) expect(duckerReductionDb(-22, threshold, -24), `threshold ${threshold}`).toBeCloseTo(gr, 9);
+  it("takes off a noise-like key what each range read, the deeper ranges further over the threshold", () => {
+    const read: [number, number, [number, number][]][] = [
+      [-6, -21, [[-24, 6], [-22, 4], [-20, 1], [-18, 1], [-16, 0]]],
+      [-12, -22, [[-26, 12], [-24, 11], [-22, 7], [-20, 2], [-18, 0]]],
+      [-24, -23, [[-28, 24], [-26, 21], [-24, 15], [-22, 6], [-20, 1], [-18, 0]]],
+      [-48, -21, [[-30, 48], [-28, 45], [-26, 34], [-24, 23], [-22, 11], [-20, 3], [-18, 1], [-16, 0]]],
+      [-70, -22, [[-30, 70], [-28, 51], [-26, 35], [-24, 23], [-22, 11], [-20, 3], [-18, 1], [-16, 0]]],
+    ];
+    for (const [range, heard, steps] of read) {
+      for (const [threshold, gr] of steps) expect(duckerReductionDb(heard, threshold, range), `${range}, threshold ${threshold}`).toBeCloseTo(gr, 9);
+    }
+  });
+
+  it("takes a range between two it read from both, and never more than the range", () => {
+    const between = duckerReductionDb(-22, -24, -36);
+    expect(between).toBeCloseTo((duckerReductionDb(-22, -24, -24) + duckerReductionDb(-22, -24, -48)) / 2, 9);
+    expect(duckerReductionDb(-10, -40, -36)).toBe(36);
+    expect(duckerReductionDb(-10, -40, -3), "under the smallest range read, its share").toBe(3);
   });
 });

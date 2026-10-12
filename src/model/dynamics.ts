@@ -162,32 +162,58 @@ export function compReductionDb(
   return Math.max(0, level + gain - compResponse(threshold, ratio, knee, gain)(level));
 }
 
-/**
- * How much of its range a ducker takes off for how far its key is heard over its
- * threshold, in dB: for a steady tone, and for a noise-like key. Straight between
- * the points, none under the first and the whole range past the last.
- */
-const DUCKER_SHARE: Readonly<Record<"tone" | "noise", readonly (readonly [number, number])[]>> = {
-  tone: [[-1, 0], [1, 1]],
-  noise: [[-6, 0], [-4, 1 / 24], [-2, 4 / 24], [0, 14 / 24], [2, 21 / 24], [4, 1]],
-};
+/** How much of its range a steady tone key takes off for how far it is heard over the threshold, in dB: straight between the points. */
+const DUCKER_TONE_SHARE: readonly (readonly [number, number])[] = [[-1, 0], [1, 1]];
 
-/** How much of its range, from 0 to 1, a ducker takes off for a key heard at `key`. */
-export function duckerShare(key: number, threshold: number, tone = false): number {
-  const curve = DUCKER_SHARE[tone ? "tone" : "noise"];
-  const over = key - threshold;
+/**
+ * What a noise-like key takes off, by the range: pairs of how far the key is
+ * heard over the threshold and the reduction, in dB. Straight between the
+ * points, none under the first and the whole range past the last.
+ */
+const DUCKER_NOISE_DB: readonly (readonly [number, readonly (readonly [number, number])[]])[] = [
+  [6, [[-5, 0], [-3, 1], [-1, 1], [1, 4], [3, 6]]],
+  [12, [[-4, 0], [-2, 2], [0, 7], [2, 11], [4, 12]]],
+  [24, [[-5, 0], [-3, 1], [-1, 6], [1, 15], [3, 21], [5, 24]]],
+  [48, [[-5, 0], [-3, 1], [-1, 3], [1, 11], [3, 23], [5, 34], [7, 45], [9, 48]]],
+  [70, [[-6, 0], [-4, 1], [-2, 3], [0, 11], [2, 23], [4, 35], [6, 51], [8, 70]]],
+];
+
+/** A curve of pairs at `x`: straight between its points, its first value under them and its last past them. */
+function along(curve: readonly (readonly [number, number])[], x: number): number {
   const [x0 = 0, y0 = 0] = curve[0] ?? [];
-  const [xn = 0, yn = 1] = curve.at(-1) ?? [];
-  if (!(over > x0)) return y0;
-  if (over >= xn) return yn;
+  const [xn = 0, yn = 0] = curve.at(-1) ?? [];
+  if (!(x > x0)) return y0;
+  if (x >= xn) return yn;
   let i = 1;
-  while (i < curve.length - 1 && over > (curve[i]?.[0] ?? 0)) i++;
+  while (i < curve.length - 1 && x > (curve[i]?.[0] ?? 0)) i++;
   const [ax, ay] = curve[i - 1] ?? [0, 0];
   const [bx, by] = curve[i] ?? [0, 0];
-  return ay + ((over - ax) * (by - ay)) / (bx - ax);
+  return ay + ((x - ax) * (by - ay)) / (bx - ax);
 }
 
-/** What a ducker takes off for a key heard at `key`: its share of the range. */
+/** What a noise-like key takes off at a range of `depth` dB: between the two ranges measured either side of it, a range under the smallest scaled from it. */
+function noiseReductionDb(over: number, depth: number): number {
+  const ranges = DUCKER_NOISE_DB;
+  const at = (k: number): number => along(ranges[k]?.[1] ?? [], over);
+  const first = ranges[0]?.[0] ?? 1;
+  if (depth <= first) return (at(0) * depth) / first;
+  let k = 1;
+  while (k < ranges.length - 1 && depth > (ranges[k]?.[0] ?? 0)) k++;
+  const lo = ranges[k - 1]?.[0] ?? 0;
+  const hi = ranges[k]?.[0] ?? 0;
+  const t = Math.min(1, (depth - lo) / (hi - lo));
+  return Math.min(depth, at(k - 1) + t * (at(k) - at(k - 1)));
+}
+
+/** What a ducker takes off for a key heard at `key`, at its range: a steady tone takes it in a dB either side of the threshold, a noise-like key across several. */
 export function duckerReductionDb(key: number, threshold: number, range: number, tone = false): number {
-  return duckerShare(key, threshold, tone) * -range;
+  const depth = Math.max(0, -range);
+  const over = key - threshold;
+  return tone ? along(DUCKER_TONE_SHARE, over) * depth : noiseReductionDb(over, depth);
+}
+
+/** How much of its range, from 0 to 1, a ducker takes off for a key heard at `key`. A range of 0 takes the share a 6 dB range would. */
+export function duckerShare(key: number, threshold: number, range: number, tone = false): number {
+  const depth = Math.max(0, -range) || 6;
+  return Math.min(1, duckerReductionDb(key, threshold, -depth, tone) / depth);
 }

@@ -189,7 +189,7 @@ export function blockLampState(store: DeviceStore, spec: GrSpec, at = readingMom
   if (spec.kind === "ducker") {
     if (!store.bool(`${b}.ducker.on`, false)) return "off";
     const { heard, tone } = detectorLevel(store, spec, at);
-    const share = duckerShare(heard, store.num(`${b}.ducker.threshold`, -40), tone);
+    const share = duckerShare(heard, store.num(`${b}.ducker.threshold`, -40), store.num(`${b}.ducker.range`, -24), tone);
     return share <= 0 ? "open" : share >= 1 ? "shut" : "holding";
   }
   return "off";

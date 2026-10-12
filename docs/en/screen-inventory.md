@@ -500,8 +500,11 @@ The DUCKER lamps light by how far it is ducking (p98): the right one green while
 the middle one yellow while it ducks part of RANGE, and the left one red once it ducks all the way to
 RANGE. No lamp lights while DUCKER is off (URX44V, confirmed on the unit on 2026-10-12). How far it ducks
 follows how far the strip chosen as Ducker Source is heard over the threshold: for a steady tone, none
-a dB under it and all of RANGE a dB over it; for a noise-like key, deeper little by little from 6 dB
-under it to 4 dB over it (URX44V, 2026-10-12; the shares read at a RANGE of -24 are applied to every RANGE).
+a dB under it and all of RANGE a dB over it; for a noise-like key, a little from about 5 dB under it, then
+about 6 dB deeper for each dB over it, stopping at RANGE (3 dB over at a RANGE of -6, 8 dB over at -70).
+The values read at RANGEs of -6, -12, -24, -48 and -70 are kept as tables; a RANGE between two of them is
+taken straight between the two, and one shallower than -6 scales the -6 values down by its share
+(URX44V, 2026-10-12).
 
 SEND TO's button is 86x38, with face `--surface-btn` and a 3px shadow band at the bottom.
 
