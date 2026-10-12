@@ -6,6 +6,8 @@
 // follows. With a unit attached the same store paths read the unit's own card.
 
 import type { AppContext } from "../app/context";
+import { perform } from "../app/perform";
+import type { CardFile, UnitOp } from "../device/unit";
 import type { ParamValue } from "../device/path";
 import type { CardEntry } from "../model/card";
 import { CARD_ROOT, TAKE_SUFFIX, changeCard, filePath, folderPath, formatFree, formatRate, freeBytes, parentPath, readCard, roomFor, sameName, takeRate } from "../model/card";
@@ -99,13 +101,7 @@ function ejectButton(ctx: AppContext): HTMLElement {
         message: "Now you may safely remove the microSD card.",
         okOnly: true,
         // The test's result and the card leave in one operation of the store.
-        onOk: () =>
-          void ctx.actions.perform("card.eject", () =>
-            ctx.store.operation(() => {
-              void ctx.store.set("sd.tested", false);
-              void ctx.store.set("sd.mounted", false);
-            }),
-          ),
+        onOk: () => void perform(ctx, { kind: "card.eject" }),
       }),
     );
   };
@@ -126,7 +122,7 @@ function ejectButton(ctx: AppContext): HTMLElement {
  */
 function insertCardLine(ctx: AppContext): HTMLElement {
   const ask = (): void => {
-    ctx.overlay(dialog({ message: "Simulate inserting the microSD card?", onOk: () => void ctx.actions.perform("card.insert", () => ctx.store.set("sd.mounted", true)) }));
+    ctx.overlay(dialog({ message: "Simulate inserting the microSD card?", onOk: () => void perform(ctx, { kind: "card.insert" }) }));
   };
   return el("button", { class: "sd-no-card", text: "Not inserted microSD card", onTap: ask });
 }
@@ -362,6 +358,16 @@ function updateCard(ctx: AppContext, entries: readonly (CardEntry | undefined)[]
   ctx.repaint();
 }
 
+/** The entry as the unit names it: its folder and its name. */
+function fileOf(entry: CardEntry): CardFile {
+  return { dir: entry.dir, name: entry.name };
+}
+
+/** The row of `file` on the card, or -1 where the card carries no such entry. */
+function rowOf(ctx: AppContext, file: CardFile): number {
+  return cardEntries(ctx).findIndex((e) => e.dir === file.dir && e.name === file.name);
+}
+
 /** Take the selected file off the card, asking first. */
 function deleteSelected(ctx: AppContext): void {
   const row = cursorRow(ctx);
@@ -371,18 +377,7 @@ function deleteSelected(ctx: AppContext): void {
   ctx.overlay(
     dialog({
       message: "Delete the selected file?",
-      // The file, the cursor and playback go in one operation of the store.
-      onOk: () =>
-        void ctx.actions.perform("card.delete", () =>
-          ctx.store.operation(() => {
-            void ctx.store.set(filePath(entry), "");
-            // The cursor goes on to the next entry of the same folder, else back to
-            // the one before it, else onto nothing.
-            const next = entries[row + 1]?.dir === entry.dir ? row + 1 : entries[row - 1]?.dir === entry.dir ? row - 1 : -1;
-            void ctx.store.set("sd.selectedFile", next);
-            updateCard(ctx, entries.map((e, i) => (i === row ? undefined : e)));
-          }),
-        ),
+      onOk: () => void perform(ctx, { kind: "card.delete", file: fileOf(entry) }),
     }),
   );
 }
@@ -413,21 +408,7 @@ function renameSelected(ctx: AppContext): void {
     const typed = name.slice(0, name.length - suffix.length);
     return folderCarries(entries, entry.dir, name, row, sameName) || entries.some((e, i) => i !== row && e.kind !== "folder" && e.dir === entry.dir && sameName(e.name, typed));
   };
-  // The file under its old name and its new one go in one operation of the store.
-  nameOnCard(ctx, entry.name, (name) =>
-    void ctx.actions.perform("card.rename", () =>
-      ctx.store.operation(() => {
-        const held = ctx.store.str(filePath(entry), "");
-        if (held) {
-          void ctx.store.set(filePath(entry), "");
-          void ctx.store.set(filePath({ ...entry, name }), held);
-        }
-        updateCard(
-          ctx,
-          entries.map((e, i) => (i === row ? { ...e, name } : e)),
-        );
-      }),
-    ), { suffix, max: NAME_MAX - suffix.length, refuse: (name) => (taken(name) ? NAME_TAKEN : undefined) });
+  nameOnCard(ctx, entry.name, (name) => void perform(ctx, { kind: "card.rename", file: fileOf(entry), to: name }), { suffix, max: NAME_MAX - suffix.length, refuse: (name) => (taken(name) ? NAME_TAKEN : undefined) });
 }
 
 /**
@@ -438,29 +419,13 @@ function renameSelected(ctx: AppContext): void {
  */
 function newFolder(ctx: AppContext): void {
   nameOnCard(ctx, "", (name) => {
-    void ctx.actions.perform("card.newFolder", () =>
-      updateCard(ctx, [...cardEntries(ctx), { name, kind: "folder", seconds: 0, tracks: 0, dir: cardPath(ctx) }]),
-    );
+    void perform(ctx, { kind: "card.newFolder", file: { dir: cardPath(ctx), name } });
   }, { max: NAME_MAX, refuse: (name) => (folderCarries(cardEntries(ctx), cardPath(ctx), name, -1, sameName) ? DIRECTORY_TAKEN : undefined) });
 }
 
-/**
- * Write the unit's settings to the card under `name` in the folder that is
- * open: over the settings file at row `at`, or as a new file where `at` is -1.
- * A file the card has no room for, with what the file it writes over takes up
- * handed back, writes nothing.
- */
-function saveSettings(ctx: AppContext, name: string, at = -1): void {
-  const entry: CardEntry = { name, kind: "data", seconds: 0, tracks: 0, written: clockParts(ctx.store), dir: cardPath(ctx), scenes: storedSceneCount(ctx) };
-  if (!roomFor(ctx.store, entry, at < 0 ? undefined : cardEntries(ctx)[at])) return;
-  // The file and its entry go in one operation of the store.
-  ctx.actions.perform("settings.save", () =>
-    ctx.store.operation(() => {
-      void ctx.store.set(filePath(entry), toJson(captureSettings(ctx.store)));
-      const entries = cardEntries(ctx);
-      updateCard(ctx, at < 0 ? [...entries, entry] : entries.map((e, i) => (i === at ? entry : e)));
-    }),
-  );
+/** Write the unit's settings to the card under `name` in the folder that is open, over the settings file of that name there or as a new file. */
+function saveSettings(ctx: AppContext, name: string): void {
+  perform(ctx, { kind: "settings.save", file: { dir: cardPath(ctx), name } });
 }
 
 /** The row of the settings file the folder that is open carries under `name`, or -1 where it carries none. */
@@ -470,7 +435,6 @@ function settingsRow(ctx: AppContext, name: string): number {
 
 /** What SAVE/LOAD's three buttons do: over the selected file, under a new name, and back onto the unit. */
 function saveLoadAction(ctx: AppContext, label: string): void {
-  const row = cursorRow(ctx);
   const entry = selectedEntry(ctx);
   if (label === "Save as") {
     nameOnCard(ctx, "", (name) => {
@@ -483,12 +447,11 @@ function saveLoadAction(ctx: AppContext, label: string): void {
         const at = cardEntries(ctx).findIndex((e) => e.dir === cardPath(ctx) && sameName(e.name, name));
         const same = cardEntries(ctx)[at];
         if (!same) saveSettings(ctx, name);
-        else if (same.kind === "data") saveSettings(ctx, same.name, at);
+        else if (same.kind === "data") saveSettings(ctx, same.name);
         return;
       }
       const over = (): void => {
-        const at = settingsRow(ctx, name);
-        if (at >= 0) saveSettings(ctx, name, at);
+        if (settingsRow(ctx, name) >= 0) saveSettings(ctx, name);
       };
       ctx.overlay(dialog({ message: REPLACE_ASK, onOk: over }));
     }, { suffix: SETTINGS_SUFFIX, max: SAVE_AS_MAX });
@@ -500,22 +463,20 @@ function saveLoadAction(ctx: AppContext, label: string): void {
     return;
   }
   // Saving over the file the cursor stands on asks first; nothing else does.
-  ctx.overlay(dialog({ message: REPLACE_ASK, onOk: () => saveSettings(ctx, entry.name, row) }));
+  ctx.overlay(dialog({ message: REPLACE_ASK, onOk: () => saveSettings(ctx, entry.name) }));
+}
+
+/** Put a settings file back on the unit. */
+function loadSettings(ctx: AppContext, entry: CardEntry): void {
+  perform(ctx, { kind: "settings.load", file: fileOf(entry) });
 }
 
 /**
- * Put a settings file back on the unit, a GATE, COMP or DUCKER time, and an SSMCS
- * frequency, Attack or Release, off its stops on the stop nearest it, and a delay
- * time off the hundredths of a ms on the hundredth nearest it. A value the unit
- * does not hold is not put back.
+ * The simulated unit's load of the settings `held`: a GATE, COMP or DUCKER time,
+ * and an SSMCS frequency, Attack or Release, off its stops on the stop nearest
+ * it, and a delay time off the hundredths of a ms on the hundredth nearest it. A
+ * value the unit does not hold is not put back.
  */
-function loadSettings(ctx: AppContext, entry: CardEntry): void {
-  const held = ctx.store.str(filePath(entry), "");
-  if (!held) return;
-  ctx.actions.perform("settings.load", () => putBackSettings(ctx, held));
-}
-
-/** The simulated unit's load of the settings `held`. */
 function putBackSettings(ctx: AppContext, held: string): void {
   const pairs = pairStates(ctx);
   void applySettings(ctx.store, onDelayGrid(onSsmcsStops(onDynamicsTimeStops(onPitchMidiControl(onlyHeld(ctx.model, fromJson(held) as Record<string, ParamValue>)))))).then(() => {
@@ -553,16 +514,17 @@ function iconButton(label: string, icon: SVGSVGElement, extraClass: string, onTa
  */
 function playPause(ctx: AppContext, playing: boolean): void {
   if (playing) {
-    ctx.actions.perform("playback.pause", () => pausePlayback(ctx.store));
+    perform(ctx, { kind: "playback.pause" });
     return;
   }
-  const held = playingFile(ctx);
-  if (held >= 0) {
-    ctx.actions.perform("playback.start", () => startPlayback(ctx.store, held));
+  const held = cardEntries(ctx)[playingFile(ctx)];
+  if (held) {
+    perform(ctx, { kind: "playback.start", file: fileOf(held) });
     return;
   }
-  if (!playableSelected(ctx)) return;
-  ctx.actions.perform("playback.start", () => startPlayback(ctx.store, ctx.store.num("sd.selectedFile", 0)));
+  const selected = selectedEntry(ctx);
+  if (!selected || !playableSelected(ctx)) return;
+  perform(ctx, { kind: "playback.start", file: fileOf(selected) });
 }
 
 /**
@@ -672,7 +634,7 @@ export const recorderScreen: ScreenDef = {
                   el("div", { class: "sd-progress", style: { "--played": `${playedShare(ctx) * 100}%` } }),
                 ],
               }),
-              iconButton("Stop", Icons.stop(), "rec-stop", () => void ctx.actions.perform("playback.stop", () => stopPlayback(ctx.store))),
+              iconButton("Stop", Icons.stop(), "rec-stop", () => void perform(ctx, { kind: "playback.stop" })),
               (() => {
                 // The mark is what a tap does next: pause while a file plays, play otherwise.
                 const node = iconButton("Play/Pause", playing ? Icons.pause() : Icons.transportPlay(), "rec-pause", () => playPause(ctx, playing));
@@ -749,18 +711,17 @@ export const recorderScreen: ScreenDef = {
           el("div", {
             class: "rec-transport",
             children: [
-              iconButton("Stop", Icons.stop(), "rec-stop", () => void ctx.actions.perform("recorder.stop", () => stopTake(ctx.store))),
+              iconButton("Stop", Icons.stop(), "rec-stop", () => void perform(ctx, { kind: "recorder.stop" })),
               // While a take runs, the middle button pauses and resumes it, red and pressed while paused.
               // Stopped and not armed, it does nothing.
               iconButton(recording ? "Pause" : "Play", recording ? Icons.pause() : Icons.transportPlay(), `rec-play${rec === "paused" ? " is-paused" : ""}`, () => {
-                if (rec === "armed" || rec === "paused") ctx.actions.perform("recorder.record", () => recordTake(ctx.store));
-                else if (rec === "recording") ctx.actions.perform("recorder.pause", () => pauseTake(ctx.store));
+                if (rec === "armed" || rec === "paused") perform(ctx, { kind: "recorder.record" });
+                else if (rec === "recording") perform(ctx, { kind: "recorder.pause" });
               }, { "aria-pressed": String(rec === "paused") }),
               // [●] stands pressed in recording mode.
-              // A card with no room for a second of take leaves Record doing nothing.
               iconButton("Record", Icons.record(), `rec-rec${rec === "armed" ? " is-armed" : ""}`, () => {
-                if (rec === "idle" && takeRoom(ctx.store) > 0) ctx.actions.perform("recorder.arm", () => ctx.store.set("sd.rec", "armed"));
-                else if (rec === "armed") ctx.actions.perform("recorder.stop", () => stopTake(ctx.store));
+                if (rec === "idle") perform(ctx, { kind: "recorder.arm" });
+                else if (rec === "armed") perform(ctx, { kind: "recorder.stop" });
               }, { "aria-pressed": String(busy) }),
             ],
           }),
@@ -886,7 +847,7 @@ const FORMAT_RUN_MS = 5000;
 
 /** Format holds a modal up while it runs, and leaves the card empty under `label`, or Untitled for none, once done. */
 function formatUnder(ctx: AppContext, label: string): void {
-  ctx.actions.perform("card.format", () => runFormat(ctx, label));
+  perform(ctx, { kind: "card.format", label });
 }
 
 /** The simulated card's format under `label`. */
@@ -908,7 +869,7 @@ const TEST_RUN_MS = 3000;
 
 /** Test starts on the touch and holds a modal up while it runs; the result follows. */
 function testCard(ctx: AppContext): void {
-  ctx.actions.perform("card.test", () => runTest(ctx));
+  perform(ctx, { kind: "card.test" });
 }
 
 /** The simulated card's test. */
@@ -1044,3 +1005,117 @@ export function recordSourceSheet(ctx: AppContext, slot: number): HTMLElement {
 }
 
 export const microsdScreens: ScreenDef[] = [microsdScreen, recorderScreen, saveLoadScreen, toolsScreen, cardNameScreen];
+
+/**
+ * The simulated unit's card, settings files, recorder and playback carrying `op`
+ * out. An entry the card does not carry, a settings file holding nothing, and a
+ * card with no room for the file or for a second of take leave it undone.
+ */
+export function emulateCardOp(ctx: AppContext, op: Exclude<UnitOp, { kind: `scene.${string}` }>): boolean {
+  const store = ctx.store;
+  switch (op.kind) {
+    case "card.insert":
+      void store.set("sd.mounted", true);
+      return true;
+    case "card.eject":
+      // The test's result and the card leave in one operation of the store.
+      store.operation(() => {
+        void store.set("sd.tested", false);
+        void store.set("sd.mounted", false);
+      });
+      return true;
+    case "card.format":
+      runFormat(ctx, op.label);
+      return true;
+    case "card.test":
+      runTest(ctx);
+      return true;
+    case "card.delete": {
+      const entries = cardEntries(ctx);
+      const row = rowOf(ctx, op.file);
+      const entry = entries[row];
+      if (!entry) return false;
+      // The file, the cursor and playback go in one operation of the store.
+      store.operation(() => {
+        void store.set(filePath(entry), "");
+        // The cursor goes on to the next entry of the same folder, else back to
+        // the one before it, else onto nothing.
+        const next = entries[row + 1]?.dir === entry.dir ? row + 1 : entries[row - 1]?.dir === entry.dir ? row - 1 : -1;
+        void store.set("sd.selectedFile", next);
+        updateCard(ctx, entries.map((e, i) => (i === row ? undefined : e)));
+      });
+      return true;
+    }
+    case "card.rename": {
+      const entries = cardEntries(ctx);
+      const row = rowOf(ctx, op.file);
+      const entry = entries[row];
+      if (!entry) return false;
+      const name = op.to;
+      // The file under its old name and its new one go in one operation of the store.
+      store.operation(() => {
+        const held = store.str(filePath(entry), "");
+        if (held) {
+          void store.set(filePath(entry), "");
+          void store.set(filePath({ ...entry, name }), held);
+        }
+        updateCard(
+          ctx,
+          entries.map((e, i) => (i === row ? { ...e, name } : e)),
+        );
+      });
+      return true;
+    }
+    case "card.newFolder":
+      updateCard(ctx, [...cardEntries(ctx), { name: op.file.name, kind: "folder", seconds: 0, tracks: 0, dir: op.file.dir }]);
+      return true;
+    case "settings.save": {
+      // Over the settings file of that name in the folder, or as a new file. A
+      // file the card has no room for, with what the file it writes over takes up
+      // handed back, writes nothing.
+      const at = cardEntries(ctx).findIndex((e) => e.kind === "data" && e.dir === op.file.dir && e.name === op.file.name);
+      const entry: CardEntry = { name: op.file.name, kind: "data", seconds: 0, tracks: 0, written: clockParts(store), dir: op.file.dir, scenes: storedSceneCount(ctx) };
+      if (!roomFor(store, entry, at < 0 ? undefined : cardEntries(ctx)[at])) return false;
+      // The file and its entry go in one operation of the store.
+      store.operation(() => {
+        void store.set(filePath(entry), toJson(captureSettings(store)));
+        const entries = cardEntries(ctx);
+        updateCard(ctx, at < 0 ? [...entries, entry] : entries.map((e, i) => (i === at ? entry : e)));
+      });
+      return true;
+    }
+    case "settings.load": {
+      const entry = cardEntries(ctx)[rowOf(ctx, op.file)];
+      const held = entry ? store.str(filePath(entry), "") : "";
+      if (!held) return false;
+      putBackSettings(ctx, held);
+      return true;
+    }
+    case "recorder.arm":
+      // A card with no room for a second of take leaves Record doing nothing.
+      if (takeRoom(store) <= 0) return false;
+      void store.set("sd.rec", "armed");
+      return true;
+    case "recorder.record":
+      recordTake(store);
+      return true;
+    case "recorder.pause":
+      pauseTake(store);
+      return true;
+    case "recorder.stop":
+      stopTake(store);
+      return true;
+    case "playback.start": {
+      const row = rowOf(ctx, op.file);
+      if (row < 0) return false;
+      startPlayback(store, row);
+      return true;
+    }
+    case "playback.pause":
+      pausePlayback(store);
+      return true;
+    case "playback.stop":
+      stopPlayback(store);
+      return true;
+  }
+}

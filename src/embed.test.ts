@@ -3,7 +3,7 @@ import { Shell } from "./app/shell";
 import type { Route } from "./app/navigator";
 import { SimTransport } from "./device/sim-transport";
 import { DeviceStore } from "./device/store";
-import type { Unit, UnitAction, UnitActions } from "./device/unit";
+import type { Unit, UnitActions, UnitOp } from "./device/unit";
 import { computerClock, emulatedActions, refusedActions } from "./device/unit";
 import { factoryState } from "./model/defaults";
 import { clockParts } from "./model/clock";
@@ -138,12 +138,12 @@ describe("the unit's actions", () => {
   });
 
   it("arms nothing on a unit that refuses the recorder, and says which action it refused", async () => {
-    const refused: UnitAction[] = [];
+    const refused: UnitOp[] = [];
     const shell = await shellOn([{ id: "microsd.recorder" }], refusedActions((a) => refused.push(a)));
     recordButton(shell)?.click();
     await flush();
     expect(shell.ctx.store.str("sd.rec", "idle")).toBe("idle");
-    expect(refused).toEqual(["recorder.arm"]);
+    expect(refused).toEqual([{ kind: "recorder.arm" }]);
   });
 
   /** Move CH 1's fader off where scene 00 holds it, then recall 00 on `actions`. Returns the fader after. */
@@ -166,17 +166,9 @@ describe("the unit's actions", () => {
   });
 
   it("recalls nothing on a unit that refuses scene recall, and says it refused it", async () => {
-    const refused: UnitAction[] = [];
+    const refused: UnitOp[] = [];
     expect(await recallInitialData(refusedActions((a) => refused.push(a)))).toBe(-10);
-    expect(refused).toEqual(["scene.recall"]);
+    expect(refused).toEqual([{ kind: "scene.recall", scene: 0 }]);
   });
 
-  it("carries an action out on the simulated unit and refuses it on a unit that refuses it", () => {
-    const run = vi.fn();
-    expect(emulatedActions.perform("scene.recall", run)).toBe(true);
-    expect(run).toHaveBeenCalledOnce();
-    const refuse = vi.fn();
-    expect(refusedActions().perform("card.format", refuse)).toBe(false);
-    expect(refuse).not.toHaveBeenCalled();
-  });
 });

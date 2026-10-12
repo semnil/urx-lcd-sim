@@ -430,7 +430,7 @@ async function boot(
   // list's scroll.
   const releaseUnit = useUnit(simulatedServices);
   const stopMeters = startMeterTicker(store, shell.root);
-  const stopClock = startRecorderClock(store, shell.root);
+  const stopClock = startRecorderClock(store, shell.root, shell.ctx.actions);
   const stopDateTime = startDateTimeClock(store, shell.root);
   // Tearing down drops a change still waiting to be stored, as [Initialize All Memories]
   // does; picking another model writes it first, and leaving the page leaves it

@@ -37,12 +37,34 @@ export interface DeviceLink {
 | --- | --- | --- |
 | `params` | store がつなぐ `DeviceTransport` | `SimTransport` |
 | `levels` | メーターが読むもの。`simulated`、または dB のレベルを返す読み手と端子ごとの Clip Safe の状態を持つ `device` | 合成信号 (`src/screens/signal-flow.ts`) |
-| `actions` | 本体が自分のメモリー・カード・レコーダーに対して行う操作 (`UnitAction`: シーンのリコール・保存・保護・削除、設定ファイルの保存と読み込み、カードの挿入・取り出し・フォーマット・テスト・削除・名前の変更・フォルダーの作成、レコーダーの待機・録音・一時停止・停止、再生の開始・一時停止・停止) | すべてシミュレーターのメモリーで行う (`emulatedActions`) |
+| `actions` | 本体が自分のメモリー・カード・レコーダーに対して行う操作を、誰が行うか。`simulated`、または操作を受け取ったかを答える `perform(op)` を持つ `device` | すべてシミュレーターのメモリーで行う (`emulatedActions`) |
 | `clock` | DATE / TIME で動かす前の、本体の時計が刻む時刻 | コンピューターの時計 |
 
-画面は操作ごとに、シミュレーターの本体がそれに行うことを添えて `perform()` に渡す。操作を自分で行う本体や、
-操作を断る本体 (`refusedActions`。断るたびに知らせる) はその部分を走らせないので、自分のメモリーを持つ本体の
-代わりにシミュレーターのメモリーが動くことはない。画面が値を編集するのは、どの種類の本体でも `params` の役目のまま。
+操作 (`UnitOp`) は、本体がそれを行うのに要るものをすべて持ち、画面のものもシミュレーターのものも持たない。
+
+| 操作 | 引数 |
+| --- | --- |
+| `scene.recall` | `scene`: 番号。0 とプリセットは工場出荷のシーン |
+| `scene.store` | `bank`・`scene`、入力した題名 `title` |
+| `scene.protect` | `bank`・`scene`、保護するかどうか `protect` |
+| `scene.delete` | `bank`・`scene` |
+| `settings.save` | `file`: フォルダーと名前。そこにある同じ名前の設定ファイルに上書きし、無ければ新しく書く |
+| `settings.load` | `file` |
+| `card.insert`・`card.eject`・`card.test` | なし |
+| `card.format` | `label`: 入力したボリュームラベル。無ければ空 |
+| `card.delete` | `file` |
+| `card.rename` | `file`、新しい名前 `to` |
+| `card.newFolder` | `file`: 作る先のフォルダーと名前 |
+| `recorder.arm`・`recorder.record`・`recorder.pause`・`recorder.stop` | なし |
+| `playback.start` | `file`: 再生するファイル、または一時停止から続けるファイル |
+| `playback.pause`・`playback.stop` | なし |
+
+画面は操作を求められて確定した時点で渡し、それを行えるかは本体が答える。シミュレーターの本体は、カードに無い
+項目・中身の無い設定ファイル・カードに入りきらないファイルや録音は行わない。`device` の本体には操作が渡され、
+シミュレーターのメモリー・カード・レコーダーは何も動かない (`refusedActions` は、すべてを断り、断るたびに知らせる
+本体)。シミュレーターのレコーダーは、カウンターの時計に合わせて、カードの空きで録音を止め、ファイルの終わりで
+再生を止める。`device` の本体のレコーダーと再生は、その値が知らせるとおりにだけ動き、カウンターは何も書かない。
+画面が値を編集するのは、どの種類の本体でも `params` の役目のまま。
 
 `useUnit()` (`src/app/unit.ts`) は本体のメーターと時計を、メーターと時計に渡す。1 つのページにつなぐ本体は
 同時に 1 つだけ。本体のメーターは `setMeterSource()` と `setClipSafeSource()` (`src/screens/meters.ts`) を通して

@@ -686,7 +686,7 @@ describe("the microSD card browser", () => {
   it("lets go of the file playback holds once it has played to its end, as [■] does: the triangle leaves the microSD icon, and the card-eject button and the microSD top's Save/Load and Tools come back in reach", async () => {
     vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
     const shell = await mount({ id: "microsd" });
-    const stop = startRecorderClock(shell.ctx.store, shell.root, 50);
+    const stop = startRecorderClock(shell.ctx.store, shell.root, { kind: "simulated" }, 50);
     try {
       const store = shell.ctx.store;
       const press = async (label: string): Promise<void> => {

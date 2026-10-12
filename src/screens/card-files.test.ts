@@ -244,7 +244,7 @@ describe("playing a file back", () => {
       await store.set("ui.sdTab", "Play");
       await flush();
       const counter = (): string => shell.root.querySelector("[data-play-clock]")?.textContent ?? "missing";
-      const stop = startRecorderClock(store, shell.root, 50);
+      const stop = startRecorderClock(store, shell.root, { kind: "simulated" }, 50);
       vi.advanceTimersByTime(60);
       expect(counter(), "nothing held").toBe("");
       startPlayback(store, 0, Date.now() - 3_000);
@@ -415,7 +415,7 @@ describe("playing a file back", () => {
       ]);
       const store = shell.ctx.store;
       await store.set("sd.selectedFile", 2);
-      const stop = startRecorderClock(store, shell.root, 50);
+      const stop = startRecorderClock(store, shell.root, { kind: "simulated" }, 50);
       startPlayback(store, 2, Date.now() - 1_000);
       vi.advanceTimersByTime(60);
       expect(store.bool("sd.playing", false), "a second in, still playing").toBe(true);
