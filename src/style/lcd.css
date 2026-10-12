@@ -7885,13 +7885,21 @@
   width: 136px;
   height: 40px;
   box-sizing: border-box;
-  padding-bottom: 3px;
+  /* The name stands centred on the face left of the copy mark's column. */
+  padding: 2px 26px 6px 6px;
   border: 0;
   border-radius: var(--radius-md);
   background: var(--surface);
   white-space: pre-line;
   cursor: pointer;
   box-shadow: inset 0 -3px 0 var(--btn-bevel);
+}
+
+/* Its name is set in 12.5px type on lines 16px apart. Two classes, because the
+ * reset that makes a button inherit its font is more specific than one. */
+.input-screen .input-source-btn {
+  font-size: 12.5px;
+  line-height: 16px;
 }
 
 .input-panel {

@@ -1143,7 +1143,8 @@ channel's INPUT screen.
 The Input Source box breaks a source's name where the source sheet's button breaks it: `MIC/LINE 1/2`
 over the two lines `MIC/LINE` and `1/2` (p100-1). `AUX IN`, `USB MAIN A`, `USB SUB` and `HDMI` on one
 line and `USB DAW 1/2` and `microSD Playback` over two match the unit too (URX44V, the operator,
-2026-09-22).
+2026-09-22). The name is set in 12.5px, its two lines 16px apart, centred on the face left of the copy mark's
+column (x154): `MIC/LINE` stands on x127..180 / y59..67 and `3/4` on y75..83 (p100-1).
 
 STREAMING's Input Source box drops not the channel input list but the buses it can be fed from inside
 the mixer — STEREO at the left end of the first row, MIX 1 / MIX 2 on the second. Unlike the list

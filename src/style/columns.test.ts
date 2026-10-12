@@ -1534,6 +1534,13 @@ describe("the dynamics screens", () => {
     expect(px(right["left"])).toBe(px(left["left"]) + px(a["width"]) + 4);
     expect(a["background"]).toBe("var(--surface-sunken)");
   });
+
+  // p100-1: `MIC/LINE` stands on x127..180 / y59..67 and `3/4` on y75..83.
+  it("sets the Input Source name in 12.5px on lines 16px apart, centred left of the copy mark", () => {
+    const box = declarations(CSS, ".input-screen .input-source-btn");
+    expect([box["font-size"], box["line-height"]]).toEqual(["12.5px", "16px"]);
+    expect(declarations(CSS, ".input-source-btn")["padding"]).toBe("2px 26px 6px 6px");
+  });
 });
 
 describe("the marks a strip and a channel view print", () => {

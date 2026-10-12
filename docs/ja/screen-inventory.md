@@ -990,7 +990,8 @@ INPUT 画面を写した図は無い。
 
 Input Source の箱は、ソースの名前をソース選択シートのボタンと同じ所で改行する。`MIC/LINE 1/2` は
 `MIC/LINE` と `1/2` の 2 行 (p100-1)。`AUX IN`・`USB MAIN A`・`USB SUB`・`HDMI` の 1 行と、`USB DAW 1/2`・
-`microSD Playback` の 2 行も実機と一致 (URX44V、2026-09-22 操作者確認)。
+`microSD Playback` の 2 行も実機と一致 (URX44V、2026-09-22 操作者確認)。名前は 12.5px で、2 行は 16px 間隔。
+複製マークの列を除いた面の中央 (x154) に立ち、`MIC/LINE` が x127..180 / y59..67、`3/4` が y75..83 (p100-1)。
 
 STREAMING の Input Source の箱が出すのは、チャンネルの入力一覧ではなく、ミキサーの中から
 受けるバスの一覧 (1 段目の左端に STEREO、2 段目に MIX 1 / MIX 2)。MONITOR の Source ボタンの一覧と違い
