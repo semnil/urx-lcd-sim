@@ -13,6 +13,7 @@ import { meterLevels, setMeterSource, startMeterTicker } from "./meters";
 import { recallScene } from "./scene";
 import { CUE_METER } from "./signal-flow";
 import { followRecall, pairStates } from "./stereo-link";
+import { spoken } from "../ui/spoken";
 
 // Signal Type is a setting of a channel PAIR. Both channels have to agree about
 // it, the pair has to be the adjacent one, and the screens have to say which two
@@ -125,7 +126,7 @@ describe("the stereo link of a mono channel pair", () => {
     expect(marks(shell).map((m) => m.getAttribute("aria-label"))).toEqual([
       "CH 1 and CH 2 stereo link",
       "CH 3 and CH 4 stereo link",
-    ]);
+    ].map((name) => spoken(name)));
   });
 
   it("carries the selection frame round itself, on the side of the selected channel", async () => {

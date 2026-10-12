@@ -13,6 +13,7 @@ import { OFF_MARK, drawnScale, el, fromInnerControl, makeTappable, setPressed } 
 import { Icons } from "./icons";
 import type { NumericSpec } from "./param-spec";
 import { KNOB_SIZE, KNOB_START_DEG, KNOB_SWEEP_DEG, formatValue, rangeAttrs, unitOf } from "./param-spec";
+import { setSpokenAttr } from "./spoken";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -312,7 +313,7 @@ export function drawFace(node: HTMLElement, value: string, face: OptionFace | un
   const mark = face?.(value);
   if (!mark) return node;
   node.replaceChildren(mark);
-  node.setAttribute("aria-label", value);
+  setSpokenAttr(node, "aria-label", value);
   return node;
 }
 
@@ -372,7 +373,7 @@ export function pulldown(
             });
           }),
   );
-  node.setAttribute("aria-label", `${label ? `${label}: ` : ""}${value} (${options.length} options)`);
+  setSpokenAttr(node, "aria-label", `${label ? `${label}: ` : ""}${value} (${options.length} options)`);
   return node;
 }
 
@@ -427,7 +428,7 @@ export function pickerSheet(ctx: AppContext, spec: PickerSheetSpec): HTMLElement
   const content = spec.build(() => close());
 
   const back = button("", () => close(), "source-back");
-  back.setAttribute("aria-label", `Close the ${spec.label ?? spec.title} list`);
+  setSpokenAttr(back, "aria-label", `Close the ${spec.label ?? spec.title} list`);
   back.appendChild(Icons.back());
 
   const panel = el("div", {
@@ -1070,7 +1071,7 @@ function openOptions(ctx: AppContext, spec: OptionListSpec): void {
     if (spec.render) {
       node.textContent = "";
       node.appendChild(spec.render(option));
-      node.setAttribute("aria-label", option);
+      setSpokenAttr(node, "aria-label", option);
     }
     list.appendChild(node);
   }

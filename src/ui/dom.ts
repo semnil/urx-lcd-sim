@@ -1,3 +1,4 @@
+import { setSpokenAttr } from "./spoken";
 // Element construction. Small on purpose: the screens are laid out in CSS, and
 // this only removes the createElement / append boilerplate around that.
 
@@ -30,7 +31,7 @@ export function el<K extends keyof HTMLElementTagNameMap>(
       else Object.assign(node.style, { [name]: value });
     }
   }
-  if (options.attrs) for (const [k, v] of Object.entries(options.attrs)) node.setAttribute(k, v);
+  if (options.attrs) for (const [k, v] of Object.entries(options.attrs)) setSpokenAttr(node, k, v);
   if (options.onTap) makeTappable(node, options.onTap);
   if (options.children) {
     for (const c of options.children) if (c) node.appendChild(c);

@@ -14,6 +14,7 @@ import { levelBarShare } from "../model/dynamics";
 import { SILENT_DB } from "../model/signal";
 import { digitalGainPath } from "../model/source-gain";
 import { pausePlayback, startPlayback, startRecorderClock, stopPlayback } from "./recording";
+import { spoken } from "../ui/spoken";
 
 // RECORDER's Play and Edit tabs and both SAVE/LOAD tabs show what is on the
 // card, as rows of the same list the SCENE screen uses.
@@ -501,7 +502,7 @@ describe("the microSD card browser", () => {
     rows(shell).find((r) => cellsOf(r)[1] === "20251020_112323.wav")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await flush();
     for (let i = 0; i < 2; i++) {
-      [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === "Play/Pause")?.click();
+      [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === spoken("Play/Pause"))?.click();
       await flush();
     }
     const eject = shell.root.querySelector<HTMLElement>(".toolbar .sd-eject");
@@ -523,7 +524,7 @@ describe("the microSD card browser", () => {
   it("keeps the file playback holds paused, under the speaker and on [Play/Pause], when the card sorts anew around it", async () => {
     const card = [entry("a.wav", "take", 10), entry("b.wav", "take", 25), entry("c.wav", "take", 40)];
     const press = async (shell: Shell, label: string): Promise<void> => {
-      [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === label || b.textContent === label)?.click();
+      [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === spoken(label) || b.textContent === label)?.click();
       await flush();
     };
     const tapRow = async (shell: Shell, name: string): Promise<void> => {
@@ -612,7 +613,7 @@ describe("the microSD card browser", () => {
     };
     const playing = await mount({ id: "microsd.recorder" });
     const press = async (label: string): Promise<void> => {
-      [...playing.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === label)?.click();
+      [...playing.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === spoken(label))?.click();
       await flush();
     };
     await pickTab(playing, "ui.sdTab", "Play");
@@ -635,7 +636,7 @@ describe("the microSD card browser", () => {
     const shell = await mount({ id: "microsd" });
     const store = shell.ctx.store;
     const press = async (label: string): Promise<void> => {
-      [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === label)?.click();
+      [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === spoken(label))?.click();
       await flush();
     };
     const menu = (name: string): HTMLElement | undefined => [...shell.root.querySelectorAll<HTMLElement>(".menu-btn")].find((b) => b.textContent === name);
@@ -689,7 +690,7 @@ describe("the microSD card browser", () => {
     try {
       const store = shell.ctx.store;
       const press = async (label: string): Promise<void> => {
-        [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === label)?.click();
+        [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === spoken(label))?.click();
         await flush();
       };
       const shut = (node: HTMLElement | null | undefined): [boolean | undefined, string | null | undefined] => [node?.classList.contains("is-disabled"), node?.getAttribute("aria-disabled")];
@@ -795,7 +796,7 @@ describe("the microSD card browser", () => {
       shell.root.remove();
     }
     expect(seen).toEqual({
-      "microsd.saveload": ["SAVE/LOAD files", [true, 1], [true, 2], [true, 1], [true, 0], 0, 0],
+      "microsd.saveload": [spoken("SAVE/LOAD files"), [true, 1], [true, 2], [true, 1], [true, 0], 0, 0],
       "microsd.recorder": ["RECORDER files", [true, 1], [true, 2], [true, 1], [true, 0], 0, 0],
     });
   });
@@ -922,7 +923,7 @@ describe("the microSD card browser", () => {
     const store = shell.ctx.store;
     await store.set(filePath({ dir: "/F/", name: "X.urxf" }), JSON.stringify({ "ch.ch1.level": -30 }));
     const press = async (label: string): Promise<void> => {
-      [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === label || b.textContent === label)?.click();
+      [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === spoken(label) || b.textContent === label)?.click();
       await flush();
     };
     const saveLoad = (): boolean[] =>
@@ -1500,7 +1501,7 @@ describe("USB Storage Mode", () => {
     const shell = await mount({ id: "microsd" });
     const store = shell.ctx.store;
     const press = async (label: string): Promise<void> => {
-      [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === label)?.click();
+      [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === spoken(label))?.click();
       await flush();
     };
     const top = async (): Promise<void> => {

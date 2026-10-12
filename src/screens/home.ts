@@ -41,6 +41,7 @@ import {
 } from "./strip-state";
 import { CUE_METER, drawnLevels, homeMeterTap, lampState, lampTap, simulatedLevel, tapId } from "./meters";
 import { nameCursorScene } from "./scene";
+import { setSpokenAttr } from "../ui/spoken";
 
 /**
  * The pair of lamps every indicator block opens with: the left one is green
@@ -225,7 +226,7 @@ function stripView(ctx: AppContext, strip: Strip, selected: boolean, linkedTo?: 
       ctx.nav.push({ id: "channel-view", strip: strip.id });
     } else ctx.repaint();
   });
-  indicators.setAttribute("aria-label", `${strip.label} settings`);
+  setSpokenAttr(indicators, "aria-label", `${strip.label} settings`);
 
   const onBtn = toggle("ON", ctx.store.bool(`${base}.on`, true), () => {
     void ctx.store.set(`${base}.on`, !ctx.store.bool(`${base}.on`, true));

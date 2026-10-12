@@ -32,6 +32,7 @@ import { ssmcsArea } from "./ssmcs";
 import { toggleCue } from "./cue";
 import { COMP_EQ_SSMCS, channelLabel, eqShut, phasePath, runsSsmcs, selectStrip, selectedStripId, sendsTarget, stepChannel, stripColor, stripLane, stripLanes } from "./strip-state";
 import type { ScreenBody, ScreenDef } from "./types";
+import { setSpokenAttr } from "../ui/spoken";
 
 /** What a channel screen shows when the route names no channel. */
 export function noChannel(): ScreenBody {
@@ -789,7 +790,7 @@ export const chSettingScreen: ScreenDef = {
     // The box is named by the colour the channel carries, in the words of the palette's buttons.
     const chosen = ctx.store.str(`${base}.color`, strip.color);
     const colorName = chosen === CH_COLOR_OFF ? CH_COLOR_OFF : CH_COLOR_PALETTE.find((c) => c.hex === chosen)?.name;
-    colorBox.setAttribute("aria-label", colorName ? `Color: ${colorName}` : "Color");
+    setSpokenAttr(colorBox, "aria-label", colorName ? `Color: ${colorName}` : "Color");
 
     const children = [
       field("Color", "color", colorBox),
@@ -942,7 +943,7 @@ export const inputScreen: ScreenDef = {
                   (() => {
                     const node = flagAt("Φ", phasePath(ctx, strip), "if-left is-phase");
                     node.replaceChildren(Icons.phase());
-                    node.setAttribute("aria-label", "Φ");
+                    setSpokenAttr(node, "aria-label", "Φ");
                     return node;
                   })(),
                   ...(mono ? [flag("HPF", "hpf.on", "if-right is-hpf"), column(hpfSpec, "input-col-b")] : []),
@@ -1067,7 +1068,7 @@ export function plotHandle(
   const cy = clamp(y, HANDLE_R, PLOT_H - HANDLE_R);
   const grp = document.createElementNS(NS, "g");
   grp.setAttribute("class", `dyn-handle${turns.fixed ? " is-fixed" : ""}`);
-  grp.setAttribute("aria-label", `${letter} handle: ${turns.spec.label}`);
+  setSpokenAttr(grp, "aria-label", `${letter} handle: ${turns.spec.label}`);
   const c = document.createElementNS(NS, "circle");
   c.setAttribute("cx", cx.toFixed(1));
   c.setAttribute("cy", cy.toFixed(1));
