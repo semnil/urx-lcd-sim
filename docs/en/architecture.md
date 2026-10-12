@@ -335,3 +335,10 @@ The desktop GUI minimum touch target of 36x36 is met by the default `--scale` of
 display scale of 100%. The parts the unit draws under 18 screen pixels, the readout bar's page steps, the
 USER DEFINED KNOBS bank steps and a list's scroll bar and thumb, draw as they are and take a touch over
 18x18 screen pixels, ahead of what they reach over. Below 100%, the actual size shrinks in proportion.
+
+A name or a description handed to a screen reader carries the marks a screen reader reads as something other than
+what they are in readings of their own (`src/ui/spoken.ts`): "CH" letter by letter (`C H 1 LEVEL`), an a/b pair as
+its two halves with "slash" between them (`Play slash Pause`), a slash on its own as "slash", the middle dot as
+"dot", and the polarity mark as "Phase". What the glass prints is left as the unit prints it. `el()` and every
+place that sets `aria-label` or `aria-description` itself go through `setSpokenAttr`, and `e2e/spoken.spec.ts`
+walks every screen for a name still in its printed form.

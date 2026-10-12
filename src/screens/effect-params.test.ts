@@ -10,6 +10,7 @@ import { INTERACTIVE } from "../ui/dom";
 import { HANDLE_R, HANDLE_RING, PLOT_H, PLOT_MIN, PLOT_SPAN, PLOT_W } from "./channel";
 import { blockReduction, meterLevels, readGrSpec, setMeterSource } from "./meters";
 import { buildRegistry } from "./index";
+import { spoken } from "../ui/spoken";
 
 // Taking an effect, setting it, and the states the unit will not let a channel
 // reach: an effect the sampling frequency is too high for, an effect another
@@ -393,8 +394,8 @@ describe("the screen an effect is set on", () => {
     expect(options.slice(1).every((o) => o.querySelector("svg.icon-note") && o.textContent === ""), "the fourteen notes drawn").toBe(true);
     expect(options.map((o) => o.getAttribute("aria-label") ?? o.textContent).slice(0, 6), "each keeps its name, row by row").toEqual([
       "---", "1/32T", "1/16T", "1/16", "1/8T", "1/16.",
-    ]);
-    options.find((o) => o.getAttribute("aria-label") === "1/8")?.click();
+    ].map((name) => spoken(name)));
+    options.find((o) => o.getAttribute("aria-label") === spoken("1/8"))?.click();
     await flush();
     expect(delay.ctx.store.str("ch.fx2.effect.note", "")).toBe("1/8");
     expect(delay.root.querySelector(".dropdown-list"), "and it closes on the pick").toBeNull();
@@ -410,7 +411,7 @@ describe("the screen an effect is set on", () => {
     expect([mod?.style.gridRow, mod?.style.gridColumn], "upper row, two panels from the left").toEqual(["1", "1 / span 2"]);
     const gate = [...shell.root.querySelectorAll<HTMLElement>(".efx-cell")][1];
     expect(gate?.style.gridColumn, "the next panel after the two").toBe("3");
-    expect(mod?.querySelector('[role="group"]')?.getAttribute("aria-label")).toBe("Cho/Off/Vib");
+    expect(mod?.querySelector('[role="group"]')?.getAttribute("aria-label")).toBe(spoken("Cho/Off/Vib"));
     const buttons = [...(mod?.querySelectorAll<HTMLElement>(".efx-button") ?? [])];
     expect(buttons.map((b) => [b.textContent, b.classList.contains("is-on")])).toEqual([["Cho", false], ["Off", true], ["Vib", false]]);
     buttons[2]?.click();
@@ -701,7 +702,8 @@ describe("the screen an effect is set on", () => {
         const expected = rows.map((r) => [1, 2, 3, 4].map((col) => turned.find((c) => c.row === r && c.column === col)?.caption ?? ""));
         const read: string[][] = [];
         for (const _ of rows) {
-          read.push(knobLabels(shell));
+          // The bar prints a row's name; its box carries the name in the form a screen reader is handed.
+          read.push(knobLabels(shell).map((label) => spoken(label)));
           await click(shell, ".knob-page-next");
         }
         expect(read, `${effect}, page ${page}`).toEqual(expected);
@@ -1557,7 +1559,7 @@ describe("an FX channel", () => {
       await page(1);
       (control("Note") as HTMLElement | null | undefined)?.click();
       await flush();
-      [...shell.root.querySelectorAll<HTMLElement>(".dropdown-list .dropdown-option")].find((b) => b.getAttribute("aria-label") === "1/8")?.click();
+      [...shell.root.querySelectorAll<HTMLElement>(".dropdown-list .dropdown-option")].find((b) => b.getAttribute("aria-label") === spoken("1/8"))?.click();
       await flush();
       expect([shell.ctx.store.str(`${base}.note`, ""), delay()], `${effect}: Note taken, time kept`).toEqual(["1/8", 333]);
       await shell.ctx.store.set(`${base}.note`, "1/4");
@@ -1709,7 +1711,7 @@ describe("an FX channel", () => {
     expect(shell.root.querySelector(".efx-page-next"), "two pages").toBeNull();
     const bare = [...shell.root.querySelectorAll(".efx-cell.is-bare")];
     expect(bare.map((c) => c.querySelector(".efx-button, .pulldown")?.getAttribute("aria-label") ?? c.querySelector(".efx-button")?.textContent))
-      .toEqual(["Sync", "Note: 1/4 (15 options)"]);
+      .toEqual(["Sync", spoken("Note: 1/4 (15 options)")]);
     expect(bare[0]?.querySelector(".efx-cell-caption")?.textContent, "Sync has no caption").toBe("");
     // The Note stands at the foot of its place, a panel wide rather than a division wide.
     expect([bare[1]?.classList.contains("is-foot"), bare[1]?.classList.contains("is-division")]).toEqual([true, false]);

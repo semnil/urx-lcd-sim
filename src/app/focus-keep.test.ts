@@ -8,6 +8,7 @@ import { buildRegistry } from "../screens";
 import type { ScreenDef } from "../screens/types";
 import { el } from "../ui/dom";
 import { Shell } from "./shell";
+import { spoken } from "../ui/spoken";
 
 // Every change draws the screen again from scratch. The keys stay on the control
 // they were on, so a value turns press after press and a switch can be pressed
@@ -129,7 +130,7 @@ describe("the focus through a redraw", () => {
       await flush();
       expect([on() !== held, sunk()], "drawn again under the finger").toEqual([true, true]);
       // A second finger dragging CH 2 LEVEL draws it again on each move.
-      finger(shell.root.querySelector('[aria-label="CH 2 LEVEL"]'), "pointerdown", 2, 300);
+      finger(shell.root.querySelector(`[aria-label="${spoken("CH 2 LEVEL")}"]`), "pointerdown", 2, 300);
       finger(window, "pointermove", 2, 250);
       await flush();
       expect(sunk(), "while a second finger drags").toBe(true);
@@ -180,9 +181,9 @@ describe("the focus through a redraw", () => {
       const otherBank = { strip: firstStrip(), down: down() };
       finger(window, "pointerup", 2);
       expect({ sameBank, cancelled, otherBank, letGo: down() }).toEqual({
-        sameBank: { strip: expect.stringMatching(/^CH 1\b/), first: true, down: 1 },
+        sameBank: { strip: expect.stringMatching(new RegExp(`^${spoken("CH 1")}\\b`)), first: true, down: 1 },
         cancelled: 0,
-        otherBank: { strip: expect.not.stringMatching(/^CH 1\b/), down: 0 },
+        otherBank: { strip: expect.not.stringMatching(new RegExp(`^${spoken("CH 1")}\\b`)), down: 0 },
         letGo: 0,
       });
     } finally {

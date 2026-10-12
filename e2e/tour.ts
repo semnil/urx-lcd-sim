@@ -3,13 +3,20 @@
 // registry, so a screen added without a stop here fails `pnpm test`.
 
 import type { Locator, Page } from "@playwright/test";
+import { spoken } from "../src/ui/spoken";
 
 /** The glass. */
 export const lcd = (page: Page): Locator => page.locator(".lcd[data-screen]:not([inert])");
 
-/** A button on the glass, by its accessible name. */
+/**
+ * A button on the glass, by its name as printed: a button named by its text carries it as
+ * it is, one named by a label carries it in the form a screen reader is handed.
+ */
 export const button = (page: Page, name: string | RegExp, exact = false): Locator =>
-  lcd(page).getByRole("button", { name, exact }).first();
+  (typeof name === "string"
+    ? lcd(page).getByRole("button", { name, exact }).or(lcd(page).getByRole("button", { name: spoken(name), exact }))
+    : lcd(page).getByRole("button", { name, exact })
+  ).first();
 
 /** The screen up on the glass. */
 export const screenOf = (page: Page): Promise<string | null> => lcd(page).getAttribute("data-screen");

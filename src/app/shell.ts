@@ -33,6 +33,7 @@ import type { AppContext, KnobReadout } from "./context";
 import { Navigator } from "./navigator";
 import type { Route, RouteChange } from "./navigator";
 import { scrimFilter } from "../ui/scrim";
+import { setSpokenAttr } from "../ui/spoken";
 
 /** Divisions the multi-function readout bar has. */
 const KNOB_CELLS = 4;
@@ -503,7 +504,7 @@ export class Shell {
     const v = this.ctx.store.num(spec.path, spec.fallback);
     cell.tabIndex = 0;
     cell.setAttribute("role", "slider");
-    cell.setAttribute("aria-label", name);
+    setSpokenAttr(cell, "aria-label", name);
     setAriaValue(cell, spec, v);
     if (standsStill(this.ctx, spec)) cell.setAttribute("aria-disabled", "true");
     attachSpin(this.ctx, cell, spec, onEngage);
