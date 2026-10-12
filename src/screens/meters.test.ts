@@ -7,7 +7,7 @@ import { factoryState } from "../model/defaults";
 import { type UnitModel, allStrips, findStrip } from "../model/types";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
-import { clipSafe, inputMeterId, markClipSafe, meterLevels, oscillatorLevel, setMeterSource, startMeterTicker, tapId } from "./meters";
+import { clipSafe, inputMeterId, lampState, markClipSafe, meterLevels, oscillatorLevel, setMeterSource, startMeterTicker, tapId } from "./meters";
 import type { Tap } from "./signal-flow";
 
 // The ticker redraws the meters a screen already shows. What it writes has to
@@ -77,6 +77,17 @@ describe("the meter ticker", () => {
     vi.advanceTimersByTime(60);
     expect(Number.parseFloat(unlit(root)[0] ?? ""), "redrawn again once it is off").toBeCloseTo(moving, 9);
     stop();
+  });
+});
+
+describe("a strip's lamps", () => {
+  it("light the clip lamp from 3 dB under a clip, on the louder lane", () => {
+    // URX44V, 2026-10-12: an input channel, FX 1, STEREO and MIX 2 lit the red dot at -3 dB and not at -4 dB.
+    expect(lampState([-4]).clip, "-4 dB").toBe(false);
+    expect(lampState([-3.01]).clip, "just under -3 dB").toBe(false);
+    expect(lampState([-3]).clip, "-3 dB").toBe(true);
+    expect(lampState([-6, -3]).clip, "the louder lane at -3 dB").toBe(true);
+    expect(lampState([-1]), "under a clip, the signal lamp lit too").toEqual({ signal: true, clip: true });
   });
 });
 

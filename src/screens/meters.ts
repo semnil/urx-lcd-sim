@@ -10,7 +10,7 @@
 import type { AppContext } from "../app/context";
 import type { DeviceStore } from "../device/store";
 import { gateReductionDb, grBarShare, levelBarShare } from "../model/dynamics";
-import { DETECTOR_OFFSET, type DetectorKind, METER_FALL_DB_PER_S, SIGNAL_LAMP_DB } from "../model/levels";
+import { CLIP_LAMP_DB, DETECTOR_OFFSET, type DetectorKind, METER_FALL_DB_PER_S, SIGNAL_LAMP_DB } from "../model/levels";
 import { SILENT_DB } from "../model/signal";
 import type { Strip } from "../model/types";
 import { GATE_DEFAULTS } from "../model/defaults";
@@ -23,12 +23,12 @@ const SILENT = SILENT_DB;
 
 /**
  * What the pair of lamps at the top of a strip's indicator block reads: the
- * left one lights from about -40 dBFS up and stays lit while the right one shows
- * the level is over.
+ * left one lights from about -40 dBFS up and stays lit while the right one
+ * lights, from 3 dB under a clip up.
  */
 export function lampState(levels: readonly number[]): { signal: boolean; clip: boolean } {
   const peak = Math.max(...levels);
-  return { signal: peak >= SIGNAL_LAMP_DB, clip: peak >= CLIP_DB };
+  return { signal: peak >= SIGNAL_LAMP_DB, clip: peak >= CLIP_LAMP_DB };
 }
 
 export type MeterSource = (stripId: string, channels: number) => number[];

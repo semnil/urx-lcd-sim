@@ -1414,7 +1414,8 @@ and URX44 run the same laws, bar the number of channels.
 | OUT on RECORDER's Play and Edit tabs | What the file playing puts out (after microSD Playback's D.Gain); silent while stopped or paused (after [■] and paused, URX44V, the operator, 2026-10-03) |
 
 - The left dot (signal) lights green from about -40 dBFS and stays lit while the right dot (clip) is red.
-  The right dot lights only while the level clips (0 dB).
+  The right dot lights while the level is at -3 dBFS or over, and not at -4 dBFS (on a channel, an FX channel,
+  STEREO and a MIX bus alike; URX44V, confirmed on the unit on 2026-10-12).
 - While the level just ahead of a fader clips, the meter just after the fader reads the clip even with [ON]
   off and the fader down (on MONO IN and FX the LEVEL meter, on a stereo channel the one before DUCKER, on
   MIX and STEREO the one before the INS FX). The two sides read apart: a side that does not clip reads its

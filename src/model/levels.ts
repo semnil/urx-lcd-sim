@@ -111,3 +111,6 @@ export const METER_FALL_DB_PER_S = 30;
 
 /** The level from which a strip's signal lamp lights. */
 export const SIGNAL_LAMP_DB = -40;
+
+/** The level from which a strip's clip lamp lights: 3 dB under a clip. */
+export const CLIP_LAMP_DB = -3;

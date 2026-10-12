@@ -5,6 +5,7 @@ import type { Route } from "../app/navigator";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
+import { CLIP_LAMP_DB } from "../model/levels";
 import { SILENT_DB } from "../model/signal";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
@@ -299,7 +300,7 @@ describe("a meter stream that reads something other than a level up to 0 dB", ()
         signal: shell.root.querySelector('[data-lamp-source="ch1@input"] .dot-signal')?.classList.contains("is-on"),
         clip: shell.root.querySelector('[data-lamp-source="ch1@input"] .dot-clip')?.classList.contains("is-on"),
       });
-      const shown = (db: number): unknown => ({ meter: [at(db)], over: db >= 0, signal: true, clip: db >= 0 });
+      const shown = (db: number): unknown => ({ meter: [at(db)], over: db >= 0, signal: true, clip: db >= CLIP_LAMP_DB });
       const stop = startMeterTicker(shell.ctx.store, shell.root, 100);
       try {
         levels["ch1"] = -10;

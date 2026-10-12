@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Light a strip's red dot on HOME from -3 dBFS, as the unit does on a channel, an FX channel, STEREO and a MIX bus. It lit only at 0 dB.
 - Cost a settings file on the card by the scenes stored when it is written, as the unit does: 28,696 bytes with none, and 21,972 bytes more for each scene. Every settings file cost 50,668 bytes, the size of one holding a single scene.
 - Set the two lines of a picker sheet's button 14 screen pixels apart, as OUTPUT PATCH's [MONITOR 1] has them in the user guide. They stood 15 apart, so `1` stood a screen pixel lower than in the user guide.
 - Set the source name in the INPUT screen's Input Source box in a larger type with its two lines 16 screen pixels apart, centred left of the copy mark, as the user guide draws it. The name was smaller, its lines 14 apart and centred on the whole box, so `MIC/LINE` started 13 screen pixels right of where the user guide has it.
