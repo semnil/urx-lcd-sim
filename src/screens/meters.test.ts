@@ -16,7 +16,8 @@ import type { Tap } from "./signal-flow";
 describe("the meter ticker", () => {
   let level = -40;
   const run = (node: HTMLElement): { root: HTMLElement; stop: () => void } => {
-    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    // The meters fall by the time Date.now() gives, so the clock moves with the timers.
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
     const root = document.createElement("div");
     root.append(node);
     setMeterSource((_, channels) => Array.from({ length: channels }, () => level));
