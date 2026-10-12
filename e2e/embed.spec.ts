@@ -239,9 +239,21 @@ test("keeps the focus on its control when the screen is drawn again", async ({ p
   expect(await glassFocus(page)).toBe("Recorder");
 });
 
+/** The lines of two style readings that differ, the first few, as "<element> <property>=<plain> | <ruled>". */
+function styleDifferences(plain: string, ruled: string): string[] {
+  const a = plain.split("\n");
+  const b = ruled.split("\n");
+  const out: string[] = [];
+  for (let i = 0; i < Math.max(a.length, b.length) && out.length < 20; i++)
+    if (a[i] !== b[i]) out.push(`${a[i] ?? "(none)"} | ${b[i]?.split("=").slice(1).join("=") ?? "(none)"}`);
+  return out;
+}
+
 /** Every animation on the page and in the glass's tree held at its start, and every transition run to its end. */
 async function holdStill(page: Page): Promise<void> {
   await page.evaluate(async () => {
+    // The fonts the glass draws with, loaded first: text set in a fallback face lays out at other sizes.
+    await document.fonts.ready;
     const tree = document.querySelector(".urx-lcd-sim")!.shadowRoot!;
     for (const a of new Set([...document.getAnimations(), ...tree.getAnimations()])) {
       if (a.effect?.getTiming().iterations === Infinity) {
@@ -273,7 +285,7 @@ async function glassOn(browser: Browser, stop: (typeof TOUR)[number], rules: boo
       ((glass) => [glass, ...glass.querySelectorAll("*")])(document.querySelector(".urx-lcd-sim")!.shadowRoot!.querySelector(".embed-glass")!)
         .map((e, i) => {
           const c = getComputedStyle(e);
-          return [...c].sort().map((k) => `${i} ${e.tagName} ${k}=${c.getPropertyValue(k)}`).join("\n");
+          return [...c].sort().map((k) => `${i} ${e.tagName}.${e.getAttribute("class") ?? ""} ${k}=${c.getPropertyValue(k)}`).join("\n");
         })
         .join("\n"),
     );
@@ -291,7 +303,7 @@ test.describe("every screen of the tour", () => {
       const ruled = await glassOn(browser, stop, true);
       expect(plain.picture.length, "a picture was taken").toBeGreaterThan(1000);
       expect(plain.styles.length, "styles were read").toBeGreaterThan(1000);
-      expect(ruled.styles === plain.styles, `every computed style inside ${stop.id} under the page's rules`).toBe(true);
+      expect(styleDifferences(plain.styles, ruled.styles), `every computed style inside ${stop.id} under the page's rules`).toEqual([]);
       expect(ruled.picture.equals(plain.picture), `${stop.id} under the page's rules`).toBe(true);
     });
   }
