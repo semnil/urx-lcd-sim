@@ -9,9 +9,9 @@
 
 import type { AppContext } from "../app/context";
 import type { DeviceStore } from "../device/store";
-import { gateReductionDb, grBarShare, levelBarShare } from "../model/dynamics";
-import { DETECTOR_OFFSET, type DetectorKind, METER_FALL_DB_PER_S, SIGNAL_LAMP_DB } from "../model/levels";
-import { SILENT_DB } from "../model/signal";
+import { duckerShare, gateReductionDb, grBarShare, levelBarShare } from "../model/dynamics";
+import { CLIP_LAMP_DB, DETECTOR_OFFSET, type DetectorKind, METER_FALL_DB_PER_S, OVER_DB, SIGNAL_LAMP_DB } from "../model/levels";
+import { SILENT_DB, mix, mostlyTone } from "../model/signal";
 import type { Strip } from "../model/types";
 import { GATE_DEFAULTS } from "../model/defaults";
 import { CLIP_DB, type GrSpec, METER_TICK_MS, type Tap, clipSafe, flowCtx, flowLanes, flowLevels, heardOn, pairMembers, readingMoment, reductionAt, tapId } from "./signal-flow";
@@ -23,12 +23,12 @@ const SILENT = SILENT_DB;
 
 /**
  * What the pair of lamps at the top of a strip's indicator block reads: the
- * left one lights from about -40 dBFS up and stays lit while the right one shows
- * the level is over.
+ * left one lights from about -40 dBFS up and stays lit while the right one
+ * lights, from 3 dB under a clip up.
  */
 export function lampState(levels: readonly number[]): { signal: boolean; clip: boolean } {
   const peak = Math.max(...levels);
-  return { signal: peak >= SIGNAL_LAMP_DB, clip: peak >= CLIP_DB };
+  return { signal: peak >= SIGNAL_LAMP_DB, clip: peak >= CLIP_LAMP_DB };
 }
 
 export type MeterSource = (stripId: string, channels: number) => number[];
@@ -93,8 +93,8 @@ export function markClipSafe(store: DeviceStore, node: HTMLElement, connector: S
  * `monitor.<n>`, the cue bus, the oscillator, the card's playback, or two of
  * them side by side. `at` is the moment the synthetic signal is read at, so two
  * readings can be taken of the same instant. A device's reading that is not a
- * number reads as nothing, and one over 0 dB, +Infinity included, as a clip at
- * 0 dB.
+ * number reads as nothing, and one over 0 dB, +Infinity included, as a clip,
+ * OVER_DB.
  */
 export function meterLevels(store: DeviceStore, id: string, channels: number, at = readingMoment()): number[] {
   const members = pairMembers(id);
@@ -104,7 +104,7 @@ export function meterLevels(store: DeviceStore, id: string, channels: number, at
       return member === undefined ? SILENT : (meterLevels(store, member, 1, at)[0] ?? SILENT);
     });
   }
-  if (source) return source(id, channels).map((db) => (Number.isNaN(db) ? SILENT : Math.min(db, CLIP_DB)));
+  if (source) return source(id, channels).map((db) => (Number.isNaN(db) ? SILENT : db > CLIP_DB ? OVER_DB : db));
   const levels = flowLevels(flowCtx(store), id, at);
   return Array.from({ length: channels }, (_, c) => levels[c] ?? SILENT);
 }
@@ -151,9 +151,10 @@ export function drawnLevels(store: DeviceStore, id: string, channels: number, at
  * the spec names. A device's meters carry a level for each lane and nothing of
  * what makes it up, so on a device the detector hears the louder lane as read.
  */
-function detectorLevel(store: DeviceStore, spec: GrSpec, at = readingMoment()): number {
-  if (source) return Math.max(...meterLevels(store, spec.level, 2, at));
-  return heardOn(spec, flowLanes(flowCtx(store), spec.level, at));
+function detectorLevel(store: DeviceStore, spec: GrSpec, at = readingMoment()): { heard: number; tone: boolean } {
+  if (source) return { heard: Math.max(...meterLevels(store, spec.level, 2, at)), tone: false };
+  const lanes = flowLanes(flowCtx(store), spec.level, at);
+  return { heard: heardOn(spec, lanes), tone: mostlyTone(mix(...lanes)) };
 }
 
 /**
@@ -162,7 +163,8 @@ function detectorLevel(store: DeviceStore, spec: GrSpec, at = readingMoment()): 
  * takes nothing off.
  */
 export function blockReduction(store: DeviceStore, spec: GrSpec, at = readingMoment()): number {
-  return reductionAt(store, spec, detectorLevel(store, spec, at));
+  const { heard, tone } = detectorLevel(store, spec, at);
+  return reductionAt(store, spec, heard, tone);
 }
 
 /** How a block's lamps stand. */
@@ -170,11 +172,12 @@ export type LampState = "off" | "open" | "holding" | "shut";
 
 /**
  * How the lamps of the block named by `spec` stand: GATE opens over its threshold
- * and shuts once it takes off its whole range, DUCKER opens under its threshold on
- * its key and shuts a range over it. A block that is off lights none.
+ * and shuts once it takes off its whole range; DUCKER stands open while it takes
+ * none of its range off, holding while it takes off part of it, and shut once it
+ * takes off the whole of it. A block that is off lights none.
  */
 export function blockLampState(store: DeviceStore, spec: GrSpec, at = readingMoment()): LampState {
-  const level = detectorLevel(store, spec, at);
+  const { heard: level } = detectorLevel(store, spec, at);
   const b = spec.base;
   if (spec.kind === "gate") {
     if (!store.bool(`${b}.gate.on`, false)) return "off";
@@ -185,9 +188,9 @@ export function blockLampState(store: DeviceStore, spec: GrSpec, at = readingMom
   }
   if (spec.kind === "ducker") {
     if (!store.bool(`${b}.ducker.on`, false)) return "off";
-    const threshold = store.num(`${b}.ducker.threshold`, -40);
-    const range = store.num(`${b}.ducker.range`, -24);
-    return level <= threshold ? "open" : level >= threshold - range ? "shut" : "holding";
+    const { heard, tone } = detectorLevel(store, spec, at);
+    const share = duckerShare(heard, store.num(`${b}.ducker.threshold`, -40), store.num(`${b}.ducker.range`, -24), tone);
+    return share <= 0 ? "open" : share >= 1 ? "shut" : "holding";
   }
   return "off";
 }
@@ -292,7 +295,7 @@ export function startMeterTicker(store: DeviceStore, root: HTMLElement, interval
       bars.forEach((bar, i) => {
         const share = levelBarShare(levels[i] ?? SILENT);
         bar.style.setProperty("--unlit", `${(1 - share) * 100}%`);
-        clips[i]?.classList.toggle("is-on", share >= 1);
+        clips[i]?.classList.toggle("is-on", (levels[i] ?? SILENT) > CLIP_DB);
       });
     }
     for (const node of root.querySelectorAll<HTMLElement>("[data-level-bar]")) showLevelBar(node, store, at);

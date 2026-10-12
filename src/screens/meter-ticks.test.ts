@@ -5,6 +5,7 @@ import type { Route } from "../app/navigator";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
+import { CLIP_LAMP_DB, OVER_DB } from "../model/levels";
 import { SILENT_DB } from "../model/signal";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
@@ -285,9 +286,9 @@ describe("a meter stream that reads something other than a level up to 0 dB", ()
       // A moment of silence, -96 dB, is the reading the others are set against.
       ["silence", -96, -13],
       ["not a number", Number.NaN, -13],
-      ["+Infinity", Number.POSITIVE_INFINITY, 0],
-      ["a number too large to fall from", 1e300, 0],
-      ["a level over 0 dB", 6, 0],
+      ["+Infinity", Number.POSITIVE_INFINITY, OVER_DB],
+      ["a number too large to fall from", 1e300, OVER_DB],
+      ["a level over 0 dB", 6, OVER_DB],
     ];
     for (const [name, odd, dropped] of cases) {
       const shell = await mount();
@@ -299,7 +300,7 @@ describe("a meter stream that reads something other than a level up to 0 dB", ()
         signal: shell.root.querySelector('[data-lamp-source="ch1@input"] .dot-signal')?.classList.contains("is-on"),
         clip: shell.root.querySelector('[data-lamp-source="ch1@input"] .dot-clip')?.classList.contains("is-on"),
       });
-      const shown = (db: number): unknown => ({ meter: [at(db)], over: db >= 0, signal: true, clip: db >= 0 });
+      const shown = (db: number): unknown => ({ meter: [at(db)], over: db > CLIP_DB, signal: true, clip: db >= CLIP_LAMP_DB });
       const stop = startMeterTicker(shell.ctx.store, shell.root, 100);
       try {
         levels["ch1"] = -10;
@@ -331,9 +332,9 @@ describe("a meter stream that reads something other than a level up to 0 dB", ()
       return { meter: meterLevels(shell.ctx.store, "ch1@preFader", 1), lamps: blockLampState(shell.ctx.store, gateSpec(shell.ctx, strip)) };
     };
     expect(read(Number.NaN), "not a number, as silence").toEqual(read(SILENT_DB));
-    expect(read(Number.POSITIVE_INFINITY), "+Infinity, as a clip").toEqual(read(CLIP_DB));
-    expect(read(1e300), "a number too large to fall from, as a clip").toEqual(read(CLIP_DB));
-    expect(read(6), "a level over 0 dB, as a clip").toEqual(read(CLIP_DB));
+    expect(read(Number.POSITIVE_INFINITY), "+Infinity, as a clip").toEqual(read(OVER_DB));
+    expect(read(1e300), "a number too large to fall from, as a clip").toEqual(read(OVER_DB));
+    expect(read(6), "a level over 0 dB, as a clip").toEqual(read(OVER_DB));
   });
 
   it("holds nothing over from a reading taken at no moment", async () => {

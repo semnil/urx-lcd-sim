@@ -99,7 +99,7 @@ sequenceDiagram
    playback puts out, after microSD Playback's D.Gain). It is also given a strip's id alone, with no `@`
    (`bus.stereo`, `ch1`, and so on): that is what the strip puts out, and it is answered with the same
    value as `<strip>@post`. It returns levels in dB; a value that is not a number reads as silence, and one
-   over 0 dB, +Infinity included, as a clip at 0 dB. Until one is passed, the simulator's internal
+   over 0 dB, +Infinity included, as a clip (over full scale; 0 dB itself is not one). Until one is passed, the simulator's internal
    synthetic signal is shown.
 
 The `chrome-link` indicator at the top of the screen (`src/ui/link-indicator.ts`) reads `store.kind`

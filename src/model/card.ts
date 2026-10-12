@@ -25,6 +25,8 @@ export interface CardEntry {
   written?: ClockParts;
   /** When it was written, as the list printed it, on an entry that carries no `written`. */
   stamp?: string;
+  /** How many stored scenes a settings file holds. A settings file that carries none is costed as holding one. */
+  scenes?: number;
   /** The folder holding it, from the root: "/" or "/new sound/". */
   dir: string;
 }
@@ -75,8 +77,9 @@ const CARD = "sd.card";
 const RATE_HZ = 48_000;
 const BYTES_PER_SAMPLE = 3;
 
-/** What a settings file takes on the card: they are all this size. */
-const DATA_BYTES = 50_668;
+/** What a settings file takes on the card holding no stored scene, and what each stored scene in it adds. */
+const DATA_BYTES = 28_696;
+const DATA_SCENE_BYTES = 21_972;
 
 /** The room a formatted 128 GB card leaves. */
 export const CARD_CAPACITY = 125_000_000_000;
@@ -140,7 +143,7 @@ export function takeRate(entry: CardEntry): number {
 /** What an entry takes up on the card. */
 export function entryBytes(entry: CardEntry): number {
   if (entry.kind === "folder") return 0;
-  if (entry.kind === "data") return DATA_BYTES;
+  if (entry.kind === "data") return DATA_BYTES + DATA_SCENE_BYTES * (entry.scenes ?? 1);
   return Math.round(entry.seconds * takeRate(entry) * BYTES_PER_SAMPLE * entry.tracks);
 }
 
@@ -150,9 +153,9 @@ export function freeBytes(store: DeviceStore): number {
   return Math.max(0, store.num("sd.capacity", CARD_CAPACITY) - used);
 }
 
-/** Whether what is left on the card holds `entry`. */
-export function roomFor(store: DeviceStore, entry: CardEntry): boolean {
-  return entryBytes(entry) <= freeBytes(store);
+/** Whether what is left on the card holds `entry`, with what `replacing` takes up handed back first. */
+export function roomFor(store: DeviceStore, entry: CardEntry, replacing?: CardEntry): boolean {
+  return entryBytes(entry) <= freeBytes(store) + (replacing ? entryBytes(replacing) : 0);
 }
 
 /** How many whole seconds of a take of `tracks` recorded at `rate` what is left on the card holds. */

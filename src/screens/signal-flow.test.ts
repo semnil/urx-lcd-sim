@@ -3,7 +3,7 @@ import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
 import { bandResponse } from "../model/eq-response";
-import { insertCurveGainDb } from "../model/levels";
+import { CLIP_DB, OVER_DB, insertCurveGainDb } from "../model/levels";
 import { panLawDb } from "../model/pan-law";
 import { unitById } from "../model/units";
 import { blockReduction, meterLevels, shownLevels } from "./meters";
@@ -498,11 +498,15 @@ describe("a DUCKER keyed by a bus", () => {
     await store.set("ch.ch_7_8.source", "AUX IN");
     await store.set("ch.ch_7_8.ducker.on", true);
     await store.set("ch.ch_7_8.ducker.source", "MIX 1");
-    await store.set("ch.ch_7_8.ducker.threshold", -28);
     const [into = 0] = read(store, tapId("ch_7_8", "preDucker"));
-    // -30 on each side sums to 6 dB more; heard 3 dB under that is about 1 dB over the threshold.
+    // -30 on each side sums to 6 dB more, heard 3 dB under that. A tone key takes the whole range from a dB
+    // over the threshold and none from a dB under it (URX44V, 2026-10-12: MIX 2 keyed by a centred -39 dB tone
+    // held the range to a threshold of -36 and let go at -35).
     const heard = -30 + 20 * Math.log10(2) - 3;
-    expect(read(store, tapId("ch_7_8", "post"))[0]).toBeCloseTo(into - (heard + 28), 6);
+    await store.set("ch.ch_7_8.ducker.threshold", heard - 2);
+    expect(read(store, tapId("ch_7_8", "post"))[0], "2 dB over").toBeCloseTo(into - 24, 6);
+    await store.set("ch.ch_7_8.ducker.threshold", heard + 2);
+    expect(read(store, tapId("ch_7_8", "post"))[0], "2 dB under").toBeCloseTo(into, 6);
   });
 });
 
@@ -686,8 +690,8 @@ describe("the meters after a fader", () => {
     await store.set("ch.ch3.eq.lowMid.gain", 18);
     await store.set("ch.ch3.on", false);
     await store.set("ch.ch3.level", -20);
-    expect(mono(store, tapId("ch3", "preFader"))).toBeGreaterThanOrEqual(0);
-    expect(mono(store, tapId("ch3", "post"))).toBe(0);
+    expect(mono(store, tapId("ch3", "preFader"))).toBeGreaterThan(CLIP_DB);
+    expect(mono(store, tapId("ch3", "post"))).toBe(OVER_DB);
     expect(read(store, tapId("bus.stereo", "sum"))).toEqual([SILENT, SILENT]);
   });
 
@@ -698,8 +702,8 @@ describe("the meters after a fader", () => {
     await store.set("ch.ch3.pan", -63);
     await store.set("ch.bus.stereo.level", -20);
     const [sumL = SILENT] = read(store, tapId("bus.stereo", "preFader"));
-    expect(sumL, "the stereo bus's left goes into its fader over").toBeGreaterThanOrEqual(0);
-    expect(read(store, tapId("bus.stereo", "preIns")), "the stereo bus before its INS FX").toEqual([0, SILENT]);
+    expect(sumL, "the stereo bus's left goes into its fader over").toBeGreaterThan(CLIP_DB);
+    expect(read(store, tapId("bus.stereo", "preIns")), "the stereo bus before its INS FX").toEqual([OVER_DB, SILENT]);
 
     const stereo = await unit();
     await only(stereo, "ch_5_6");
@@ -708,8 +712,8 @@ describe("the meters after a fader", () => {
     await stereo.set("ch.ch2.gain", 40);
     await stereo.set("ch.ch_5_6.level", -20);
     const [preL = SILENT, preR = SILENT] = read(stereo, tapId("ch_5_6", "preFader"));
-    expect([preL >= 0, preR < 0], "only the left goes into the fader over").toEqual([true, true]);
-    expect(read(stereo, tapId("ch_5_6", "preDucker")), "the stereo channel before its DUCKER").toEqual([0, expect.closeTo(preR - 20, 6)]);
+    expect([preL > CLIP_DB, preR <= CLIP_DB], "only the left goes into the fader over").toEqual([true, true]);
+    expect(read(stereo, tapId("ch_5_6", "preDucker")), "the stereo channel before its DUCKER").toEqual([OVER_DB, expect.closeTo(preR - 20, 6)]);
   });
 });
 

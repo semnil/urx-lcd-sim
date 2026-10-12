@@ -18,13 +18,14 @@ describe("a meter", () => {
     expect(lit(meter({ levels: [-60, -20, -0.5] }))).toEqual([false, false, false]);
   });
 
-  it("lights it at the top of the scale and above", () => {
-    expect(lit(meter({ levels: [0] }))).toEqual([true]);
+  it("lights it over the top of the scale, and not at the top", () => {
+    // URX44V, 2026-10-12: STEREO's sum at 0 dB left the clip mark dark; a channel's input over full scale lit it.
+    expect(lit(meter({ levels: [0] }))).toEqual([false]);
     expect(lit(meter({ levels: [6] }))).toEqual([true]);
   });
 
-  it("lights only the channel that reached it", () => {
-    expect(lit(meter({ levels: [-30, 0] }))).toEqual([false, true]);
+  it("lights only the channel that went over it", () => {
+    expect(lit(meter({ levels: [-30, 3] }))).toEqual([false, true]);
   });
 
   it("is green over the lower half of the bar and yellow over the upper half", () => {
@@ -101,7 +102,7 @@ describe("a meter", () => {
     expect(lit(node)).toEqual([false]);
   });
 
-  it("lights the clip dot when the level reaches the top of the bar, at 0 dB", () => {
-    expect(lit(meter({ levels: [-0.5, 0, 3] }))).toEqual([false, true, true]);
+  it("lights the clip dot while the level is over the top of the bar, 0 dB", () => {
+    expect(lit(meter({ levels: [-0.5, 0, 0.01, 3] }))).toEqual([false, false, true, true]);
   });
 });

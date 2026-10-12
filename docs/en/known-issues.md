@@ -30,9 +30,10 @@ is built is in [screen-inventory.md](screen-inventory.md).
   the meters read"). Raised to +44 dB, the A.Gain starts to clip the input, and Clip Safe acts on that
   (screen-inventory.md, "Head amp in the channel view"). A take carries a length and a size and no
   sound.
-- **When Clip Safe starts to take the input down.** Clipped by hand claps, the unit took the input down
-  from about 2 seconds after the last clip (URX44V, confirmed on the unit on 2026-09-22). The simulator
-  takes it down as soon as it has read the clip.
+- **When Clip Safe starts to take the input down.** Clipped by hand claps, the unit started taking the input
+  down 0.5 to 1.5 seconds after the loud sound ended, not after the last clip (URX44V, the input meter recorded
+  on the unit on 2026-09-22 and read again on 2026-10-12). The simulator takes it down as soon as it has read
+  the clip.
 - **M.B.Comp's 1-knob only takes the rows.** Switching it on leaves each band's Threshold, Ratio,
   Gain and Attack, the Release and the two Xovers reading but not turning, and takes [Bypass] off the
   page; Out Gain is the one the operator keeps, as it is on the unit. What it does not do is recompute
@@ -62,9 +63,11 @@ is built is in [screen-inventory.md](screen-inventory.md).
   What the unit does on [Save as] under a new name onto a card with no room for a settings file, and on writing over
   a settings file there, has not been tried on the unit either. This simulator writes no new settings file, saying
   nothing, and writes over a settings file already on the card.
-- **COMP's 1-knob only takes the rows too.** While it is on the unit recomputes Threshold, Ratio,
-  Gain and Knee from the Level. What that computation is is not known, so this simulator leaves the
-  other rows out of reach, as the unit does, and moves no value.
+- **COMP's 1-knob only takes the rows too.** Switching it on, the unit sets Threshold to 0 dB, Ratio to
+  1.00:1, Gain to 0 dB, Attack to 24.87 ms, Release to 295.5 ms, Knee to Medium and Level to 0, and while it
+  is on it recomputes Threshold, Ratio and Gain from the Level; Knee, Attack and Release do not follow the
+  Level (URX44V, confirmed on the unit on 2026-10-12). What that computation is is not known, so this
+  simulator leaves the other rows out of reach, as the unit does, and moves no value.
 - **A tenth of a dB on 1-knob EQ's Intensity.** The unit multiplies the gains it took when 1-knob went on by Level / 50
   and lands them on a tenth of a dB, but for some pairs of gain and Level it gives a tenth of a dB more (a gain of
   +12.3 dB at Level 1, 14, 27 and 38% reads 0.3 / 3.5 / 6.7 / 9.4 dB, whenever it is read and whichever way the Level

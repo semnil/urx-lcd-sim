@@ -111,3 +111,12 @@ export const METER_FALL_DB_PER_S = 30;
 
 /** The level from which a strip's signal lamp lights. */
 export const SIGNAL_LAMP_DB = -40;
+
+/** Full scale: a level over it is a clip, and a meter's clip mark lights only over it. */
+export const CLIP_DB = 0;
+
+/** What a meter reads while the signal it reads is over full scale and nothing louder is known: just over it. */
+export const OVER_DB = 0.001;
+
+/** The level from which a strip's clip lamp lights: 3 dB under a clip. */
+export const CLIP_LAMP_DB = -3;

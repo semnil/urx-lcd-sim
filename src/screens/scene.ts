@@ -57,6 +57,11 @@ function storedBank(ctx: AppContext, no: number): (typeof BANKS)[number] | null 
   return BANKS.find((b) => ctx.store.str(`scene.${b}.${no}.title`, "")) ?? null;
 }
 
+/** How many scene numbers, 01 to 63, hold a stored scene. */
+export function storedSceneCount(ctx: AppContext): number {
+  return Array.from({ length: SCENE_COUNT }, (_, i) => i + 1).filter((no) => storedBank(ctx, no) !== null).length;
+}
+
 /** A scene's title: a preset's name, what a bank has stored under the number, or nothing where no scene is stored. */
 export function sceneTitle(ctx: AppContext, no: number): string {
   if (isPreset(no)) return SIMPLE_PRESETS[no - PRESET_BASE - 1] ?? "";

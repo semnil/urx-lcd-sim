@@ -221,7 +221,7 @@ of design-tokens.md](design-tokens.md#strip-rotary).
 
 When the input of a connector with Clip Safe on clips, the unit takes the input about 23 dB down and
 brings it back after about 5 seconds, and the A.Gain value and knob do not come down (checked on a
-URX44V, 2026-09-22). In the simulator, a reading that finds the input at 0 dB, where the meter's clip mark
+URX44V, 2026-09-22). In the simulator, a reading that finds the input over 0 dB, where the meter's clip mark
 lights, still shows the clip; after it the input is held 23 dB down, and let back up 5 seconds after the
 last clip. A clip read while it is held down counts again, and one read as soon as it is let back up
 holds it down again at once. While it is engaged, INPUT's [Clip Safe] and the channel view's [SAFE] turn
@@ -496,10 +496,15 @@ buses. The list names a channel by its numbers alone (`1`, `5/6`), the stereo bu
 by its own name; the box over it carries the channel's own name (`CH 1`). The list is not a sheet: it
 is a panel three rows by eight that opens under the box, with the mono channels along the first row,
 the stereo ones along the second, `ST` at that row's far end (column 8), and the mixes on the third.
-The DUCKER lamps light by comparing the level of the channel chosen as Ducker Source with the
-threshold (p98): the right one green while it is at or below the threshold (not ducking), the middle
-one yellow once it is above (ducking part of the way), and the left one red once it is RANGE's width
-or more above (ducked all the way to RANGE). No lamp lights while DUCKER is off.
+The DUCKER lamps light by how far it is ducking (p98): the right one green while it ducks nothing,
+the middle one yellow while it ducks part of RANGE, and the left one red once it ducks all the way to
+RANGE. No lamp lights while DUCKER is off (URX44V, confirmed on the unit on 2026-10-12). How far it ducks
+follows how far the strip chosen as Ducker Source is heard over the threshold: for a steady tone, none
+a dB under it and all of RANGE a dB over it; for a noise-like key, a little from about 5 dB under it, then
+about 6 dB deeper for each dB over it, stopping at RANGE (3 dB over at a RANGE of -6, 8 dB over at -70).
+The values read at RANGEs of -6, -12, -24, -48 and -70 are kept as tables; a RANGE between two of them is
+taken straight between the two, and one shallower than -6 scales the -6 values down by its share
+(URX44V, 2026-10-12).
 
 SEND TO's button is 86x38, with face `--surface-btn` and a 3px shadow band at the bottom.
 
@@ -592,8 +597,8 @@ are shared with HOME's STEREO/CUE meter. A meter draws as many bars as the strip
 
 The reduction bar reads what the screen's own block is holding down. GATE reads its RANGE while the
 signal is at or under the threshold; COMP reads how far the
-curve it is drawing sits under unity; DUCKER compares the level of
-the strip named as Ducker Source against the threshold and stops at the RANGE. IN and OUT read the
+curve it is drawing sits under unity; DUCKER reads how far it ducks for
+how loud it hears the strip named as Ducker Source (the DUCKER lamps paragraph of "Head amp column in the channel view"). IN and OUT read the
 block's own input and output, so OUT reads that far below IN, less what the block adds back after it
 (COMP's makeup) — where the makeup is deeper than the reduction, OUT reads above IN. A block that holds
 nothing down (DELAY switched off, INS FX on [No Effect]) meters IN and OUT alike. The bar and IN / OUT
@@ -1414,7 +1419,8 @@ and URX44 run the same laws, bar the number of channels.
 | OUT on RECORDER's Play and Edit tabs | What the file playing puts out (after microSD Playback's D.Gain); silent while stopped or paused (after [■] and paused, URX44V, the operator, 2026-10-03) |
 
 - The left dot (signal) lights green from about -40 dBFS and stays lit while the right dot (clip) is red.
-  The right dot lights only while the level clips (0 dB).
+  The right dot lights while the level is at -3 dBFS or over, and not at -4 dBFS (on a channel, an FX channel,
+  STEREO and a MIX bus alike; URX44V, confirmed on the unit on 2026-10-12).
 - While the level just ahead of a fader clips, the meter just after the fader reads the clip even with [ON]
   off and the fader down (on MONO IN and FX the LEVEL meter, on a stereo channel the one before DUCKER, on
   MIX and STEREO the one before the INS FX). The two sides read apart: a side that does not clip reads its
@@ -1430,12 +1436,13 @@ level, laid from 0 dB down: the top at 0 dB, 10/21 of the bar at -18 dB, 3/14 at
 bar use this scale. On 2026-09-26 the operator read the lengths of HOME's meters, the channel view's
 LEVEL, the GATE screen's IN, the COMP block's level bar and a RECORDER track's meter on the unit's LCD;
 each reading on these five is within 0.9 mm of this scale (the largest gap being the GATE screen's IN,
-0.9 mm at -48 dB). The clip dot lights when the level reaches the top of the bar, at 0 dB.
+0.9 mm at -48 dB). The clip dot lights while the level is over the top of the bar, 0 dB (over full scale), and not at 0 dB
+itself (URX44V, confirmed on the unit on 2026-10-12).
 
 ## Meter color zones
 
 A meter's bar is green over its lower half and yellow over its upper half, and the bar itself carries
-no red. What lights red is the clip dot above the bar, when the level reaches the top of that meter.
+no red. What lights red is the clip dot above the bar, when the level goes over the top of that meter.
 The boundary sits at the middle of the bar (on a bar an odd number of rows tall the middle row is
 yellow) and does not move with the meter's length. Only the part below the level is lit and
 the boundary stays at the middle of the bar itself, so the zones do not move as the level moves and the
@@ -1770,8 +1777,9 @@ now stands), and its time on the 24-hour clock whatever Time is set to (see [kno
 The free space is the card's capacity less what is on it. The capacity is the 125,000,000,000 bytes a
 formatted 128 GB card leaves; a take costs its seconds × the sampling frequency it was recorded at (48,000 for
 an older take that carries no frequency) × 3 bytes × its tracks (the guide's
-specifications give the microSD card slot as WAV, 24-bit), and a settings file 50,668 bytes, which is
-the size every settings file takes. It is printed over 1024³ to one decimal, as `116.4GB Free` (p083-1, p087-1).
+specifications give the microSD card slot as WAV, 24-bit), and a settings file 28,696 bytes plus 21,972 bytes for each scene stored under
+01 to 63 when it was written (files the unit wrote measured 28,696, 50,668 and 72,640 bytes with none, one and two
+scenes stored; URX44V, 2026-10-12). It is printed over 1024³ to one decimal, as `116.4GB Free` (p083-1, p087-1).
 The card's name, the volume label it was formatted under, stands on a line above it, the two lines top right and
 set left from x313 (x313..387 / y58..81). Every card screen puts them in the same place (URX44V, the operator,
 2026-09-22): SAVE/LOAD's p084-1 and TOOLS' p087-1 show both lines, and RECORDER's p081-1 and p083-1 show the name
@@ -1817,8 +1825,10 @@ the folder as it is and writes nothing, as the unit does. A [Save as] name that 
 that is open in case alone asks nothing and writes over that file, which keeps its name as it was spelt, as the unit does; one
 that differs from a folder's in case alone asks nothing and writes nothing. The name is compared with its `.urxf` on: `wk`
 typed beside the folder `Wk` writes `wk.urxf` (URX44V, the operator, 2026-10-08). On a card with no room for one more settings
-file, a [Save as] under a new name writes nothing and shows nothing, and writing over a settings file there still goes
-through (what the unit does with a full card is in `known-issues.md`). [Save] and [Load] stand out of reach until a settings file is under the
+file, a [Save as] under a new name writes nothing and shows nothing, and writing over a settings file there goes
+through only where the room the file written over takes, handed back, holds the new one (an overwrite that grows by
+more scenes than the card has room for writes nothing, by [Save], by [Save as] under the same name and under the
+name in other case alike; what the unit does with a full card is in `known-issues.md`). [Save] and [Load] stand out of reach until a settings file is under the
 cursor. A settings file carries every value but the screen's own state (`ui.` bar the destination HOME's [Sends]
 shows, and the tabs OUTPUT PATCH, PERIPHERAL and SCENE LIST's Standard / Simple stand on), the card itself (`sd.`), the clock
 ("SETUP screen") and what a linked pair's COMP hears (`pair.`, "The three dynamics screens (GATE / COMP / DUCKER)"),

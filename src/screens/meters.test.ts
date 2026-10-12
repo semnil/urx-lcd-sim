@@ -7,7 +7,7 @@ import { factoryState } from "../model/defaults";
 import { type UnitModel, allStrips, findStrip } from "../model/types";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
-import { clipSafe, inputMeterId, markClipSafe, meterLevels, oscillatorLevel, setMeterSource, startMeterTicker, tapId } from "./meters";
+import { clipSafe, inputMeterId, lampState, markClipSafe, meterLevels, oscillatorLevel, setMeterSource, startMeterTicker, tapId } from "./meters";
 import type { Tap } from "./signal-flow";
 
 // The ticker redraws the meters a screen already shows. What it writes has to
@@ -16,7 +16,8 @@ import type { Tap } from "./signal-flow";
 describe("the meter ticker", () => {
   let level = -40;
   const run = (node: HTMLElement): { root: HTMLElement; stop: () => void } => {
-    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    // The meters fall by the time Date.now() gives, so the clock moves with the timers.
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
     const root = document.createElement("div");
     root.append(node);
     setMeterSource((_, channels) => Array.from({ length: channels }, () => level));
@@ -33,13 +34,16 @@ describe("the meter ticker", () => {
     vi.unstubAllGlobals();
   });
 
-  it("lights the clip dots when the level reaches the top, and puts them out below it", () => {
+  it("lights the clip dots while the level is over the top, and puts them out at the top and below it", () => {
     level = -40;
     const { root, stop } = run(meter({ levels: [-40, -40], source: "ch1" }));
     expect(dots(root), "drawn below the top").toEqual([false, false]);
     level = 0;
     vi.advanceTimersByTime(60);
-    expect(dots(root)).toEqual([true, true]);
+    expect(dots(root), "at the top").toEqual([false, false]);
+    level = Number.POSITIVE_INFINITY;
+    vi.advanceTimersByTime(60);
+    expect(dots(root), "over it").toEqual([true, true]);
     level = -20;
     vi.advanceTimersByTime(60);
     expect(dots(root)).toEqual([false, false]);
@@ -55,7 +59,10 @@ describe("the meter ticker", () => {
     expect(dots(root)).toEqual([false]);
     level = 0;
     vi.advanceTimersByTime(60);
-    expect([unlit(root), dots(root)], "the top of the bar lights the dot").toEqual([["0%"], [true]]);
+    expect([unlit(root), dots(root)], "the top of the bar, the dot dark").toEqual([["0%"], [false]]);
+    level = 3;
+    vi.advanceTimersByTime(60);
+    expect([unlit(root), dots(root)], "over the top, the dot lit").toEqual([["0%"], [true]]);
     stop();
   });
 
@@ -77,6 +84,17 @@ describe("the meter ticker", () => {
     vi.advanceTimersByTime(60);
     expect(Number.parseFloat(unlit(root)[0] ?? ""), "redrawn again once it is off").toBeCloseTo(moving, 9);
     stop();
+  });
+});
+
+describe("a strip's lamps", () => {
+  it("light the clip lamp from 3 dB under a clip, on the louder lane", () => {
+    // URX44V, 2026-10-12: an input channel, FX 1, STEREO and MIX 2 lit the red dot at -3 dB and not at -4 dB.
+    expect(lampState([-4]).clip, "-4 dB").toBe(false);
+    expect(lampState([-3.01]).clip, "just under -3 dB").toBe(false);
+    expect(lampState([-3]).clip, "-3 dB").toBe(true);
+    expect(lampState([-6, -3]).clip, "the louder lane at -3 dB").toBe(true);
+    expect(lampState([-1]), "under a clip, the signal lamp lit too").toEqual({ signal: true, clip: true });
   });
 });
 
