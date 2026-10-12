@@ -37,13 +37,37 @@ them, and the screens ask it without knowing which kind of unit answers.
 | --- | --- | --- |
 | `params` | The `DeviceTransport` the store attaches to | `SimTransport` |
 | `levels` | What the meters read: `simulated`, or `device` with a reader of levels in dB and a Clip Safe state per connector | The synthetic signal (`src/screens/signal-flow.ts`) |
-| `actions` | The operations the unit carries out on its own memory, card and recorder (`UnitAction`: scene recall, store, protect and delete; settings-file save and load; card insert, eject, format, test, delete, rename and new folder; recorder arm, record, pause and stop; playback start, pause and stop) | Each carried out on the simulated memory (`emulatedActions`) |
+| `actions` | Who carries out the operations on the unit's own memory, card and recorder: `simulated`, or `device` with a `perform(op)` that answers whether the unit took the operation | Each carried out on the simulated memory (`emulatedActions`) |
 | `clock` | The moment the unit's clock runs off, before the DATE / TIME dialog moves it | The computer's clock |
 
-A screen hands each action `perform()` together with what the simulated unit does for it. A unit that
-carries the action out itself, or refuses it (`refusedActions`, which reports each refusal), does not run
-that part, so the simulated memory never stands in for a unit that has its own. The edits a screen makes
-to values stay `params`' business, as they are on every kind of unit.
+An operation (`UnitOp`) carries everything the unit needs to carry it out, and nothing of the screens or of
+the simulator:
+
+| Operation | Arguments |
+| --- | --- |
+| `scene.recall` | `scene`: the number, 0 and the presets being the factory scenes |
+| `scene.store` | `bank`, `scene`, and the `title` typed for it |
+| `scene.protect` | `bank`, `scene`, and `protect`: whether it is protected after |
+| `scene.delete` | `bank`, `scene` |
+| `settings.save` | `file`: the folder and the name, written over a settings file of that name there or as a new one |
+| `settings.load` | `file` |
+| `card.insert`, `card.eject`, `card.test` | none |
+| `card.format` | `label`: the volume label typed, empty for none |
+| `card.delete` | `file` |
+| `card.rename` | `file`, and the name `to` |
+| `card.newFolder` | `file`: the folder it is made in and its name |
+| `recorder.arm`, `recorder.record`, `recorder.pause`, `recorder.stop` | none |
+| `playback.start` | `file`: the file to play, or the one paused to go on with |
+| `playback.pause`, `playback.stop` | none |
+
+A screen hands an operation over as soon as it is asked for and confirmed, and whether the unit can carry
+it out is the unit's to answer: the simulated unit leaves undone an entry its card does not carry, a
+settings file holding nothing, and a file or a take its card has no room for. A `device` unit is handed
+the operation and nothing of the simulator's own memory, card or recorder moves — `refusedActions` is one
+that refuses each one and reports it. The simulated recorder also stops a take at the room its card has
+and a file at its end, on the counters' clock; a `device` unit's recorder and playback move only as its
+values report them, and the counters write nothing. The edits a screen makes to values stay `params`'
+business, as they are on every kind of unit.
 
 `useUnit()` (`src/app/unit.ts`) hands a unit's levels and clock to the meters and the clock; one unit is
 mounted on a page at a time. A unit's levels reach the meters through `setMeterSource()` and

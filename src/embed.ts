@@ -27,7 +27,7 @@ import { buildPanel } from "./ui/panel";
 import { type FontUrls, scopeStylesheet } from "./embed-css";
 
 export type { FontUrls } from "./embed-css";
-export type { LevelReader, Unit, UnitAction, UnitActions, UnitClock, UnitLevels } from "./device/unit";
+export type { CardFile, LevelReader, SceneBank, Unit, UnitAction, UnitActions, UnitClock, UnitLevels, UnitOp } from "./device/unit";
 export { computerClock, refusedActions } from "./device/unit";
 export type { DeviceTransport, Notify } from "./device/transport";
 export type { ParamPath, ParamValue } from "./device/path";
@@ -105,7 +105,7 @@ export async function mountSim(host: HTMLElement, options: EmbedOptions): Promis
   root.appendChild(buildPanel(shell));
   host.appendChild(root);
   const stopMeters = startMeterTicker(store, shell.root);
-  const stopClock = startRecorderClock(store, shell.root);
+  const stopClock = startRecorderClock(store, shell.root, shell.ctx.actions);
   const stopDateTime = startDateTimeClock(store, shell.root);
   let disposed = false;
   return {

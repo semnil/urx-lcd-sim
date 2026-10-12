@@ -3,6 +3,7 @@
 // clock that counts a take runs whatever screen is up.
 
 import type { DeviceStore } from "../device/store";
+import type { UnitActions } from "../device/unit";
 import type { CardEntry } from "../model/card";
 import { CARD_ROOT, changeCard, readCard, roomSeconds, takeName } from "../model/card";
 import { clockParts, unitNow } from "../model/clock";
@@ -173,25 +174,35 @@ export function stopPlayback(store: DeviceStore): void {
 }
 
 /**
+ * The simulated recorder and playback running out: the take recording stops,
+ * saying nothing, at the moment it fills the room the card has, and the file
+ * playing stops and is let go at its end, as [■] does.
+ */
+export function endSimulatedRuns(store: DeviceStore): void {
+  if (recState(store) === "recording") {
+    const full = takeFullAt(store);
+    if (unitNow() >= full) stopTake(store, full);
+  }
+  const length = readCard(store)[store.num("sd.playingFile", -1)]?.seconds ?? 0;
+  if (store.bool("sd.playing", false) && playedSeconds(store) >= length) stopPlayback(store);
+}
+
+/**
  * Keep the counters on the page at the running time of the take and of the file
  * playing, in place rather than by repainting the screen once a second. The
- * take recording stops, saying nothing, at the moment it fills the room the
- * card has, and the file playing stops and is let go at its end.
+ * counters write nothing to the store; where `actions` is the simulated unit's,
+ * its recorder and playback run out on the same tick (endSimulatedRuns). A
+ * device unit's recorder and playback stop only as it reports them.
  */
-export function startRecorderClock(store: DeviceStore, root: HTMLElement, intervalMs = 100): () => void {
+export function startRecorderClock(store: DeviceStore, root: HTMLElement, actions: UnitActions, intervalMs = 100): () => void {
   const id = window.setInterval(() => {
     const write = (selector: string, text: string): void => {
       for (const node of root.querySelectorAll<HTMLElement>(selector)) if (node.textContent !== text) node.textContent = text;
     };
-    if (recState(store) === "recording") {
-      const full = takeFullAt(store);
-      if (unitNow() >= full) stopTake(store, full);
-    }
+    if (actions.kind === "simulated") endSimulatedRuns(store);
     write("[data-rec-clock]", formatClock(takeSeconds(store)));
 
     const length = readCard(store)[store.num("sd.playingFile", -1)]?.seconds ?? 0;
-    // At the end of the file playback lets the file go, as [■] does.
-    if (store.bool("sd.playing", false) && playedSeconds(store) >= length) stopPlayback(store);
     const played = Math.min(playedSeconds(store), length);
     write("[data-play-clock]", holdsFile(store) ? formatClock(played) : "");
     const share = length > 0 ? Math.min(1, played / length) : 0;
