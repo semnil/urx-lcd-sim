@@ -162,7 +162,32 @@ export function compReductionDb(
   return Math.max(0, level + gain - compResponse(threshold, ratio, knee, gain)(level));
 }
 
-/** What a ducker takes off: down to its range once the key is a range over the threshold. */
-export function duckerReductionDb(key: number, threshold: number, range: number): number {
-  return Math.min(Math.max(0, key - threshold), -range);
+/**
+ * How much of its range a ducker takes off for how far its key is heard over its
+ * threshold, in dB: for a steady tone, and for a noise-like key. Straight between
+ * the points, none under the first and the whole range past the last.
+ */
+const DUCKER_SHARE: Readonly<Record<"tone" | "noise", readonly (readonly [number, number])[]>> = {
+  tone: [[-1, 0], [1, 1]],
+  noise: [[-6, 0], [-4, 1 / 24], [-2, 4 / 24], [0, 14 / 24], [2, 21 / 24], [4, 1]],
+};
+
+/** How much of its range, from 0 to 1, a ducker takes off for a key heard at `key`. */
+export function duckerShare(key: number, threshold: number, tone = false): number {
+  const curve = DUCKER_SHARE[tone ? "tone" : "noise"];
+  const over = key - threshold;
+  const [x0 = 0, y0 = 0] = curve[0] ?? [];
+  const [xn = 0, yn = 1] = curve.at(-1) ?? [];
+  if (!(over > x0)) return y0;
+  if (over >= xn) return yn;
+  let i = 1;
+  while (i < curve.length - 1 && over > (curve[i]?.[0] ?? 0)) i++;
+  const [ax, ay] = curve[i - 1] ?? [0, 0];
+  const [bx, by] = curve[i] ?? [0, 0];
+  return ay + ((over - ax) * (by - ay)) / (bx - ax);
+}
+
+/** What a ducker takes off for a key heard at `key`: its share of the range. */
+export function duckerReductionDb(key: number, threshold: number, range: number, tone = false): number {
+  return duckerShare(key, threshold, tone) * -range;
 }

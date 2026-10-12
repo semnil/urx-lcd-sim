@@ -498,11 +498,15 @@ describe("a DUCKER keyed by a bus", () => {
     await store.set("ch.ch_7_8.source", "AUX IN");
     await store.set("ch.ch_7_8.ducker.on", true);
     await store.set("ch.ch_7_8.ducker.source", "MIX 1");
-    await store.set("ch.ch_7_8.ducker.threshold", -28);
     const [into = 0] = read(store, tapId("ch_7_8", "preDucker"));
-    // -30 on each side sums to 6 dB more; heard 3 dB under that is about 1 dB over the threshold.
+    // -30 on each side sums to 6 dB more, heard 3 dB under that. A tone key takes the whole range from a dB
+    // over the threshold and none from a dB under it (URX44V, 2026-10-12: MIX 2 keyed by a centred -39 dB tone
+    // held the range to a threshold of -36 and let go at -35).
     const heard = -30 + 20 * Math.log10(2) - 3;
-    expect(read(store, tapId("ch_7_8", "post"))[0]).toBeCloseTo(into - (heard + 28), 6);
+    await store.set("ch.ch_7_8.ducker.threshold", heard - 2);
+    expect(read(store, tapId("ch_7_8", "post"))[0], "2 dB over").toBeCloseTo(into - 24, 6);
+    await store.set("ch.ch_7_8.ducker.threshold", heard + 2);
+    expect(read(store, tapId("ch_7_8", "post"))[0], "2 dB under").toBeCloseTo(into, 6);
   });
 });
 

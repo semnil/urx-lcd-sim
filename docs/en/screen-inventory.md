@@ -496,10 +496,12 @@ buses. The list names a channel by its numbers alone (`1`, `5/6`), the stereo bu
 by its own name; the box over it carries the channel's own name (`CH 1`). The list is not a sheet: it
 is a panel three rows by eight that opens under the box, with the mono channels along the first row,
 the stereo ones along the second, `ST` at that row's far end (column 8), and the mixes on the third.
-The DUCKER lamps light by comparing the level of the channel chosen as Ducker Source with the
-threshold (p98): the right one green while it is at or below the threshold (not ducking), the middle
-one yellow once it is above (ducking part of the way), and the left one red once it is RANGE's width
-or more above (ducked all the way to RANGE). No lamp lights while DUCKER is off.
+The DUCKER lamps light by how far it is ducking (p98): the right one green while it ducks nothing,
+the middle one yellow while it ducks part of RANGE, and the left one red once it ducks all the way to
+RANGE. No lamp lights while DUCKER is off (URX44V, confirmed on the unit on 2026-10-12). How far it ducks
+follows how far the strip chosen as Ducker Source is heard over the threshold: for a steady tone, none
+a dB under it and all of RANGE a dB over it; for a noise-like key, deeper little by little from 6 dB
+under it to 4 dB over it (URX44V, 2026-10-12; the shares read at a RANGE of -24 are applied to every RANGE).
 
 SEND TO's button is 86x38, with face `--surface-btn` and a 3px shadow band at the bottom.
 
@@ -592,8 +594,8 @@ are shared with HOME's STEREO/CUE meter. A meter draws as many bars as the strip
 
 The reduction bar reads what the screen's own block is holding down. GATE reads its RANGE while the
 signal is at or under the threshold; COMP reads how far the
-curve it is drawing sits under unity; DUCKER compares the level of
-the strip named as Ducker Source against the threshold and stops at the RANGE. IN and OUT read the
+curve it is drawing sits under unity; DUCKER reads how far it ducks for
+how loud it hears the strip named as Ducker Source (the DUCKER lamps paragraph of "Head amp column in the channel view"). IN and OUT read the
 block's own input and output, so OUT reads that far below IN, less what the block adds back after it
 (COMP's makeup) — where the makeup is deeper than the reduction, OUT reads above IN. A block that holds
 nothing down (DELAY switched off, INS FX on [No Effect]) meters IN and OUT alike. The bar and IN / OUT

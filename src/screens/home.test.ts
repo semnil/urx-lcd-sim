@@ -1478,13 +1478,21 @@ describe("what a channel view's blocks draw", () => {
     expect(lamps(), "the source is under the threshold, so the channel is left alone").toEqual(["", "", "on"]);
 
     await shell.ctx.store.set("ch.ch_9_10.ducker.threshold", -60);
-    await shell.ctx.store.set("ch.ch_9_10.ducker.range", -70);
     await flush();
-    expect(lamps(), "over the threshold but not a range over it").toEqual(["", "hold", ""]);
+    expect(lamps(), "well over the threshold, held right down to the range").toEqual(["shut", "", ""]);
 
-    await shell.ctx.store.set("ch.ch_9_10.ducker.range", 0);
+    // A steady tone keyed from MIX 1, heard as its two sides summed 3 dB down: -30 dB on each side is heard at
+    // -26.98 dB. On the threshold the ducker takes off part of its range, URX44V, 2026-10-12.
+    await shell.ctx.store.set("osc.on", true);
+    await shell.ctx.store.set("osc.level", -30);
+    await shell.ctx.store.set("osc.assign.stereoL", false);
+    await shell.ctx.store.set("osc.assign.stereoR", false);
+    await shell.ctx.store.set("osc.assign.mix1L", true);
+    await shell.ctx.store.set("osc.assign.mix1R", true);
+    await shell.ctx.store.set("ch.ch_9_10.ducker.source", "MIX 1");
+    await shell.ctx.store.set("ch.ch_9_10.ducker.threshold", -27);
     await flush();
-    expect(lamps(), "held right down to the range").toEqual(["shut", "", ""]);
+    expect(lamps(), "the key on the threshold, part of the range").toEqual(["", "hold", ""]);
 
     // A channel that is off meters nothing, so a source switched to it is under
     // any threshold.

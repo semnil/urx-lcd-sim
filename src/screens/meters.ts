@@ -9,9 +9,9 @@
 
 import type { AppContext } from "../app/context";
 import type { DeviceStore } from "../device/store";
-import { gateReductionDb, grBarShare, levelBarShare } from "../model/dynamics";
+import { duckerShare, gateReductionDb, grBarShare, levelBarShare } from "../model/dynamics";
 import { CLIP_LAMP_DB, DETECTOR_OFFSET, type DetectorKind, METER_FALL_DB_PER_S, OVER_DB, SIGNAL_LAMP_DB } from "../model/levels";
-import { SILENT_DB } from "../model/signal";
+import { SILENT_DB, mix, mostlyTone } from "../model/signal";
 import type { Strip } from "../model/types";
 import { GATE_DEFAULTS } from "../model/defaults";
 import { CLIP_DB, type GrSpec, METER_TICK_MS, type Tap, clipSafe, flowCtx, flowLanes, flowLevels, heardOn, pairMembers, readingMoment, reductionAt, tapId } from "./signal-flow";
@@ -151,9 +151,10 @@ export function drawnLevels(store: DeviceStore, id: string, channels: number, at
  * the spec names. A device's meters carry a level for each lane and nothing of
  * what makes it up, so on a device the detector hears the louder lane as read.
  */
-function detectorLevel(store: DeviceStore, spec: GrSpec, at = readingMoment()): number {
-  if (source) return Math.max(...meterLevels(store, spec.level, 2, at));
-  return heardOn(spec, flowLanes(flowCtx(store), spec.level, at));
+function detectorLevel(store: DeviceStore, spec: GrSpec, at = readingMoment()): { heard: number; tone: boolean } {
+  if (source) return { heard: Math.max(...meterLevels(store, spec.level, 2, at)), tone: false };
+  const lanes = flowLanes(flowCtx(store), spec.level, at);
+  return { heard: heardOn(spec, lanes), tone: mostlyTone(mix(...lanes)) };
 }
 
 /**
@@ -162,7 +163,8 @@ function detectorLevel(store: DeviceStore, spec: GrSpec, at = readingMoment()): 
  * takes nothing off.
  */
 export function blockReduction(store: DeviceStore, spec: GrSpec, at = readingMoment()): number {
-  return reductionAt(store, spec, detectorLevel(store, spec, at));
+  const { heard, tone } = detectorLevel(store, spec, at);
+  return reductionAt(store, spec, heard, tone);
 }
 
 /** How a block's lamps stand. */
@@ -170,11 +172,12 @@ export type LampState = "off" | "open" | "holding" | "shut";
 
 /**
  * How the lamps of the block named by `spec` stand: GATE opens over its threshold
- * and shuts once it takes off its whole range, DUCKER opens under its threshold on
- * its key and shuts a range over it. A block that is off lights none.
+ * and shuts once it takes off its whole range; DUCKER stands open while it takes
+ * none of its range off, holding while it takes off part of it, and shut once it
+ * takes off the whole of it. A block that is off lights none.
  */
 export function blockLampState(store: DeviceStore, spec: GrSpec, at = readingMoment()): LampState {
-  const level = detectorLevel(store, spec, at);
+  const { heard: level } = detectorLevel(store, spec, at);
   const b = spec.base;
   if (spec.kind === "gate") {
     if (!store.bool(`${b}.gate.on`, false)) return "off";
@@ -185,9 +188,9 @@ export function blockLampState(store: DeviceStore, spec: GrSpec, at = readingMom
   }
   if (spec.kind === "ducker") {
     if (!store.bool(`${b}.ducker.on`, false)) return "off";
-    const threshold = store.num(`${b}.ducker.threshold`, -40);
-    const range = store.num(`${b}.ducker.range`, -24);
-    return level <= threshold ? "open" : level >= threshold - range ? "shut" : "holding";
+    const { heard, tone } = detectorLevel(store, spec, at);
+    const share = duckerShare(heard, store.num(`${b}.ducker.threshold`, -40), tone);
+    return share <= 0 ? "open" : share >= 1 ? "shut" : "holding";
   }
   return "off";
 }

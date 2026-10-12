@@ -375,9 +375,10 @@ function insertGainDb(store: DeviceStore, spec: GrSpec, heard: number): number {
 
 /**
  * How many dB the block named by `spec` holds its channel down when its detector
- * hears `heard`, from the block's own values. A block that is off takes nothing off.
+ * hears `heard`, from the block's own values; a ducker takes its range off more
+ * steeply for a key that is mostly a steady `tone`. A block that is off takes nothing off.
  */
-export function reductionAt(store: DeviceStore, spec: GrSpec, heard: number): number {
+export function reductionAt(store: DeviceStore, spec: GrSpec, heard: number, tone = false): number {
   const b = spec.base;
   if (!blockOn(store, spec)) return 0;
   const held = compander(store, spec, heard);
@@ -392,7 +393,7 @@ export function reductionAt(store: DeviceStore, spec: GrSpec, heard: number): nu
       spec.makeup,
     );
   }
-  if (spec.kind === "ducker") return duckerReductionDb(heard, store.num(`${b}.ducker.threshold`, -40), store.num(`${b}.ducker.range`, -24));
+  if (spec.kind === "ducker") return duckerReductionDb(heard, store.num(`${b}.ducker.threshold`, -40), store.num(`${b}.ducker.range`, -24), tone);
   // SSMCS holds the channel down by how far it is over the corner Comp Drive sets.
   if (spec.kind === "ssmcs") {
     const over = heard - ssmcsCorner(store.num(`${b}.ssmcs.compDrive`, SSMCS_DEFAULTS.compDrive));
@@ -635,7 +636,8 @@ class FlowBuilder {
 
   /** The reduction the block named by `spec` takes off, heard on the meter it names. */
   reduction(spec: GrSpec): number {
-    return reductionAt(this.store, spec, heardOn(spec, this.read(spec.level)));
+    const lanes = this.read(spec.level);
+    return reductionAt(this.store, spec, heardOn(spec, lanes), mostlyTone(mix(...lanes)));
   }
 
   /** The gain the insert named by `spec` gives its signal, heard on the meter it names. */

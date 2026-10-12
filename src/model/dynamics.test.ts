@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { grBarShare, levelBarShare } from "./dynamics";
+import { duckerReductionDb, grBarShare, levelBarShare } from "./dynamics";
 
 // Bars on the unit, read by eye in mm against each bar's length at the reductions
 // or levels the unit reported: [what the bar showed in dB, mm lit]. The scale is
@@ -80,5 +80,20 @@ describe("the level meters' scale", () => {
   it("never turns back as the level rises", () => {
     const shares = Array.from({ length: 73 }, (_, i) => levelBarShare(i - 72));
     expect(shares.every((share, i) => i === 0 || share >= (shares[i - 1] ?? 0))).toBe(true);
+  });
+});
+
+describe("what a ducker takes off", () => {
+  // URX44V, 2026-10-12: CH 7/8's DUCKER keyed by CH3 at -20 dB, range -24, its threshold stepped 2 dB at a time. The
+  // detector hears a tone 1 dB over the meter and pink noise around 1 kHz 2 dB under it, so each threshold is a
+  // distance of the key over it.
+  it("takes the whole range for a tone a dB over the threshold and none a dB under it", () => {
+    expect(duckerReductionDb(-19, -20, -24, true), "-20: GR -24").toBe(24);
+    expect(duckerReductionDb(-19, -18, -24, true), "-18: no GR").toBe(0);
+  });
+
+  it("takes the range off a noise-like key across 8 dB around the threshold", () => {
+    const read: [number, number][] = [[-26, 24], [-24, 21], [-22, 14], [-20, 4], [-18, 1], [-16, 0]];
+    for (const [threshold, gr] of read) expect(duckerReductionDb(-22, threshold, -24), `threshold ${threshold}`).toBeCloseTo(gr, 9);
   });
 });
