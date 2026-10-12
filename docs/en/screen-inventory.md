@@ -1374,6 +1374,13 @@ and URX44 run the same laws, bar the number of channels.
   STEREO after their fader and INS FX, and STREAMING after its DELAY, and sums what is cued. A mono
   channel goes to both sides at one level, and so does each channel of a stereo-linked pair, on `PAN`
   and on `BAL` alike.
+- CUE runs in two groups: the inputs (mono and stereo channels, FX1 and FX2) and the outputs (STEREO,
+  MIX 1, MIX 2 and STREAMING). Within a group cues add up. Cueing a strip of the other group takes each
+  cue of the group that was cued out, and taking a cue out leaves the other cues as they stand. The
+  outputs the first input cue takes out are remembered, and taking the last input cue out puts each of
+  them back in the cue; an output cued in between leaves nothing to put back. The inputs an output cue
+  takes out do not come back. CLEAR CUE takes every cue out, puts nothing back and forgets the remembered
+  outputs (`src/screens/cue.ts`, pinned by `src/screens/cue.test.ts`).
 - While CUE Interrupt is on and something is cued, MONITOR puts out the cue in place of its source. MONO
   puts the two sides, each 3 dB down and summed, on both sides. [ON] and LEVEL act after that.
 

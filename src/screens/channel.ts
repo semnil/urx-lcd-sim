@@ -29,6 +29,7 @@ import { inputSourceSheet, sourceBoxLabel } from "./input-source";
 import { NO_EFFECT, insertBase } from "./insert-fx";
 import { effectSettingsScreen, fxShutOut, insFxScreen, openEffectParams } from "./effect-params";
 import { ssmcsArea } from "./ssmcs";
+import { toggleCue } from "./cue";
 import { COMP_EQ_SSMCS, channelLabel, eqShut, phasePath, runsSsmcs, selectStrip, selectedStripId, sendsTarget, stepChannel, stripColor, stripLane, stripLanes } from "./strip-state";
 import type { ScreenBody, ScreenDef } from "./types";
 
@@ -642,7 +643,7 @@ export const channelViewScreen: ScreenDef = {
     const onOff = el("div", {
       class: "cv-onoff",
       children: [
-        toggle("CUE", ctx.store.bool(`${base}.cue`, false), () => void ctx.store.set(`${base}.cue`, !ctx.store.bool(`${base}.cue`, false)), "btn-switch btn-cue"),
+        toggle("CUE", ctx.store.bool(`${base}.cue`, false), () => toggleCue(ctx, strip), "btn-switch btn-cue"),
         ...(streaming
           ? []
           : [toggle("ON", ctx.store.bool(`${base}.on`, true), () => void ctx.store.set(`${base}.on`, !ctx.store.bool(`${base}.on`, true)), "btn-switch btn-on")]),

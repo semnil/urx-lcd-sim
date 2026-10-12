@@ -14,6 +14,7 @@ import { takeInsert } from "./insert-fx";
 import { setBusType } from "./mix-bus";
 import { pausePlayback, pauseTake, playedSeconds, recordTake, startPlayback, stopPlayback, stopTake, takeSeconds } from "./recording";
 import { storeScene } from "./scene";
+import { toggleCue } from "./cue";
 import { screenOnly } from "./screen-only";
 import { setPanBal, setSignalType } from "./stereo-link";
 
@@ -454,6 +455,25 @@ const SCREEN_OPERATIONS: ScreenOperation[] = [
       await tap(shell, ".pulldown", "Intensity");
     },
     act: async (shell) => tap(shell, ".dropdown-option", "Vocal"),
+  },
+  {
+    name: "cueing a strip of the other CUE group",
+    main: "ch.bus.stereo.cue",
+    prep: async (shell) => {
+      await shell.ctx.store.set("ch.ch1.cue", true);
+      await open(shell, "channel-view", "bus.stereo");
+    },
+    act: async (shell) => tap(shell, ".cv-onoff .btn-cue"),
+  },
+  {
+    name: "taking the last input cue out, which brings back the outputs it took out",
+    main: "ch.ch1.cue",
+    prep: async (shell) => {
+      toggleCue(shell.ctx, strip(shell.ctx, "bus.stereo"));
+      toggleCue(shell.ctx, strip(shell.ctx, "ch1"));
+      await open(shell, "channel-view", "ch1");
+    },
+    act: async (shell) => tap(shell, ".cv-onoff .btn-cue"),
   },
   {
     name: "SCENE's bank",
