@@ -221,7 +221,7 @@ of design-tokens.md](design-tokens.md#strip-rotary).
 
 When the input of a connector with Clip Safe on clips, the unit takes the input about 23 dB down and
 brings it back after about 5 seconds, and the A.Gain value and knob do not come down (checked on a
-URX44V, 2026-09-22). In the simulator, a reading that finds the input at 0 dB, where the meter's clip mark
+URX44V, 2026-09-22). In the simulator, a reading that finds the input over 0 dB, where the meter's clip mark
 lights, still shows the clip; after it the input is held 23 dB down, and let back up 5 seconds after the
 last clip. A clip read while it is held down counts again, and one read as soon as it is let back up
 holds it down again at once. While it is engaged, INPUT's [Clip Safe] and the channel view's [SAFE] turn
@@ -1431,12 +1431,13 @@ level, laid from 0 dB down: the top at 0 dB, 10/21 of the bar at -18 dB, 3/14 at
 bar use this scale. On 2026-09-26 the operator read the lengths of HOME's meters, the channel view's
 LEVEL, the GATE screen's IN, the COMP block's level bar and a RECORDER track's meter on the unit's LCD;
 each reading on these five is within 0.9 mm of this scale (the largest gap being the GATE screen's IN,
-0.9 mm at -48 dB). The clip dot lights when the level reaches the top of the bar, at 0 dB.
+0.9 mm at -48 dB). The clip dot lights while the level is over the top of the bar, 0 dB (over full scale), and not at 0 dB
+itself (URX44V, confirmed on the unit on 2026-10-12).
 
 ## Meter color zones
 
 A meter's bar is green over its lower half and yellow over its upper half, and the bar itself carries
-no red. What lights red is the clip dot above the bar, when the level reaches the top of that meter.
+no red. What lights red is the clip dot above the bar, when the level goes over the top of that meter.
 The boundary sits at the middle of the bar (on a bar an odd number of rows tall the middle row is
 yellow) and does not move with the meter's length. Only the part below the level is lit and
 the boundary stays at the middle of the bar itself, so the zones do not move as the level moves and the

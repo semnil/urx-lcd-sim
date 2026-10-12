@@ -10,7 +10,7 @@
 import type { AppContext } from "../app/context";
 import type { DeviceStore } from "../device/store";
 import { gateReductionDb, grBarShare, levelBarShare } from "../model/dynamics";
-import { CLIP_LAMP_DB, DETECTOR_OFFSET, type DetectorKind, METER_FALL_DB_PER_S, SIGNAL_LAMP_DB } from "../model/levels";
+import { CLIP_LAMP_DB, DETECTOR_OFFSET, type DetectorKind, METER_FALL_DB_PER_S, OVER_DB, SIGNAL_LAMP_DB } from "../model/levels";
 import { SILENT_DB } from "../model/signal";
 import type { Strip } from "../model/types";
 import { GATE_DEFAULTS } from "../model/defaults";
@@ -93,8 +93,8 @@ export function markClipSafe(store: DeviceStore, node: HTMLElement, connector: S
  * `monitor.<n>`, the cue bus, the oscillator, the card's playback, or two of
  * them side by side. `at` is the moment the synthetic signal is read at, so two
  * readings can be taken of the same instant. A device's reading that is not a
- * number reads as nothing, and one over 0 dB, +Infinity included, as a clip at
- * 0 dB.
+ * number reads as nothing, and one over 0 dB, +Infinity included, as a clip,
+ * OVER_DB.
  */
 export function meterLevels(store: DeviceStore, id: string, channels: number, at = readingMoment()): number[] {
   const members = pairMembers(id);
@@ -104,7 +104,7 @@ export function meterLevels(store: DeviceStore, id: string, channels: number, at
       return member === undefined ? SILENT : (meterLevels(store, member, 1, at)[0] ?? SILENT);
     });
   }
-  if (source) return source(id, channels).map((db) => (Number.isNaN(db) ? SILENT : Math.min(db, CLIP_DB)));
+  if (source) return source(id, channels).map((db) => (Number.isNaN(db) ? SILENT : db > CLIP_DB ? OVER_DB : db));
   const levels = flowLevels(flowCtx(store), id, at);
   return Array.from({ length: channels }, (_, c) => levels[c] ?? SILENT);
 }
@@ -292,7 +292,7 @@ export function startMeterTicker(store: DeviceStore, root: HTMLElement, interval
       bars.forEach((bar, i) => {
         const share = levelBarShare(levels[i] ?? SILENT);
         bar.style.setProperty("--unlit", `${(1 - share) * 100}%`);
-        clips[i]?.classList.toggle("is-on", share >= 1);
+        clips[i]?.classList.toggle("is-on", (levels[i] ?? SILENT) > CLIP_DB);
       });
     }
     for (const node of root.querySelectorAll<HTMLElement>("[data-level-bar]")) showLevelBar(node, store, at);

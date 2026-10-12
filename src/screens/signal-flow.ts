@@ -15,6 +15,7 @@ import { bandResponse } from "../model/eq-response";
 import { SSMCS_BAND_KEYS, eqOutOfUse, fourBandResponse, fourBands, pinkGainDb, ssmcsBand, ssmcsEqResponse, ssmcsSideChain, ssmcsSideChainResponse } from "../model/channel-eq";
 import { type EffectOption, FX_EFFECTS, FX_EFFECT_DEFAULT, INPUT_INSERT_EFFECTS, NO_EFFECT, OUTPUT_INSERT_EFFECTS, effectParams, guitarOutputDb } from "../model/effects";
 import {
+  CLIP_DB,
   DETECTOR_OFFSET,
   type DetectorKind,
   FX_RETURN_DB,
@@ -23,6 +24,7 @@ import {
   MIC_LINE_SIGNAL_DB,
   curveGainDb,
   OSC_PINK_UNDER_DB,
+  OVER_DB,
   insertCurveGainDb,
   insertDetector,
   sourceBaseDb,
@@ -142,8 +144,7 @@ function wander(key: string, lane: number, at: number): number {
   return Math.sin(t * 1.7 + phase) * 4 + Math.sin(t * 0.6 + phase * 2) * 3;
 }
 
-/** The level at which a meter's clip indicator lights. */
-export const CLIP_DB = 0;
+export { CLIP_DB };
 
 /** How far Clip Safe takes its connector's signal down once it has clipped. */
 const CLIP_SAFE_REDUCTION_DB = 23;
@@ -199,7 +200,7 @@ export function clipSafe(store: DeviceStore, n: number, at = readingMoment()): {
     return { engaged: holds.some((h) => h.from <= at && at <= h.to), reduction: near ? near.reduction : held };
   }
   const reduction = at > last && at - last <= CLIP_SAFE_HOLD_MS ? CLIP_SAFE_REDUCTION_DB : 0;
-  const clip = jackRaw(store, n, at) - reduction >= CLIP_DB ? Math.max(last, at) : last;
+  const clip = jackRaw(store, n, at) - reduction > CLIP_DB ? Math.max(last, at) : last;
   if (clip !== last) {
     const hold = holds.at(-1);
     if (hold && clip <= hold.to) hold.to = clip + CLIP_SAFE_HOLD_MS;
@@ -644,7 +645,7 @@ class FlowBuilder {
 
   /** Mark each lane of the meter after a fader as reading over while that lane going into the fader is over. */
   carryOver(stripId: string, into: Lanes, tap: Tap): void {
-    this.over.set(tapId(stripId, tap), into.map((lane) => levelDb(lane) >= CLIP_DB));
+    this.over.set(tapId(stripId, tap), into.map((lane) => levelDb(lane) > CLIP_DB));
   }
 
   on(strip: Strip): boolean {
@@ -958,7 +959,7 @@ export function flowLevels(fc: FlowCtx, id: string, at: number): number[] {
   const flow = flowAt(fc, at);
   const lanes = flow.taps.get(tapId(stripId, tap)) ?? [];
   const over = flow.over.get(tapId(stripId, tap));
-  return lanes.map((lane, i) => (over?.[i] ? Math.max(CLIP_DB, levelDb(lane)) : levelDb(lane)));
+  return lanes.map((lane, i) => (over?.[i] ? Math.max(OVER_DB, levelDb(lane)) : levelDb(lane)));
 }
 
 /** The lanes a meter reads at `at`, for a detector to hear. */

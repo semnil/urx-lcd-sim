@@ -8,6 +8,7 @@
 import type { AppContext } from "../app/context";
 import { clamp } from "../device/store";
 import { levelBarShare } from "../model/dynamics";
+import { CLIP_DB } from "../model/levels";
 import { OFF_MARK, drawnScale, el, fromInnerControl, makeTappable, setPressed } from "./dom";
 import { Icons } from "./icons";
 import type { NumericSpec } from "./param-spec";
@@ -893,11 +894,11 @@ export function meter(options: MeterOptions): HTMLElement {
   // painted over them to hide the unlit part. Filling upward with a gradient
   // instead would end every level in the top band's colour.
   // Each lane is a clip dot over a bar, lit on `levelBarShare`: the dot lights
-  // when the level reaches the top of the bar.
+  // while the level is over full scale.
   const bars = options.levels.map((db) => {
     const share = levelBarShare(db);
     const bar = el("div", { class: "meter-bar", style: { "--unlit": `${(1 - share) * 100}%` } });
-    const clip = el("div", { class: `meter-clip${share >= 1 ? " is-on" : ""}` });
+    const clip = el("div", { class: `meter-clip${db > CLIP_DB ? " is-on" : ""}` });
     return el("div", { class: "meter-lane", children: [clip, bar] });
   });
   const node = el("div", {

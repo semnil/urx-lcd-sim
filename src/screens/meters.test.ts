@@ -33,13 +33,16 @@ describe("the meter ticker", () => {
     vi.unstubAllGlobals();
   });
 
-  it("lights the clip dots when the level reaches the top, and puts them out below it", () => {
+  it("lights the clip dots while the level is over the top, and puts them out at the top and below it", () => {
     level = -40;
     const { root, stop } = run(meter({ levels: [-40, -40], source: "ch1" }));
     expect(dots(root), "drawn below the top").toEqual([false, false]);
     level = 0;
     vi.advanceTimersByTime(60);
-    expect(dots(root)).toEqual([true, true]);
+    expect(dots(root), "at the top").toEqual([false, false]);
+    level = Number.POSITIVE_INFINITY;
+    vi.advanceTimersByTime(60);
+    expect(dots(root), "over it").toEqual([true, true]);
     level = -20;
     vi.advanceTimersByTime(60);
     expect(dots(root)).toEqual([false, false]);
@@ -55,7 +58,10 @@ describe("the meter ticker", () => {
     expect(dots(root)).toEqual([false]);
     level = 0;
     vi.advanceTimersByTime(60);
-    expect([unlit(root), dots(root)], "the top of the bar lights the dot").toEqual([["0%"], [true]]);
+    expect([unlit(root), dots(root)], "the top of the bar, the dot dark").toEqual([["0%"], [false]]);
+    level = 3;
+    vi.advanceTimersByTime(60);
+    expect([unlit(root), dots(root)], "over the top, the dot lit").toEqual([["0%"], [true]]);
     stop();
   });
 

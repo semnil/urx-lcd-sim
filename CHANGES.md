@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Light a meter's clip mark only while the level is over full scale, as the unit does, and not at 0 dB itself: a 0 dB oscillator on a bus no longer lights it. Clip Safe and the meters after a fader count a clip the same way.
 - Light a strip's red dot on HOME from -3 dBFS, as the unit does on a channel, an FX channel, STEREO and a MIX bus. It lit only at 0 dB.
 - Cost a settings file on the card by the scenes stored when it is written, as the unit does: 28,696 bytes with none, and 21,972 bytes more for each scene. Every settings file cost 50,668 bytes, the size of one holding a single scene.
 - Set the two lines of a picker sheet's button 14 screen pixels apart, as OUTPUT PATCH's [MONITOR 1] has them in the user guide. They stood 15 apart, so `1` stood a screen pixel lower than in the user guide.
