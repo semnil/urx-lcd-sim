@@ -4,8 +4,9 @@
 // FX returns) and the outputs (STEREO, the MIX buses, STREAMING). Within a group
 // cues add up; cueing a strip of the other group takes every cue of the group
 // that was cued out. The outputs the first input cue takes out are remembered and
-// come back once the last input cue is taken out. The inputs an output cue takes
-// out are not remembered. CLEAR CUE takes every cue out and forgets the outputs.
+// come back once the last input cue is taken out; bringing them back, cueing an
+// output and CLEAR CUE forget them. The inputs an output cue takes out are not
+// remembered. CLEAR CUE takes every cue out.
 
 import type { AppContext } from "../app/context";
 import type { Strip, StripKind, StripSide } from "../model/types";
@@ -23,7 +24,7 @@ const CUE_GROUP: Record<StripKind, StripSide> = {
   streaming: "output",
 };
 
-/** The ids of the outputs the first input cue took out, comma-separated. */
+/** The ids of the outputs the first input cue took out, comma-separated, empty once they are forgotten. */
 const OUTPUT_MEMORY = "ui.cueOutputMemory";
 
 export function cueGroup(strip: Strip): StripSide {
@@ -40,8 +41,8 @@ function cuedIn(ctx: CueCtx, side: StripSide): Strip[] {
  * [CUE] on a strip: put it in the cue or take it out, as one operation of the
  * store. Putting it in takes every strip of the other group out. The first
  * input cue remembers the outputs it takes out; taking the last input cue out
- * puts them back. A linked pair's other channel follows by the pair's write
- * rule.
+ * puts them back and forgets them, and so does cueing an output. A linked
+ * pair's other channel follows by the pair's write rule.
  */
 export function toggleCue(ctx: CueCtx, strip: Strip): void {
   const on = !ctx.store.bool(cuePath(strip), false);
@@ -49,13 +50,15 @@ export function toggleCue(ctx: CueCtx, strip: Strip): void {
   ctx.store.operation(() => {
     if (on) {
       const displaced = cuedIn(ctx, side === "input" ? "output" : "input");
-      if (side === "input" && cuedIn(ctx, "input").length === 0) void ctx.store.set(OUTPUT_MEMORY, displaced.map((s) => s.id).join(","));
+      if (side === "output") void ctx.store.set(OUTPUT_MEMORY, "");
+      else if (cuedIn(ctx, "input").length === 0) void ctx.store.set(OUTPUT_MEMORY, displaced.map((s) => s.id).join(","));
       for (const s of displaced) if (ctx.store.bool(cuePath(s), false)) void ctx.store.set(cuePath(s), false);
     }
     void ctx.store.set(cuePath(strip), on);
     if (on || side !== "input" || cuedIn(ctx, "input").length > 0) return;
     const remembered = ctx.store.str(OUTPUT_MEMORY, "").split(",");
     for (const s of allStrips(ctx.model)) if (cueGroup(s) === "output" && remembered.includes(s.id)) void ctx.store.set(cuePath(s), true);
+    void ctx.store.set(OUTPUT_MEMORY, "");
   });
 }
 

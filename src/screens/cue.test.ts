@@ -6,8 +6,10 @@ import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
 import { allStrips, findStrip } from "../model/types";
 import { unitById } from "../model/units";
+import { applySettings, captureSettings } from "../model/settings-file";
 import { cueGroup, toggleCue } from "./cue";
 import { buildRegistry } from "./index";
+import { recallScene, storeScene } from "./scene";
 import { setSignalType } from "./stereo-link";
 
 // The unit's CUE runs in two groups, the inputs and the outputs. Within a group
@@ -114,14 +116,49 @@ describe("the outputs an input cue takes out", () => {
     expect(cued(shell)).toEqual(["bus.stereo"]);
   });
 
-  it("are forgotten once an output is cued", async () => {
+  /**
+   * Keep a scene and a settings file holding CH 1 alone in the cue, and return
+   * what puts it back by `route`: values put back cue an input without its [CUE].
+   */
+  async function inputCueKept(shell: Shell, route: "a scene" | "a settings file"): Promise<() => Promise<void>> {
+    await press(shell, "ch1");
+    await shell.ctx.store.set("scene.Standard.1.title", "CH 1 cued");
+    await storeScene(shell.ctx, "Standard", 1);
+    const settings = captureSettings(shell.ctx.store);
+    await press(shell, "ch1");
+    return async () => {
+      if (route === "a scene") await recallScene(shell.ctx, 1);
+      else await applySettings(shell.ctx.store, settings);
+      await flush();
+      expect(cued(shell), `${route} puts CH 1 back in the cue`).toEqual(["ch1"]);
+    };
+  }
+
+  it.each(["a scene", "a settings file"] as const)("are forgotten once an output is cued, also for an input cue %s puts back", async (route) => {
     const shell = await mount();
+    const putBack = await inputCueKept(shell, route);
     await press(shell, "bus.stereo");
     await press(shell, "ch1");
     await press(shell, "bus.mix1");
     expect(cued(shell)).toEqual(["bus.mix1"]);
     await press(shell, "bus.mix1");
     expect(cued(shell)).toEqual([]);
+    await putBack();
+    await press(shell, "ch1");
+    expect(cued(shell), "STEREO stays out").toEqual([]);
+  });
+
+  it.each(["a scene", "a settings file"] as const)("are forgotten once they come back, also for an input cue %s puts back", async (route) => {
+    const shell = await mount();
+    const putBack = await inputCueKept(shell, route);
+    await press(shell, "bus.stereo");
+    await press(shell, "ch1");
+    await press(shell, "ch1");
+    expect(cued(shell)).toEqual(["bus.stereo"]);
+    await press(shell, "bus.stereo");
+    await putBack();
+    await press(shell, "ch1");
+    expect(cued(shell), "STEREO stays out").toEqual([]);
   });
 
   it("are forgotten by CLEAR CUE, so taking out an input cue put back afterwards brings nothing back", async () => {
