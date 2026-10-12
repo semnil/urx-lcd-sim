@@ -330,6 +330,36 @@ describe("the EQ 1-knob's chain", () => {
     expect(gains(store)).toEqual([14, -14, 1.4, 7]);
   });
 
+  it.each([
+    ["Loudness", [18, -18, 2, 10], [18, -18, 2.8, 14], [9, -9, 1, 5]],
+    ["Vocal", [0, -6, 2, 0], [0, -8.4, 2.8, 0], [0, -3, 1, 0]],
+  ] as const)("scales the gains %s stood at when Intensity is taken back, not the curve's own at 50", async (type, at100, at70, at25) => {
+    const { shell, store } = await mount();
+    for (const [b, db] of [["low", -10], ["lowMid", -8], ["highMid", -6], ["high", -4]] as const) {
+      await store.set(`ch.ch1.eq.${b}.gain`, db);
+    }
+    await open(shell, "channel-view", "ch1");
+    await open(shell, "ch.eq", "ch1");
+    shell.root.querySelector<HTMLElement>(".oneknob")?.click();
+    await flush();
+    const pick = async (t: string): Promise<void> => {
+      panel(shell)?.querySelector<HTMLElement>(".pulldown")?.click();
+      await flush();
+      [...shell.root.querySelectorAll<HTMLElement>(".dropdown-option")].find((o) => o.textContent === t)?.click();
+      await flush();
+    };
+    await pick(type);
+    await store.set("ch.ch1.eq.oneKnob.level", 100);
+    expect(gains(store), `${type} at 100`).toEqual(at100);
+
+    await pick("Intensity");
+    expect([store.num("ch.ch1.eq.oneKnob.level", -1), ...gains(store)], "Intensity at 50 leaves the gains").toEqual([50, ...at100]);
+    await store.set("ch.ch1.eq.oneKnob.level", 70);
+    expect(gains(store), "70").toEqual(at70);
+    await store.set("ch.ch1.eq.oneKnob.level", 25);
+    expect(gains(store), "25").toEqual(at25);
+  });
+
   it("lands Loudness's H-MID on a tenth of a dB below its 10% steps", async () => {
     const { store } = await mount();
     await store.set("ch.ch1.eq.oneKnob.on", true);

@@ -250,9 +250,10 @@ CH SETTING の `Signal Type` は 1 チャンネルではなく隣り合うモノ
   置き直す先はチャンネル自身の位置と、そのチャンネルの各 Send の位置の両方。
 - リンク中のペアは 1 組の値を持つ。片方への書き込みはもう片方へ届き、リンクした時点で
   若い番号のチャンネルの値がもう一方へ写る。解除は何も戻さない。各メンバーが自分の値を
-  保つのは、ヘッドアンプ (A.Gain・Clip Safe・Φ・+48V・Hi-Z)・入力ソース・名前・色・CUE と、
+  保つのは、ヘッドアンプ (A.Gain・Clip Safe・Φ・+48V・Hi-Z)・入力ソース・名前・色と、
   `BAL` 以外での位置。Signal Type と `PAN`/`BAL` はペアの値で両方へ書き、インサートと
-  BALANCE は若い番号のチャンネルが持つ形のまま。
+  BALANCE は若い番号のチャンネルが持つ形のまま。チャンネルごとに CUE を持っていた版のブラウザーの保存・シーン・
+  設定ファイルが 2 つの CUE を持つリンク中のペアを読み戻すと、若い番号のチャンネルの CUE にそろう。
 
 `src/screens/stereo-link.test.ts` が振る舞いを、`src/style/columns.test.ts` の
 「the stereo-link mark between two strips」がマークの位置を固定している。
@@ -1178,6 +1179,7 @@ URX22 と URX44 も、チャンネル数の違いのほかは同じ法則で動�
 
 - CUE は、チャンネルと FX チャンネルをフェーダー・[ON]・PAN の前 (EQ と INS FX の後) で、MIX と STEREO をフェーダーと INS FX の
   後で、STREAMING を DELAY の後で取り、CUE に入れたものを足す。モノラルのチャンネルは両側に同じ大きさで入る。
+  STEREO にリンクしたペアも、`PAN` でも `BAL` でも、各チャンネルが両側に同じ大きさで入る。
 - MONITOR は、CUE Interrupt が入で何かが CUE に入っているあいだ、ソースの代わりに CUE を出す。MONO は L と R をそれぞれ 3 dB 下げて
   足したものを両側に出す。その後に [ON] と LEVEL が効く。
 

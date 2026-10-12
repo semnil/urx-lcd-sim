@@ -278,8 +278,10 @@ write are in one place, `src/screens/stereo-link.ts`.
 - A linked pair holds one set of values. A write to either channel reaches the other, and linking
   copies the lower-numbered channel's values onto the other. Unlinking puts nothing back. What each
   member keeps its own of is the head amp (A.Gain, Clip Safe, Φ, +48V, Hi-Z), the input source, the
-  name, the colour, CUE, and the position outside `BAL`. Signal Type and `PAN` / `BAL` are the pair's
-  and are written to both; the insert and the BALANCE stay held by the lower-numbered channel.
+  name, the colour, and the position outside `BAL`. Signal Type and `PAN` / `BAL` are the pair's
+  and are written to both; the insert and the BALANCE stay held by the lower-numbered channel. A
+  linked pair put back with two CUEs, by a browser save, a scene or a settings file from a version
+  whose channels each held their own, takes the lower-numbered channel's.
 
 `src/screens/stereo-link.test.ts` pins the behavior, and "the stereo-link mark between two strips" in
 `src/style/columns.test.ts` pins the mark's position.
@@ -1370,7 +1372,8 @@ and URX44 run the same laws, bar the number of channels.
 
 - CUE takes a channel and an FX channel before the fader, [ON] and PAN (after the EQ and INS FX), MIX and
   STEREO after their fader and INS FX, and STREAMING after its DELAY, and sums what is cued. A mono
-  channel goes to both sides at one level.
+  channel goes to both sides at one level, and so does each channel of a stereo-linked pair, on `PAN`
+  and on `BAL` alike.
 - While CUE Interrupt is on and something is cued, MONITOR puts out the cue in place of its source. MONO
   puts the two sides, each 3 dB down and summed, on both sides. [ON] and LEVEL act after that.
 

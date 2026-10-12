@@ -369,6 +369,22 @@ describe("the cue bus", () => {
     expect(read(store, CUE_METER)).toEqual([pre, pre]);
   });
 
+  it.each(["PAN", "BAL"])("takes each channel of a linked pair on %s on both sides, as two mono channels", async (panBal) => {
+    const store = await unit();
+    for (const id of ["ch3", "ch4"]) {
+      await store.set(`ch.${id}.signalType`, "STEREO");
+      await store.set(`ch.${id}.panBal`, panBal);
+      await store.set(`ch.${id}.cue`, true);
+    }
+    for (const id of ["ch3", "ch4"]) {
+      await only(store, id);
+      await store.set(`ch.${id}.source`, "USB MAIN A");
+      const pre = mono(store, tapId(id, "preFader"));
+      expect(pre, `${id} carries the source`).toBeGreaterThan(SILENT);
+      expect(read(store, CUE_METER), `${id} alone`).toEqual([pre, pre]);
+    }
+  });
+
   it("takes a bus after its fader and its insert", async () => {
     const store = await unit();
     await only(store);

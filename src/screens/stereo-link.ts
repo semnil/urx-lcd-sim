@@ -49,9 +49,10 @@ export function carriesStereo(ctx: PairCtx, strip: Strip): boolean {
 }
 
 /**
- * What a linked pair does not hold one of. Four kinds of name sit here: the
+ * What a linked pair does not hold one of. Five kinds of name sit here: the
  * pair's own flags, which both channels are written directly; the head amp,
- * which each member keeps its own of; the values a pair already shares by
+ * which each member keeps its own of; each member's source, name and colour,
+ * which it keeps its own of too; the values a pair already shares by
  * being read from one channel (`balancePath`, `insertBase`); and the position,
  * which every transition places. Anything not named is shared.
  */
@@ -66,7 +67,6 @@ const PAIR_OWN = [
   "source",
   "name",
   "color",
-  "cue",
   "pan",
   "balance",
   "insFx",
@@ -130,12 +130,28 @@ export function pairStates(ctx: PairCtx): PairStates {
 }
 
 /**
+ * Put each linked pair on the lower-numbered channel's CUE. Values put back
+ * without the writes an edit carries, from a version whose channels each held
+ * their own CUE, can leave a linked pair with two.
+ */
+export function evenPairCues(ctx: PairCtx): void {
+  for (const strip of ctx.model.inputs) {
+    const pair = linkedPair(ctx, strip);
+    if (!pair || pair[0] !== strip) continue;
+    const cue = ctx.store.bool(`ch.${strip.id}.cue`, false);
+    if (ctx.store.bool(`ch.${pair[1].id}.cue`, false) !== cue) void ctx.store.restore(`ch.${pair[1].id}.cue`, cue);
+  }
+}
+
+/**
  * Carry a scene recall or a settings file load, which puts every value back
- * without the writes an edit carries, onto the compressors of each pair: a pair
- * it links hears the pair, SSMCS or not, and a linked pair it takes into SSMCS
- * hears each channel its own.
+ * without the writes an edit carries, onto each pair: a linked pair holds the
+ * lower-numbered channel's CUE, a pair it links hears the pair on its
+ * compressors, SSMCS or not, and a linked pair it takes into SSMCS hears each
+ * channel its own.
  */
 export function followRecall(ctx: PairCtx, before: PairStates): void {
+  evenPairCues(ctx);
   for (const [id, was] of before) {
     const strip = findStrip(ctx.model, id);
     if (!strip) continue;
