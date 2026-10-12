@@ -3664,6 +3664,11 @@ describe("the name on a lit face", () => {
     expect([px(mono["left"]) - px(btn["left"]), px(btn["width"]) - px(mono["width"])]).toEqual([2, 4]);
     expect(px(mono["width"])).toBe(86);
   });
+
+  // p068-1: `CUE` stands on y170..178 and `Interrupt` on y184..192.
+  it("sets CUE Interrupt's two lines 14px apart", () => {
+    expect(declarations(CSS, ".btn.mon-cue")["line-height"]).toBe("14px");
+  });
 });
 
 describe("a picker sheet's silhouette", () => {

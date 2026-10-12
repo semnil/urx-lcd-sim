@@ -1229,7 +1229,8 @@ confirmed by the operator on 2026-09-22).
 [CUE Interrupt] and [MONO] stand one under the other below [Source]. [CUE Interrupt] is 90px wide
 (x6..95 and x112..201, y163..199) and [MONO] is 4px narrower at 86px on the same centre (x8..93 and
 x114..199, y214..250). Off, they take the pale face `--mon-toggle-off` with the name in
-`--mon-toggle-off-ink`; lit, the cyan face with the name in `--surface` (p068-1).
+`--mon-toggle-off-ink`; lit, the cyan face with the name in `--surface` (p068-1). The name of [CUE Interrupt]
+takes two lines 14px apart, `CUE` on y170..178 and `Interrupt` on y184..192 (p068-1).
 
 ## Sheets over the screen
 
