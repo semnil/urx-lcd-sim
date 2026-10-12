@@ -49,9 +49,10 @@ export function carriesStereo(ctx: PairCtx, strip: Strip): boolean {
 }
 
 /**
- * What a linked pair does not hold one of. Four kinds of name sit here: the
+ * What a linked pair does not hold one of. Five kinds of name sit here: the
  * pair's own flags, which both channels are written directly; the head amp,
- * which each member keeps its own of; the values a pair already shares by
+ * which each member keeps its own of; each member's source, name and colour,
+ * which it keeps its own of too; the values a pair already shares by
  * being read from one channel (`balancePath`, `insertBase`); and the position,
  * which every transition places. Anything not named is shared.
  */
