@@ -1378,7 +1378,8 @@ and URX44 run the same laws, bar the number of channels.
   MIX 1, MIX 2 and STREAMING). Within a group cues add up. Cueing a strip of the other group takes each
   cue of the group that was cued out, and taking a cue out leaves the other cues as they stand. The
   outputs the first input cue takes out are remembered, and taking the last input cue out puts each of
-  them back in the cue; an output cued in between leaves nothing to put back. The inputs an output cue
+  them back in the cue once; an output cued in between leaves nothing to put back, also for an input cue
+  a scene or a settings file puts back afterwards. The inputs an output cue
   takes out do not come back. CLEAR CUE takes every cue out, puts nothing back and forgets the remembered
   outputs (`src/screens/cue.ts`, pinned by `src/screens/cue.test.ts`).
 - While CUE Interrupt is on and something is cued, MONITOR puts out the cue in place of its source. MONO
