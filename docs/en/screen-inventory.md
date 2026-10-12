@@ -1267,6 +1267,12 @@ nothing (see "Knob readout bar"). A press belongs to where it went down (`attach
 that went down on [Date/Time]'s sheet and was let go over the bar left the sheet up, and one that went down
 on the bar and was let go over the sheet closed it (URX44V, the operator, 2026-10-04).
 
+A dialog's question stands with the middle of its lines on the middle of the mark beside it (the information
+mark, the warning mark or the loading ring; the operator's choice, 2026-10-12). The mark stands in one place
+however many lines the question has, and a question of three lines, taller than the mark, runs past it as far
+above as below. The one-line question in wide/p040-2 stands higher than this: the middle of its ink (y103 on the screen) is
+13px above the middle of the mark's ring (y116).
+
 [Sends] on HOME's rail is always lit in the colour of the destination in view (STEREO red in p047-1, MIX 1 orange in
 p157-1), the same as the unit shows. p036-1 draws it unlit, and that figure is treated as wrong.
 

@@ -559,11 +559,17 @@ describe("the dialog box", () => {
   it("asks beside a mark the size of the unit's", () => {
     expect(px(mark["width"])).toBe(44);
     expect(px(mark["height"])).toBe(44);
-    // Padding, mark and gap put the question where the unit prints it.
+    // Padding, mark and gap put the mark where the unit prints it, and the question beside it.
     const pad = (box["padding"] ?? "").trim().split(/\s+/);
     expect(px(pad[0])).toBe(74);
     expect(px(pad[1])).toBe(25);
     expect(px(declarations(CSS, ".dialog-ask")["gap"])).toBe(15);
+  });
+
+  it("centres the question on the mark's middle, the row no taller than the mark", () => {
+    const ask = declarations(CSS, ".dialog-ask");
+    expect(ask["align-items"]).toBe("center");
+    expect(px(ask["height"])).toBe(px(mark["height"]));
   });
 
   it("gives its two buttons the unit's size and spacing", () => {

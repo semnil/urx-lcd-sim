@@ -117,6 +117,8 @@ describe("the dialog's information mark", () => {
     // The dot stands clear above the stem rather than touching it.
     expect(Number(dot?.getAttribute("y")) + 3).toBeLessThan(Number(stem?.getAttribute("y")));
     for (const b of bars) expect(b.getAttribute("fill")).toBe("currentColor");
+    // The dot and the stem share one column, on the ring's middle.
+    for (const b of bars) expect(Number(b.getAttribute("x")) + Number(b.getAttribute("width")) / 2).toBe(22);
   });
 });
 

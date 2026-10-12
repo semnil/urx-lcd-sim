@@ -209,9 +209,9 @@ export const Icons = {
     ring.setAttribute("stroke", "currentColor");
     ring.setAttribute("stroke-width", "3");
     node.append(disc, ring);
-    for (const [x, y, h] of [[20, 13, 3], [21, 20, 12]] as const) {
+    for (const [y, h] of [[13, 3], [20, 12]] as const) {
       const bar = document.createElementNS(NS, "rect");
-      bar.setAttribute("x", String(x));
+      bar.setAttribute("x", "20.5");
       bar.setAttribute("y", String(y));
       bar.setAttribute("width", "3");
       bar.setAttribute("height", String(h));
