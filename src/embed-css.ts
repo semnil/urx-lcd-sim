@@ -1,20 +1,20 @@
 // The simulator's stylesheet as an embedded glass carries it.
 //
 // The simulator alone styles the whole page: its tokens stand on :root and its
-// rules match anywhere. Embedded in another page, the same sheets are closed
-// under the glass's root element, so neither page's rules reach into the other:
+// rules match anywhere. Embedded in another page, the glass is drawn inside a
+// shadow tree, so the page's rules do not reach the elements inside it and the
+// glass's rules do not reach the page's:
 //
-// - every style rule is wrapped in `@scope (.<root>)`, and :root inside them
-//   becomes :scope, the glass's root;
-// - the rules that cannot sit inside a scope (@font-face, @keyframes, @property)
-//   stand at the top level, a keyframes name carrying the root's name in front
-//   of it so it meets no name of the page's own;
-// - a font file is loaded from the URL the page passes in for it.
+// - every rule but the two below goes into the shadow tree, and :root inside
+//   them becomes the glass's own root element, which starts from the initial
+//   value of every property rather than from what the page around it passes in;
+// - @font-face and @property, which a shadow tree does not take, stand on the
+//   page, and a font file is loaded from the URL the page passes in for it.
 
 /** The URLs of the simulator's font files, by the file name they carry in `/fonts/`. */
 export type FontUrls = Record<string, string>;
 
-const HOISTED = /^@(font-face|keyframes|property)\b/;
+const ON_PAGE = /^@(font-face|property)\b/;
 
 /** The top-level blocks and statements of `css`, comments dropped. */
 function topLevel(css: string): string[] {
@@ -58,23 +58,26 @@ function topLevel(css: string): string[] {
   return out.map((block) => block.trim()).filter((block) => block.length > 0);
 }
 
+/** The two halves of the embedded stylesheet: the one the page carries and the one inside the glass's shadow tree. */
+export interface EmbeddedStylesheet {
+  page: string;
+  shadow: string;
+}
+
 /**
- * `css` closed under `.<root>`: the style rules scoped to it, the hoisted rules
- * at the top level, keyframes renamed `<root>-<name>`, and each font file named
- * in `fonts` loaded from the URL given for it.
+ * `css` split for a glass drawn in a shadow tree under an element carrying the
+ * class `root`: @font-face and @property for the page, each font file named in
+ * `fonts` loaded from the URL given for it, and everything else for the shadow
+ * tree, :root reading as `.<root>`, which starts from the initial values.
  */
-export function scopeStylesheet(css: string, root: string, fonts: FontUrls = {}): string {
-  const blocks = topLevel(css);
-  const names = blocks.flatMap((block) => /^@keyframes\s+([\w-]+)/.exec(block)?.[1] ?? []);
-  const rename = (text: string): string =>
-    names.reduce((acc, name) => acc.replace(new RegExp(`(?<![\\w-])${name}(?![\\w-])`, "g"), `${root}-${name}`), text);
+export function embedStylesheet(css: string, root: string, fonts: FontUrls = {}): EmbeddedStylesheet {
   const font = (text: string): string =>
     text.replace(/url\(\s*(["']?)\/fonts\/([^"')]+)\1\s*\)/g, (whole, _q: string, file: string) => (fonts[file] ? `url("${fonts[file]}")` : whole));
-  const hoisted: string[] = [];
-  const scoped: string[] = [];
-  for (const block of blocks) {
-    if (HOISTED.test(block)) hoisted.push(font(rename(block)));
-    else scoped.push(rename(block).replace(/:root(?![\w-])/g, ":scope"));
+  const page: string[] = [];
+  const shadow: string[] = [`.${root} { all: initial; display: block; }`];
+  for (const block of topLevel(css)) {
+    if (ON_PAGE.test(block)) page.push(font(block));
+    else shadow.push(block.replace(/:root(?![\w-])/g, `.${root}`));
   }
-  return `${hoisted.join("\n")}\n@scope (.${root}) {\n${scoped.join("\n")}\n}\n`;
+  return { page: `${page.join("\n")}\n`, shadow: `${shadow.join("\n")}\n` };
 }

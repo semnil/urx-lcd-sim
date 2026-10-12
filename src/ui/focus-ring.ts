@@ -2,6 +2,7 @@
 // like it, so the simulator draws it itself, in a layer over the glass: no control
 // can cover it, and it holds the shape of the control the focus is on.
 
+import { activeIn } from "./active";
 import { drawnScale } from "./dom";
 
 /** How far the ring stands off the control, and how thick its own line is. */
@@ -159,7 +160,7 @@ export function attachFocusRing(root: HTMLElement): () => void {
   root.appendChild(ring);
   let frame = 0;
   const draw = (): boolean => {
-    const node = document.activeElement;
+    const node = activeIn(root);
     const on = node instanceof Element && node !== root && root.contains(node) && node.matches(":focus-visible");
     const place = on && node instanceof Element ? placeOf(node, root) : null;
     if (!place) {

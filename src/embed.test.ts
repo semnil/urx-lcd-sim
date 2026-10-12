@@ -48,6 +48,9 @@ async function shellOn(routes: Route[], actions: UnitActions = emulatedActions):
   return shell;
 }
 
+/** The glass's shadow tree. */
+const tree = (sim: EmbeddedSim): ShadowRoot => sim.root.shadowRoot!;
+
 const styles = (): HTMLStyleElement[] => [...document.querySelectorAll<HTMLStyleElement>("style[data-urx-lcd-sim]")];
 
 afterEach(() => {
@@ -57,20 +60,22 @@ afterEach(() => {
 });
 
 describe("the embedded glass", () => {
-  it("mounts the glass under one root carrying its class, and nothing of the simulator's own page around it", async () => {
+  it("mounts the glass in the shadow tree of one element carrying its class, and nothing of the simulator's own page around it", async () => {
     const { sim, host } = await mount();
     expect(host.children.length).toBe(1);
     expect(sim.root.classList.contains(ROOT_CLASS)).toBe(true);
-    expect(sim.root.querySelector(".lcd")).not.toBeNull();
-    expect(sim.root.querySelector(".chrome, .chrome-foot, select")).toBeNull();
+    expect(sim.root.children.length, "nothing of the glass in the page's own tree").toBe(0);
+    expect(tree(sim).querySelector(".embed-glass .lcd")).not.toBeNull();
+    expect(tree(sim).querySelector(".chrome, .chrome-foot, select")).toBeNull();
   });
 
   it("puts its stylesheet on the page once while any glass is up, and takes it off with the last", async () => {
     const a = await mount();
     const b = await mount();
     expect(styles().length).toBe(1);
-    expect(styles()[0]?.textContent).toContain(`@scope (.${ROOT_CLASS})`);
-    expect(styles()[0]?.textContent, "the simulator's own rules are in it").toContain(`@keyframes ${ROOT_CLASS}-spin-turn`);
+    expect(styles()[0]?.textContent, "the fonts on the page").toContain("@font-face");
+    expect(styles()[0]?.textContent, "and none of the rules").not.toContain(".lcd");
+    expect(tree(a.sim).querySelector("style")?.textContent, "the simulator's own rules in the shadow tree").toContain("@keyframes spin-turn");
     a.sim.dispose();
     expect(styles().length).toBe(1);
     b.sim.dispose();
@@ -79,9 +84,10 @@ describe("the embedded glass", () => {
 
   it("draws at the scale it is given", async () => {
     const { sim } = await mount();
-    expect(sim.root.style.getPropertyValue("--zoom")).toBe("1");
+    const glass = tree(sim).querySelector<HTMLElement>(".embed-glass")!;
+    expect(glass.style.getPropertyValue("--zoom")).toBe("1");
     sim.setZoom(150);
-    expect(sim.root.style.getPropertyValue("--zoom")).toBe("1.5");
+    expect(glass.style.getPropertyValue("--zoom")).toBe("1.5");
   });
 
   it("reads the meters and the clock from the unit while it is up, and lets them go with it", async () => {
@@ -101,7 +107,7 @@ describe("the embedded glass", () => {
 
   it("draws the unit's meters from the first paint, the synthetic signal never", async () => {
     const { sim } = await mount(simulated({ levels: { kind: "device", read: (_id, channels) => Array.from({ length: channels }, () => Number.NaN), clipSafe: () => false } }));
-    const bars = [...sim.root.querySelectorAll<HTMLElement>('[data-meter-source="bus.stereo"] .meter-bar')];
+    const bars = [...tree(sim).querySelectorAll<HTMLElement>('[data-meter-source="bus.stereo"] .meter-bar')];
     expect(bars.length).toBe(2);
     for (const bar of bars) expect(bar.style.getPropertyValue("--unlit")).toBe("100%");
   });
@@ -172,3 +178,22 @@ describe("the unit's actions", () => {
   });
 
 });
+
+describe("a glass drawn in a shadow tree", () => {
+  it("gives the focus back, when an overlay put up with no touch or key goes, to the control it stood on", async () => {
+    const shell = await shellOn([{ id: "setup" }]);
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const tree = host.attachShadow({ mode: "open" });
+    tree.appendChild(shell.root);
+    const control = shell.root.querySelector<HTMLElement>(".lcd button")!;
+    control.focus();
+    expect(tree.activeElement, "the control holds the focus in the shadow tree").toBe(control);
+    expect(document.activeElement, "which the document reads as the host").toBe(host);
+    const close = shell.ctx.overlay(document.createElement("div"));
+    control.blur();
+    close();
+    expect(tree.activeElement).toBe(control);
+  });
+});
+
