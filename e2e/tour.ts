@@ -49,7 +49,7 @@ async function settledClick(page: Page, target: Locator, at?: { x: number; y: nu
  */
 export async function tapInto(page: Page, target: Locator, id: string, at?: { x: number; y: number }): Promise<void> {
   await settledClick(page, target, at);
-  const up = await page.evaluate(() => document.querySelector(".lcd[data-screen]:not([inert])")?.getAttribute("data-screen"));
+  const up = await screenOf(page);
   if (up !== id) await settledClick(page, target, at);
   if (!(await onScreen(page, id, 2000))) throw new Error(`a touch on ${String(target)} left ${await screenOf(page)} up, not ${id}`);
 }
@@ -70,10 +70,12 @@ async function bank(page: Page, name: string): Promise<void> {
 async function block(page: Page, name: string | RegExp, id: string): Promise<void> {
   const node = button(page, name, true);
   const at = await node.evaluate((n) => {
+    // The glass may be drawn in a shadow tree, whose elements the document's own lookup does not reach.
+    const root = n.getRootNode() as Document | ShadowRoot;
     const r = n.getBoundingClientRect();
     for (let y = r.top + 4; y < r.bottom - 4; y += 4) {
       for (let x = r.left + 4; x < r.right - 4; x += 4) {
-        const hit = document.elementFromPoint(x, y);
+        const hit = root.elementFromPoint(x, y);
         if (hit && n.contains(hit) && hit.closest("button, [role='button'], [role='spinbutton'], [role='slider']") === n) return { x: x - r.left, y: y - r.top };
       }
     }
@@ -189,11 +191,16 @@ export const TOUR: Stop[] = [
   },
 ];
 
-/** Open the page fresh from the factory and take the touches onto `stop`'s screen. */
-export async function reach(page: Page, stop: Stop): Promise<void> {
+/** Open the simulator's own page fresh from the factory. */
+async function openSimulator(page: Page): Promise<void> {
+  await page.goto("./");
+}
+
+/** Open a page fresh from the factory with `open` (the simulator's own by default) and take the touches onto `stop`'s screen. */
+export async function reach(page: Page, stop: Stop, open: (page: Page) => Promise<void> = openSimulator): Promise<void> {
   const chain: Stop[] = [];
   for (let s: Stop | undefined = stop; s; s = s.from === undefined ? undefined : TOUR.find((t) => t.id === s?.from)) chain.unshift(s);
-  await page.goto("./");
+  await open(page);
   await page.locator('.lcd[data-screen="home"]:not([inert])').waitFor();
   for (const s of chain) await s.go(page);
   if ((await screenOf(page)) !== stop.id) throw new Error(`the way onto ${stop.id} ended on ${await screenOf(page)}`);
