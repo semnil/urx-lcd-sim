@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Give a linked pair of mono channels one CUE, as the unit does: [CUE] on either channel, and linking the pair, put both channels in the cue or take both out. Each channel had its own CUE, so a pair could be half in the cue.
 - Duck by how far the key is heard over DUCKER's threshold as the unit does: a steady tone takes all of RANGE a dB over the threshold and none a dB under it, and a noise-like key goes about 6 dB deeper for each dB over the threshold, from the values the unit read at five RANGEs. The DUCKER lamps follow what it ducks: yellow while part of RANGE, red once all of it. DUCKER ducked a dB for each dB over the threshold, so it took the whole of a -24 dB RANGE only 24 dB over the threshold, and the yellow lamp lit for all that span.
 - Light a meter's clip mark only while the level is over full scale, as the unit does, and not at 0 dB itself: a 0 dB oscillator on a bus no longer lights it. Clip Safe and the meters after a fader count a clip the same way.
 - Light a strip's red dot on HOME from -3 dBFS, as the unit does on a channel, an FX channel, STEREO and a MIX bus. It lit only at 0 dB.

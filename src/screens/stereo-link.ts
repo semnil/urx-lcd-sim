@@ -66,7 +66,6 @@ const PAIR_OWN = [
   "source",
   "name",
   "color",
-  "cue",
   "pan",
   "balance",
   "insFx",

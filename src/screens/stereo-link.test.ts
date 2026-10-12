@@ -458,6 +458,7 @@ describe("the values a stereo pair holds one of", () => {
     ["hpf.freq", 100],
     ["comp.threshold", -25],
     ["recPoint", "PRE EQ"],
+    ["cue", true],
     ["send.bus.mix1.level", -6],
     ["send.bus.mix1.pre", true],
   ];
@@ -506,6 +507,10 @@ describe("the values a stereo pair holds one of", () => {
     onButton?.click();
     await flush();
     expect([store.bool("ch.ch2.on", true), store.bool("ch.ch1.on", true)]).toEqual([false, false]);
+    const cueButton = shell.root.querySelector<HTMLElement>('[data-lamp-source="ch2@input"]')?.closest(".strip")?.querySelector<HTMLElement>(".btn-cue");
+    cueButton?.click();
+    await flush();
+    expect([store.bool("ch.ch2.cue", false), store.bool("ch.ch1.cue", false)], "CUE is the pair's too").toEqual([true, true]);
   });
 
   it("leaves each member its own head amp", async () => {

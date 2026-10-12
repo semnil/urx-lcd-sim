@@ -278,7 +278,7 @@ write are in one place, `src/screens/stereo-link.ts`.
 - A linked pair holds one set of values. A write to either channel reaches the other, and linking
   copies the lower-numbered channel's values onto the other. Unlinking puts nothing back. What each
   member keeps its own of is the head amp (A.Gain, Clip Safe, Φ, +48V, Hi-Z), the input source, the
-  name, the colour, CUE, and the position outside `BAL`. Signal Type and `PAN` / `BAL` are the pair's
+  name, the colour, and the position outside `BAL`. Signal Type and `PAN` / `BAL` are the pair's
   and are written to both; the insert and the BALANCE stay held by the lower-numbered channel.
 
 `src/screens/stereo-link.test.ts` pins the behavior, and "the stereo-link mark between two strips" in
