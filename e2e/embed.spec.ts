@@ -3,7 +3,8 @@
 // glass's host, and the glass's own class names. Neither side's rules reach the
 // other, and the glass's dialogs, drags, scale and fonts work as they do alone.
 
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Page } from "@playwright/test";
+import { TOUR, reach } from "./tour";
 
 /** Rules a page around the glass could carry. */
 const PAGE_RULES = `
@@ -13,12 +14,25 @@ const PAGE_RULES = `
   .btn { background: rgb(0, 128, 0); }
   .lcd { outline: 5px solid blue; }
   [hidden] { display: block !important; }
+  body { font: 40px serif; color: rgb(0, 0, 255); line-height: 3; }
+  div { padding: 7px; margin: 3px; }
+  span { color: rgb(255, 0, 255); font-weight: 900; }
+  svg { width: 50px; height: 50px; fill: red; }
+  input, select, textarea { font-size: 25px; }
+  [role="button"], [role="slider"], [role="option"], [role="textbox"] { margin: 5px; }
+  :focus, :focus-visible { outline: 6px solid rgb(255, 0, 255); }
 `;
 
-/** A page holding one control of its own and the glass under #inspector; `rules` false leaves the page unstyled. */
-function hostPage(rules: boolean): string {
+/** The moment a still glass's clock stands at. */
+const STILL_AT = Date.UTC(2026, 0, 15, 12, 0, 0);
+
+/**
+ * A page holding one control of its own and the glass under #inspector; `rules` false leaves the page unstyled.
+ * A still glass reads one level on every meter and a clock that stands at STILL_AT, so two of them draw alike.
+ */
+function hostPage(rules: boolean, still = false): string {
   return `<!doctype html><html><head><meta charset="utf-8"><style>${rules ? PAGE_RULES : ""}</style></head>
-<body><div id="inspector"><button class="btn" id="outer">Outer</button></div>
+<body><div id="inspector"><button class="btn" id="outer">Outer</button><div id="slot" style="position: fixed; left: 40px; top: 200px; margin: 0; padding: 0;"></div></div>
 <script type="module">
   import { mountSim } from "/src/embed.ts";
   import { emulatedActions, computerClock } from "/src/device/unit.ts";
@@ -26,17 +40,22 @@ function hostPage(rules: boolean): string {
   import { factoryState } from "/src/model/defaults.ts";
   import { unitById } from "/src/model/units.ts";
   window.mountGlass = async () => {
-    window.sim = await mountSim(document.getElementById("inspector"), {
+    window.sim = await mountSim(document.getElementById("slot"), {
       model: "URX44V",
-      unit: { params: new SimTransport(factoryState(unitById("URX44V"))), levels: { kind: "simulated" }, clock: computerClock, actions: emulatedActions },
+      unit: {
+        params: new SimTransport(factoryState(unitById("URX44V"))),
+        levels: ${still ? `{ kind: "device", read: (_id, channels) => Array.from({ length: channels }, () => -18), clipSafe: () => false }` : `{ kind: "simulated" }`},
+        clock: ${still ? `{ now: () => ${STILL_AT} }` : "computerClock"},
+        actions: emulatedActions,
+      },
     });
   };
   window.hostReady = true;
 </script></body></html>`;
 }
 
-async function open(page: Page, rules: boolean, mount = true): Promise<void> {
-  await page.route("**/embed-host.html", (route) => route.fulfill({ contentType: "text/html", body: hostPage(rules) }));
+async function open(page: Page, rules: boolean, mount = true, still = false): Promise<void> {
+  await page.route("**/embed-host.html", (route) => route.fulfill({ contentType: "text/html", body: hostPage(rules, still) }));
   await page.goto("/embed-host.html");
   await page.waitForFunction(() => (window as { hostReady?: boolean }).hostReady === true);
   if (mount) await mountGlass(page);
@@ -218,4 +237,75 @@ test("keeps the focus on its control when the screen is drawn again", async ({ p
   });
   expect(replaced, "the control the focus was on has been drawn anew").toBe(true);
   expect(await glassFocus(page)).toBe("Recorder");
+});
+
+/** Every animation on the page and in the glass's tree held at its start, and every transition run to its end. */
+async function holdStill(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    const tree = document.querySelector(".urx-lcd-sim")!.shadowRoot!;
+    for (const a of new Set([...document.getAnimations(), ...tree.getAnimations()])) {
+      if (a.effect?.getTiming().iterations === Infinity) {
+        a.pause();
+        a.currentTime = 0;
+      } else a.finish();
+    }
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  });
+}
+
+/** The glass on `stop`'s screen as a still glass draws it, and the computed style of its root and of every element in it, under a page carrying `rules`. */
+async function glassOn(browser: Browser, stop: (typeof TOUR)[number], rules: boolean, extra = ""): Promise<{ picture: Buffer; styles: string }> {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  try {
+    const page = await context.newPage();
+    await reach(page, stop, async (p) => {
+      await open(p, rules, true, true);
+      // The host is the page's own element: its rules move it and draw around it (an outline, a focus ring),
+      // and the glass is compared with the host standing bare in both pages.
+      await p.evaluate(() => {
+        const host = document.querySelector<HTMLElement>(".urx-lcd-sim")!;
+        for (const name of ["margin", "padding", "outline"]) host.style.setProperty(name, name === "outline" ? "none" : "0", "important");
+      });
+      if (extra) await p.addStyleTag({ content: extra });
+    });
+    await holdStill(page);
+    const styles = await page.evaluate(() =>
+      ((glass) => [glass, ...glass.querySelectorAll("*")])(document.querySelector(".urx-lcd-sim")!.shadowRoot!.querySelector(".embed-glass")!)
+        .map((e, i) => {
+          const c = getComputedStyle(e);
+          return [...c].sort().map((k) => `${i} ${e.tagName} ${k}=${c.getPropertyValue(k)}`).join("\n");
+        })
+        .join("\n"),
+    );
+    const picture = await page.locator(".urx-lcd-sim .lcd[data-screen]:not([inert])").screenshot({ animations: "disabled", caret: "hide" });
+    return { picture, styles };
+  } finally {
+    await context.close();
+  }
+}
+
+test.describe("every screen of the tour", () => {
+  for (const stop of TOUR) {
+    test(`draws ${stop.id} the same under a page whose rules would match its elements`, async ({ browser }) => {
+      const plain = await glassOn(browser, stop, false);
+      const ruled = await glassOn(browser, stop, true);
+      expect(plain.picture.length, "a picture was taken").toBeGreaterThan(1000);
+      expect(plain.styles.length, "styles were read").toBeGreaterThan(1000);
+      expect(ruled.styles === plain.styles, `every computed style inside ${stop.id} under the page's rules`).toBe(true);
+      expect(ruled.picture.equals(plain.picture), `${stop.id} under the page's rules`).toBe(true);
+    });
+  }
+
+  test("tells two glasses apart where a rule of the page does reach the glass", async ({ browser }) => {
+    const home = TOUR.find((s) => s.id === "home")!;
+    const plain = await glassOn(browser, home, false);
+    const reached = await glassOn(browser, home, true, ".urx-lcd-sim { filter: invert(1); }");
+    expect(reached.picture.equals(plain.picture)).toBe(false);
+  });
+
+  test("draws the same glass twice under the same page", async ({ browser }) => {
+    const stop = TOUR.find((s) => s.id === "ch.eq")!;
+    const [a, b] = [await glassOn(browser, stop, false), await glassOn(browser, stop, false)];
+    expect(a.picture.equals(b.picture) && a.styles === b.styles).toBe(true);
+  });
 });
