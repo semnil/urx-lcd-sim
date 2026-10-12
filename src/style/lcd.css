@@ -2690,10 +2690,9 @@
 }
 
 /* MONITOR, microSD and SCENE set their entries' names half a pixel smaller than
- * SETUP, and a pixel lower. */
+ * SETUP. */
 .menu-grid.menu-grid-wide .menu-btn > span {
   font-size: 12.5px;
-  translate: 0px 1px;
 }
 
 .menu-grid .menu-btn.is-one-line > span {
