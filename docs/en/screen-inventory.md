@@ -1825,8 +1825,10 @@ the folder as it is and writes nothing, as the unit does. A [Save as] name that 
 that is open in case alone asks nothing and writes over that file, which keeps its name as it was spelt, as the unit does; one
 that differs from a folder's in case alone asks nothing and writes nothing. The name is compared with its `.urxf` on: `wk`
 typed beside the folder `Wk` writes `wk.urxf` (URX44V, the operator, 2026-10-08). On a card with no room for one more settings
-file, a [Save as] under a new name writes nothing and shows nothing, and writing over a settings file there still goes
-through (what the unit does with a full card is in `known-issues.md`). [Save] and [Load] stand out of reach until a settings file is under the
+file, a [Save as] under a new name writes nothing and shows nothing, and writing over a settings file there goes
+through only where the room the file written over takes, handed back, holds the new one (an overwrite that grows by
+more scenes than the card has room for writes nothing, by [Save], by [Save as] under the same name and under the
+name in other case alike; what the unit does with a full card is in `known-issues.md`). [Save] and [Load] stand out of reach until a settings file is under the
 cursor. A settings file carries every value but the screen's own state (`ui.` bar the destination HOME's [Sends]
 shows, and the tabs OUTPUT PATCH, PERIPHERAL and SCENE LIST's Standard / Simple stand on), the card itself (`sd.`), the clock
 ("SETUP screen") and what a linked pair's COMP hears (`pair.`, "The three dynamics screens (GATE / COMP / DUCKER)"),

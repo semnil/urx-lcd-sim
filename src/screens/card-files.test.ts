@@ -6,7 +6,7 @@ import type { Route } from "../app/navigator";
 import { clockParts, setClock } from "../model/clock";
 import { factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
-import { entryBytes, freeBytes, readCard, writeCard } from "../model/card";
+import { entryBytes, freeBytes, readCard, roomSeconds, writeCard } from "../model/card";
 import type { CardEntry } from "../model/card";
 import { buildRegistry } from "./index";
 import { restore } from "../app/persist";
@@ -1371,6 +1371,59 @@ describe("what the card's own actions do to it", () => {
     await flush();
     expect(await saveAs("two"), "two scenes stored").toBe(72_640);
     expect(entryBytes({ name: "old.urxf", kind: "data", seconds: 0, tracks: 0, dir: "/" }), "a file that carries no count").toBe(50_668);
+  });
+
+  it("writes over a settings file only where the card holds what it grows by, by every way of writing over it", async () => {
+    const grown = entryBytes({ name: "x.urxf", kind: "data", seconds: 0, tracks: 0, dir: "/", scenes: 1 });
+    const growth = grown - entryBytes({ name: "x.urxf", kind: "data", seconds: 0, tracks: 0, dir: "/", scenes: 0 });
+    const ways: [string, (shell: Shell) => Promise<void>][] = [
+      ["Save", async (shell) => {
+        action(shell, "Save")?.click();
+        await flush();
+        await okDialog(shell);
+      }],
+      ["Save as, the same name", async (shell) => {
+        action(shell, "Save as")?.click();
+        await flush();
+        await typeTitle(shell, "cfg");
+        await okDialog(shell);
+      }],
+      ["Save as, the name in other case", async (shell) => {
+        action(shell, "Save as")?.click();
+        await flush();
+        await typeTitle(shell, "CFG");
+      }],
+    ];
+    for (const [way, write] of ways) {
+      for (const spare of [-1, 0, 1]) {
+        const shell = await mount({ id: "microsd.saveload" }, [{ name: "cfg.urxf", kind: "data", seconds: 0, tracks: 0, stamp: "", dir: "/", scenes: 0 }]);
+        const store = shell.ctx.store;
+        await store.set("sd.capacity", readCard(store).reduce((sum, e) => sum + entryBytes(e), 0) + growth + spare);
+        await store.set("sd.selectedFile", 0);
+        await store.set("scene.Standard.1.title", "one");
+        await flush();
+        const held = store.str("sd.file./cfg.urxf", "");
+        await write(shell);
+        const [entry] = readCard(store);
+        const label = `${way}, ${spare} byte(s) to spare`;
+        if (spare < 0) {
+          expect([entry?.scenes, store.str("sd.file./cfg.urxf", "") === held, freeBytes(store)], `${label}: nothing written`).toEqual([0, true, growth - 1]);
+        } else {
+          expect([entry?.scenes, store.str("sd.file./cfg.urxf", "") === held, freeBytes(store)], `${label}: written`).toEqual([1, false, spare]);
+        }
+        expect(roomSeconds(store, 48_000, 2), `${label}: the recorder's time from what is left`).toBe(Math.floor(freeBytes(store) / (48_000 * 3 * 2)));
+      }
+    }
+
+    for (const [kind, held] of [["the same size", 0], ["shrinking", 1], ["a file that carries no count", undefined]] as const) {
+      const shell = await mount({ id: "microsd.saveload" }, [{ name: "cfg.urxf", kind: "data", seconds: 0, tracks: 0, stamp: "", dir: "/", ...(held === undefined ? {} : { scenes: held }) }]);
+      const store = shell.ctx.store;
+      await store.set("sd.capacity", readCard(store).reduce((sum, e) => sum + entryBytes(e), 0));
+      await store.set("sd.selectedFile", 0);
+      await flush();
+      await ways[0]?.[1](shell);
+      expect([readCard(store)[0]?.scenes, freeBytes(store)], `${kind} on a full card`).toEqual([0, held === 0 ? 0 : growth]);
+    }
   });
 
   it("leaves Save and Load out of reach until a settings file is under the cursor", async () => {

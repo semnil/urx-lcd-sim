@@ -438,11 +438,12 @@ function newFolder(ctx: AppContext): void {
 /**
  * Write the unit's settings to the card under `name` in the folder that is
  * open: over the settings file at row `at`, or as a new file where `at` is -1.
- * A new file the card has no room for writes nothing.
+ * A file the card has no room for, with what the file it writes over takes up
+ * handed back, writes nothing.
  */
 function saveSettings(ctx: AppContext, name: string, at = -1): void {
   const entry: CardEntry = { name, kind: "data", seconds: 0, tracks: 0, written: clockParts(ctx.store), dir: cardPath(ctx), scenes: storedSceneCount(ctx) };
-  if (at < 0 && !roomFor(ctx.store, entry)) return;
+  if (!roomFor(ctx.store, entry, at < 0 ? undefined : cardEntries(ctx)[at])) return;
   // The file and its entry go in one operation of the store.
   ctx.store.operation(() => {
     void ctx.store.set(filePath(entry), toJson(captureSettings(ctx.store)));
