@@ -10,10 +10,10 @@ import { declarations, placedRules, readStyle, selectorList, styleRules } from "
 
 // `.lcd button, .lcd input, .lcd select { font: inherit; color: inherit }` hands every
 // control the font and the colour of what it stands in, and it outranks a rule of one
-// class. A size, weight or colour such a rule gives a control is never drawn.
+// class. A size, weight, line height or colour such a rule gives a control is never drawn.
 
 const CSS = readStyle("lcd.css");
-const FONT = ["font", "font-family", "font-size", "font-style", "font-weight"];
+const FONT = ["font", "font-family", "font-size", "font-style", "font-weight", "line-height"];
 const COLOUR = ["color"];
 const CONTROLS = new Set(["BUTTON", "INPUT", "SELECT"]);
 // One strip of each kind: what a channel screen draws depends on it.
@@ -96,7 +96,8 @@ function outranks(a: Specificity, b: Specificity): boolean {
 
 /**
  * A registered screen, drawn once for each kind of strip, and with each sheet,
- * list or dialog a control on it opens over the screen with the first strip.
+ * list or dialog a control on it opens and each page a side tab on it shows,
+ * with the first strip.
  */
 async function drawScreen(id: string): Promise<HTMLElement[]> {
   const roots: HTMLElement[] = [];
@@ -126,6 +127,15 @@ async function drawScreen(id: string): Promise<HTMLElement[]> {
     controls(root)[i]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await new Promise((resolve) => setImmediate(resolve));
     if (root.querySelector("[data-overlay]")) roots.push(root);
+  }
+  // Each side tab not in view shows another page of the screen, touched on a screen of its own.
+  const tabs = (root: HTMLElement): Element[] => [...root.querySelectorAll(".side-tab:not(.is-on)")];
+  const pages = tabs(await draw(id, STRIPS[0] ?? "ch1")).length;
+  for (let i = 0; i < pages; i++) {
+    const root = await draw(id, STRIPS[0] ?? "ch1");
+    tabs(root)[i]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await new Promise((resolve) => setImmediate(resolve));
+    roots.push(root);
   }
   return roots;
 }
@@ -242,5 +252,10 @@ describe("the font a rule gives a control", () => {
   it("finds a one-class font on a control, so the sweep cannot pass vacuously", () => {
     const { dead } = overridden(`${CSS}\n.patch-default { font-weight: 600; }`, roots);
     expect(dead).toEqual([".patch-default { font-weight: 600 }"]);
+  });
+
+  it("finds a one-class line height on a control", () => {
+    const { dead } = overridden(`${CSS}\n.menu-btn { line-height: 18px; }`, roots);
+    expect(dead).toEqual([".menu-btn { line-height: 18px }"]);
   });
 });
