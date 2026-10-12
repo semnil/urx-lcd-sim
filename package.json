@@ -5,6 +5,10 @@
   "packageManager": "pnpm@10.12.1",
   "license": "MIT",
   "type": "module",
+  "exports": {
+    "./embed": "./src/embed.ts",
+    "./fonts/*": "./public/fonts/*"
+  },
   "description": "Unofficial operation simulator for the YAMAHA URX series 4.3-inch LCD touch screen",
   "scripts": {
     "dev": "vite",

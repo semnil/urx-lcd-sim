@@ -1,12 +1,15 @@
 // The unit's clock.
 //
-// It keeps a moment in time that runs with the computer's own clock, moved by
-// however far the DATE / TIME dialog last set it apart, and shows that moment
+// It keeps a moment in time that runs with the clock of the unit behind the
+// screens (the computer's own for the simulated unit), moved by however far the
+// DATE / TIME dialog last set it apart, and shows that moment
 // in the time zone the unit is set to. The clock keeps running through a
 // reload, and a settings file does not carry it.
 
 import type { ParamPath } from "../device/path";
 import type { DeviceStore } from "../device/store";
+import type { UnitClock } from "../device/unit";
+import { computerClock } from "../device/unit";
 import { TIME_ZONE_SHIPPED, zoneOffsetMs } from "./time-zone";
 
 /** How far the unit's clock stands from the computer's, in milliseconds. */
@@ -14,6 +17,16 @@ export const CLOCK_OFFSET: ParamPath = "setup.dateTime.offsetMs";
 
 /** Where a state written while the clock stood still kept it, one part to a path. */
 export const LEGACY_CLOCK = /^setup\.dateTime\.(year|month|day|hour|minute)$/;
+
+let source: UnitClock = computerClock;
+
+/** Run the unit's clock off `clock`, or off the computer's own with null. */
+export function setClockSource(clock: UnitClock | null): void {
+  source = clock ?? computerClock;
+}
+
+/** The moment the unit's clock runs off, before the DATE / TIME dialog moves it. */
+export const unitNow = (): number => source.now();
 
 /** Whether the value at this path is the clock itself rather than a setting. */
 export function isClockPath(path: ParamPath): boolean {
@@ -40,7 +53,7 @@ export function daysInMonth(year: number, month: number): number {
 const zoneOf = (store: DeviceStore): string => store.str("setup.dateTime.timeZone", TIME_ZONE_SHIPPED);
 
 /** The unit's clock at `at`, as its time zone reads it. */
-export function clockParts(store: DeviceStore, at = Date.now()): ClockParts {
+export function clockParts(store: DeviceStore, at = unitNow()): ClockParts {
   const instant = at + store.num(CLOCK_OFFSET, 0);
   const d = new Date(instant + zoneOffsetMs(zoneOf(store)));
   return {
@@ -57,7 +70,7 @@ export function clockParts(store: DeviceStore, at = Date.now()): ClockParts {
  * Set the clock to the start of the given minute of its time zone as of `at`. A
  * day past the end of its month is taken as that month's last day.
  */
-export function setClock(store: DeviceStore, time: ClockTime, at = Date.now()): Promise<void> {
+export function setClock(store: DeviceStore, time: ClockTime, at = unitNow()): Promise<void> {
   const zone = zoneOf(store);
   const day = Math.min(time.day, daysInMonth(time.year, time.month));
   const wall = Date.UTC(time.year, time.month - 1, day, time.hour, time.minute, 0, 0);

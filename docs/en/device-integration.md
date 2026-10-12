@@ -28,6 +28,46 @@ export interface DeviceLink {
 }
 ```
 
+## The unit behind the screens
+
+The values are one of four things the unit does by itself. `Unit` (`src/device/unit.ts`) carries all of
+them, and the screens ask it without knowing which kind of unit answers.
+
+| Part | What it is | Simulated unit |
+| --- | --- | --- |
+| `params` | The `DeviceTransport` the store attaches to | `SimTransport` |
+| `levels` | What the meters read: `simulated`, or `device` with a reader of levels in dB and a Clip Safe state per connector | The synthetic signal (`src/screens/signal-flow.ts`) |
+| `actions` | The operations the unit carries out on its own memory, card and recorder (`UnitAction`: scene recall, store, protect and delete; settings-file save and load; card insert, eject, format, test, delete, rename and new folder; recorder arm, record, pause and stop; playback start, pause and stop) | Each carried out on the simulated memory (`emulatedActions`) |
+| `clock` | The moment the unit's clock runs off, before the DATE / TIME dialog moves it | The computer's clock |
+
+A screen hands each action `perform()` together with what the simulated unit does for it. A unit that
+carries the action out itself, or refuses it (`refusedActions`, which reports each refusal), does not run
+that part, so the simulated memory never stands in for a unit that has its own. The edits a screen makes
+to values stay `params`' business, as they are on every kind of unit.
+
+`useUnit()` (`src/app/unit.ts`) hands a unit's levels and clock to the meters and the clock; one unit is
+mounted on a page at a time. A unit's levels reach the meters through `setMeterSource()` and
+`setClipSafeSource()` (`src/screens/meters.ts`), whose ids are described under "Wiring it up" below.
+
+## Embedding the glass in another page
+
+`mountSim()` (`src/embed.ts`, exported as `urx-lcd-sim/embed`) mounts the glass of a model in an element
+of another page, reading and writing through the `Unit` it is handed. It mounts the 480x272 glass alone:
+no unit model or display scale selector, no Device menu, no link indicator, and nothing stored in the
+browser. What it returns sets the display scale and lets the glass go, closing the unit's transport.
+
+- The stylesheets are put on the page closed under the glass's root element (`.urx-lcd-sim`,
+  `src/embed-css.ts`): every style rule inside `@scope (.urx-lcd-sim)`, `:root` reading as that element,
+  and `@font-face`, `@keyframes` and `@property` at the top level, a keyframes name carrying
+  `urx-lcd-sim-` in front of it. The page's rules and the glass's meet nowhere, and a font file loads
+  from the URL the page passes in for it (`fonts`, by the file name under `public/fonts/`, which the
+  package exports as `urx-lcd-sim/fonts/*`).
+- A key pressed with nothing focused is the page's: Escape steps the glass back only while the focus is
+  on the glass, and Tab is kept inside a dialog of the glass only while the focus is on the glass.
+- A value drag marks the glass's root rather than the page.
+- `shippedValues(model)` lists every path the glass reads and writes, with the value it ships with, for a
+  host deciding which of them it answers.
+
 ## Binding table
 
 `BindingTable` (`src/device/binding.ts`) holds the mapping from path to address + encoding.
@@ -92,8 +132,8 @@ sequenceDiagram
    these five verbs to the simulator.
 2. Fill `BindingTable` from a validated catalog.
 3. Pass `new BridgeTransport(link, bindings)` to `store.attach()`.
-4. To drive the meters from the unit, pass the unit's meter stream to `setMeterSource()`
-   (`src/screens/meters.ts`). The function passed is given a strip's id and the point on the strip it
+4. To drive the meters from the unit, hand a `Unit` whose `levels` are `device` to `useUnit()` — or
+   pass the unit's meter stream to `setMeterSource()` (`src/screens/meters.ts`) directly. The function passed is given a strip's id and the point on the strip it
    reads, joined by `@` (`ch3@preFader`, `bus.mix1@post`, and so on; the points are `Tap` in
    `src/screens/signal-flow.ts`), and `monitor.<n>`, `cue`, `osc` and `playback` (what the card's
    playback puts out, after microSD Playback's D.Gain). It is also given a strip's id alone, with no `@`

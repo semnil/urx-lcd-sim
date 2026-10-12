@@ -6,7 +6,7 @@
 // the card's capacity less everything on it.
 
 import type { DeviceStore } from "../device/store";
-import { clockParts, type ClockParts } from "./clock";
+import { clockParts, unitNow, type ClockParts } from "./clock";
 
 /** What an entry on the card is. */
 export type CardKind = "folder" | "take" | "data";
@@ -175,7 +175,7 @@ const pad = (n: number, width = 2): string => String(n).padStart(width, "0");
  * card already carries, in any case, takes the next second that is free, the
  * clock carrying into the minute, the hour and the day.
  */
-export function takeName(store: DeviceStore, at = Date.now()): string {
+export function takeName(store: DeviceStore, at = unitNow()): string {
   const taken = readCard(store).map((e) => e.name);
   for (let i = 0; ; i++) {
     const { year, month, day, hour, minute, second } = clockParts(store, at + i * 1000);

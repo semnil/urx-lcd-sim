@@ -11,9 +11,11 @@ import "./style/lcd.css";
 
 import { cardInSlot, modelOf, openKeeper, openKept, restore, sceneMemories, type Settled, startSaving, type Opened } from "./app/persist";
 import { Shell } from "./app/shell";
+import { useUnit } from "./app/unit";
 import type { ParamValue } from "./device/path";
 import { DeviceStore } from "./device/store";
 import { SimTransport } from "./device/sim-transport";
+import { simulatedServices } from "./device/unit";
 import { factoryState } from "./model/defaults";
 import type { ModelId } from "./model/types";
 import { unitById } from "./model/units";
@@ -426,6 +428,7 @@ async function boot(
   // on screen that move without an input event. They are refreshed in place
   // rather than by repainting, so a repaint never interrupts a knob drag or a
   // list's scroll.
+  const releaseUnit = useUnit(simulatedServices);
   const stopMeters = startMeterTicker(store, shell.root);
   const stopClock = startRecorderClock(store, shell.root);
   const stopDateTime = startDateTimeClock(store, shell.root);
@@ -440,6 +443,7 @@ async function boot(
     stopMeters();
     stopClock();
     stopDateTime();
+    releaseUnit();
     shell.destroy();
     transport.close();
   };

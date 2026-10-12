@@ -4,8 +4,9 @@
 // read the synthetic signal `signal-flow.ts` carries through the mixer: each
 // input source's own signal, taken through the channels, the sends, the FX
 // returns and the buses the way the unit routes it, and read where the unit's
-// own meter stands. With a device transport attached, the same accessor is fed
-// from the unit's own meter stream instead — see setMeterSource.
+// own meter stands. A unit that passes its own readings in feeds the same
+// accessor instead — see setMeterSource and setClipSafeSource, which the
+// unit's levels are handed to as it is mounted (src/app/unit.ts).
 
 import type { AppContext } from "../app/context";
 import type { DeviceStore } from "../device/store";
@@ -38,6 +39,21 @@ let source: MeterSource | null = null;
 /** Point the meters at a real device's metering. */
 export function setMeterSource(next: MeterSource | null): void {
   source = next;
+}
+
+/** Whether the Clip Safe of connector `n` holds its gain down, as a unit reports it. */
+export type ClipSafeSource = (connector: number) => boolean;
+
+let clipSafeSource: ClipSafeSource | null = null;
+
+/** Read Clip Safe from a real device; null goes back to the simulated head amp. */
+export function setClipSafeSource(next: ClipSafeSource | null): void {
+  clipSafeSource = next;
+}
+
+/** Whether the Clip Safe of connector `n` is holding its gain down. */
+function clipSafeEngaged(store: DeviceStore, n: number): boolean {
+  return clipSafeSource ? clipSafeSource(n) : clipSafe(store, n).engaged;
 }
 
 /** The meter id of `stripId`'s level as it arrives, before anything on the strip. */
@@ -83,7 +99,7 @@ function showClipSafe(node: HTMLElement, engaged: boolean): void {
 export function markClipSafe(store: DeviceStore, node: HTMLElement, connector: Strip): HTMLElement {
   const n = connector.channels[0] ?? 0;
   node.dataset["clipSafe"] = String(n);
-  showClipSafe(node, clipSafe(store, n).engaged);
+  showClipSafe(node, clipSafeEngaged(store, n));
   return node;
 }
 
@@ -267,7 +283,7 @@ export function readGrSpec(node: HTMLElement): GrSpec | null {
 export function startMeterTicker(store: DeviceStore, root: HTMLElement, intervalMs = METER_TICK_MS): () => void {
   const showClipSafes = (): void => {
     for (const node of root.querySelectorAll<HTMLElement>("[data-clip-safe]")) {
-      showClipSafe(node, clipSafe(store, Number(node.dataset["clipSafe"])).engaged);
+      showClipSafe(node, clipSafeEngaged(store, Number(node.dataset["clipSafe"])));
     }
   };
   const id = window.setInterval(() => {

@@ -2,6 +2,7 @@
 // way to move between screens.
 
 import type { DeviceStore } from "../device/store";
+import type { UnitActions } from "../device/unit";
 import type { UnitModel } from "../model/types";
 import type { FocusController } from "../ui/focus";
 import type { NumericSpec } from "../ui/param-spec";
@@ -12,6 +13,8 @@ export interface AppContext {
   model: UnitModel;
   focus: FocusController;
   nav: Navigator;
+  /** The operations the unit carries out on its memory, card and recorder. */
+  actions: UnitActions;
   /** Rebuild the current screen. Screens call this after a state change. */
   repaint(): void;
   /**
