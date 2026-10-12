@@ -3719,6 +3719,11 @@ describe("a picker sheet's silhouette", () => {
     const tokens = declarations(TOKENS, ":root");
     expect([tokens["--sheet-back-top-corner-inner"], tokens["--sheet-back-top-corner-outer"]]).toEqual(["#3a454a", "#212d31"]);
   });
+
+  // wide/p059-1: [MONITOR 1] has `MONITOR` on y169..177 and `1` on y183..191.
+  it("sets a button's two lines 14px apart", () => {
+    expect(declarations(CSS, ".source-sheet .source-btn")["line-height"]).toBe("14px");
+  });
 });
 
 describe("the ducker's key list", () => {

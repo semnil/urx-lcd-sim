@@ -1080,6 +1080,9 @@ y163..199)、[MONO] はそれより 4px 狭い 86px で同じ中心に立つ (x8
 パネルの左・右・上への接触で閉じ、MONITOR の Source、OUTPUT PATCH の MAIN OUT、COLOR、EFFECT TYPE、RECORDER の
 REC Track 1/2 の Source、DELAY の Frame rate、SSMCS の Sweet Spot Data がパネルの左への接触で閉じた (URX44V、2026-10-04 操作者確認)。
 
+ピッカーのシートのボタンは、2 行の名前を 14px 間隔で置く。wide/p059-1 の [MONITOR 1] は `MONITOR` が y169..177、`1` が
+y183..191。p100-2 のボタンは 16px 間隔で描かれているが、どのシートも 14px に揃える (2026-10-12 の操作者指定)。
+
 Sends の送り先シートは HOME のメインエリアに重なり、覆っていない部分 (ツールバー・サイドレール・
 メーター・USER DEFINED KNOBS のバー) を `--scrim` で暗く落とす。シートを開いた [Sends] ボタンだけは明るいまま残る
 (p051-1 実測: ツールバーの面 (66,73,82) が (8,12,16)、[Sends] は (206,69,41) のまま)。

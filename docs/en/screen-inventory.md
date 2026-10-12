@@ -1247,6 +1247,10 @@ source sheet closed on a touch over the bar and left of, right of and above its 
 OUTPUT PATCH's MAIN OUT, COLOR, EFFECT TYPE, RECORDER's REC Track 1/2 source, the DELAY's Frame rate and
 SSMCS's Sweet Spot Data on a touch left of theirs (URX44V, the operator, 2026-10-04).
 
+A picker sheet's button sets a name on two lines 14px apart. In wide/p059-1, [MONITOR 1] has `MONITOR` on
+y169..177 and `1` on y183..191. p100-2 draws its buttons' lines 16px apart, but every sheet sets them 14px apart
+(the operator's choice, 2026-10-12).
+
 The Sends destination sheet lies over HOME's main area and darkens what it does not cover (toolbar,
 side rail, meters, the USER DEFINED KNOBS bar) with `--scrim`. The [Sends] button that opened the sheet
 stays bright (measured on p051-1: the toolbar face (66,73,82) becomes (8,12,16), while [Sends] stays

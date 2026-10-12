@@ -6744,9 +6744,11 @@
   scroll-snap-align: start;
 }
 
+/* A name on two lines sets them 14px apart. */
 .source-sheet .source-btn {
   min-height: 40px;
   font-size: 12px;
+  line-height: 14px;
 }
 
 /* The band under an unlit source button is the dialog bevel, not a wash of the
