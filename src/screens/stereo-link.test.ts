@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
+import { restore, snapshot } from "../app/persist";
 import { Shell } from "../app/shell";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
 import { levelBarShare } from "../model/dynamics";
+import { applySettings, captureSettings } from "../model/settings-file";
+import { captureScene } from "../model/scene-state";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
-import { setMeterSource, startMeterTicker } from "./meters";
+import { meterLevels, setMeterSource, startMeterTicker } from "./meters";
+import { recallScene } from "./scene";
+import { CUE_METER } from "./signal-flow";
+import { followRecall, pairStates } from "./stereo-link";
 
 // Signal Type is a setting of a channel PAIR. Both channels have to agree about
 // it, the pair has to be the adjacent one, and the screens have to say which two
@@ -612,5 +618,66 @@ describe("the values a stereo pair holds one of", () => {
     expect(store.num("ch.ch3.level", 0), "a half-applied link carries nothing").toBe(0);
     await store.set("ch.ch3.level", -7);
     expect(store.num("ch.ch4.level", 0), "nor from the half reading STEREO").toBe(-3);
+  });
+});
+
+describe("a linked pair's CUE put back from before the pair held one", () => {
+  /** Values an earlier version could leave: CH 1/2 linked, each channel with its own CUE. */
+  async function held(cues: [boolean, boolean], signalType = "STEREO"): Promise<DeviceStore> {
+    const store = new DeviceStore();
+    await store.attach(new SimTransport(factoryState(unitById("URX44V"))));
+    for (const id of ["ch1", "ch2"]) await store.restore(`ch.${id}.signalType`, signalType);
+    await store.restore("ch.ch1.cue", cues[0]);
+    await store.restore("ch.ch2.cue", cues[1]);
+    return store;
+  }
+
+  /** Put `old` back on a fresh unit by `route`, as the page does. */
+  async function putBack(route: string, old: DeviceStore): Promise<Mounted> {
+    const model = unitById("URX44V");
+    const store = new DeviceStore();
+    await store.attach(new SimTransport(factoryState(model)));
+    if (route === "reload") await restore(store, model.id, { token: null, model: model.id, unit: JSON.stringify({ version: 1, model: model.id, values: snapshot(old) }) });
+    const shell = new Shell(buildRegistry(), store, model, [{ id: "home" }]);
+    if (route === "scene") {
+      await store.set("scene.Standard.1.title", "old");
+      await store.set("scene.Standard.1.state", JSON.stringify(captureScene(old)));
+      await recallScene(shell.ctx, 1);
+    }
+    if (route === "settings") {
+      const before = pairStates(shell.ctx);
+      await applySettings(store, captureSettings(old));
+      followRecall(shell.ctx, before);
+    }
+    return { shell, store };
+  }
+
+  it.each([
+    ["reload", true],
+    ["reload", false],
+    ["scene", true],
+    ["scene", false],
+    ["settings", true],
+    ["settings", false],
+  ] as const)("through %s, holds CH 1's CUE on both channels (CH 1 %s)", async (route, first) => {
+    const { shell, store } = await putBack(route, await held([first, !first]));
+    expect([store.str("ch.ch1.signalType", ""), store.bool("ch.ch1.cue", !first), store.bool("ch.ch2.cue", first)]).toEqual(["STEREO", first, first]);
+
+    // The cue bus and the monitor follow: CH 2 alone carries a signal.
+    for (const strip of shell.ctx.model.inputs) await store.set(`ch.${strip.id}.source`, strip.id === "ch2" ? "USB MAIN A" : "None");
+    const cue = meterLevels(store, CUE_METER, 2, 1_700_000_000_000);
+    if (first) {
+      expect(Math.max(...cue), "CH 2 heard on the cue").toBeGreaterThan(-96);
+      expect(meterLevels(store, "monitor.1", 2, 1_700_000_000_000), "and on the monitor in its place").toEqual(cue);
+    } else {
+      expect(Math.max(...cue), "nothing on the cue").toBeLessThanOrEqual(-96);
+    }
+    shell.destroy();
+  });
+
+  it.each(["reload", "scene", "settings"])("through %s, leaves a pair that is not linked a CUE each", async (route) => {
+    const { shell, store } = await putBack(route, await held([true, false], "MONO x 2"));
+    expect([store.bool("ch.ch1.cue", false), store.bool("ch.ch2.cue", true)]).toEqual([true, false]);
+    shell.destroy();
   });
 });

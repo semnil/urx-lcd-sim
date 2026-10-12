@@ -130,12 +130,28 @@ export function pairStates(ctx: PairCtx): PairStates {
 }
 
 /**
+ * Put each linked pair on the lower-numbered channel's CUE. Values put back
+ * without the writes an edit carries, from a version whose channels each held
+ * their own CUE, can leave a linked pair with two.
+ */
+export function evenPairCues(ctx: PairCtx): void {
+  for (const strip of ctx.model.inputs) {
+    const pair = linkedPair(ctx, strip);
+    if (!pair || pair[0] !== strip) continue;
+    const cue = ctx.store.bool(`ch.${strip.id}.cue`, false);
+    if (ctx.store.bool(`ch.${pair[1].id}.cue`, false) !== cue) void ctx.store.restore(`ch.${pair[1].id}.cue`, cue);
+  }
+}
+
+/**
  * Carry a scene recall or a settings file load, which puts every value back
- * without the writes an edit carries, onto the compressors of each pair: a pair
- * it links hears the pair, SSMCS or not, and a linked pair it takes into SSMCS
- * hears each channel its own.
+ * without the writes an edit carries, onto each pair: a linked pair holds the
+ * lower-numbered channel's CUE, a pair it links hears the pair on its
+ * compressors, SSMCS or not, and a linked pair it takes into SSMCS hears each
+ * channel its own.
  */
 export function followRecall(ctx: PairCtx, before: PairStates): void {
+  evenPairCues(ctx);
   for (const [id, was] of before) {
     const strip = findStrip(ctx.model, id);
     if (!strip) continue;

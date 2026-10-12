@@ -23,7 +23,7 @@ import { dateDraftWriteRule } from "../screens/date-time";
 import { hiZWriteRule } from "../screens/head-amp";
 import { delaySyncWriteRule } from "../model/effects";
 import { eqOneKnobWriteRule } from "../screens/channel";
-import { pairWriteRule } from "../screens/stereo-link";
+import { evenPairCues, pairWriteRule } from "../screens/stereo-link";
 import { panLinkWriteRule } from "../screens/mix-bus";
 import { screenOnly } from "../screens/screen-only";
 import { bankSide, bankTotal, currentBank, stepBank } from "../screens/strip-state";
@@ -159,6 +159,9 @@ export class Shell {
     // puts each send into its bus where the send's source is.
     // They are installed here because every screen and every gesture
     // reaches the store through this one context.
+    // Values put back before these rules were installed, such as a browser
+    // save, hold a linked pair's CUE the way the rules would.
+    evenPairCues({ store, model });
     this.offWriteRule = store.setWriteRule(
       combineWriteRules(
         pairWriteRule(store, model),

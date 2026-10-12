@@ -252,7 +252,8 @@ CH SETTING の `Signal Type` は 1 チャンネルではなく隣り合うモノ
   若い番号のチャンネルの値がもう一方へ写る。解除は何も戻さない。各メンバーが自分の値を
   保つのは、ヘッドアンプ (A.Gain・Clip Safe・Φ・+48V・Hi-Z)・入力ソース・名前・色と、
   `BAL` 以外での位置。Signal Type と `PAN`/`BAL` はペアの値で両方へ書き、インサートと
-  BALANCE は若い番号のチャンネルが持つ形のまま。
+  BALANCE は若い番号のチャンネルが持つ形のまま。チャンネルごとに CUE を持っていた版のブラウザーの保存・シーン・
+  設定ファイルが 2 つの CUE を持つリンク中のペアを読み戻すと、若い番号のチャンネルの CUE にそろう。
 
 `src/screens/stereo-link.test.ts` が振る舞いを、`src/style/columns.test.ts` の
 「the stereo-link mark between two strips」がマークの位置を固定している。
