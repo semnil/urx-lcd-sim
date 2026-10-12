@@ -80,12 +80,15 @@ of another page, reading and writing through the `Unit` it is handed. It mounts 
 no unit model or display scale selector, no Device menu, no link indicator, and nothing stored in the
 browser. What it returns sets the display scale and lets the glass go, closing the unit's transport.
 
-- The stylesheets are put on the page closed under the glass's root element (`.urx-lcd-sim`,
-  `src/embed-css.ts`): every style rule inside `@scope (.urx-lcd-sim)`, `:root` reading as that element,
-  and `@font-face`, `@keyframes` and `@property` at the top level, a keyframes name carrying
-  `urx-lcd-sim-` in front of it. The page's rules and the glass's meet nowhere, and a font file loads
-  from the URL the page passes in for it (`fonts`, by the file name under `public/fonts/`, which the
-  package exports as `urx-lcd-sim/fonts/*`).
+- The glass is drawn in the shadow tree of one element of the page (`.urx-lcd-sim`), so the page's rules
+  do not reach the elements inside it and the glass's rules do not reach the page's (`src/embed-css.ts`).
+  Inside the tree, `:root` reads as the glass's own root (`.embed-glass`), which starts from the initial
+  value of every property rather than from what the page passes in. `@font-face` and `@property`, which a
+  shadow tree does not take, stand on the page, and a font file loads from the URL the page passes in for
+  it (`fonts`, by the file name under `public/fonts/`, which the package exports as
+  `urx-lcd-sim/fonts/*`).
+- The focus, a key and a pointer are read in the glass's own tree (`src/ui/active.ts`): seen from the
+  page, the focus inside the glass and an event from inside it stand on the host element.
 - A key pressed with nothing focused is the page's: Escape steps the glass back only while the focus is
   on the glass, and Tab is kept inside a dialog of the glass only while the focus is on the glass.
 - A value drag marks the glass's root rather than the page.

@@ -11,6 +11,7 @@ import { UDK_BANKS, UDK_KNOBS, UDK_UNASSIGNED, udkAssignment, udkPath } from "..
 import { INTERACTIVE, clear, el, setPressed, tappedControl } from "../ui/dom";
 import { FocusController } from "../ui/focus";
 import { Icons } from "../ui/icons";
+import { activeIn, elementAt, originOf } from "../ui/active";
 import { attachFocusRing } from "../ui/focus-ring";
 import type { Press } from "../ui/press";
 import { attachPress } from "../ui/press";
@@ -118,7 +119,7 @@ export class Shell {
         node.dataset["overlay"] = "";
         // The control whose touch or key put it up, or else where the focus stood when it went up.
         const tapped = tappedControl();
-        const opener = tapped?.isConnected === true ? tapped : document.activeElement;
+        const opener = tapped?.isConnected === true ? tapped : activeIn(this.lcd);
         const refocus = this.focusPlace(opener);
         this.lcd.appendChild(node);
         const close = (): void => {
@@ -336,7 +337,7 @@ export class Shell {
    * other screen leaves the focus where the rebuild left it. The control it starts
    * from is `active`, the one holding the focus unless another is named.
    */
-  private focusPlace(active: Element | null = document.activeElement): () => void {
+  private focusPlace(active: Element | null = activeIn(this.root)): () => void {
     if (!active || active === this.root || !this.root.contains(active)) return () => undefined;
     // A control's kind is its tag and its classes, less the ones naming its state.
     const kind = (node: Element): string => [node.tagName, ...[...node.classList].filter((c) => !c.startsWith("is-"))].join(" ");
@@ -629,13 +630,14 @@ export class Shell {
   private buildTabTrap(): (ev: KeyboardEvent) => void {
     return (ev) => {
       if (ev.key !== "Tab") return;
-      if (!this.ownsDocument && !this.lcd.contains(document.activeElement)) return;
+      const focused = activeIn(this.lcd);
+      if (!this.ownsDocument && !this.lcd.contains(focused)) return;
       const top = this.topLayer();
       if (!top?.modal) return;
       const stops = [...top.node.querySelectorAll<HTMLElement>("*")].filter((n) => n.tabIndex >= 0);
       if (stops.length === 0) return;
       ev.preventDefault();
-      const at = stops.indexOf(document.activeElement as HTMLElement);
+      const at = stops.indexOf(focused as HTMLElement);
       const step = ev.shiftKey ? -1 : 1;
       const next = at < 0 ? (ev.shiftKey ? stops.length - 1 : 0) : (at + step + stops.length) % stops.length;
       stops[next]?.focus();
@@ -653,7 +655,8 @@ export class Shell {
     // On the window: a screen that draws no exits leaves focus on the document.
     return (ev) => {
       if (ev.key !== "Escape" || ev.isComposing) return;
-      const target = ev.target instanceof HTMLElement ? ev.target : null;
+      const origin = originOf(ev);
+      const target = origin instanceof HTMLElement ? origin : null;
       const unfocused = !target || target === document.body || target === document.documentElement;
       if (unfocused ? !this.ownsDocument : !this.lcd.contains(target)) return;
       if (this.lcd.querySelector("[data-overlay]")) {
@@ -693,7 +696,7 @@ export class Shell {
       stop = holds.follow(ev, [this.mainNode], () => undefined, (last) => {
         if (last?.type !== "pointerup" || !swipes()) return;
         const dx = last.clientX - startX;
-        const over = document.elementFromPoint(last.clientX, last.clientY);
+        const over = elementAt(this.mainNode, last.clientX, last.clientY);
         if (Math.abs(dx) < 40 || over === null || !this.mainNode.contains(over)) return;
         stepBank(this.ctx, dx < 0 ? 1 : -1);
       });

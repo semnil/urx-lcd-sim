@@ -550,12 +550,12 @@ export function pickerGrid(rows: (HTMLElement | null)[][]): HTMLElement {
 /** Set on the page while a value is being dragged. */
 const TURNING = "is-turning";
 
-/** The root of an embedded glass (src/embed.ts), which its stylesheet is scoped to. */
-export const EMBED_ROOT = "urx-lcd-sim";
+/** The root of an embedded glass inside its shadow tree, which its stylesheet reads as :root. */
+export const GLASS_ROOT = "embed-glass";
 
 /** Where the drag marker goes: the embedded glass's root, or the page for the simulator alone. */
 function turningRoot(node: Element): Element {
-  return node.closest(`.${EMBED_ROOT}`) ?? document.documentElement;
+  return node.closest(`.${GLASS_ROOT}`) ?? document.documentElement;
 }
 
 /** Pointer travel past the slop that covers a control's whole range, in pixels. */

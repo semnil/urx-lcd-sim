@@ -2,6 +2,7 @@
 // or Space key holds it down: the face slides down the depth of the band and
 // covers it.
 
+import { activeIn } from "./active";
 import { INTERACTIVE, placeOf } from "./dom";
 
 /**
@@ -121,7 +122,7 @@ export function attachPress(root: HTMLElement): Press {
   const onKeyDown = (ev: KeyboardEvent): void => {
     if (!PRESS_KEYS.has(ev.key) || ev.isComposing || keyed?.isConnected) return;
     keyed = ev.target instanceof Element ? ev.target : null;
-    follow(document.activeElement);
+    follow(activeIn(root));
   };
   const onFocus = (ev: Event): void => {
     if (keyed) follow(ev.target instanceof Element ? ev.target : null);
