@@ -667,4 +667,8 @@ captures of the compared screens and the guide's figures.
 The text of a control that no token covers takes a size written straight into its rule in `lcd.css`, in half-pixel
 steps, chosen by the difference in pixels between the capture of its screen and the guide's figure (the sum over
 both screens when two screens share the rule). Text whose row or column differs from the guide is moved there
-with `translate`.
+with `translate`. `translate` does not move an inline element (such as the `span` inside a button), so there the
+button's padding moves it. The distance between a name's two lines follows the figure through the `line-height` in
+the button's rule. `.lcd button { font: inherit }` hands a button the size, weight and line height of what it
+stands in, and outranks a rule of one class, so a button sets these in a rule of two classes or more
+(`src/style/font-reset.test.ts` holds it).

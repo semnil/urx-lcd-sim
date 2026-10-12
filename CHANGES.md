@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Set the two lines of a picker sheet's button 14 screen pixels apart, as OUTPUT PATCH's [MONITOR 1] has them in the user guide. They stood 15 apart, so `1` stood a screen pixel lower than in the user guide.
+- Set the source name in the INPUT screen's Input Source box in a larger type with its two lines 16 screen pixels apart, centred left of the copy mark, as the user guide draws it. The name was smaller, its lines 14 apart and centred on the whole box, so `MIC/LINE` started 13 screen pixels right of where the user guide has it.
+- Stand the names of SETUP's menu buttons a screen pixel lower, where the user guide has them. Every name, on one line or two, stood a screen pixel higher.
 - Set the two lines of MONITOR's [CUE Interrupt] 14 screen pixels apart, on the middle of its face. They stood 17 apart, `Interrupt` three screen pixels lower than in the user guide.
 - Stand the dot of the dialog's information mark over its stem, both on the ring's middle, as the warning mark's `!` already stands. The dot stood a screen pixel left of the stem.
 - Stand a dialog's question with the middle of its lines on the middle of the mark beside it, the mark staying where it stood. The question stood with its top level with the mark's top, so a one-line question stood 13 screen pixels above the mark's middle.

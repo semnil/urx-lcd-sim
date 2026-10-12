@@ -2689,11 +2689,15 @@
   line-height: 18px;
 }
 
+/* SETUP stands its entries' names a pixel below where the button centres them. */
+.setup-main .menu-btn {
+  padding-top: 3px;
+}
+
 /* MONITOR, microSD and SCENE set their entries' names half a pixel smaller than
- * SETUP, and a pixel lower. */
+ * SETUP. */
 .menu-grid.menu-grid-wide .menu-btn > span {
   font-size: 12.5px;
-  translate: 0px 1px;
 }
 
 .menu-grid .menu-btn.is-one-line > span {
@@ -6740,9 +6744,11 @@
   scroll-snap-align: start;
 }
 
+/* A name on two lines sets them 14px apart. */
 .source-sheet .source-btn {
   min-height: 40px;
   font-size: 12px;
+  line-height: 14px;
 }
 
 /* The band under an unlit source button is the dialog bevel, not a wash of the
@@ -7881,13 +7887,21 @@
   width: 136px;
   height: 40px;
   box-sizing: border-box;
-  padding-bottom: 3px;
+  /* The name stands centred on the face left of the copy mark's column. */
+  padding: 2px 26px 6px 6px;
   border: 0;
   border-radius: var(--radius-md);
   background: var(--surface);
   white-space: pre-line;
   cursor: pointer;
   box-shadow: inset 0 -3px 0 var(--btn-bevel);
+}
+
+/* Its name is set in 12.5px type on lines 16px apart. Two classes, because the
+ * reset that makes a button inherit its font is more specific than one. */
+.input-screen .input-source-btn {
+  font-size: 12.5px;
+  line-height: 16px;
 }
 
 .input-panel {

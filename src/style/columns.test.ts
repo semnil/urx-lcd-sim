@@ -616,6 +616,11 @@ describe("the SETUP screen", () => {
       expect(pad, `${selector} pads for it`).toBeGreaterThanOrEqual(3);
     }
   });
+
+  // wide/p052-1: `Version` stands on y74..83, `User Defined` / `Knobs` on y120..129 / y138..147.
+  it("stands its menu names a pixel below where the button centres them", () => {
+    expect(declarations(CSS, ".setup-main .menu-btn")["padding-top"]).toBe("3px");
+  });
 });
 
 describe("a menu that fills the screen", () => {
@@ -1528,6 +1533,13 @@ describe("the dynamics screens", () => {
     expect(px(a["height"])).toBe(128);
     expect(px(right["left"])).toBe(px(left["left"]) + px(a["width"]) + 4);
     expect(a["background"]).toBe("var(--surface-sunken)");
+  });
+
+  // p100-1: `MIC/LINE` stands on x127..180 / y59..67 and `3/4` on y75..83.
+  it("sets the Input Source name in 12.5px on lines 16px apart, centred left of the copy mark", () => {
+    const box = declarations(CSS, ".input-screen .input-source-btn");
+    expect([box["font-size"], box["line-height"]]).toEqual(["12.5px", "16px"]);
+    expect(declarations(CSS, ".input-source-btn")["padding"]).toBe("2px 26px 6px 6px");
   });
 });
 
@@ -3706,6 +3718,11 @@ describe("a picker sheet's silhouette", () => {
     ]);
     const tokens = declarations(TOKENS, ":root");
     expect([tokens["--sheet-back-top-corner-inner"], tokens["--sheet-back-top-corner-outer"]]).toEqual(["#3a454a", "#212d31"]);
+  });
+
+  // wide/p059-1: [MONITOR 1] has `MONITOR` on y169..177 and `1` on y183..191.
+  it("sets a button's two lines 14px apart", () => {
+    expect(declarations(CSS, ".source-sheet .source-btn")["line-height"]).toBe("14px");
   });
 });
 
