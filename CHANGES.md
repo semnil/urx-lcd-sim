@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Set the two lines of MONITOR's [CUE Interrupt] 14 screen pixels apart, on the middle of its face. They stood 17 apart, `Interrupt` three screen pixels lower than in the user guide.
 - Stand the dot of the dialog's information mark over its stem, both on the ring's middle, as the warning mark's `!` already stands. The dot stood a screen pixel left of the stem.
 - Stand a dialog's question with the middle of its lines on the middle of the mark beside it, the mark staying where it stood. The question stood with its top level with the mark's top, so a one-line question stood 13 screen pixels above the mark's middle.
 - Keep the hundredths of a DELAY time on the DELAY screen's ms cell and on the channel view's DELAY block, and in a browser save or a settings file put back, as the unit does: 3.41 ms goes to 4.41 ms a detent up and, on the ms cell, to 3.43 ms with Shift, and comes back at 3.41 ms after a reload or a Load. The ms cell and the block landed the time on 0.02 ms, so 3.41 ms went to 4.42 ms, and to 3.44 ms with Shift on the ms cell, and a reload or a Load brought 3.41 ms back at 3.42 ms. A time off the hundredths, such as 45.8892 ms an earlier version's meter step left, comes back on the hundredth nearest it, 45.89 ms, where it came back at 45.88 ms. Frame, meter and feet still land the time on 0.02 ms.

@@ -1065,7 +1065,8 @@ y57 で MIX 1 L / 1 R / 2 L / 2 R、下段が y155 で FX 1 / FX 2 / STEREO L / 
 
 [Source] の下に [CUE Interrupt] と [MONO] が縦に並ぶ。[CUE Interrupt] は 90px 幅 (x6..95 と x112..201、
 y163..199)、[MONO] はそれより 4px 狭い 86px で同じ中心に立つ (x8..93 と x114..199、y214..250)。消灯は淡い面
-`--mon-toggle-off` に `--mon-toggle-off-ink` の名前、点灯はシアンの面に `--surface` の名前 (p068-1)。
+`--mon-toggle-off` に `--mon-toggle-off-ink` の名前、点灯はシアンの面に `--surface` の名前 (p068-1)。[CUE Interrupt] の
+名前は 14px 間隔の 2 行で、`CUE` が y170..178、`Interrupt` が y184..192 に立つ (p068-1)。
 
 ## 画面に重なるシート
 

@@ -2677,7 +2677,6 @@
   border: 0;
   border-radius: var(--radius-md);
   background: var(--surface);
-  line-height: 18px;
   white-space: pre-line;
   cursor: pointer;
   box-shadow: inset 0 -3px 0 var(--btn-bevel);
@@ -3774,6 +3773,12 @@
   top: 113px;
 }
 
+/* CUE Interrupt sets its two lines 14px apart. Two classes, because the reset
+ * that makes a button inherit its font is more specific than one. */
+.btn.mon-cue {
+  line-height: 14px;
+}
+
 /* MONO is 4px narrower than CUE Interrupt, on the same centre. */
 .mon-mono {
   top: 164px;
@@ -3956,7 +3961,6 @@
   height: 40px;
   min-height: 0;
   background: var(--surface);
-  font-size: var(--fs-sm);
 }
 
 /* An assigned destination carries the red the unit fills it with. */
@@ -6235,7 +6239,6 @@
   min-width: 84px;
   min-height: 37px;
   text-align: center;
-  line-height: 1.15;
 }
 
 .bank-option-input {
