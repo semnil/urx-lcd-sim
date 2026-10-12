@@ -1316,9 +1316,9 @@ describe("what the card's own actions do to it", () => {
   });
 
   it("writes no new settings file onto a card without room for one, and writes over a settings file there with no room left", async () => {
-    const shell = await mount({ id: "microsd.saveload" }, [{ name: "old.urxf", kind: "data", seconds: 0, tracks: 0, stamp: "", dir: "/" }]);
+    const shell = await mount({ id: "microsd.saveload" }, [{ name: "old.urxf", kind: "data", seconds: 0, tracks: 0, stamp: "", dir: "/", scenes: 0 }]);
     const store = shell.ctx.store;
-    const size = entryBytes({ name: "x.urxf", kind: "data", seconds: 0, tracks: 0, dir: "/" });
+    const size = entryBytes({ name: "x.urxf", kind: "data", seconds: 0, tracks: 0, dir: "/", scenes: 0 });
     const used = (): number => readCard(store).reduce((sum, e) => sum + entryBytes(e), 0);
     const leave = async (free: number): Promise<void> => {
       await store.set("sd.capacity", used() + free);
@@ -1350,6 +1350,27 @@ describe("what the card's own actions do to it", () => {
     await store.set("ch.ch1.level", -9);
     await saveAs(0, "OLD");
     expect([names(shell), held() !== saved, freeBytes(store)], "[Save as] over it in other case").toEqual([["just.urxf", "more.urxf", "old.urxf"], true, 0]);
+  });
+
+  it("costs a settings file by the scenes stored when it is written", async () => {
+    // URX44V, 2026-10-12: files the unit wrote measured 28,696 bytes with no stored scene, 50,668 with one and 72,640 with two.
+    const shell = await mount({ id: "microsd.saveload" }, []);
+    const store = shell.ctx.store;
+    const saveAs = async (name: string): Promise<number> => {
+      action(shell, "Save as")?.click();
+      await flush();
+      await typeTitle(shell, name);
+      const entry = readCard(store).find((e) => e.name === `${name}.urxf`);
+      return entry ? entryBytes(entry) : -1;
+    };
+    expect(await saveAs("none"), "no scene stored").toBe(28_696);
+    await store.set("scene.Standard.1.title", "one");
+    await flush();
+    expect(await saveAs("one"), "one scene stored").toBe(50_668);
+    await store.set("scene.Standard.5.title", "two");
+    await flush();
+    expect(await saveAs("two"), "two scenes stored").toBe(72_640);
+    expect(entryBytes({ name: "old.urxf", kind: "data", seconds: 0, tracks: 0, dir: "/" }), "a file that carries no count").toBe(50_668);
   });
 
   it("leaves Save and Load out of reach until a settings file is under the cursor", async () => {

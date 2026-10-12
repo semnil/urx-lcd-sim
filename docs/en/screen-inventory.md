@@ -1770,8 +1770,9 @@ now stands), and its time on the 24-hour clock whatever Time is set to (see [kno
 The free space is the card's capacity less what is on it. The capacity is the 125,000,000,000 bytes a
 formatted 128 GB card leaves; a take costs its seconds × the sampling frequency it was recorded at (48,000 for
 an older take that carries no frequency) × 3 bytes × its tracks (the guide's
-specifications give the microSD card slot as WAV, 24-bit), and a settings file 50,668 bytes, which is
-the size every settings file takes. It is printed over 1024³ to one decimal, as `116.4GB Free` (p083-1, p087-1).
+specifications give the microSD card slot as WAV, 24-bit), and a settings file 28,696 bytes plus 21,972 bytes for each scene stored under
+01 to 63 when it was written (files the unit wrote measured 28,696, 50,668 and 72,640 bytes with none, one and two
+scenes stored; URX44V, 2026-10-12). It is printed over 1024³ to one decimal, as `116.4GB Free` (p083-1, p087-1).
 The card's name, the volume label it was formatted under, stands on a line above it, the two lines top right and
 set left from x313 (x313..387 / y58..81). Every card screen puts them in the same place (URX44V, the operator,
 2026-09-22): SAVE/LOAD's p084-1 and TOOLS' p087-1 show both lines, and RECORDER's p081-1 and p083-1 show the name

@@ -16,7 +16,7 @@ import { onPitchMidiControl } from "../model/effects";
 import { TRACK_COUNTS, dropTracksOverRate, trackCountCeiling } from "../model/track-count";
 import { dropInsertsOverRate } from "./insert-fx";
 import { dropSendsOverRate } from "./effect-params";
-import { followSceneCursor } from "./scene";
+import { followSceneCursor, storedSceneCount } from "./scene";
 import { followRecall, pairStates } from "./stereo-link";
 import { settlePanLink } from "./mix-bus";
 import { onSsmcsStops } from "./ssmcs";
@@ -441,7 +441,7 @@ function newFolder(ctx: AppContext): void {
  * A new file the card has no room for writes nothing.
  */
 function saveSettings(ctx: AppContext, name: string, at = -1): void {
-  const entry: CardEntry = { name, kind: "data", seconds: 0, tracks: 0, written: clockParts(ctx.store), dir: cardPath(ctx) };
+  const entry: CardEntry = { name, kind: "data", seconds: 0, tracks: 0, written: clockParts(ctx.store), dir: cardPath(ctx), scenes: storedSceneCount(ctx) };
   if (at < 0 && !roomFor(ctx.store, entry)) return;
   // The file and its entry go in one operation of the store.
   ctx.store.operation(() => {
