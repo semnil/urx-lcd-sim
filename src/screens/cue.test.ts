@@ -174,6 +174,21 @@ describe("the outputs an input cue takes out", () => {
     expect(cued(shell)).toEqual([]);
   });
 
+  it("come back on an input cue taken out, not on an output cue a scene puts back", async () => {
+    const shell = await mount();
+    await press(shell, "bus.mix1");
+    await shell.ctx.store.set("scene.Standard.1.title", "MIX 1 cued");
+    await storeScene(shell.ctx, "Standard", 1);
+    await press(shell, "bus.mix1");
+    await press(shell, "bus.stereo");
+    await press(shell, "ch1");
+    await recallScene(shell.ctx, 1);
+    await flush();
+    expect(cued(shell), "the scene puts MIX 1 alone back in the cue").toEqual(["bus.mix1"]);
+    await press(shell, "bus.mix1");
+    expect(cued(shell), "STEREO stays out").toEqual([]);
+  });
+
   it("have no counterpart: the inputs an output cue takes out stay out", async () => {
     const shell = await mount();
     for (const id of ["ch1", "fx1"]) await press(shell, id);
