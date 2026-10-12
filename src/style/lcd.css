@@ -2689,6 +2689,11 @@
   line-height: 18px;
 }
 
+/* SETUP stands its entries' names a pixel below where the button centres them. */
+.setup-main .menu-btn {
+  padding-top: 3px;
+}
+
 /* MONITOR, microSD and SCENE set their entries' names half a pixel smaller than
  * SETUP. */
 .menu-grid.menu-grid-wide .menu-btn > span {

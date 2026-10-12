@@ -616,6 +616,11 @@ describe("the SETUP screen", () => {
       expect(pad, `${selector} pads for it`).toBeGreaterThanOrEqual(3);
     }
   });
+
+  // wide/p052-1: `Version` stands on y74..83, `User Defined` / `Knobs` on y120..129 / y138..147.
+  it("stands its menu names a pixel below where the button centres them", () => {
+    expect(declarations(CSS, ".setup-main .menu-btn")["padding-top"]).toBe("3px");
+  });
 });
 
 describe("a menu that fills the screen", () => {
