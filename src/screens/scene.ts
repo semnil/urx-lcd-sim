@@ -262,7 +262,7 @@ export const sceneScreen: ScreenDef = {
       ctx.overlay(
         dialog({
           message: `Recall scene "${sceneTitle(ctx, selected)}"?`,
-          onOk: () => void recallScene(ctx, selected),
+          onOk: () => void ctx.actions.perform("scene.recall", () => recallScene(ctx, selected)),
         }),
       );
     }), recallShut);
@@ -279,7 +279,7 @@ export const sceneScreen: ScreenDef = {
           ctx.overlay(
             dialog({
               message: `Store to "Scene Memory #${sceneNumber(selected)}"?`,
-              onOk: () => storeTitled(ctx, bank, selected, typed),
+              onOk: () => void ctx.actions.perform("scene.store", () => storeTitled(ctx, bank, selected, typed)),
             }),
           );
         },
@@ -292,16 +292,23 @@ export const sceneScreen: ScreenDef = {
     const protectPath = `scene.${owner}.${selected}.protect`;
     const titlePath = `scene.${owner}.${selected}.title`;
     const edit = [
-      glyphButton("Protect", Icons.lock(), editable, () => void ctx.store.set(protectPath, guarded ? 0 : 1), guarded),
+      glyphButton(
+        "Protect",
+        Icons.lock(),
+        editable,
+        () => void ctx.actions.perform("scene.protect", () => ctx.store.set(protectPath, guarded ? 0 : 1)),
+        guarded,
+      ),
       glyphButton("Delete", Icons.trash(), editable && !guarded, () => {
         ctx.overlay(
           dialog({
             message: `Delete "Scene Memory #${sceneNumber(selected)}"?`,
-            onOk: () => {
-              void ctx.store.set(titlePath, "");
-              void ctx.store.set(protectPath, 0);
-              void ctx.store.set(statePath(`${owner}`, selected), "");
-            },
+            onOk: () =>
+              void ctx.actions.perform("scene.delete", () => {
+                void ctx.store.set(titlePath, "");
+                void ctx.store.set(protectPath, 0);
+                void ctx.store.set(statePath(`${owner}`, selected), "");
+              }),
           }),
         );
       }),

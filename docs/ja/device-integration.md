@@ -28,6 +28,43 @@ export interface DeviceLink {
 }
 ```
 
+## 画面の裏にある本体
+
+値は、本体が自分で行うことの 1 つにすぎない。`Unit` (`src/device/unit.ts`) はその 4 つを持ち、画面は
+どの種類の本体が答えるかを知らずにこれに尋ねる。
+
+| 部分 | 中身 | シミュレーターの本体 |
+| --- | --- | --- |
+| `params` | store がつなぐ `DeviceTransport` | `SimTransport` |
+| `levels` | メーターが読むもの。`simulated`、または dB のレベルを返す読み手と端子ごとの Clip Safe の状態を持つ `device` | 合成信号 (`src/screens/signal-flow.ts`) |
+| `actions` | 本体が自分のメモリー・カード・レコーダーに対して行う操作 (`UnitAction`: シーンのリコール・保存・保護・削除、設定ファイルの保存と読み込み、カードの挿入・取り出し・フォーマット・テスト・削除・名前の変更・フォルダーの作成、レコーダーの待機・録音・一時停止・停止、再生の開始・一時停止・停止) | すべてシミュレーターのメモリーで行う (`emulatedActions`) |
+| `clock` | DATE / TIME で動かす前の、本体の時計が刻む時刻 | コンピューターの時計 |
+
+画面は操作ごとに、シミュレーターの本体がそれに行うことを添えて `perform()` に渡す。操作を自分で行う本体や、
+操作を断る本体 (`refusedActions`。断るたびに知らせる) はその部分を走らせないので、自分のメモリーを持つ本体の
+代わりにシミュレーターのメモリーが動くことはない。画面が値を編集するのは、どの種類の本体でも `params` の役目のまま。
+
+`useUnit()` (`src/app/unit.ts`) は本体のメーターと時計を、メーターと時計に渡す。1 つのページにつなぐ本体は
+同時に 1 つだけ。本体のメーターは `setMeterSource()` と `setClipSafeSource()` (`src/screens/meters.ts`) を通して
+メーターに届き、その id は下の「組み込み手順」に書く。
+
+## 別のページへの埋め込み
+
+`mountSim()` (`src/embed.ts`。`urx-lcd-sim/embed` として公開) は、ある機種の画面を別のページの要素の中に置き、
+渡された `Unit` を通して値を読み書きする。置くのは 480x272 の画面だけで、機種と表示倍率のセレクタ・Device メニュー・
+接続表示は置かず、ブラウザに何も保存しない。戻り値で表示倍率を変え、画面を外す (本体の transport も閉じる)。
+
+- スタイルシートは画面の起点の要素 (`.urx-lcd-sim`、`src/embed-css.ts`) の下に閉じてページに置く。スタイル規則は
+  すべて `@scope (.urx-lcd-sim)` の中に入り、`:root` はその要素を指す。`@font-face`・`@keyframes`・`@property` は
+  最上位に置き、keyframes の名前には `urx-lcd-sim-` を前に付ける。ページの規則と画面の規則はどこでも交わらず、
+  フォントのファイルはページが渡す URL から読む (`fonts`。`public/fonts/` のファイル名で指定し、パッケージは
+  `urx-lcd-sim/fonts/*` として公開する)。
+- 何にもフォーカスが無いときのキーはページのもの。Escape で画面が戻るのは、フォーカスが画面にあるときだけで、
+  画面のダイアログの中で Tab が回るのも、フォーカスが画面にあるときだけ。
+- 値のドラッグ中の印は、ページではなく画面の起点の要素に付く。
+- `shippedValues(model)` は、画面が読み書きするすべてのパスを出荷時の値と並べて返す。本体の側がどのパスに
+  答えるかを決めるためのもの。
+
 ## 束縛テーブル
 
 `BindingTable` (`src/device/binding.ts`) がパス → アドレス + 符号化の対応を持つ。
@@ -90,8 +127,8 @@ sequenceDiagram
    だけをシミュレーターへ渡す。
 2. `BindingTable` を検証済みカタログから埋める。
 3. `new BridgeTransport(link, bindings)` を `store.attach()` に渡す。
-4. メーターを実機の値にする場合は `setMeterSource()` (`src/screens/meters.ts`) に実機の
-   メーターストリームを渡す。渡した関数は、ストリップの id とそのストリップ上の読む点を `@` でつないだ id
+4. メーターを実機の値にする場合は、`levels` が `device` の `Unit` を `useUnit()` に渡すか、`setMeterSource()`
+   (`src/screens/meters.ts`) に実機のメーターストリームを直接渡す。渡した関数は、ストリップの id とそのストリップ上の読む点を `@` でつないだ id
    (`ch3@preFader`・`bus.mix1@post` など、読む点は `src/screens/signal-flow.ts` の `Tap`) と、`monitor.<n>`・`cue`・`osc`・
    `playback` (カードの再生が出すもの。microSD Playback の D.Gain の後) を受け取る。`@` の無いストリップの id (`bus.stereo`・`ch1` など) も
    受け取り、これはそのストリップの出力で、`<strip>@post` と同じ値を返す。レベルは dB で返し、数でない値は無音、0 dB を超える値は

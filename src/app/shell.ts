@@ -4,6 +4,8 @@
 
 import { clamp, combineWriteRules } from "../device/store";
 import type { DeviceStore } from "../device/store";
+import type { UnitActions } from "../device/unit";
+import { emulatedActions } from "../device/unit";
 import type { UnitModel } from "../model/types";
 import { UDK_BANKS, UDK_KNOBS, UDK_UNASSIGNED, udkAssignment, udkPath } from "../model/udk";
 import { INTERACTIVE, clear, el, setPressed, tappedControl } from "../ui/dom";
@@ -38,6 +40,17 @@ const KNOB_CELLS = 4;
 /** How much black the glass carries at the bottom of the brightness range. */
 const DIMMEST = 0.7;
 
+export interface ShellOptions {
+  /** The unit's operations on its memory, card and recorder. The simulated unit's by default. */
+  actions?: UnitActions;
+  /**
+   * Whether a key pressed with nothing focused belongs to the glass: Escape then
+   * steps back, as it does on a page that is the simulator alone. A page that
+   * carries the glass beside other controls keeps those keys for itself.
+   */
+  ownsDocument?: boolean;
+}
+
 export class Shell {
   readonly ctx: AppContext;
   readonly root: HTMLElement;
@@ -68,6 +81,7 @@ export class Shell {
   private readonly press: Press;
   private readonly offFocusRing: () => void;
   private readonly offSwipe: () => void;
+  private readonly ownsDocument: boolean;
 
   /**
    * `start` is what stands over HOME as the shell comes up, and the first screen
@@ -79,14 +93,17 @@ export class Shell {
     store: DeviceStore,
     model: UnitModel,
     start: Route[] = [],
+    options: ShellOptions = {},
   ) {
     const nav = new Navigator({ id: "home" }, start);
     const focus = new FocusController();
+    this.ownsDocument = options.ownsDocument ?? true;
     this.ctx = {
       store,
       model,
       focus,
       nav,
+      actions: options.actions ?? emulatedActions,
       repaint: () => this.scheduleRepaint(),
       setKnobs: (specs) => {
         this.knobs = specs;
@@ -611,6 +628,7 @@ export class Shell {
   private buildTabTrap(): (ev: KeyboardEvent) => void {
     return (ev) => {
       if (ev.key !== "Tab") return;
+      if (!this.ownsDocument && !this.lcd.contains(document.activeElement)) return;
       const top = this.topLayer();
       if (!top?.modal) return;
       const stops = [...top.node.querySelectorAll<HTMLElement>("*")].filter((n) => n.tabIndex >= 0);
@@ -635,7 +653,8 @@ export class Shell {
     return (ev) => {
       if (ev.key !== "Escape" || ev.isComposing) return;
       const target = ev.target instanceof HTMLElement ? ev.target : null;
-      if (target && target !== document.body && target !== document.documentElement && !this.lcd.contains(target)) return;
+      const unfocused = !target || target === document.body || target === document.documentElement;
+      if (unfocused ? !this.ownsDocument : !this.lcd.contains(target)) return;
       if (this.lcd.querySelector("[data-overlay]")) {
         const cancel = this.topLayer()?.modal?.cancel;
         if (!cancel) return;

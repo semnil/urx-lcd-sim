@@ -5,7 +5,7 @@
 import type { DeviceStore } from "../device/store";
 import type { CardEntry } from "../model/card";
 import { CARD_ROOT, changeCard, readCard, roomSeconds, takeName } from "../model/card";
-import { clockParts } from "../model/clock";
+import { clockParts, unitNow } from "../model/clock";
 
 /** Where the recorder stands: stopped, armed by [●], recording, or paused. */
 export type RecState = "idle" | "armed" | "recording" | "paused";
@@ -52,7 +52,7 @@ function takeTime(store: DeviceStore, now: number): number {
  * run under way counted from the moment it started. A take marked as recording
  * with no start moment counts nothing more than the runs before it.
  */
-export function takeSeconds(store: DeviceStore, now = Date.now()): number {
+export function takeSeconds(store: DeviceStore, now = unitNow()): number {
   return Math.floor(takeTime(store, now));
 }
 
@@ -77,7 +77,7 @@ export function formatClock(seconds: number): string {
 // Each step of the recorder and of playback below writes its state and its counter as one operation of the store.
 
 /** [▶] on an armed recorder, or on a paused take: the counter runs from here. */
-export function recordTake(store: DeviceStore, now = Date.now()): void {
+export function recordTake(store: DeviceStore, now = unitNow()): void {
   store.operation(() => {
     if (recState(store) === "armed") void store.set("sd.recSeconds", 0);
     void store.set("sd.recSince", now);
@@ -86,7 +86,7 @@ export function recordTake(store: DeviceStore, now = Date.now()): void {
 }
 
 /** [⏸] on a take recording: the counter holds what it has reached, to the part of a second. */
-export function pauseTake(store: DeviceStore, now = Date.now()): void {
+export function pauseTake(store: DeviceStore, now = unitNow()): void {
   store.operation(() => {
     void store.set("sd.recSeconds", takeTime(store, now));
     void store.set("sd.recSince", 0);
@@ -100,7 +100,7 @@ export function pauseTake(store: DeviceStore, now = Date.now()): void {
  * browser is open on, named for the moment it was taken and holding the tracks
  * the recorder was set to, no longer than the card has room for.
  */
-export function stopTake(store: DeviceStore, now = Date.now()): void {
+export function stopTake(store: DeviceStore, now = unitNow()): void {
   const seconds = Math.min(takeSeconds(store, now), takeRoom(store));
   store.operation(() => {
     if (seconds > 0 && store.bool("sd.mounted", true)) {
@@ -127,7 +127,7 @@ function playTime(store: DeviceStore, now: number): number {
 }
 
 /** How many whole seconds of the file playback holds have played. */
-export function playedSeconds(store: DeviceStore, now = Date.now()): number {
+export function playedSeconds(store: DeviceStore, now = unitNow()): number {
   return Math.floor(playTime(store, now));
 }
 
@@ -137,7 +137,7 @@ export function holdsFile(store: DeviceStore): boolean {
 }
 
 /** [▶] on a file, or on the file paused: the counter runs from here. */
-export function startPlayback(store: DeviceStore, row: number, now = Date.now()): void {
+export function startPlayback(store: DeviceStore, row: number, now = unitNow()): void {
   store.operation(() => {
     if (row !== store.num("sd.playingFile", -1)) {
       void store.set("sd.playingFile", row);
@@ -149,7 +149,7 @@ export function startPlayback(store: DeviceStore, row: number, now = Date.now())
 }
 
 /** [⏸] on a file playing: the counter holds where it has reached, to the part of a second. */
-export function pausePlayback(store: DeviceStore, now = Date.now()): void {
+export function pausePlayback(store: DeviceStore, now = unitNow()): void {
   store.operation(() => {
     void store.set("sd.playSeconds", playTime(store, now));
     void store.set("sd.playSince", 0);
@@ -185,7 +185,7 @@ export function startRecorderClock(store: DeviceStore, root: HTMLElement, interv
     };
     if (recState(store) === "recording") {
       const full = takeFullAt(store);
-      if (Date.now() >= full) stopTake(store, full);
+      if (unitNow() >= full) stopTake(store, full);
     }
     write("[data-rec-clock]", formatClock(takeSeconds(store)));
 

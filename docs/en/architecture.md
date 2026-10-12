@@ -28,6 +28,7 @@ flowchart TB
     TR["DeviceTransport"]
     SIM["SimTransport<br/>in-process simulated device"]
     BR["BridgeTransport<br/>real unit (DeviceLink injected)"]
+    UN["Unit<br/>params / levels / actions / clock"]
   end
 
   S --> W
@@ -39,6 +40,8 @@ flowchart TB
   ST --> TR
   TR --> SIM
   TR --> BR
+  S --> UN
+  UN --> TR
   UM --> S
   DF --> SIM
   CD --> S
@@ -54,7 +57,10 @@ takes from `src/screens/mix-bus.ts` how Pan Link is brought into place when a st
 layer shares the value ranges and display formats (`src/ui/param-spec.ts`, `src/ui/dom.ts`) with the
 screen layer. The device layer imports no other layer. The screen layer reads and writes
 parameter values through `DeviceStore`, and does not distinguish whether a value lives in this process
-or inside the unit.
+or inside the unit. What else the unit does by itself — its meters, the operations on its memory, card
+and recorder, and its clock — the screens ask of the `Unit` (`src/device/unit.ts`; "The unit behind the
+screens" in [device-integration.md](device-integration.md)), which is also how the glass is embedded in
+another page (`src/embed.ts`).
 
 ## Value flow
 

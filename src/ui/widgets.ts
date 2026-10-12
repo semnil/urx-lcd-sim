@@ -549,6 +549,14 @@ export function pickerGrid(rows: (HTMLElement | null)[][]): HTMLElement {
 /** Set on the page while a value is being dragged. */
 const TURNING = "is-turning";
 
+/** The root of an embedded glass (src/embed.ts), which its stylesheet is scoped to. */
+export const EMBED_ROOT = "urx-lcd-sim";
+
+/** Where the drag marker goes: the embedded glass's root, or the page for the simulator alone. */
+function turningRoot(node: Element): Element {
+  return node.closest(`.${EMBED_ROOT}`) ?? document.documentElement;
+}
+
 /** Pointer travel past the slop that covers a control's whole range, in pixels. */
 const DRAG_FULL_RANGE_PX = 192;
 
@@ -679,7 +687,8 @@ export function attachDrag(ctx: AppContext, node: HTMLElement, spec: NumericSpec
     if (standsStill(ctx, spec)) return;
     // A drag sweeps the pointer across whatever is in its way; marking the page
     // is what keeps those from lighting up under it.
-    document.documentElement.classList.add(TURNING);
+    const marked = turningRoot(node);
+    marked.classList.add(TURNING);
     let anchorAt = along(ev);
     let anchorValue = ctx.store.num(spec.path, spec.fallback);
     let fine = false;
@@ -725,7 +734,7 @@ export function attachDrag(ctx: AppContext, node: HTMLElement, spec: NumericSpec
       put(onStep(spec, raw));
     };
     const up = (): void => {
-      document.documentElement.classList.remove(TURNING);
+      marked.classList.remove(TURNING);
       leave();
     };
     // The first turn repaints the screen and this node is replaced, so the rest
