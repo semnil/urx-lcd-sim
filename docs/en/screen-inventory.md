@@ -1370,7 +1370,8 @@ and URX44 run the same laws, bar the number of channels.
 
 - CUE takes a channel and an FX channel before the fader, [ON] and PAN (after the EQ and INS FX), MIX and
   STEREO after their fader and INS FX, and STREAMING after its DELAY, and sums what is cued. A mono
-  channel goes to both sides at one level.
+  channel goes to both sides at one level, and so does each channel of a stereo-linked pair, on `PAN`
+  and on `BAL` alike.
 - While CUE Interrupt is on and something is cued, MONITOR puts out the cue in place of its source. MONO
   puts the two sides, each 3 dB down and summed, on both sides. [ON] and LEVEL act after that.
 

@@ -1178,6 +1178,7 @@ URX22 と URX44 も、チャンネル数の違いのほかは同じ法則で動�
 
 - CUE は、チャンネルと FX チャンネルをフェーダー・[ON]・PAN の前 (EQ と INS FX の後) で、MIX と STEREO をフェーダーと INS FX の
   後で、STREAMING を DELAY の後で取り、CUE に入れたものを足す。モノラルのチャンネルは両側に同じ大きさで入る。
+  STEREO にリンクしたペアも、`PAN` でも `BAL` でも、各チャンネルが両側に同じ大きさで入る。
 - MONITOR は、CUE Interrupt が入で何かが CUE に入っているあいだ、ソースの代わりに CUE を出す。MONO は L と R をそれぞれ 3 dB 下げて
   足したものを両側に出す。その後に [ON] と LEVEL が効く。
 
