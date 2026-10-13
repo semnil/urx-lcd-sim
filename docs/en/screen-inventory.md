@@ -1043,8 +1043,9 @@ the COMP and EQ areas stand (`ch.<id>.compEqOrder` reads `SSMCS`). A stereo, FX 
 type, so nothing is swapped.
 
 The two types are separate banks inside the unit and are not kept across a switch. Taking a type
-**loads that bank's factory values whole** — entering SSMCS switches COMP and EQ on and puts every
-SSMCS value back, and entering COMP -> EQ puts the compressor, the four-band EQ and the EQ 1-knob
+**loads that bank's factory values whole** — entering SSMCS puts every SSMCS value back and leaves the SSMCS
+COMP and EQ switches off, even where they were on before, with no message (URX44V, System firmware 1.3.1.0, the
+operator, 2026-10-13), and entering COMP -> EQ puts the compressor, the four-band EQ and the EQ 1-knob
 back. **The bank being left keeps its own** until it is entered again. GATE does not depend on the
 type and does not move. Taking the type it already holds does nothing. The four screens are stepped through by the round arrows that lie over
 the sides of the glass; a press replaces the screen rather than stacking on it, so one back arrow
@@ -1563,6 +1564,12 @@ starting at y120 and y138). A name on one line, in the middle column of the thir
 y236..245 on a face (without the band) of y222..260 (wide/p052-1). Every name stands a pixel below where the
 button centres it (the ink of GENERAL's `Version` at y74..83, wide/p052-1).
 
+While microSD playback holds a file, playing or paused, [Sampling Frequency] and the Operation Mode box take the face of
+a button that cannot be used (face `--surface-disabled`, words `--menu-text-disabled`) and open nothing when pressed
+(URX44V, System firmware 1.3.1.0, playing and paused, the operator, 2026-10-13). They come back once the file is let go,
+by [■] or at the end of the file. [Sampling Frequency] in recording mode is in the recording mode paragraph of
+"RECORDER".
+
 The Operation Mode screen spaces its toolbar title 0.05em apart and sets it a pixel higher than other screens do
 (x184..294 / y16..29 in p042-1).
 
@@ -1760,7 +1767,8 @@ While playback holds a file, playing or paused, the card-eject button cannot be 
 plain face in p083-1; paused on RECORDER's Play tab as well, URX44V, the operator, 2026-10-03). On the microSD top,
 while a file is held, playing or paused, everything but [Recorder] ([Save/Load], [Tools], [USB Storage Mode] and the
 eject button) takes the face of a button that cannot be used and does nothing when pressed, as the unit does
-([Save/Load] and [Tools] URX44V, the operator, 2026-10-03). The
+([Save/Load] and [Tools] URX44V, the operator, 2026-10-03). SETUP's [Sampling Frequency] and Operation Mode box are
+out of reach for the same time ("SETUP screen"). The
 Play tab lists folders and the files that play, and leaves a file of four tracks or more off; its marks are a folder,
 a file that plays, and the file playing or paused (a speaker). The Edit tab lists a file of four tracks or more as well, marked
 `4tr` to `16tr` (List icons under Play and Edit in the user guide's "RECORDER menu"). Neither tab lists a file recorded

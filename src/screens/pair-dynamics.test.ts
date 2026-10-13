@@ -335,6 +335,8 @@ describe("what a stereo-linked pair's dynamics hear", () => {
     await level(shell, "ch2", -60);
     await pick(shell, "Signal Type", "STEREO");
     await pick(shell, "COMP / EQ", "SSMCS");
+    // SSMCS comes in with its COMP off.
+    await shell.ctx.store.set("ch.ch1.comp.on", true);
     await shell.ctx.store.set("ch.ch1.ssmcs.compDrive", 10);
     await open(shell, "ch.ssmcs.comp", "ch2");
     const [left, right] = outOffsets(shell);
@@ -371,6 +373,9 @@ describe("SSMCS's and a Compander's reduction as the signal moves", () => {
 
   async function ssmcs(shell: Shell): Promise<void> {
     await pick(shell, "COMP / EQ", "SSMCS");
+    // SSMCS comes in with its COMP off.
+    await shell.ctx.store.set("ch.ch1.comp.on", true);
+    await shell.ctx.store.set("ch.ch2.comp.on", true);
     await shell.ctx.store.set("ch.ch1.ssmcs.compDrive", 10);
     await shell.ctx.store.set("ch.ch2.ssmcs.compDrive", 10);
   }

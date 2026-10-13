@@ -824,6 +824,16 @@ describe("the microSD screen", () => {
     const t = declarations(TOKENS, ":root");
     expect([t["--surface-disabled"], t["--menu-text-disabled"], t["--btn-bevel-disabled"]]).toEqual(["#212829", "#7b797b", "#191c19"]);
   });
+
+  it("darkens the Operation Mode box out of reach to the same face, its caption with its value", () => {
+    const d = declarations(CSS, ".mode-box.is-disabled");
+    expect([d["background"], d["color"], d["box-shadow"]]).toEqual([
+      "var(--surface-disabled)",
+      "var(--menu-text-disabled)",
+      "inset 0 -3px 0 var(--btn-bevel-disabled)",
+    ]);
+    expect(declarations(CSS, ".mode-box.is-disabled .mode-caption")["color"]).toBe("var(--menu-text-disabled)");
+  });
 });
 
 describe("a block on the inset panel", () => {
