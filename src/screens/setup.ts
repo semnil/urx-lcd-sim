@@ -6,7 +6,7 @@
 import licenseText from "../../LICENSE?raw";
 import type { AppContext } from "../app/context";
 import { UDK_BANKS, UDK_KNOBS, UDK_UNASSIGNED, udkAssignment, udkColumn, udkFromColumns, udkLines, udkPath } from "../model/udk";
-import { el, makeTappable, markShut, setPressed } from "../ui/dom";
+import { aimed, el, makeTappable, markShut, setPressed, writing } from "../ui/dom";
 import { brightnessSpec, intSpec } from "../ui/param-spec";
 import { Icons } from "../ui/icons";
 import { dateTimeSetScreen, dateTimeSpans, openDateTimeSet, openTimeZone, timeZoneScreen } from "./date-time";
@@ -41,7 +41,7 @@ export const setupScreen: ScreenDef = {
   toolbar: "sub",
   knobToggle: false,
   build(ctx): ScreenBody {
-    const open = (id: string) => () => ctx.nav.push({ id });
+    const open = (id: string) => aimed(() => ctx.nav.push({ id }), { kind: "screen", id });
     // The four information / display menus stand together on a tray of their own,
     // User Defined Knobs stands alone, and the rest run three to a row.
     const tray = menuGrid(
@@ -81,7 +81,7 @@ export const setupScreen: ScreenDef = {
     const modeBox = markShut(
       el("button", {
         class: "mode-box",
-        onTap: held ? () => undefined : () => ctx.nav.push({ id: "setup.mode" }),
+        onTap: held ? () => undefined : aimed(() => ctx.nav.push({ id: "setup.mode" }), { kind: "screen", id: "setup.mode" }),
         children: [
           el("span", { class: "mode-caption", text: "Operation Mode" }),
           el("span", { class: "mode-value", text: mode }),
@@ -175,7 +175,7 @@ export const languageScreen: ScreenDef = {
         children: LANGUAGES.map((l) => {
           const node = el("button", {
             class: `lang-btn${l.usable ? "" : " is-disabled"}`,
-            onTap: () => void ctx.store.set("setup.language", l.value),
+            onTap: writing("setup.language", () => void ctx.store.set("setup.language", l.value)),
             children: [el("span", { class: "lang-top", text: l.top }), el("span", { class: "lang-bottom", text: l.bottom })],
           });
           if (!l.usable) node.disabled = true;
@@ -216,7 +216,7 @@ export const samplingRateScreen: ScreenDef = {
     const rates = SAMPLING_RATES.map((hz) => {
       // The frequency and what it takes off the inserts, the recorder, playback and HOME's [Sends] are one operation
       // of the store.
-      const cell = toggle(label(hz), hz === current, () => {
+      const cell = toggle(label(hz), hz === current, writing("setup.samplingFrequency", () => {
         if (followUsb) return;
         ctx.store.operation(() => {
           void ctx.store.set("setup.samplingFrequency", hz);
@@ -225,7 +225,7 @@ export const samplingRateScreen: ScreenDef = {
           releaseOnRateChange(ctx.store, current, hz);
           dropSendsOverRate(ctx.store, ctx.model, hz);
         });
-      }, "rate-btn");
+      }), "rate-btn");
       if (followUsb) cell.setAttribute("aria-disabled", "true");
       return cell;
     });
@@ -234,7 +234,7 @@ export const samplingRateScreen: ScreenDef = {
         class: "rate-screen",
         children: [
           el("div", { class: `rate-row${followUsb ? " is-locked" : ""}`, children: rates }),
-          toggle("Follow USB", followUsb, () => void ctx.store.set("setup.followUsb", !followUsb), "follow-usb"),
+          toggle("Follow USB", followUsb, writing("setup.followUsb", () => void ctx.store.set("setup.followUsb", !followUsb)), "follow-usb"),
         ],
       }),
     };
@@ -251,7 +251,7 @@ export const udkScreen: ScreenDef = {
       class: "udk-banks",
       children: [
         el("span", { class: "udk-caption", text: "Bank" }),
-        ...UDK_BANKS.map((b) => toggle(String(b), b === bank, () => void ctx.store.set("setup.udk.bank", b), "udk-bank")),
+        ...UDK_BANKS.map((b) => toggle(String(b), b === bank, writing("setup.udk.bank", () => void ctx.store.set("setup.udk.bank", b)), "udk-bank")),
       ],
     });
     // Each knob has a column: the card naming what it is on, the shorter name
@@ -271,13 +271,13 @@ export const udkScreen: ScreenDef = {
           }),
         ],
       });
-      makeTappable(card, () => {
+      makeTappable(card, aimed(() => {
         // The unit opens a dialog of its own to pick from, rather than dropping
         // a list over the card.
         void ctx.store.set("ui.udkKnob", k);
         void ctx.store.set("ui.udkPick", assign.value);
         ctx.nav.push({ id: "setup.udk.assign" });
-      });
+      }, { kind: "screen", id: "setup.udk.assign" }));
       return el("div", {
         class: "udk-slot",
         children: [
@@ -375,7 +375,7 @@ export const outputPatchScreen: ScreenDef = {
             el("span", { class: "patch-caption", text: r.caption }),
             el("button", {
               class: "btn patch-btn",
-              onTap: () => void patchSourceSheet(ctx, r.caption, r.path, tab),
+              onTap: writing(r.path, () => void patchSourceSheet(ctx, r.caption, r.path, tab)),
               attrs: { "aria-label": `${r.caption}: ${ctx.store.str(r.path, "STEREO")}` },
               children: [
                 el("span", { text: ctx.store.str(r.path, "STEREO") }),
@@ -388,7 +388,7 @@ export const outputPatchScreen: ScreenDef = {
     });
 
     const side = (["Analog", "USB"] as const).map((t) =>
-      sideTab(t, t === tab, () => void ctx.store.set("setup.outputPatch.tab", t), t === "Analog" ? Icons.plug() : Icons.usb(), "patch-tab"),
+      sideTab(t, t === tab, writing("setup.outputPatch.tab", () => void ctx.store.set("setup.outputPatch.tab", t)), t === "Analog" ? Icons.plug() : Icons.usb(), "patch-tab"),
     );
 
     return {
@@ -433,7 +433,7 @@ export const peripheralScreen: ScreenDef = {
         class: "peripheral-screen",
         children: [
           el("div", { class: "section-band", text: "HDMI" }),
-          el("div", { class: "peripheral-group peripheral-hdcp", children: [el("span", { class: "peripheral-caption", text: "HDCP" }), toggle("Enable", enabled, () => void ctx.store.set("setup.peripheral.hdmiEnable", !enabled))] }),
+          el("div", { class: "peripheral-group peripheral-hdcp", children: [el("span", { class: "peripheral-caption", text: "HDCP" }), toggle("Enable", enabled, writing("setup.peripheral.hdmiEnable", () => void ctx.store.set("setup.peripheral.hdmiEnable", !enabled)))] }),
           el("div", {
             class: "peripheral-group peripheral-channels",
             children: [
@@ -441,7 +441,7 @@ export const peripheralScreen: ScreenDef = {
               el("div", {
                 class: "btn-row",
                 children: (["2 Channels", "Multi Channels"] as const).map((c) =>
-                  toggle(c, c === channels, () => void ctx.store.set("setup.peripheral.hdmiChannels", c)),
+                  toggle(c, c === channels, writing("setup.peripheral.hdmiChannels", () => void ctx.store.set("setup.peripheral.hdmiChannels", c))),
                 ),
               }),
             ],
@@ -461,7 +461,7 @@ export const peripheralScreen: ScreenDef = {
               el("div", {
                 class: "btn-row",
                 children: (["None", "2 Channels"] as const).map((c) =>
-                  toggle(c, c === suppression, () => void ctx.store.set("setup.peripheral.usbSuppression", c)),
+                  toggle(c, c === suppression, writing("setup.peripheral.usbSuppression", () => void ctx.store.set("setup.peripheral.usbSuppression", c))),
                 ),
               }),
               el("p", { class: "peripheral-note", text: "(Changes will be applied at the next power cycle)" }),
@@ -472,7 +472,7 @@ export const peripheralScreen: ScreenDef = {
     }
     return {
       main,
-      side: tabs.map((t) => sideTab(t, t === tab, () => void ctx.store.set("setup.peripheral.tab", t), t === "Main" ? Icons.usb() : Icons.hdmi())),
+      side: tabs.map((t) => sideTab(t, t === tab, writing("setup.peripheral.tab", () => void ctx.store.set("setup.peripheral.tab", t)), t === "Main" ? Icons.usb() : Icons.hdmi())),
     };
   },
 };
@@ -496,7 +496,7 @@ export const powerScreen: ScreenDef = {
           el("div", { class: "section-band", text: "Auto Power Off" }),
           // Leaving it off keeps the unit powered up, so it asks before it goes
           // that way; switching it back on does not ask.
-          toggle("Enable", enabled, () => {
+          toggle("Enable", enabled, writing("setup.power.autoPowerOff", () => {
             if (!enabled) {
               void ctx.store.set("setup.power.autoPowerOff", true);
               return;
@@ -507,7 +507,7 @@ export const powerScreen: ScreenDef = {
                 onOk: () => void ctx.store.set("setup.power.autoPowerOff", false),
               }),
             );
-          }),
+          })),
           paramCell(ctx, spec),
         ],
       }),
@@ -552,8 +552,8 @@ export const dateTimeScreen: ScreenDef = {
       main: el("div", {
         class: "dt-screen",
         children: [
-          popupRow("Date / Time", dateTimeSpans(ctx), () => openDateTimeSet(ctx)),
-          popupRow("Time Zone", [el("span", { text: ctx.store.str("setup.dateTime.timeZone", TIME_ZONE_SHIPPED) })], () => openTimeZone(ctx)),
+          popupRow("Date / Time", dateTimeSpans(ctx), aimed(() => openDateTimeSet(ctx), { kind: "screen", id: "setup.datetime.set" })),
+          popupRow("Time Zone", [el("span", { text: ctx.store.str("setup.dateTime.timeZone", TIME_ZONE_SHIPPED) })], aimed(() => openTimeZone(ctx), { kind: "screen", id: "setup.datetime.zone" })),
           row(
             "Display Format",
             el("div", {
@@ -564,6 +564,7 @@ export const dateTimeScreen: ScreenDef = {
                   children: [
                     el("span", { class: "dt-format-head", text: "Date" }),
                     pulldown(ctx, ctx.store.str("setup.dateTime.dateFormat", "MM/DD/YYYY"), ["MM/DD/YYYY", "DD/MM/YYYY", "YYYY/MM/DD"], (v) => void ctx.store.set("setup.dateTime.dateFormat", v), {
+                      path: "setup.dateTime.dateFormat",
                       label: "Date",
                     }),
                   ],
@@ -572,7 +573,7 @@ export const dateTimeScreen: ScreenDef = {
                   class: "dt-format",
                   children: [
                     el("span", { class: "dt-format-head", text: "Time" }),
-                    pulldown(ctx, ctx.store.str("setup.dateTime.timeFormat", "24h"), ["24h", "12h"], (v) => void ctx.store.set("setup.dateTime.timeFormat", v), { label: "Time" }),
+                    pulldown(ctx, ctx.store.str("setup.dateTime.timeFormat", "24h"), ["24h", "12h"], (v) => void ctx.store.set("setup.dateTime.timeFormat", v), { path: "setup.dateTime.timeFormat", label: "Time" }),
                   ],
                 }),
               ],
@@ -601,7 +602,7 @@ export const integrationScreen: ScreenDef = {
               class: "dt-row",
               children: [
                 el("span", { class: "dt-caption", text: `for FX${i + 1}` }),
-                pulldown(ctx, ctx.store.str(`setup.integration.${key}`, "MIX 1"), mixes, (v) => void ctx.store.set(`setup.integration.${key}`, v), { label: `for FX${i + 1}` }),
+                pulldown(ctx, ctx.store.str(`setup.integration.${key}`, "MIX 1"), mixes, (v) => void ctx.store.set(`setup.integration.${key}`, v), { path: `setup.integration.${key}`, label: `for FX${i + 1}` }),
               ],
             }),
           ),
@@ -647,7 +648,7 @@ export const operationModeScreen: ScreenDef = {
     const card = (value: string, title: string, blurb: string, usable: boolean): HTMLElement => {
       const node = el("button", {
         class: `mode-card${usable ? "" : " is-disabled"}`,
-        onTap: () => void ctx.store.set("setup.operationMode", value),
+        onTap: writing("setup.operationMode", () => void ctx.store.set("setup.operationMode", value)),
         children: [el("span", { class: "mode-card-title", text: title }), el("span", { class: "mode-card-blurb", text: blurb })],
       });
       if (!usable) node.disabled = true;

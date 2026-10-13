@@ -25,7 +25,7 @@ import { settlePanLink } from "./mix-bus";
 import { onSsmcsStops } from "./ssmcs";
 import { onDelayGrid } from "./channel";
 import { allStrips, channelPairs } from "../model/types";
-import { el, markShut, setPressed } from "../ui/dom";
+import { aimed, el, markShut, setPressed, writing } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { LIST_THUMB_MIN_PX, SHORT_PROGRESS_MS, button, dialog, dropdown, listView, loadingDialog, menuButton, menuGrid, meter, pickerGrid, pickerSheet, scrollbar, sideTab, toggle } from "../ui/widgets";
 import { drawnLevels, pairMeterId } from "./meters";
@@ -52,7 +52,7 @@ export const microsdScreen: ScreenDef = {
     if (!ctx.store.bool("sd.mounted", true)) {
       return { main: menuGrid([insertCardLine(ctx)], SD_MENU) };
     }
-    const open = (id: string) => () => ctx.nav.push({ id });
+    const open = (id: string) => aimed(() => ctx.nav.push({ id }), { kind: "screen", id });
     // While USB Storage Mode is on the three entries are out of reach and no
     // card-eject button is drawn. In recording mode and while playback holds a
     // file, playing or paused, Recorder alone stays in reach; in recording mode
@@ -77,7 +77,7 @@ export const microsdScreen: ScreenDef = {
         // The button asks before it goes either way, and lights while the mode is on.
         // In recording mode and while playback holds a file, playing or paused, it is out of reach.
         const shut = taking || held;
-        const node = button("USB Storage Mode", () => (shut ? undefined : usbStorageAsk(ctx, usbOn)), "usb-storage");
+        const node = button("USB Storage Mode", writing("sd.usbStorage", () => (shut ? undefined : usbStorageAsk(ctx, usbOn))), "usb-storage");
         setPressed(node, usbOn);
         return markShut(node, shut);
       })(),
@@ -111,7 +111,7 @@ function ejectButton(ctx: AppContext): HTMLElement {
   return el("button", {
     class: `sd-eject${usable ? "" : " is-disabled"}`,
     attrs: { "aria-label": "Eject the card", ...(usable ? {} : { "aria-disabled": "true" }) },
-    onTap: usable ? ask : () => undefined,
+    onTap: usable ? aimed(ask, { kind: "op", op: "card.eject" }) : () => undefined,
     children: [Icons.eject()],
   });
 }
@@ -124,7 +124,7 @@ function insertCardLine(ctx: AppContext): HTMLElement {
   const ask = (): void => {
     ctx.overlay(dialog({ message: "Simulate inserting the microSD card?", onOk: () => void perform(ctx, { kind: "card.insert" }) }));
   };
-  return el("button", { class: "sd-no-card", text: "Not inserted microSD card", onTap: ask });
+  return el("button", { class: "sd-no-card", text: "Not inserted microSD card", onTap: aimed(ask, { kind: "op", op: "card.insert" }) });
 }
 
 /** What a card browser is made of, beyond the entries themselves. */
@@ -634,17 +634,17 @@ export const recorderScreen: ScreenDef = {
                   el("div", { class: "sd-progress", style: { "--played": `${playedShare(ctx) * 100}%` } }),
                 ],
               }),
-              iconButton("Stop", Icons.stop(), "rec-stop", () => void perform(ctx, { kind: "playback.stop" })),
+              iconButton("Stop", Icons.stop(), "rec-stop", aimed(() => void perform(ctx, { kind: "playback.stop" }), { kind: "op", op: "playback.stop" })),
               (() => {
                 // The mark is what a tap does next: pause while a file plays, play otherwise.
-                const node = iconButton("Play/Pause", playing ? Icons.pause() : Icons.transportPlay(), "rec-pause", () => playPause(ctx, playing));
+                const node = iconButton("Play/Pause", playing ? Icons.pause() : Icons.transportPlay(), "rec-pause", aimed(() => playPause(ctx, playing), { kind: "op", op: playing ? "playback.pause" : "playback.start" }));
                 node.setAttribute("aria-pressed", String(playing));
                 return node;
               })(),
             ]
           : [
-              iconAction("Delete", Icons.trash(), onFile, () => deleteSelected(ctx)),
-              iconAction("Rename", Icons.rename(), onFile, () => renameSelected(ctx)),
+              iconAction("Delete", Icons.trash(), onFile, aimed(() => deleteSelected(ctx), { kind: "op", op: "card.delete" })),
+              iconAction("Rename", Icons.rename(), onFile, aimed(() => renameSelected(ctx), { kind: "op", op: "card.rename" })),
             ];
       // The speaker marks the file playback holds, playing or paused.
       const playingRow = tab === "Play" && held ? playingFile(ctx) : -1;
@@ -672,7 +672,7 @@ export const recorderScreen: ScreenDef = {
       const source = ctx.store.str(key, "None");
       const src = el("button", {
         class: "btn rec-slot-src",
-        onTap: () => (busy ? undefined : void recordSourceSheet(ctx, i)),
+        onTap: writing(key, () => (busy ? undefined : void recordSourceSheet(ctx, i))),
         children: [el("span", { text: source }), el("span", { class: "rec-slot-copy", children: [Icons.copySoft()] })],
       });
       return el("div", {
@@ -711,18 +711,18 @@ export const recorderScreen: ScreenDef = {
           el("div", {
             class: "rec-transport",
             children: [
-              iconButton("Stop", Icons.stop(), "rec-stop", () => void perform(ctx, { kind: "recorder.stop" })),
+              iconButton("Stop", Icons.stop(), "rec-stop", aimed(() => void perform(ctx, { kind: "recorder.stop" }), { kind: "op", op: "recorder.stop" })),
               // While a take runs, the middle button pauses and resumes it, red and pressed while paused.
               // Stopped and not armed, it does nothing.
-              iconButton(recording ? "Pause" : "Play", recording ? Icons.pause() : Icons.transportPlay(), `rec-play${rec === "paused" ? " is-paused" : ""}`, () => {
+              iconButton(recording ? "Pause" : "Play", recording ? Icons.pause() : Icons.transportPlay(), `rec-play${rec === "paused" ? " is-paused" : ""}`, aimed(() => {
                 if (rec === "armed" || rec === "paused") perform(ctx, { kind: "recorder.record" });
                 else if (rec === "recording") perform(ctx, { kind: "recorder.pause" });
-              }, { "aria-pressed": String(rec === "paused") }),
+              }, { kind: "op", op: rec === "recording" ? "recorder.pause" : "recorder.record" }), { "aria-pressed": String(rec === "paused") }),
               // [●] stands pressed in recording mode.
-              iconButton("Record", Icons.record(), `rec-rec${rec === "armed" ? " is-armed" : ""}`, () => {
+              iconButton("Record", Icons.record(), `rec-rec${rec === "armed" ? " is-armed" : ""}`, aimed(() => {
                 if (rec === "idle") perform(ctx, { kind: "recorder.arm" });
                 else if (rec === "armed") perform(ctx, { kind: "recorder.stop" });
-              }, { "aria-pressed": String(busy) }),
+              }, { kind: "op", op: rec === "armed" ? "recorder.stop" : "recorder.arm" }), { "aria-pressed": String(busy) }),
             ],
           }),
         ],
@@ -778,19 +778,20 @@ export const saveLoadScreen: ScreenDef = {
     const actions =
       tab === "Edit"
         ? [
-            iconAction("New folder", Icons.newFolder(), true, () => newFolder(ctx)),
-            iconAction("Delete", Icons.trash(), onFile, () => deleteSelected(ctx)),
-            iconAction("Rename", Icons.rename(), onFile, () => renameSelected(ctx)),
+            iconAction("New folder", Icons.newFolder(), true, aimed(() => newFolder(ctx), { kind: "op", op: "card.newFolder" })),
+            iconAction("Delete", Icons.trash(), onFile, aimed(() => deleteSelected(ctx), { kind: "op", op: "card.delete" })),
+            iconAction("Rename", Icons.rename(), onFile, aimed(() => renameSelected(ctx), { kind: "op", op: "card.rename" })),
           ]
         : ["Save", "Save as", "Load"].map((label) => {
             // Save and Load act on the settings file the cursor stands on; Save as writes a new one.
             const usable = label === "Save as" || onData;
-            return markShut(button(label, () => (usable ? saveLoadAction(ctx, label) : undefined)), !usable);
+            const does = label === "Load" ? "settings.load" : "settings.save";
+            return markShut(button(label, aimed(() => (usable ? saveLoadAction(ctx, label) : undefined), { kind: "op", op: does })), !usable);
           });
     return {
       main: cardBrowser(ctx, { listName: "SAVE/LOAD files", metaColumn: "Date/Time", meta: (entry) => writtenText(ctx, entry), actions }),
       side: (["Save/\nLoad", "Edit"] as const).map((t) =>
-        sideTab(t, tab === t, () => void ctx.store.set("ui.sdSaveTab", t), t === "Edit" ? Icons.edit() : Icons.save(), t === "Edit" ? "is-name-raised" : "is-name-apart"),
+        sideTab(t, tab === t, writing("ui.sdSaveTab", () => void ctx.store.set("ui.sdSaveTab", t)), t === "Edit" ? Icons.edit() : Icons.save(), t === "Edit" ? "is-name-raised" : "is-name-apart"),
       ),
       headerRight: ejectButton(ctx),
     };
@@ -809,13 +810,13 @@ export const toolsScreen: ScreenDef = {
       main: el("div", {
         class: "tools-screen",
         children: [
-          button(tab === "Format" ? "Format microSD" : "Test microSD", () => (tab === "Format" ? askVolumeLabel(ctx) : testCard(ctx))),
+          button(tab === "Format" ? "Format microSD" : "Test microSD", aimed(() => (tab === "Format" ? askVolumeLabel(ctx) : testCard(ctx)), { kind: "op", op: tab === "Format" ? "card.format" : "card.test" })),
           el("div", { class: "sd-free tools-free", children: cardLabel(ctx) }),
           ...(tested ? [testReport()] : []),
         ],
       }),
       side: (["Format", "Test"] as const).map((t) =>
-        sideTab(t, t === tab, () => void ctx.store.set("ui.sdToolsTab", t), t === "Format" ? Icons.refresh() : Icons.gauge(), t === "Test" ? "is-name-raised" : ""),
+        sideTab(t, t === tab, writing("ui.sdToolsTab", () => void ctx.store.set("ui.sdToolsTab", t)), t === "Format" ? Icons.refresh() : Icons.gauge(), t === "Test" ? "is-name-raised" : ""),
       ),
       headerRight: ejectButton(ctx),
     };

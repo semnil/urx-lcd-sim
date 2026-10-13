@@ -39,9 +39,10 @@ function hostPage(rules: boolean, still = false): string {
   import { SimTransport } from "/src/device/sim-transport.ts";
   import { factoryState } from "/src/model/defaults.ts";
   import { unitById } from "/src/model/units.ts";
-  window.mountGlass = async () => {
+  window.mountGlass = async (locks) => {
     window.sim = await mountSim(document.getElementById("slot"), {
       model: "URX44V",
+      ...(locks ? { locks } : {}),
       unit: {
         params: new SimTransport(factoryState(unitById("URX44V"))),
         levels: ${still ? `{ kind: "device", read: (_id, channels) => Array.from({ length: channels }, () => -18), clipSafe: () => false }` : `{ kind: "simulated" }`},
@@ -61,8 +62,8 @@ async function open(page: Page, rules: boolean, mount = true, still = false): Pr
   if (mount) await mountGlass(page);
 }
 
-async function mountGlass(page: Page): Promise<void> {
-  await page.evaluate(() => (window as unknown as { mountGlass: () => Promise<void> }).mountGlass());
+async function mountGlass(page: Page, locks?: unknown[]): Promise<void> {
+  await page.evaluate((held) => (window as unknown as { mountGlass: (locks?: unknown[]) => Promise<void> }).mountGlass(held), locks);
   await page.locator(".urx-lcd-sim .lcd[data-screen]:not([inert])").waitFor();
 }
 
@@ -155,6 +156,55 @@ test("turns a value by a drag, marking the glass rather than the page while it t
   await page.mouse.up();
   expect(marks, "the glass marked, the page not").toEqual([true, false]);
   expect(await read()).toBeGreaterThan(before);
+});
+
+test("holds shut what the page holds, a real touch and drag on it doing nothing, and lets it go", async ({ page }) => {
+  await open(page, true, false);
+  const reason = "Held by the page";
+  await mountGlass(page, [
+    { target: { kind: "screen", id: "setup.language" }, reason },
+    { target: { kind: "path", path: "ch.ch1.level" }, reason },
+  ]);
+  const read = (): Promise<number> => page.evaluate(() => (window as unknown as { sim: { store: { num(p: string, f: number): number } } }).sim.store.num("ch.ch1.level", Number.NaN));
+
+  // The fader takes no drag.
+  const level = page.locator(".urx-lcd-sim [role='slider'][aria-label='C H 1 LEVEL']");
+  await expect(level).toHaveAttribute("aria-disabled", "true");
+  await expect(level).toHaveAttribute("title", reason);
+  const before = await read();
+  const box = (await level.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 - 60, { steps: 6 });
+  await page.mouse.up();
+  expect(await read(), "the fader stays where it was").toBe(before);
+
+  const glass = page.locator(".urx-lcd-sim .lcd[data-screen]:not([inert])");
+  await glass.getByRole("button", { name: "SETUP", exact: true }).click();
+  await page.locator('.urx-lcd-sim .lcd[data-screen="setup"]:not([inert])').waitFor();
+  const language = glass.getByRole("button", { name: "Language", exact: true });
+  await expect(language).toHaveAttribute("title", reason);
+  await expect(language.locator(".lock-mark svg")).toBeVisible();
+  // A touch on it lands on the entry itself, not on whatever stands under it.
+  const at = (await language.boundingBox())!;
+  const hit = await page.evaluate(
+    ([x, y]) => {
+      const shadow = document.querySelector(".urx-lcd-sim")!.shadowRoot!;
+      return shadow.elementFromPoint(x!, y!)?.closest(".menu-btn")?.textContent ?? null;
+    },
+    [at.x + at.width / 2, at.y + at.height / 2],
+  );
+  expect(hit).toBe("Language");
+  // Playwright declines to click a control marked out of reach, so the press goes to where it stands.
+  await page.mouse.click(at.x + at.width / 2, at.y + at.height / 2);
+  await language.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator('.urx-lcd-sim .lcd[data-screen="setup"]:not([inert])')).toHaveCount(1);
+
+  await page.evaluate(() => (window as unknown as { sim: { setLocks(l: unknown[]): void } }).sim.setLocks([]));
+  await expect(language).not.toHaveAttribute("title", reason);
+  await language.click();
+  await page.locator('.urx-lcd-sim .lcd[data-screen="setup.language"]:not([inert])').waitFor();
 });
 
 test("draws at the scale it is given", async ({ page }) => {

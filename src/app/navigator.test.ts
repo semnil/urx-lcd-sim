@@ -110,4 +110,24 @@ describe("Navigator", () => {
     nav.openTop({ id: "home" });
     expect(nav.depth).toBe(1);
   });
+
+  it("opens no screen it refuses, by any move but the glass's own, and steps back and home as before", () => {
+    const nav = new Navigator({ id: "home" }, [{ id: "setup" }]);
+    const moves = vi.fn();
+    nav.onChange(moves);
+    const release = nav.setRefusal((route) => route.id === "setup.language");
+    nav.push({ id: "setup.language" });
+    nav.replace({ id: "setup.language" });
+    nav.openTop({ id: "setup.language" });
+    expect([nav.current.id, nav.depth, moves.mock.calls.length]).toEqual(["setup", 2, 0]);
+    nav.push({ id: "setup.brightness" });
+    expect(nav.current.id, "a screen it does not refuse opens").toBe("setup.brightness");
+    nav.openTop({ id: "setup.language" }, true);
+    expect(nav.current.id, "the glass's own move goes through").toBe("setup.language");
+    nav.back();
+    expect(nav.current.id).toBe("home");
+    release();
+    nav.push({ id: "setup.language" });
+    expect(nav.current.id, "and opens once it is let go").toBe("setup.language");
+  });
 });

@@ -1,3 +1,5 @@
+import type { ParamPath } from "../device/path";
+import type { LockTarget } from "./locks";
 import { setSpokenAttr } from "./spoken";
 // Element construction. Small on purpose: the screens are laid out in CSS, and
 // this only removes the createElement / append boilerplate around that.
@@ -94,7 +96,11 @@ export function drawnScale(glass: HTMLElement): number {
 export function makeTappable(node: HTMLElement, handler: (ev: Event) => void): void {
   if (!node.hasAttribute("role") && node.tagName !== "BUTTON") node.setAttribute("role", "button");
   if (!node.hasAttribute("tabindex")) node.tabIndex = 0;
+  const aim = AIMS.get(handler);
+  if (aim) lockable(node, aim);
   const fire = (ev: Event): void => {
+    // A control the embedding page holds shut answers no touch and no key.
+    if (node.classList.contains(LOCKED_CLASS)) return;
     const outer = tapping;
     tapping = node;
     try {
@@ -126,6 +132,41 @@ export function makeTappable(node: HTMLElement, handler: (ev: Event) => void): v
   node.addEventListener("blur", () => {
     taken = false;
   });
+}
+
+/** The class a control the embedding page holds shut carries (src/ui/locks.ts). */
+export const LOCKED_CLASS = "is-held-shut";
+
+/** The data attribute, by dataset key, that names each kind of target a control carries. */
+export const LOCK_KEYS = { path: "lockPath", screen: "lockScreen", op: "lockOp" } as const;
+
+/** Name `target` as what `node` does, so the page holding `target` shut holds `node` shut. */
+export function lockable<T extends HTMLElement | SVGElement>(node: T, target: LockTarget): T {
+  node.dataset[LOCK_KEYS[target.kind]] = target.kind === "path" ? target.path : target.kind === "screen" ? target.id : target.op;
+  return node;
+}
+
+/** Name `path` as the value `node` writes. */
+export function writes<T extends HTMLElement | SVGElement>(node: T, path: ParamPath): T {
+  return lockable(node, { kind: "path", path });
+}
+
+const AIMS = new WeakMap<object, LockTarget>();
+
+/** `handler`, named as doing `target`: a control made tappable with it is named so as well. */
+export function aimed<F extends (...args: never[]) => unknown>(handler: F, target: LockTarget): F {
+  AIMS.set(handler, target);
+  return handler;
+}
+
+/** What `handler` was named as doing, where it was named. */
+export function aimOf(handler: object): LockTarget | undefined {
+  return AIMS.get(handler);
+}
+
+/** `handler`, named as writing `path`. */
+export function writing<F extends (...args: never[]) => unknown>(path: ParamPath, handler: F): F {
+  return aimed(handler, { kind: "path", path });
 }
 
 export function clear(node: HTMLElement): void {

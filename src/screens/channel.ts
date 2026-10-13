@@ -13,7 +13,7 @@ import { EQ_SHAPES, eqBandOn, eqBandShape, fourBandResponse } from "../model/cha
 import type { Strip, StripKind } from "../model/types";
 import { findStrip, sendsTo } from "../model/types";
 import { CH_COLOR_NONE, CH_COLOR_OFF, CH_COLOR_PALETTE } from "../model/units";
-import { el, makeTappable, setPressed } from "../ui/dom";
+import { aimOf, aimed, el, lockable, makeTappable, setPressed, writes, writing } from "../ui/dom";
 import { inkOn } from "../ui/color";
 import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
@@ -213,7 +213,7 @@ export function channelSelector(ctx: AppContext, strip: Strip, route: Route, nar
         class: `ch-chip${narrow ? " is-narrow" : ""}`,
         style: { "--rail": colour },
         ...(opens ? {} : { attrs: { "aria-disabled": "true" } }),
-        onTap: opens ? () => ctx.nav.push({ id: "ch.setting", strip: strip.id }) : () => undefined,
+        onTap: opens ? aimed(() => ctx.nav.push({ id: "ch.setting", strip: strip.id }), { kind: "screen", id: "ch.setting" }) : () => undefined,
         children: [
           el("span", { class: "ch-chip-icon", style: { background: colour } }),
           el("span", {
@@ -254,7 +254,7 @@ export function block(
   const on = ctx.store.bool(onPath, fallback);
   const badge = inert
     ? el("span", { class: `badge badge-${kind} badge-switch${on ? " is-on" : ""}`, text: title })
-    : el("button", { class: `badge badge-${kind} badge-switch`, text: title, onTap: () => void ctx.store.set(onPath, !on) });
+    : el("button", { class: `badge badge-${kind} badge-switch`, text: title, onTap: writing(onPath, () => void ctx.store.set(onPath, !on)) });
   if (!inert) setPressed(badge, on);
   const key = knob ? (knob.spec.focusKey ?? knob.spec.path) : "";
   const node = el("div", {
@@ -263,6 +263,8 @@ export function block(
     attrs: { "aria-label": title },
     children: [badge, body],
   });
+  const aim = aimOf(onTap);
+  if (aim) lockable(node, aim);
   // A block with a value on the knobs takes two touches: the first brings the
   // focus to it and the second opens its screen. The first one does not sink the
   // panel, so it only gains its frame.
@@ -406,7 +408,7 @@ const oneKnobDepth = (path: string): NumericSpec => intSpec(path, "1-knob", 0, 1
 
 /** The channel view's [SAFE], which turns the Clip Safe kept at `path`. */
 function safeToggle(ctx: AppContext, path: ParamPath): HTMLElement {
-  return toggle("SAFE", ctx.store.bool(path, false), () => void ctx.store.set(path, !ctx.store.bool(path, false)));
+  return toggle("SAFE", ctx.store.bool(path, false), writing(path, () => void ctx.store.set(path, !ctx.store.bool(path, false))));
 }
 
 /** The circled 1 that marks a block turned by 1-knob. */
@@ -475,7 +477,7 @@ export const channelViewScreen: ScreenDef = {
     const opensInput = inputChannel || streaming;
     const gainCell = el("div", {
       class: "cv-gain",
-      ...(opensInput ? { onTap: () => ctx.nav.push({ id: "ch.input", strip: strip.id }) } : {}),
+      ...(opensInput ? { onTap: aimed(() => ctx.nav.push({ id: "ch.input", strip: strip.id }), { kind: "screen", id: "ch.input" }) } : {}),
       ...(streaming ? { attrs: { "aria-label": `${strip.label} input` } } : {}),
       children: [
         el("span", { class: "cv-caption", text: gainSpec?.label ?? "" }),
@@ -523,7 +525,7 @@ export const channelViewScreen: ScreenDef = {
 
     // While 1-knob turns EQ, the knob sets its depth, printed over the curve.
     const eqBlock = (): HTMLElement => {
-      const open = (): void => ctx.nav.push({ id: "ch.eq", strip: strip.id });
+      const open = aimed((): void => ctx.nav.push({ id: "ch.eq", strip: strip.id }), { kind: "screen", id: "ch.eq" });
       if (!ctx.store.bool(`${base}.eq.oneKnob.on`, false)) return block(ctx, "EQ", "eq", `${base}.eq.on`, true, eqThumb(ctx, strip.id), open);
       const depth = oneKnobDepth(`${base}.eq.oneKnob.level`);
       const graph = el("div", {
@@ -537,7 +539,7 @@ export const channelViewScreen: ScreenDef = {
       const effect = ctx.store.str(`${insert}.effect`, NO_EFFECT);
       return block(ctx, "INS FX", "insfx", `${insert}.on`, false,
         el("div", { class: "cv-block-value cv-block-text", text: effect }),
-        () => openEffectParams(ctx, strip, true),
+        aimed(() => openEffectParams(ctx, strip, true), { kind: "screen", id: "ch.insfx" }),
         undefined,
         effect === NO_EFFECT,
       );
@@ -548,7 +550,7 @@ export const channelViewScreen: ScreenDef = {
     const fxBlock = (): HTMLElement =>
       el("div", {
         class: "cv-block cv-block-fx",
-        onTap: () => openEffectParams(ctx, strip),
+        onTap: aimed(() => openEffectParams(ctx, strip), { kind: "screen", id: "ch.effect" }),
         attrs: { "aria-label": `${strip.label} effect` },
         children: [
           el("span", { class: "badge badge-plain cv-fx-name", text: strip.label }),
@@ -574,7 +576,7 @@ export const channelViewScreen: ScreenDef = {
       blocks.push(
         block(ctx, "GATE", "gate", `${base}.gate.on`, false,
           el("div", { class: "cv-block-body", children: [gateValue, gateLamps(ctx, strip, base)] }),
-          () => ctx.nav.push({ id: "ch.gate", strip: strip.id }),
+          aimed(() => ctx.nav.push({ id: "ch.gate", strip: strip.id }), { kind: "screen", id: "ch.gate" }),
           { spec: gate, frame: gateValue },
         ),
         ssmcs
@@ -587,7 +589,7 @@ export const channelViewScreen: ScreenDef = {
                   compMeters(ctx, strip, base, !compOneKnob),
                 ],
               }),
-              () => ctx.nav.push({ id: "ch.comp", strip: strip.id }),
+              aimed(() => ctx.nav.push({ id: "ch.comp", strip: strip.id }), { kind: "screen", id: "ch.comp" }),
               { spec: comp, frame: compValue },
             ),
       );
@@ -600,7 +602,7 @@ export const channelViewScreen: ScreenDef = {
         ...(eqShut(ctx, strip) ? [] : [eqBlock()]),
         block(ctx, "DUCKER", "ducker", `${base}.ducker.on`, false,
           el("div", { class: "cv-block-body", children: [duckerValue, duckerLamps(ctx, strip, base)] }),
-          () => ctx.nav.push({ id: "ch.ducker", strip: strip.id }),
+          aimed(() => ctx.nav.push({ id: "ch.ducker", strip: strip.id }), { kind: "screen", id: "ch.ducker" }),
           { spec: ducker, frame: duckerValue },
         ),
       );
@@ -608,7 +610,7 @@ export const channelViewScreen: ScreenDef = {
       const delay = delayTime(base);
       const delayValue = readout({ ...delay, format: (v) => v.toFixed(2) }, "cv-delay-value");
       blocks.push(
-        block(ctx, "DELAY", "delay", `${base}.delay.on`, false, delayValue, () => ctx.nav.push({ id: "ch.delay", strip: strip.id }), {
+        block(ctx, "DELAY", "delay", `${base}.delay.on`, false, delayValue, aimed(() => ctx.nav.push({ id: "ch.delay", strip: strip.id }), { kind: "screen", id: "ch.delay" }), {
           spec: delay,
           frame: delayValue,
         }),
@@ -621,7 +623,7 @@ export const channelViewScreen: ScreenDef = {
 
     const sendTo = el("button", {
       class: "cv-sendto",
-      onTap: () => ctx.nav.push({ id: "ch.sendto", strip: strip.id }),
+      onTap: aimed(() => ctx.nav.push({ id: "ch.sendto", strip: strip.id }), { kind: "screen", id: "ch.sendto" }),
       children: [el("span", { class: "cv-sendto-icon", children: [Icons.sendTo()] }), el("span", { text: "SEND TO" })],
     });
 
@@ -645,10 +647,10 @@ export const channelViewScreen: ScreenDef = {
     const onOff = el("div", {
       class: "cv-onoff",
       children: [
-        toggle("CUE", ctx.store.bool(`${base}.cue`, false), () => toggleCue(ctx, strip), "btn-switch btn-cue"),
+        toggle("CUE", ctx.store.bool(`${base}.cue`, false), writing(`${base}.cue`, () => toggleCue(ctx, strip)), "btn-switch btn-cue"),
         ...(streaming
           ? []
-          : [toggle("ON", ctx.store.bool(`${base}.on`, true), () => void ctx.store.set(`${base}.on`, !ctx.store.bool(`${base}.on`, true)), "btn-switch btn-on")]),
+          : [toggle("ON", ctx.store.bool(`${base}.on`, true), writing(`${base}.on`, () => void ctx.store.set(`${base}.on`, !ctx.store.bool(`${base}.on`, true))), "btn-switch btn-on")]),
         meter({ levels: drawnLevels(ctx.store, strip.id, mono ? 1 : 2), height: 80, source: strip.id }),
       ],
     });
@@ -776,6 +778,7 @@ export const chSettingScreen: ScreenDef = {
       attrs: { type: "text", maxlength: "8", "aria-label": "Channel name" },
     }) as HTMLInputElement;
     nameInput.value = ctx.store.str(`${base}.name`, "");
+    writes(nameInput, `${base}.name`);
     // Committing on change rather than on every keystroke keeps an IME
     // composition from writing half-formed text to the device. A press elsewhere
     // that takes the focus commits the name once that press has acted.
@@ -786,7 +789,7 @@ export const chSettingScreen: ScreenDef = {
     });
 
     const colorBox = box("color", "copy", [el("span", { class: "chs-color", style: { background: stripColor(ctx, strip) } })]);
-    makeTappable(colorBox, () => colorSheet(ctx, strip));
+    makeTappable(writes(colorBox, `${base}.color`), () => colorSheet(ctx, strip));
     // The box is named by the colour the channel carries, in the words of the palette's buttons.
     const chosen = ctx.store.str(`${base}.color`, strip.color);
     const colorName = chosen === CH_COLOR_OFF ? CH_COLOR_OFF : CH_COLOR_PALETTE.find((c) => c.hex === chosen)?.name;
@@ -806,6 +809,7 @@ export const chSettingScreen: ScreenDef = {
           "Rec Point",
           "rec",
           pulldown(ctx, ctx.store.str(`${base}.recPoint`, REC_POINT_DEFAULT), recPoints(ctx, strip), (v) => void ctx.store.set(`${base}.recPoint`, v), {
+            path: `${base}.recPoint`,
             label: "Rec Point",
           }),
         ),
@@ -813,8 +817,8 @@ export const chSettingScreen: ScreenDef = {
     }
     if (strip.kind === "monoIn") {
       children.push(
-        field("COMP / EQ", "comp", pulldown(ctx, ctx.store.str(`${base}.compEqOrder`, "COMP->EQ"), COMP_EQ_ORDERS, (v) => setCompEq(ctx, strip, v), { label: "COMP / EQ" })),
-        field("Signal Type", "signal", pulldown(ctx, signalType(ctx, strip), SIGNAL_TYPES, (v) => setSignalType(ctx, strip, v), { label: "Signal Type" })),
+        field("COMP / EQ", "comp", pulldown(ctx, ctx.store.str(`${base}.compEqOrder`, "COMP->EQ"), COMP_EQ_ORDERS, (v) => setCompEq(ctx, strip, v), { path: `${base}.compEqOrder`, label: "COMP / EQ" })),
+        field("Signal Type", "signal", pulldown(ctx, signalType(ctx, strip), SIGNAL_TYPES, (v) => setSignalType(ctx, strip, v), { path: `${base}.signalType`, label: "Signal Type" })),
       );
       // A stereo pair is placed either by one PAN per channel or by the pair's
       // balance, so it offers the choice under the Signal Type.
@@ -823,7 +827,7 @@ export const chSettingScreen: ScreenDef = {
         children.push(
           el("div", {
             class: "chs-panbal",
-            children: PAN_BAL.map((v) => toggle(v, v === current, () => setPanBal(ctx, strip, v), "panbal-btn")),
+            children: PAN_BAL.map((v) => writes(toggle(v, v === current, () => setPanBal(ctx, strip, v), "panbal-btn"), `${base}.panBal`)),
           }),
         );
       }
@@ -833,9 +837,9 @@ export const chSettingScreen: ScreenDef = {
     if (strip.kind === "mix") {
       const fixed = busType(ctx, strip) === "FIXED";
       const linked = panLinkOn(ctx, strip);
-      const panLink = toggle("Pan Link", linked, () => {
+      const panLink = writes(toggle("Pan Link", linked, () => {
         if (!fixed) setPanLink(ctx, strip, !linked);
-      }, "panlink-btn");
+      }, "panlink-btn"), `${base}.panLink`);
       // Pan Link works on a bus taking variable send levels, so a FIXED bus
       // keeps the button in place and out of reach.
       if (fixed) panLink.setAttribute("aria-disabled", "true");
@@ -844,6 +848,7 @@ export const chSettingScreen: ScreenDef = {
           "BUS Type",
           "bustype",
           pulldown(ctx, busType(ctx, strip), BUS_TYPES, (v) => setBusType(ctx, strip, v), {
+            path: `${base}.busType`,
             label: "BUS Type",
             listClass: "chs-bustype-list",
           }),
@@ -882,7 +887,7 @@ export const inputScreen: ScreenDef = {
     ctx.setKnobs(headAmped ? [gainSpec ?? null, null, null, ...(mono ? [hpfSpec] : [])] : []);
     const flagAt = (label: string, p: ParamPath, cls: string): HTMLElement => {
       const on = ctx.store.bool(p, false);
-      return toggle(label, on, () => void ctx.store.set(p, !on), `input-flag ${cls}`);
+      return toggle(label, on, writing(p, () => void ctx.store.set(p, !on)), `input-flag ${cls}`);
     };
     const flag = (label: string, key: string, cls: string): HTMLElement => flagAt(label, `${base}.${key}`, cls);
     // The analog head amp's buttons stand on a MIC/LINE connector alone.
@@ -913,7 +918,7 @@ export const inputScreen: ScreenDef = {
                 el("span", { class: "input-caption", text: "Input Source" }),
                 el("button", {
                   class: "input-source-btn",
-                  onTap: () => void inputSourceSheet(ctx, strip),
+                  onTap: writing(`ch.${strip.id}.source`, () => void inputSourceSheet(ctx, strip)),
                   children: [
                     el("span", { text: sourceBoxLabel(ctx, ctx.store.str(`${base}.source`, "MIC/LINE")) }),
                     el("span", { class: "ch-chip-copy", children: [Icons.copy()] }),
@@ -1243,7 +1248,7 @@ export const gateScreen: ScreenDef = {
         "gate",
       ),
       headerLeft: channelSelector(ctx, strip, route, true),
-      headerCenter: titleBadge("GATE", "gate", on, () => void ctx.store.set(`${b}.gate.on`, !on)),
+      headerCenter: titleBadge("GATE", "gate", on, writing(`${b}.gate.on`, () => void ctx.store.set(`${b}.gate.on`, !on))),
     };
   },
 };
@@ -1323,6 +1328,7 @@ export const compScreen: ScreenDef = {
               : [
                   el("span", { class: "dyn-caption", text: "Auto\nMakeup" }),
                   pulldown(ctx, makeup ? "On" : "Off", ["Off", "On"], (v) => void ctx.store.set(`${b}.comp.autoMakeup`, v === "On"), {
+                    path: `${b}.comp.autoMakeup`,
                     label: "Auto Makeup",
                   }),
                   oneKnobButton(ctx, `${b}.comp.oneKnob.on`),
@@ -1335,6 +1341,7 @@ export const compScreen: ScreenDef = {
               oneKnob
                 ? lockedPulldown(ctx.store.str(`${b}.comp.knee`, "Medium"))
                 : pulldown(ctx, ctx.store.str(`${b}.comp.knee`, "Medium"), COMP_KNEES, (v) => void ctx.store.set(`${b}.comp.knee`, v), {
+                    path: `${b}.comp.knee`,
                     label: "Knee",
                   }),
             ],
@@ -1345,7 +1352,7 @@ export const compScreen: ScreenDef = {
         "comp",
       ),
       headerLeft: channelSelector(ctx, strip, route, true),
-      headerCenter: titleBadge("COMP", "comp", on, () => void ctx.store.set(`${b}.comp.on`, !on)),
+      headerCenter: titleBadge("COMP", "comp", on, writing(`${b}.comp.on`, () => void ctx.store.set(`${b}.comp.on`, !on))),
     };
   },
 };
@@ -1413,6 +1420,7 @@ export const duckerScreen: ScreenDef = {
                   return { row: 3, column: i - mono - stereo };
                 };
                 return pulldown(ctx, box, sources.map((s) => s.label), (v) => void ctx.store.set(`${b}.ducker.source`, v), {
+                  path: `${b}.ducker.source`,
                   label: "Ducker Source",
                   listClass: "ducker-source-list",
                   current: held,
@@ -1429,7 +1437,7 @@ export const duckerScreen: ScreenDef = {
         "ducker",
       ),
       headerLeft: channelSelector(ctx, strip, route, true),
-      headerCenter: titleBadge("DUCKER", "ducker", on, () => void ctx.store.set(`${b}.ducker.on`, !on)),
+      headerCenter: titleBadge("DUCKER", "ducker", on, writing(`${b}.ducker.on`, () => void ctx.store.set(`${b}.ducker.on`, !on))),
     };
   },
 };
@@ -1594,6 +1602,7 @@ export const delayScreen: ScreenDef = {
               el("span", { class: "delay-caption", text: "Frame rate" }),
               // The unit sets the rates two across and four down.
               pulldown(ctx, rate, DELAY_FRAME_RATES, (v) => void ctx.store.set(`${b}.delay.frameRate`, v), {
+                path: `${b}.delay.frameRate`,
                 label: "Frame rate",
                 columns: 2,
               }),
@@ -1618,7 +1627,7 @@ export const delayScreen: ScreenDef = {
         ],
       }),
       headerLeft: channelSelector(ctx, strip, route, true),
-      headerCenter: titleBadge("DELAY", "delay", on, () => void ctx.store.set(`${b}.delay.on`, !on)),
+      headerCenter: titleBadge("DELAY", "delay", on, writing(`${b}.delay.on`, () => void ctx.store.set(`${b}.delay.on`, !on))),
     };
   },
 };
@@ -1754,7 +1763,7 @@ export const eqScreen: ScreenDef = {
                     class: `eq-band${bandOn ? "" : " is-off"}`,
                     text: band.box,
                     attrs: { "aria-label": `${band.label} band on`, "aria-pressed": String(bandOn) },
-                    onTap: () => void ctx.store.set(`${base}.eq.${band.key}.on`, !bandOn),
+                    onTap: writing(`${base}.eq.${band.key}.on`, () => void ctx.store.set(`${base}.eq.${band.key}.on`, !bandOn)),
                   });
                 })(),
               ]),
@@ -1765,6 +1774,7 @@ export const eqScreen: ScreenDef = {
                   level,
                   `${base}.eq.oneKnob.on`,
                   pulldown(ctx, ctx.store.str(`${base}.eq.oneKnob.type`, "Intensity"), EQ_ONE_KNOB_TYPES, (v) => setEqOneKnobType(ctx, base, v), {
+                    path: `${base}.eq.oneKnob.type`,
                     label: "1-knob type",
                   }),
                   (next) => setEqOneKnob(ctx, base, next),
@@ -1773,6 +1783,7 @@ export const eqScreen: ScreenDef = {
             : [
                 shapeBox(
                   pulldown(ctx, shape, shapes, (v) => void ctx.store.set(`${base}.eq.${band.key}.shape`, v), {
+                    path: `${base}.eq.${band.key}.shape`,
                     label: `${band.label} Shape`,
                     render: (option) => Icons.eqShape(option),
                     optionClass: "eq-shape-option",
@@ -1787,7 +1798,7 @@ export const eqScreen: ScreenDef = {
         ],
       }),
       headerLeft: channelSelector(ctx, strip, route, true),
-      headerCenter: titleBadge("EQ", "eq", on, () => void ctx.store.set(`${base}.eq.on`, !on)),
+      headerCenter: titleBadge("EQ", "eq", on, writing(`${base}.eq.on`, () => void ctx.store.set(`${base}.eq.on`, !on))),
     };
   },
 };
@@ -2066,10 +2077,10 @@ export const sendToScreen: ScreenDef = {
               el("div", {
                 class: "sendto-body",
                 children: shut(t) ? [] : [
-                  toggle("ON", ctx.store.bool(onPath, sendShipsOn(strip, t)), () => void ctx.store.set(onPath, !ctx.store.bool(onPath, sendShipsOn(strip, t))), "btn-switch btn-on"),
+                  toggle("ON", ctx.store.bool(onPath, sendShipsOn(strip, t)), writing(onPath, () => void ctx.store.set(onPath, !ctx.store.bool(onPath, sendShipsOn(strip, t)))), "btn-switch btn-on"),
                   noTap
                     ? empty("sendto-empty-pre")
-                    : toggle("PRE", ctx.store.bool(prePath, false), () => void ctx.store.set(prePath, !ctx.store.bool(prePath, false)), "btn-switch btn-pre"),
+                    : toggle("PRE", ctx.store.bool(prePath, false), writing(prePath, () => void ctx.store.set(prePath, !ctx.store.bool(prePath, false))), "btn-switch btn-pre"),
                   noPlacing ? empty("sendto-empty-slider") : panSlider(balance),
                   noPlacing
                     ? empty("sendto-empty-bal")
@@ -2089,7 +2100,7 @@ export const sendToScreen: ScreenDef = {
       ...(groups.length > 1
         ? {
             side: groups.map((g) =>
-              sideTab(g.label, g.key === group, () => void ctx.store.set("ui.sendToGroup", g.key), undefined, "sendto-tab"),
+              sideTab(g.label, g.key === group, writing("ui.sendToGroup", () => void ctx.store.set("ui.sendToGroup", g.key)), undefined, "sendto-tab"),
             ),
           }
         : {}),

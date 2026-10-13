@@ -10,7 +10,7 @@ import { clockParts } from "./model/clock";
 import { unitById } from "./model/units";
 import { buildRegistry } from "./screens";
 import { meterLevels } from "./screens/meters";
-import { type EmbeddedSim, ROOT_CLASS, mountSim } from "./embed";
+import { type EmbeddedSim, ROOT_CLASS, type SimLock, mountSim } from "./embed";
 
 const flush = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 
@@ -27,10 +27,10 @@ function simulated(overrides: Partial<Unit> = {}): Unit {
 const mounted: EmbeddedSim[] = [];
 const shells: Shell[] = [];
 
-async function mount(unit: Unit = simulated()): Promise<{ sim: EmbeddedSim; host: HTMLElement }> {
+async function mount(unit: Unit = simulated(), locks?: readonly SimLock[]): Promise<{ sim: EmbeddedSim; host: HTMLElement }> {
   const host = document.createElement("div");
   document.body.appendChild(host);
-  const sim = await mountSim(host, { model: "URX44V", unit });
+  const sim = await mountSim(host, { model: "URX44V", unit, ...(locks ? { locks } : {}) });
   mounted.push(sim);
   await flush();
   return { sim, host };
@@ -177,6 +177,33 @@ describe("the unit's actions", () => {
     expect(refused).toEqual([{ kind: "scene.recall", scene: 0 }]);
   });
 
+});
+
+describe("what the page holds shut", () => {
+  const setupIcon = (sim: EmbeddedSim): HTMLElement | null => tree(sim).querySelector<HTMLElement>(".icon-btn[aria-label='SETUP']");
+  const screen = (sim: EmbeddedSim): string | undefined => tree(sim).querySelector<HTMLElement>(".lcd")?.dataset["screen"];
+  const LOCK: SimLock = { target: { kind: "screen", id: "setup" }, reason: "Setup is held by the page" };
+
+  it("draws what it is mounted with shut from the first paint, and opens nothing from it", async () => {
+    const { sim } = await mount(simulated(), [LOCK]);
+    expect(setupIcon(sim)?.classList.contains("is-held-shut")).toBe(true);
+    expect(setupIcon(sim)?.getAttribute("title")).toBe("Setup is held by the page");
+    setupIcon(sim)?.click();
+    await flush();
+    expect(screen(sim)).toBe("home");
+  });
+
+  it("takes a new set from setLocks, and none from an empty one", async () => {
+    const { sim } = await mount();
+    expect(setupIcon(sim)?.classList.contains("is-held-shut"), "nothing held unless the page says so").toBe(false);
+    sim.setLocks([LOCK]);
+    expect(setupIcon(sim)?.classList.contains("is-held-shut")).toBe(true);
+    sim.setLocks([]);
+    expect(setupIcon(sim)?.classList.contains("is-held-shut")).toBe(false);
+    setupIcon(sim)?.click();
+    await flush();
+    expect(screen(sim)).toBe("setup");
+  });
 });
 
 describe("a glass drawn in a shadow tree", () => {

@@ -5,6 +5,7 @@ import type { DeviceStore } from "../device/store";
 import type { UnitActions } from "../device/unit";
 import type { UnitModel } from "../model/types";
 import type { FocusController } from "../ui/focus";
+import type { Locks } from "../ui/locks";
 import type { NumericSpec } from "../ui/param-spec";
 import type { Navigator } from "./navigator";
 
@@ -15,6 +16,8 @@ export interface AppContext {
   nav: Navigator;
   /** The operations the unit carries out on its memory, card and recorder. */
   actions: UnitActions;
+  /** What the page the glass is embedded in holds shut (src/ui/locks.ts); nothing on a page of its own. */
+  locks: Locks;
   /** Rebuild the current screen. Screens call this after a state change. */
   repaint(): void;
   /**

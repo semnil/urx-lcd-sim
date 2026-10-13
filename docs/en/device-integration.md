@@ -95,6 +95,34 @@ browser. What it returns sets the display scale and lets the glass go, closing t
 - `shippedValues(model)` lists every path the glass reads and writes, with the value it ships with, for a
   host deciding which of them it answers.
 
+### Controls the page holds shut
+
+A page can hold controls of the glass shut and say why: `locks` in the options `mountSim()` takes, and
+`setLocks()` on what it returns, which replaces the whole set and draws the glass again (`src/ui/locks.ts`).
+Each lock (`SimLock`) is a target and the reason the page gives for it. A target (`LockTarget`) is one of:
+
+| Target | Holds shut |
+| --- | --- |
+| `{ kind: "path", path }` | a control that writes that path: a value box, a knob, a fader, a switch, a pulldown, a button that opens the sheet picking it. A control that writes several paths is held by its first. |
+| `{ kind: "screen", id }` | a button that opens the screen of that route id: HOME's `setup` / `microsd` / `monitor`, SETUP's entries (`setup.language`, `setup.rate`, ...), microSD's (`microsd.saveload`, ...), a channel's blocks (`ch.eq`, ...). |
+| `{ kind: "op", op }` | a button that hands the unit that operation (`UnitOp["kind"]`: `scene.recall`, `recorder.arm`, `card.eject`, ...). A transport button that hands the unit a different operation in each state is held by the one it would hand it now. |
+
+- A control held shut takes the face of a control out of reach (`is-disabled`, `aria-disabled="true"`) and
+  `is-held-shut`, carries a padlock at its top right corner (`aria-hidden="true"`), and gives the page's
+  reason as its `title` and its `aria-description`. Its name is left as it was. Letting it go gives back
+  what the control carried before, so a control the screen itself holds out of reach stays out of reach.
+- It answers no touch, Enter or Space, and a value held shut turns by no drag, wheel or key.
+- Behind the drawing, the glass refuses what a held control would do however it is reached:
+  `DeviceStore.setLocked()` refuses an edit of a held path whole, and one that carries a write onto one
+  (a linked pair's other channel, say), reporting nothing to `onWriteFailure`; the navigator opens no held
+  screen (`Navigator.setRefusal()`, the back arrow and the home button aside); `perform()` hands the unit
+  no held operation. A value the unit changes itself still reaches the glass.
+- A control names its target where it is built (`lockable`, `writes`, `writing` and `aimed` in
+  `src/ui/dom.ts`): the numeric controls built from a `NumericSpec` name its path themselves, and a
+  pulldown names the `path` it is given. A control that names none is drawn as it is, while the refusals
+  above still hold for it.
+- The simulator's own page holds nothing, and a page that passes no locks sees the glass as before.
+
 ## Binding table
 
 `BindingTable` (`src/device/binding.ts`) holds the mapping from path to address + encoding.
