@@ -98,5 +98,10 @@ export function sendsTo(from: Strip, to: Strip): boolean {
   return to.kind === "stereo";
 }
 
+/** Whether the strip has an insert at all: the mono channels and the output buses. */
+export function carriesInsert(strip: Pick<Strip, "kind">): boolean {
+  return strip.kind === "monoIn" || strip.kind === "mix" || strip.kind === "stereo";
+}
+
 /** The destination HOME's [Sends] ships on: the stereo bus. */
 export const SENDS_TARGET_SHIPPED = "ST";

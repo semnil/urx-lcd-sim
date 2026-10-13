@@ -6,7 +6,8 @@ import type { Route } from "../app/navigator";
 import { clockParts, setClock } from "../model/clock";
 import { factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
-import { entryBytes, freeBytes, readCard, roomSeconds, writeCard } from "../model/card";
+import { entryBytes, filePath, freeBytes, readCard, roomSeconds, writeCard } from "../model/card";
+import { toJson } from "../device/value-json";
 import type { CardEntry } from "../model/card";
 import { buildRegistry } from "./index";
 import { restore } from "../app/persist";
@@ -318,6 +319,22 @@ describe("playing a file back", () => {
     await flush();
     await flush();
     expect(pitchRead((p) => store.str(p, ""), (p) => store.bool(p, true))).toEqual(PITCH_PUT_BACK);
+  });
+
+  it("leaves out what an older settings file holds and the unit does not, and loads the rest", async () => {
+    // A file saved while every send into STEREO kept a level, FX 1 an EQ and STREAMING a fader and an insert.
+    const older: CardEntry = { name: "older.urxf", kind: "data", seconds: 0, tracks: 0, stamp: "", dir: "/" };
+    const shell = await mount({ id: "microsd.saveload" }, [older]);
+    const store = shell.ctx.store;
+    const unheld = ["ch.ch1.send.bus.stereo.level", "ch.ch1.send.fx1.balance", "ch.fx1.eq.low.gain", "ch.bus.stream.level", "ch.bus.stream.insFx.effect", "ch.ch2.balance"];
+    await store.set(filePath(older), toJson({ ...Object.fromEntries(unheld.map((p) => [p, 5])), "ch.ch1.level": -9 }));
+    await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === older.name));
+    await flush();
+    action(shell, "Load")?.click();
+    await flush();
+    await flush();
+    expect(unheld.filter((p) => store.has(p))).toEqual([]);
+    expect(store.num("ch.ch1.level", 0), "the rest comes back").toBe(-9);
   });
 
   it("puts a GATE, COMP or DUCKER time an older settings file holds off its stops on the stop nearest it", async () => {

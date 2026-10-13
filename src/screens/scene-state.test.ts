@@ -59,7 +59,7 @@ describe("what a scene carries", () => {
       expect(inScene(path), path).toBe(true);
     }
     for (const path of [
-      "ch.bus.stream.level",
+      "ch.bus.stream.delay.ms",
       "ch.bus.stream.color",
       "ch.bus.stream.source",
       "monitor.1.level",
@@ -110,12 +110,12 @@ describe("storing and recalling a scene", () => {
 
   it("leaves the streaming bus where the unit keeps it", async () => {
     const shell = await mount();
-    await shell.ctx.store.set("ch.bus.stream.level", -4);
+    await shell.ctx.store.set("ch.bus.stream.delay.ms", 4);
     await storeScene(shell.ctx, "Standard", 1);
     await shell.ctx.store.set("scene.Standard.1.title", "take one");
-    await shell.ctx.store.set("ch.bus.stream.level", -18);
+    await shell.ctx.store.set("ch.bus.stream.delay.ms", 18);
     await recallScene(shell.ctx, 1);
-    expect(shell.ctx.store.num("ch.bus.stream.level", 99)).toBe(-18);
+    expect(shell.ctx.store.num("ch.bus.stream.delay.ms", 99)).toBe(18);
     const stored = Object.keys(JSON.parse(shell.ctx.store.str("scene.Standard.1.state", "{}")) as object);
     expect(stored.filter((p) => p.startsWith("ch.bus.stream")), "and the stored copy holds none of it").toEqual([]);
     expect(stored, "which is not how it holds the stereo bus").toContain("ch.bus.stereo.level");
@@ -323,6 +323,18 @@ describe("storing and recalling a scene", () => {
     await storeScene(shell.ctx, "Standard", 1);
     await recallScene(shell.ctx, 1);
     expect(pitchRead((p) => s.str(p, ""), (p) => s.bool(p, true))).toEqual(PITCH_PUT_BACK);
+  });
+
+  it("leaves out what an older scene holds and the unit does not, and puts back the rest", async () => {
+    // A scene stored while every send into STEREO kept a level and a tap, FX 1 an EQ and CH 2 a BALANCE of its own.
+    const shell = await mount();
+    const s = shell.ctx.store;
+    const unheld = ["ch.ch1.send.bus.stereo.level", "ch.ch1.send.bus.stereo.pre", "ch.ch1.send.fx1.balance", "ch.fx1.eq.low.gain", "ch.ch2.balance"];
+    await s.set("scene.Standard.1.title", "older");
+    await s.set("scene.Standard.1.state", toJson({ ...Object.fromEntries(unheld.map((p) => [p, 5])), "ch.ch1.level": -9 }));
+    await recallScene(shell.ctx, 1);
+    expect(unheld.filter((p) => s.has(p))).toEqual([]);
+    expect(s.num("ch.ch1.level", 0), "the rest comes back").toBe(-9);
   });
 
   it("puts a GATE, COMP or DUCKER time an older scene holds off its stops on the stop nearest it", async () => {

@@ -6,7 +6,7 @@ import type { Route } from "../app/navigator";
 import type { ParamPath, ParamValue } from "../device/path";
 import type { DeviceStore, WriteRule } from "../device/store";
 import { clamp } from "../device/store";
-import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, GATE_DEFAULTS, compEqBankDefaults, faderShipped, sendShipsOn, ssmcsBankDefaults } from "../model/defaults";
+import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, GATE_DEFAULTS, compEqBankDefaults, faderShipped, holdsEq, sendShipsOn, ssmcsBankDefaults } from "../model/defaults";
 import { COMP_KNEE_WIDTH, compResponse, grBarShare, levelBarShare } from "../model/dynamics";
 import { DYNAMICS_TIME_PLACES, DYNAMICS_TIME_STOPS, type DynamicsTime } from "../model/dynamics-times";
 import { EQ_SHAPES, eqBandOn, eqBandShape, fourBandResponse } from "../model/channel-eq";
@@ -50,7 +50,7 @@ type Block = keyof typeof BLOCK_STRIPS | "EQ";
  * stereo bus carry an EQ.
  */
 export function carriesBlock(ctx: AppContext, strip: Strip, block: Block): boolean {
-  if (block === "EQ") return strip.kind === "monoIn" ? !runsSsmcs(ctx, strip) : strip.kind === "stIn" || strip.kind === "mix" || strip.kind === "stereo";
+  if (block === "EQ") return strip.kind === "monoIn" ? !runsSsmcs(ctx, strip) : holdsEq(strip);
   if (strip.kind !== BLOCK_STRIPS[block]) return false;
   if (block === "COMP") return !runsSsmcs(ctx, strip);
   if (block === "SSMCS") return runsSsmcs(ctx, strip);

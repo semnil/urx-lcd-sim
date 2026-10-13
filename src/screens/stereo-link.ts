@@ -7,6 +7,7 @@
 import type { AppContext } from "../app/context";
 import type { ParamPath, ParamValue } from "../device/path";
 import type { DeviceStore, WriteRule } from "../device/store";
+import { holdsBalance } from "../model/defaults";
 import { NO_EFFECT } from "../model/effects";
 import type { Strip, UnitModel } from "../model/types";
 import { findStrip } from "../model/types";
@@ -90,7 +91,7 @@ function panPaths(ctx: PairCtx, strip: Strip): ParamPath[] {
   const base = `ch.${strip.id}`;
   return [
     `${base}.pan`,
-    `${base}.balance`,
+    ...(holdsBalance(strip) ? [`${base}.balance`] : []),
     ...ctx.store.pathsUnder(`${base}.send`).filter((p) => p.endsWith(".balance")),
   ];
 }

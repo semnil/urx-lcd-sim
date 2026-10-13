@@ -140,6 +140,8 @@ and a name the amp does not have is not put back. A state stored while Pan Link 
 it was, or kept Pan Link on over a FIXED bus, comes back with Pan Link where the unit's screen leaves it. A GATE,
 COMP or DUCKER time, or an SSMCS frequency, Attack or Release, stored off its stops comes back on the stop nearest it,
 and a DELAY time stored off the hundredths of a ms on the hundredth nearest it.
+A state, a scene memory or a settings file holding a value the unit does not hold, such as an EQ on FX 1, FX 2 or
+STREAMING, or a level of a send into the stereo bus, is put back without it (`onlyHeld` in `src/model/defaults.ts`).
 A state stored while a settings file's contents were kept under the file's name alone gives those contents to
 every settings file of that name, whatever folder holds it (they are now kept under the folder and the name, so
 files of one name in two folders hold their own).

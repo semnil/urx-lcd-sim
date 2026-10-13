@@ -1207,7 +1207,7 @@ screens (MONITOR, SCENE, OSCILLATOR, Software Integration). The SEND TO tabs and
 3px shadow band at the bottom. A SEND TO name on two lines leads 21px, and a name stands a pixel above
 the middle of its tab, two on two lines (STEREO at y73..82, MIX 1-2 at y122..131 and y143..152 in p116-1).
 
-Sends ship **open** with nothing going through them: the switch on, the level at the bottom of the fader, the tap after the fader, the pan centred. The exception is the send from MIX 1-2 into STEREO, which ships with its switch off.
+Sends ship **open** with nothing going through them: the switch on, the level at the bottom of the fader, the tap after the fader, the pan centred, each where the send has one (a send into the stereo bus has the switch alone, and a send into FX 1 or FX 2 no pan). The exception is the send from MIX 1-2 into STEREO, which ships with its switch off.
 When the level is at the bottom the value is written `-∞`, with no unit (it is not a dB number).
 
 ## OSCILLATOR's OSC

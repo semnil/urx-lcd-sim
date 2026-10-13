@@ -17,6 +17,7 @@ import type { ParamPath, ParamValue } from "../device/path";
 import type { DeviceStore } from "../device/store";
 import { FILES, filePath, readCard } from "../model/card";
 import { LEGACY_CLOCK } from "../model/clock";
+import { onlyHeld } from "../model/defaults";
 import { onDynamicsTimeStops } from "../model/dynamics-times";
 import { onPitchMidiControl, placeOfReading } from "../model/effects";
 import { isSceneMemory } from "../model/scene-state";
@@ -456,13 +457,14 @@ export function modelOf(kept: Kept): string | null {
  * Put the unit `kept` holds for `model` back, one value after another. A GATE,
  * COMP or DUCKER time, and an SSMCS frequency, Attack or Release, off its stops
  * comes back on the stop nearest it, and a delay time off the hundredths of a ms
- * on the hundredth nearest it. A connected unit is left as it is.
+ * on the hundredth nearest it. A value the unit does not hold is not put back.
+ * A connected unit is left as it is.
  */
 export async function restore(store: DeviceStore, model: UnitModel["id"], kept: Kept): Promise<void> {
   if (onConnectedUnit(store)) return;
   const saved = readUnit(kept, model);
   if (!saved) return;
-  const values = onDelayGrid(onSsmcsStops(onDynamicsTimeStops(onPitchMidiControl(saved))));
+  const values = onDelayGrid(onSsmcsStops(onDynamicsTimeStops(onPitchMidiControl(onlyHeld(unitById(model), saved)))));
   for (const [path, value] of Object.entries(values)) {
     // A clock that stood still is not put back: the clock runs with the computer's.
     if (LEGACY_SAFE.test(path) || LEGACY_CLOCK.test(path)) continue;
