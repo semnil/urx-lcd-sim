@@ -18,6 +18,7 @@ import { INTERACTIVE } from "../ui/dom";
 import { SHORT_PROGRESS_MS, dialog } from "../ui/widgets";
 import { udkAssignment } from "../model/udk";
 import { openDateTimeSet, openTimeZone } from "./date-time";
+import { pausePlayback, startPlayback, stopPlayback } from "./recording";
 import { version as packageVersion } from "../../package.json";
 
 const flush = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
@@ -3215,6 +3216,50 @@ describe("the sampling frequency row", () => {
     await store.set("sd.rec", "idle");
     await flush();
     expect(await opens(), "back in reach once recording mode ends").toEqual([false, null, "setup.rate"]);
+  });
+
+  it("puts SETUP's [Sampling Frequency] and the Operation Mode box out of reach while playback holds a file", async () => {
+    const shell = await mount();
+    const store = shell.ctx.store;
+    shell.ctx.nav.openTop({ id: "setup" });
+    await flush();
+    const entries = (): [string, HTMLElement | undefined][] => [
+      ["rate", [...shell.root.querySelectorAll<HTMLElement>(".setup-menu .menu-btn")].find((b) => b.textContent === "Sampling\nFrequency")],
+      ["mode", shell.root.querySelector<HTMLElement>(".mode-box") ?? undefined],
+    ];
+    const opens = async (): Promise<[string, boolean, string | null, string][]> => {
+      const out: [string, boolean, string | null, string][] = [];
+      for (const [name] of entries()) {
+        const entry = entries().find(([n]) => n === name)?.[1];
+        const face: [boolean, string | null] = [entry?.classList.contains("is-disabled") ?? false, entry?.getAttribute("aria-disabled") ?? null];
+        entry?.click();
+        await flush();
+        out.push([name, ...face, shell.ctx.nav.current.id]);
+        if (shell.ctx.nav.current.id !== "setup") {
+          shell.ctx.nav.back();
+          await flush();
+        }
+      }
+      return out;
+    };
+    const free = [
+      ["rate", false, null, "setup.rate"],
+      ["mode", false, null, "setup.mode"],
+    ];
+    const shut = [
+      ["rate", true, "true", "setup"],
+      ["mode", true, "true", "setup"],
+    ];
+    expect(await opens(), "nothing held").toEqual(free);
+    startPlayback(store, 0);
+    await flush();
+    expect(await opens(), "playing").toEqual(shut);
+    pausePlayback(store);
+    await flush();
+    expect(await opens(), "paused").toEqual(shut);
+    stopPlayback(store);
+    await flush();
+    expect(await opens(), "back in reach once playback lets the file go").toEqual(free);
   });
 
   it("keeps the frequency it holds while it follows the USB clock, and takes no other", async () => {

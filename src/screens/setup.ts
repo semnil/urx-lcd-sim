@@ -20,7 +20,7 @@ import { factoryState } from "../model/defaults";
 import { TIME_ZONE_SHIPPED } from "../model/time-zone";
 import { dropTracksOverRate } from "../model/track-count";
 import { dropInsertsOverRate } from "./insert-fx";
-import { recordMode, releaseOnRateChange } from "./recording";
+import { holdsFile, recordMode, releaseOnRateChange } from "./recording";
 import { dropSendsOverRate } from "./effect-params";
 
 /** The languages the unit offers. The simulator's messages are in English only, so the other two cannot be chosen. */
@@ -51,14 +51,17 @@ export const setupScreen: ScreenDef = {
       "setup-general",
     );
 
-    // In recording mode, armed, recording or paused, Sampling Frequency takes the
-    // face of an entry out of reach and opens nothing.
-    const taking = recordMode(ctx.store);
+    // In recording mode, armed, recording or paused, and while playback holds a
+    // file, playing or paused, Sampling Frequency takes the face of an entry out
+    // of reach and opens nothing. While playback holds a file, so does the
+    // Operation Mode box.
+    const held = holdsFile(ctx.store);
+    const rateShut = recordMode(ctx.store) || held;
     const rest: HTMLElement[] = [
       menuButton("User Defined\nKnobs", open("setup.udk")),
       el("div"),
       el("div"),
-      markShut(menuButton("Sampling\nFrequency", taking ? () => undefined : open("setup.rate")), taking),
+      markShut(menuButton("Sampling\nFrequency", rateShut ? () => undefined : open("setup.rate")), rateShut),
       menuButton("Output Patch", open("setup.patch")),
       menuButton("Peripheral", open("setup.peripheral")),
       menuButton("Power\nManagement", open("setup.power")),
@@ -68,14 +71,17 @@ export const setupScreen: ScreenDef = {
     rest.push(menuButton("Software\nIntegration", open("setup.integration")));
 
     const mode = ctx.store.str("setup.operationMode", "Standard");
-    const modeBox = el("button", {
-      class: "mode-box",
-      onTap: () => ctx.nav.push({ id: "setup.mode" }),
-      children: [
-        el("span", { class: "mode-caption", text: "Operation Mode" }),
-        el("span", { class: "mode-value", text: mode }),
-      ],
-    });
+    const modeBox = markShut(
+      el("button", {
+        class: "mode-box",
+        onTap: held ? () => undefined : () => ctx.nav.push({ id: "setup.mode" }),
+        children: [
+          el("span", { class: "mode-caption", text: "Operation Mode" }),
+          el("span", { class: "mode-value", text: mode }),
+        ],
+      }),
+      held,
+    );
 
     return {
       main: el("div", { class: "setup-main", children: [tray, menuGrid(rest, "setup-menu")] }),

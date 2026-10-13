@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Take SETUP's [Sampling Frequency] and Operation Mode box out of reach while microSD playback holds a file, playing or paused, as the unit does: they take the face of a button that cannot be used and open nothing. [Sampling Frequency] was out of reach in recording mode alone, and the Operation Mode box always opened.
 - Leave the SSMCS COMP and EQ switches off when a channel's COMP / EQ is switched to SSMCS, even where they were on before, as the unit does. Both came up on.
 - Add a GitHub link, drawn as the logo alone, at the right end of the row of controls above the screen, which opens the repository in another tab.
 - Split CUE into the unit's two groups, the inputs (mono and stereo channels, FX1 and FX2) and the outputs (STEREO, MIX 1, MIX 2 and STREAMING), as the unit does: cues within a group add up, and cueing a strip of the other group takes each cue of the previous group out. Taking a cue out leaves the other cues as they stand. The outputs the first input cue takes out come back once the last input cue is taken out, unless an output is cued in between; the inputs an output cue takes out do not come back. CLEAR CUE forgets the remembered outputs. Cues added up across both groups, so inputs and outputs could be in the cue together.
