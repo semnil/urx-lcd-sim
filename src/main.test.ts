@@ -104,6 +104,16 @@ describe("[Unit model]", () => {
   });
 });
 
+describe("[GitHub]", () => {
+  it("is a link to the repository that opens in another tab without handing over the opener", async () => {
+    const app = await open(SAVED);
+    const link = app.querySelector<HTMLAnchorElement>(".chrome-controls > a.chrome-repository");
+    expect([link?.getAttribute("aria-label"), link?.getAttribute("href"), link?.target, link?.rel]).toEqual([
+      "GitHub", "https://github.com/semnil/urx-lcd-sim", "_blank", "noopener",
+    ]);
+  });
+});
+
 describe("[Device menu]", () => {
   it("keeps the menu during an internal focus transition before the destination receives focus", async () => {
     const app = await open(SAVED);

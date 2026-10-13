@@ -52,9 +52,12 @@ body {
   letter-spacing: 0.02em;
 }
 
-/* The controls wrap onto further rows in a chrome narrower than they are. */
+/* The controls wrap onto further rows in a chrome narrower than they are, and
+ * take the row they stand on, ending at its right edge with the repository link. */
 .chrome-controls {
   position: relative;
+  flex: 1 1 auto;
+  justify-content: flex-end;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -160,6 +163,20 @@ body {
 .chrome-button.is-danger {
   border-color: #a4444a;
   color: #ff9ba0;
+}
+
+.chrome-repository {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  padding: 0;
+  text-decoration: none;
+}
+
+.chrome-repository svg {
+  width: 16px;
+  height: 16px;
 }
 
 .chrome-link {
