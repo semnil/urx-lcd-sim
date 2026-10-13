@@ -158,11 +158,11 @@ function setCompEq(ctx: AppContext, strip: Strip, value: string): void {
     // The two banks are separate on the unit: taking a type loads that bank's
     // factory values, and the bank being left keeps its own until it is entered
     // again. GATE is the same either way and stays where it is. Entering SSMCS
-    // leaves its COMP and EQ switches off, whatever they stood at before.
+    // switches its COMP and EQ on, whatever they stood at before.
     if (value === COMP_EQ_SSMCS) {
       for (const [suffix, v] of ssmcsBankDefaults()) void ctx.store.set(`${base}.${suffix}`, v);
-      void ctx.store.set(`${base}.comp.on`, false);
-      void ctx.store.set(`${base}.eq.on`, false);
+      void ctx.store.set(`${base}.comp.on`, true);
+      void ctx.store.set(`${base}.eq.on`, true);
     } else {
       for (const [suffix, v] of compEqBankDefaults()) void ctx.store.set(`${base}.${suffix}`, v);
     }
