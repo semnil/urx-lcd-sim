@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Leave the SSMCS COMP and EQ switches off when a channel's COMP / EQ is switched to SSMCS, even where they were on before, as the unit does. Both came up on.
 - Add a GitHub link, drawn as the logo alone, at the right end of the row of controls above the screen, which opens the repository in another tab.
 - Split CUE into the unit's two groups, the inputs (mono and stereo channels, FX1 and FX2) and the outputs (STEREO, MIX 1, MIX 2 and STREAMING), as the unit does: cues within a group add up, and cueing a strip of the other group takes each cue of the previous group out. Taking a cue out leaves the other cues as they stand. The outputs the first input cue takes out come back once the last input cue is taken out, unless an output is cued in between; the inputs an output cue takes out do not come back. CLEAR CUE forgets the remembered outputs. Cues added up across both groups, so inputs and outputs could be in the cue together.
 - Give a linked pair of mono channels one CUE, as the unit does: [CUE] on either channel, and linking the pair, put both channels in the cue or take both out. A browser save, a scene or a settings file from an earlier version that holds a linked pair half in the cue puts both channels on the lower-numbered channel's CUE. Each channel had its own CUE, so a pair could be half in the cue.

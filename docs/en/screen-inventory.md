@@ -1043,8 +1043,9 @@ the COMP and EQ areas stand (`ch.<id>.compEqOrder` reads `SSMCS`). A stereo, FX 
 type, so nothing is swapped.
 
 The two types are separate banks inside the unit and are not kept across a switch. Taking a type
-**loads that bank's factory values whole** — entering SSMCS switches COMP and EQ on and puts every
-SSMCS value back, and entering COMP -> EQ puts the compressor, the four-band EQ and the EQ 1-knob
+**loads that bank's factory values whole** — entering SSMCS puts every SSMCS value back and leaves the SSMCS
+COMP and EQ switches off, even where they were on before, with no message (URX44V, System firmware 1.3.1.0, the
+operator, 2026-10-13), and entering COMP -> EQ puts the compressor, the four-band EQ and the EQ 1-knob
 back. **The bank being left keeps its own** until it is entered again. GATE does not depend on the
 type and does not move. Taking the type it already holds does nothing. The four screens are stepped through by the round arrows that lie over
 the sides of the glass; a press replaces the screen rather than stacking on it, so one back arrow

@@ -100,6 +100,9 @@ describe("switching a channel's COMP / EQ type", () => {
     await store.set("ch.ch1.ssmcs.data", "07 Vocal");
     await store.set("ch.ch1.comp.threshold", -33);
     await store.set("ch.ch1.gate.threshold", -41);
+    // COMP and EQ stand on as the type is switched.
+    await store.set("ch.ch1.comp.on", true);
+    await store.set("ch.ch1.eq.on", true);
 
     await open(shell, "ch.setting", "ch1");
     await pickCompEq(shell, "SSMCS");
@@ -107,15 +110,15 @@ describe("switching a channel's COMP / EQ type", () => {
     expect(store.num("ch.ch1.ssmcs.morphing", -1), "the bank taken is back at the factory").toBe(0);
     expect(store.num("ch.ch1.ssmcs.comp.ratio", -1)).toBe(SSMCS_DEFAULTS.ratio);
     expect(store.str("ch.ch1.ssmcs.data", "")).toBe(SSMCS_DEFAULTS.data);
-    expect([store.bool("ch.ch1.comp.on", false), store.bool("ch.ch1.eq.on", false)], "and switched on").toEqual([
-      true,
-      true,
+    expect([store.bool("ch.ch1.comp.on", true), store.bool("ch.ch1.eq.on", true)], "with its COMP and EQ off").toEqual([
+      false,
+      false,
     ]);
     expect(store.num("ch.ch1.comp.threshold", 0), "the bank left keeps its own").toBe(-33);
     expect(store.num("ch.ch1.gate.threshold", 0), "GATE is the same either way").toBe(-41);
   });
 
-  it("switches SSMCS, its compressor, its side chain and its EQ on when taken after P01, which leaves SSMCS off", async () => {
+  it("switches SSMCS, its side chain and its EQ bands on when taken after P01, which leaves SSMCS off, and its COMP and EQ off", async () => {
     const { shell, store } = await mount();
     await recallScene(shell.ctx, 101);
     await store.set("ch.ch1.ssmcs.sc.on", false);
@@ -127,12 +130,12 @@ describe("switching a channel's COMP / EQ type", () => {
     expect(
       [
         store.bool("ch.ch1.ssmcs.on", false),
-        store.bool("ch.ch1.comp.on", false),
         store.bool("ch.ch1.ssmcs.sc.on", false),
         ...["low", "mid", "high"].map((band) => store.bool(`ch.ch1.ssmcs.eq.${band}.on`, false)),
       ],
-      "[SSMCS], COMP, Side Chain and the EQ bands",
-    ).toEqual([true, true, true, true, true, true]);
+      "[SSMCS], Side Chain and the EQ bands",
+    ).toEqual([true, true, true, true, true]);
+    expect([store.bool("ch.ch1.comp.on", true), store.bool("ch.ch1.eq.on", true)], "COMP and EQ").toEqual([false, false]);
   });
 
   it("loads the COMP -> EQ bank's factory values on the way back", async () => {
