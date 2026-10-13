@@ -32,6 +32,9 @@ const LANGUAGES = [
 
 const SAMPLING_RATES = [44100, 48000, 88200, 96000, 176400, 192000];
 
+/** What [Software Integration] tells a pointer resting on it. */
+const INTEGRATION_TOOLTIP = "Not available on the unit; left usable here for screenshots.";
+
 /** What a User Defined Knob can be put on, in the order the pulldown lists them. */
 export const setupScreen: ScreenDef = {
   id: "setup",
@@ -68,7 +71,11 @@ export const setupScreen: ScreenDef = {
     ];
     // The URX22 has no Date/Time menu (user guide note under GENERAL menu).
     if (ctx.model.hasDateTime) rest.push(menuButton("Date/Time", open("setup.datetime")));
-    rest.push(menuButton("Software\nIntegration", open("setup.integration")));
+    // The unit offers Software Integration as an entry out of reach. Here it opens
+    // and works, and its tooltip says the unit does not offer it.
+    const integration = menuButton("Software\nIntegration", open("setup.integration"));
+    integration.title = INTEGRATION_TOOLTIP;
+    rest.push(integration);
 
     const mode = ctx.store.str("setup.operationMode", "Standard");
     const modeBox = markShut(

@@ -3262,6 +3262,27 @@ describe("the sampling frequency row", () => {
     expect(await opens(), "back in reach once playback lets the file go").toEqual(free);
   });
 
+  it("keeps SETUP's [Software Integration] in reach, playback or not, with a tooltip that the unit does not offer it", async () => {
+    const shell = await mount();
+    shell.ctx.nav.openTop({ id: "setup" });
+    await flush();
+    const opens = async (): Promise<[boolean, string | null, string, string]> => {
+      const entry = [...shell.root.querySelectorAll<HTMLElement>(".setup-menu .menu-btn")].find((b) => b.textContent === "Software\nIntegration");
+      const face: [boolean, string | null, string] = [entry?.classList.contains("is-disabled") ?? false, entry?.getAttribute("aria-disabled") ?? null, entry?.title ?? ""];
+      entry?.click();
+      await flush();
+      const at = shell.ctx.nav.current.id;
+      shell.ctx.nav.back();
+      await flush();
+      return [...face, at];
+    };
+    const reach = [false, null, "Not available on the unit; left usable here for screenshots.", "setup.integration"];
+    expect(await opens(), "nothing held").toEqual(reach);
+    startPlayback(shell.ctx.store, 0);
+    await flush();
+    expect(await opens(), "playing").toEqual(reach);
+  });
+
   it("keeps the frequency it holds while it follows the USB clock, and takes no other", async () => {
     const shell = await open();
     shell.root.querySelector<HTMLElement>(".follow-usb")?.click();

@@ -87,6 +87,11 @@ is built is in [screen-inventory.md](screen-inventory.md).
 - **GATE opens and closes at once.** Attack, Hold and Decay are kept as values only: the gate closes to
   RANGE as soon as the input is at or under the threshold and opens as soon as it is over. The middle,
   yellow one of the channel view's GATE lamps, which shows the gate opening or closing, does not light.
+- **SETUP's [Software Integration] opens and works.** On the unit it takes the face of a button that cannot be
+  used, whether or not microSD playback holds a file, and does nothing when pressed (URX44V, System firmware
+  1.3.1.0, the operator, 2026-10-13). This simulator keeps the usable face and opens SOFTWARE INTEGRATION, so
+  the screen can be captured, and a pointer resting on it brings up the tooltip
+  `Not available on the unit; left usable here for screenshots.`
 - **The clock keeps each city on one offset in every year and SAVE/LOAD's list on the 24-hour clock, as the unit does, but reads its own years outside 2000 to 2099.**
   As on the unit,
   each [Time Zone] city keeps one time ahead of or behind UTC, the same all year and in every year, with no
