@@ -32,6 +32,10 @@ const MODEL_IDS: ModelId[] = ["URX44V", "URX44", "URX22"];
 const ZOOM_PERCENTS = [50, 75, 100, 150, 200] as const;
 const DEFAULT_ZOOM = 100;
 
+const REPOSITORY_URL = "https://github.com/semnil/urx-lcd-sim";
+const GITHUB_MARK =
+  "M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z";
+
 /** How long a confirmation button does nothing after the question appears, longer than a double click. */
 const CONFIRM_HOLD_MS = 500;
 
@@ -361,6 +365,26 @@ async function boot(
 
   const link = buildLinkIndicator(store);
 
+  const repository = el("a", {
+    class: "chrome-button chrome-repository",
+    title: "GitHub",
+    attrs: { href: REPOSITORY_URL, target: "_blank", rel: "noopener", "aria-label": "GitHub" },
+    children: [
+      (() => {
+        const NS = "http://www.w3.org/2000/svg";
+        const mark = document.createElementNS(NS, "svg");
+        mark.setAttribute("viewBox", "0 0 16 16");
+        mark.setAttribute("aria-hidden", "true");
+        mark.setAttribute("focusable", "false");
+        const path = document.createElementNS(NS, "path");
+        path.setAttribute("fill", "currentColor");
+        path.setAttribute("d", GITHUB_MARK);
+        mark.append(path);
+        return mark;
+      })(),
+    ],
+  });
+
   // A control of the chrome that holds the focus as the chrome is drawn again
   // hands it to the same control of the new one: a selector by its name, and
   // an initialization's confirmation to [Device].
@@ -373,7 +397,7 @@ async function boot(
         el("h1", { class: "chrome-title", text: "URX LCD Simulator" }),
         el("div", {
           class: "chrome-controls",
-          children: [modelSelect, zoomSelect, deviceBox, link.root],
+          children: [modelSelect, zoomSelect, deviceBox, link.root, repository],
         }),
         notice,
       ],

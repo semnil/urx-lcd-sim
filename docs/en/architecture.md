@@ -315,7 +315,7 @@ input has focus (IME composition included) the input receives the key. Held down
 the back arrow held down does: a press that cancels a dialog leaves the screen behind it where it is. While a control off the glass has focus (the
 model and display scale selectors at the top of the page, Device and its menu or confirmation) that control
 receives it, and the screen stays. Device uses the selector style immediately to the left of the link indicator,
-with only initialization actions in its menu. Arrow keys, Home and End move between items. Escape closes the menu
+with only initialization actions in its menu. A GitHub link, drawn as the logo alone, ends the same row at its right edge and opens the repository in another tab. Arrow keys, Home and End move between items. Escape closes the menu
 and returns focus to Device; a pointer or focus outside the Device control also closes it. Choosing an action
 replaces the menu with its confirmation.
 `Escape` takes either initialization question back as
