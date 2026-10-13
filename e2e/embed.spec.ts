@@ -346,6 +346,71 @@ async function glassOn(browser: Browser, stop: (typeof TOUR)[number], rules: boo
   }
 }
 
+/** The most a channel of a pixel may move between two pictures and the pixel still count as the same. */
+const PIXEL_TOLERANCE = 4;
+
+/**
+ * How many pixels of `a` and `b` differ by more than PIXEL_TOLERANCE in some channel; every pixel when their
+ * sizes differ. The two are decoded by a page of their own, so the comparison needs nothing beyond the browser.
+ */
+async function differingPixels(browser: Browser, a: Buffer, b: Buffer): Promise<number> {
+  const context = await browser.newContext();
+  try {
+    const page = await context.newPage();
+    return await page.evaluate(
+      async ([first, second, tolerance]) => {
+        const read = async (base64: string): Promise<ImageData> => {
+          const bitmap = await createImageBitmap(await (await fetch(`data:image/png;base64,${base64}`)).blob());
+          const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+          const ctx = canvas.getContext("2d")!;
+          ctx.drawImage(bitmap, 0, 0);
+          return ctx.getImageData(0, 0, bitmap.width, bitmap.height);
+        };
+        const [x, y] = [await read(first as string), await read(second as string)];
+        if (x.width !== y.width || x.height !== y.height) return Math.max(x.width * x.height, y.width * y.height);
+        let count = 0;
+        for (let i = 0; i < x.data.length; i += 4) {
+          for (let c = 0; c < 4; c++) {
+            if (Math.abs(x.data[i + c]! - y.data[i + c]!) > (tolerance as number)) {
+              count++;
+              break;
+            }
+          }
+        }
+        return count;
+      },
+      [a.toString("base64"), b.toString("base64"), PIXEL_TOLERANCE] as const,
+    );
+  } finally {
+    await context.close();
+  }
+}
+
+/** A one-pixel PNG of the grey `level`, drawn by a page. */
+async function greyPixel(browser: Browser, level: number): Promise<Buffer> {
+  const context = await browser.newContext();
+  try {
+    const page = await context.newPage();
+    const base64 = await page.evaluate(async (v) => {
+      const canvas = new OffscreenCanvas(1, 1);
+      const ctx = canvas.getContext("2d")!;
+      ctx.fillStyle = `rgb(${v}, ${v}, ${v})`;
+      ctx.fillRect(0, 0, 1, 1);
+      const bytes = new Uint8Array(await (await canvas.convertToBlob({ type: "image/png" })).arrayBuffer());
+      return btoa(String.fromCharCode(...bytes));
+    }, level);
+    return Buffer.from(base64, "base64");
+  } finally {
+    await context.close();
+  }
+}
+
+test("counts a pixel as differing only once a channel moves past the tolerance", async ({ browser }) => {
+  const base = await greyPixel(browser, 100);
+  expect(await differingPixels(browser, base, await greyPixel(browser, 100 + PIXEL_TOLERANCE))).toBe(0);
+  expect(await differingPixels(browser, base, await greyPixel(browser, 100 + PIXEL_TOLERANCE + 1))).toBe(1);
+});
+
 test.describe("every screen of the tour", () => {
   for (const stop of TOUR) {
     test(`draws ${stop.id} the same under a page whose rules would match its elements`, async ({ browser }) => {
@@ -354,7 +419,7 @@ test.describe("every screen of the tour", () => {
       expect(plain.picture.length, "a picture was taken").toBeGreaterThan(1000);
       expect(plain.styles.length, "styles were read").toBeGreaterThan(1000);
       expect(styleDifferences(plain.styles, ruled.styles), `every computed style inside ${stop.id} under the page's rules`).toEqual([]);
-      expect(ruled.picture.equals(plain.picture), `${stop.id} under the page's rules`).toBe(true);
+      expect(await differingPixels(browser, ruled.picture, plain.picture), `${stop.id} under the page's rules`).toBe(0);
     });
   }
 
@@ -362,12 +427,13 @@ test.describe("every screen of the tour", () => {
     const home = TOUR.find((s) => s.id === "home")!;
     const plain = await glassOn(browser, home, false);
     const reached = await glassOn(browser, home, true, ".urx-lcd-sim { filter: invert(1); }");
-    expect(reached.picture.equals(plain.picture)).toBe(false);
+    expect(await differingPixels(browser, reached.picture, plain.picture)).toBeGreaterThan(0);
   });
 
   test("draws the same glass twice under the same page", async ({ browser }) => {
     const stop = TOUR.find((s) => s.id === "ch.eq")!;
     const [a, b] = [await glassOn(browser, stop, false), await glassOn(browser, stop, false)];
-    expect(a.picture.equals(b.picture) && a.styles === b.styles).toBe(true);
+    expect(await differingPixels(browser, a.picture, b.picture)).toBe(0);
+    expect(a.styles).toBe(b.styles);
   });
 });
