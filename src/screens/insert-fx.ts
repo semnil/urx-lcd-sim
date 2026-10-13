@@ -8,18 +8,13 @@ import type { AppContext } from "../app/context";
 import type { EffectOption } from "../model/effects";
 import { INPUT_INSERT_EFFECTS, NO_EFFECT, OUTPUT_INSERT_EFFECTS, effectParams } from "../model/effects";
 import type { Strip } from "../model/types";
-import { allStrips } from "../model/types";
+import { allStrips, carriesInsert } from "../model/types";
 import { markShut } from "../ui/dom";
 import { pickerGrid, pickerSheet, toggle } from "../ui/widgets";
 import { insertBase } from "./signal-flow";
 import { carriesStereo } from "./stereo-link";
 
-export { NO_EFFECT };
-
-/** Whether the strip has an insert at all: the mono channels and the output buses. */
-export function carriesInsert(strip: Strip): boolean {
-  return strip.kind === "monoIn" || strip.kind === "mix" || strip.kind === "stereo";
-}
+export { NO_EFFECT, carriesInsert };
 
 /** The effects offered on a strip that carries an insert. */
 function insertEffects(strip: Strip): readonly EffectOption[] {
