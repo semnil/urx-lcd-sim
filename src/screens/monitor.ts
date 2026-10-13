@@ -2,7 +2,7 @@
 // "MONITOR screen").
 
 import type { AppContext } from "../app/context";
-import { el, formatLevel } from "../ui/dom";
+import { aimed, el, formatLevel, writing } from "../ui/dom";
 import type { NumericSpec } from "../ui/param-spec";
 import { OSC_LEVEL_MARKS, dbSpec, faderSpec, intSpec, logFreqSpec, markedDial, scaleSpec } from "../ui/param-spec";
 import { Icons } from "../ui/icons";
@@ -63,9 +63,9 @@ export const monitorScreen: ScreenDef = {
     return {
       main: menuGrid(
         [
-          menuButton("Monitor", () => ctx.nav.push({ id: "monitor.level" })),
-          menuButton("Phones", () => ctx.nav.push({ id: "monitor.phones" })),
-          menuButton("Oscillator", () => ctx.nav.push({ id: "monitor.osc" })),
+          menuButton("Monitor", aimed(() => ctx.nav.push({ id: "monitor.level" }), { kind: "screen", id: "monitor.level" })),
+          menuButton("Phones", aimed(() => ctx.nav.push({ id: "monitor.phones" }), { kind: "screen", id: "monitor.phones" })),
+          menuButton("Oscillator", aimed(() => ctx.nav.push({ id: "monitor.osc" }), { kind: "screen", id: "monitor.osc" })),
         ],
         "menu-grid-wide",
       ),
@@ -99,15 +99,15 @@ export const monitorLevelScreen: ScreenDef = {
             el("span", { class: "mon-caption", text: "Source" }),
             el("button", {
               class: "btn mon-source",
-              onTap: () => void monitorSourceSheet(ctx, n),
+              onTap: writing(`monitor.${n}.source`, () => void monitorSourceSheet(ctx, n)),
               attrs: { "aria-label": `Monitor ${n} source` },
               children: [
                 el("span", { text: src }),
                 el("span", { class: "mon-source-copy", children: [Icons.copy()] }),
               ],
             }),
-            toggle("CUE\nInterrupt", interrupt, () => void ctx.store.set(`monitor.${n}.cueInterrupt`, !interrupt), "mon-btn mon-cue"),
-            toggle("MONO", mono, () => void ctx.store.set(`monitor.${n}.mono`, !mono), "mon-btn mon-mono"),
+            toggle("CUE\nInterrupt", interrupt, writing(`monitor.${n}.cueInterrupt`, () => void ctx.store.set(`monitor.${n}.cueInterrupt`, !interrupt)), "mon-btn mon-cue"),
+            toggle("MONO", mono, writing(`monitor.${n}.mono`, () => void ctx.store.set(`monitor.${n}.mono`, !mono)), "mon-btn mon-mono"),
           ],
         });
       }
@@ -121,7 +121,7 @@ export const monitorLevelScreen: ScreenDef = {
         children: [
           el("div", { class: "mon-head", text: String(n) }),
           el("div", { class: "mon-meter", children: [meter({ levels: drawnLevels(ctx.store, source, 2), source })] }),
-          toggle("ON", on, () => void ctx.store.set(`monitor.${n}.on`, !on), "btn-switch btn-on"),
+          toggle("ON", on, writing(`monitor.${n}.on`, () => void ctx.store.set(`monitor.${n}.on`, !on)), "btn-switch btn-on"),
           el("div", { class: "mon-level", children: spec ? [knobControl(ctx, spec), valueBox(ctx, spec)] : [] }),
         ],
       });
@@ -130,7 +130,7 @@ export const monitorLevelScreen: ScreenDef = {
     return {
       main: el("div", { class: "mon-main", children: strips }),
       side: (["Level", "Setting"] as const).map((t) =>
-        sideTab(t, t === tab, () => void ctx.store.set("ui.monitorTab", t), t === "Level" ? Icons.fader() : Icons.gearSolid(), "is-name-lifted"),
+        sideTab(t, t === tab, writing("ui.monitorTab", () => void ctx.store.set("ui.monitorTab", t)), t === "Level" ? Icons.fader() : Icons.gearSolid(), "is-name-lifted"),
       ),
     };
   },
@@ -185,7 +185,7 @@ export const oscillatorScreen: ScreenDef = {
     // The two tabs the screen carries, whichever of them is up.
     const oscTabs = (): HTMLElement[] =>
       (["OSC", "Assign"] as const).map((t) =>
-        sideTab(t, t === tab, () => void ctx.store.set("ui.oscTab", t), t === "OSC" ? Icons.sine() : Icons.clipboard(), "osc-tab"),
+        sideTab(t, t === tab, writing("ui.oscTab", () => void ctx.store.set("ui.oscTab", t)), t === "OSC" ? Icons.sine() : Icons.clipboard(), "osc-tab"),
       );
 
     if (tab === "Assign") {
@@ -199,7 +199,7 @@ export const oscillatorScreen: ScreenDef = {
               const bus = findStrip(ctx.model, t.meter);
               if (bus && fxShutOut(ctx, bus)) return el("span", { class: "osc-target-gap", attrs: { "aria-hidden": "true" } });
               const active = ctx.store.bool(`osc.assign.${t.id}`, t.shipped);
-              return toggle(t.label, active, () => void ctx.store.set(`osc.assign.${t.id}`, !active), `osc-target osc-${t.bus}`);
+              return toggle(t.label, active, writing(`osc.assign.${t.id}`, () => void ctx.store.set(`osc.assign.${t.id}`, !active)), `osc-target osc-${t.bus}`);
             }),
             el("button", {
               class: "btn osc-clear",
@@ -242,7 +242,7 @@ export const oscillatorScreen: ScreenDef = {
           el("p", { class: "osc-caption", text: "Oscillator Mode" }),
           el("div", {
             class: "osc-mode-row",
-            children: OSC_MODES.map((m) => toggle(m, m === mode, () => void ctx.store.set("osc.mode", m), "osc-mode")),
+            children: OSC_MODES.map((m) => toggle(m, m === mode, writing("osc.mode", () => void ctx.store.set("osc.mode", m)), "osc-mode")),
           }),
           el("div", {
             class: "osc-params",
@@ -256,7 +256,7 @@ export const oscillatorScreen: ScreenDef = {
           el("div", {
             class: "osc-output",
             children: [
-              toggle("ON", on, () => void ctx.store.set("osc.on", !on), "btn-switch btn-on osc-on"),
+              toggle("ON", on, writing("osc.on", () => void ctx.store.set("osc.on", !on)), "btn-switch btn-on osc-on"),
               paramCell(ctx, levelSpec),
               // What the oscillator is putting out, beside the level that sets it.
               el("div", {

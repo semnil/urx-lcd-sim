@@ -13,7 +13,7 @@ import { dropInsertsOverRate } from "./insert-fx";
 import { followRecall, pairStates } from "./stereo-link";
 import { settlePanLink } from "./mix-bus";
 import { onSsmcsStops } from "./ssmcs";
-import { el, markShut } from "../ui/dom";
+import { aimOf, aimed, el, lockable, markShut, writing } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { LIST_THUMB_MIN_PX, SHORT_PROGRESS_MS, button, dialog, listView, loadingDialog, menuButton, menuGrid, scrollbar, sideTab, toggle } from "../ui/widgets";
 import { draftTitle, openTitleEntry } from "./title-entry";
@@ -204,6 +204,8 @@ function glyphButton(label: string, glyph: SVGSVGElement, enabled: boolean, onTa
       if (enabled) onTap();
     },
   });
+  const aim = aimOf(onTap);
+  if (aim) lockable(node, aim);
   return markShut(node, !enabled);
 }
 
@@ -213,7 +215,7 @@ export const sceneTopScreen: ScreenDef = {
   toolbar: "sub",
   title: () => "SCENE",
   build(ctx): ScreenBody {
-    return { main: menuGrid([menuButton("Scene List", () => ctx.nav.push({ id: "scene.list" }))], "menu-grid-wide") };
+    return { main: menuGrid([menuButton("Scene List", aimed(() => ctx.nav.push({ id: "scene.list" }), { kind: "screen", id: "scene.list" }))], "menu-grid-wide") };
   },
 };
 
@@ -244,7 +246,7 @@ export const sceneScreen: ScreenDef = {
       return {
         key: String(no),
         selected: no === selected,
-        onTap: () => void ctx.store.set("scene.selected", no),
+        onTap: writing("scene.selected", () => void ctx.store.set("scene.selected", no)),
         description: marks.join(", ") || undefined,
         cells: [
           el("span", {
@@ -259,7 +261,7 @@ export const sceneScreen: ScreenDef = {
 
     // Only a number holding a scene can be recalled.
     const recallShut = owner === null && !isFactoryLocked(selected);
-    const recall = markShut(button("Recall", () => {
+    const recall = markShut(button("Recall", aimed(() => {
       if (recallShut) return;
       ctx.overlay(
         dialog({
@@ -267,10 +269,10 @@ export const sceneScreen: ScreenDef = {
           onOk: () => void perform(ctx, { kind: "scene.recall", scene: selected }),
         }),
       );
-    }), recallShut);
+    }, { kind: "op", op: "scene.recall" })), recallShut);
 
     const storeShut = isFactoryLocked(selected) || guarded || readOnly;
-    const store = markShut(button("Store", () => {
+    const store = markShut(button("Store", aimed(() => {
       if (storeShut) return;
       // Any number is named on the title entry sheet first, starting from the
       // recalled scene's title, and [OK] there asks before anything is stored.
@@ -287,7 +289,7 @@ export const sceneScreen: ScreenDef = {
         },
       });
       ctx.nav.push({ id: "scene.title" });
-    }), storeShut);
+    }, { kind: "op", op: "scene.store" })), storeShut);
 
     // Only a stored scene can be protected, and only one left unprotected deleted or renamed.
     const editable = owner !== null && !readOnly;
@@ -297,18 +299,18 @@ export const sceneScreen: ScreenDef = {
         "Protect",
         Icons.lock(),
         editable,
-        () => void (owner && perform(ctx, { kind: "scene.protect", bank: owner, scene: selected, protect: !guarded })),
+        aimed(() => void (owner && perform(ctx, { kind: "scene.protect", bank: owner, scene: selected, protect: !guarded })), { kind: "op", op: "scene.protect" }),
         guarded,
       ),
-      glyphButton("Delete", Icons.trash(), editable && !guarded, () => {
+      glyphButton("Delete", Icons.trash(), editable && !guarded, aimed(() => {
         ctx.overlay(
           dialog({
             message: `Delete "Scene Memory #${sceneNumber(selected)}"?`,
             onOk: () => void (owner && perform(ctx, { kind: "scene.delete", bank: owner, scene: selected })),
           }),
         );
-      }),
-      glyphButton("Title", Icons.rename(), editable && !guarded, () => openTitleEntry(ctx, titlePath, sceneTitle(ctx, selected))),
+      }, { kind: "op", op: "scene.delete" })),
+      glyphButton("Title", Icons.rename(), editable && !guarded, aimed(() => openTitleEntry(ctx, titlePath, sceneTitle(ctx, selected)), { kind: "screen", id: "scene.title" })),
     ];
 
     const list = listView("Scene List", ["No.", "Title", "Lock"], rows, "list-carded scene-list");

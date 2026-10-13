@@ -19,6 +19,8 @@ export type RouteListener = (route: Route, change: RouteChange) => void;
 export class Navigator {
   private stack: Route[];
   private readonly listeners = new Set<RouteListener>();
+  /** Whether a screen is held shut, so nothing opens it. */
+  private refuses: (route: Route) => boolean = () => false;
 
   /** `above` is what stands over HOME from the start, the top of it the screen up. */
   constructor(home: Route = { id: "home" }, above: Route[] = []) {
@@ -40,14 +42,31 @@ export class Navigator {
     return this.stack.length > 1;
   }
 
+  /**
+   * The screens nothing opens: a push, a replace or a jump to one of them leaves
+   * the stack where it is. The back arrow and the home button are never refused.
+   * The function returned lets it go: the one it replaced is held again, unless
+   * another has since taken its place.
+   */
+  setRefusal(refuses: ((route: Route) => boolean) | null): () => void {
+    const previous = this.refuses;
+    const held = refuses ?? (() => false);
+    this.refuses = held;
+    return () => {
+      if (this.refuses === held) this.refuses = previous;
+    };
+  }
+
   /** Open a screen on top of the current one. */
   push(route: Route): void {
+    if (this.refuses(route)) return;
     this.stack.push(route);
     this.emit("push");
   }
 
   /** Replace the top of the stack — used when a screen gives way to another in its place. */
   replace(route: Route): void {
+    if (this.refuses(route)) return;
     this.stack[this.stack.length - 1] = route;
     this.emit("replace");
   }
@@ -77,8 +96,13 @@ export class Navigator {
     this.emit("home");
   }
 
-  /** Jump to a top-level screen: home plus that screen, so back returns home. */
-  openTop(route: Route): void {
+  /**
+   * Jump to a top-level screen: home plus that screen, so back returns home.
+   * `always` opens it even where it is held shut, for the glass's own move off a
+   * screen it can no longer show.
+   */
+  openTop(route: Route, always = false): void {
+    if (!always && this.refuses(route)) return;
     const bottom = this.stack[0] ?? { id: "home" };
     this.stack = route.id === bottom.id ? [bottom] : [bottom, route];
     this.emit("openTop");

@@ -9,8 +9,9 @@ import { emulateCardOp } from "../screens/microsd";
 import { emulateSceneOp } from "../screens/scene";
 import type { AppContext } from "./context";
 
-/** Carry `op` out on the unit `ctx` stands for. True when the unit took it. */
+/** Carry `op` out on the unit `ctx` stands for. True when the unit took it; an operation the page holds shut is not taken. */
 export function perform(ctx: AppContext, op: UnitOp): boolean {
+  if (ctx.locks.op(op.kind)) return false;
   if (ctx.actions.kind === "device") return ctx.actions.perform(op);
   switch (op.kind) {
     case "scene.recall":

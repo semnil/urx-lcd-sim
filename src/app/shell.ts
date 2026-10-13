@@ -8,11 +8,13 @@ import type { UnitActions } from "../device/unit";
 import { emulatedActions } from "../device/unit";
 import type { UnitModel } from "../model/types";
 import { UDK_BANKS, UDK_KNOBS, UDK_UNASSIGNED, udkAssignment, udkPath } from "../model/udk";
-import { INTERACTIVE, clear, el, setPressed, tappedControl } from "../ui/dom";
+import { INTERACTIVE, aimed, clear, el, setPressed, tappedControl } from "../ui/dom";
 import { FocusController } from "../ui/focus";
 import { Icons } from "../ui/icons";
 import { activeIn, elementAt, originOf } from "../ui/active";
 import { attachFocusRing } from "../ui/focus-ring";
+import { Locks, drawLocks } from "../ui/locks";
+import type { SimLock } from "../ui/locks";
 import type { Press } from "../ui/press";
 import { attachPress } from "../ui/press";
 import { PointerHolds, attachSpin, modalOf, setAriaValue, standsStill } from "../ui/widgets";
@@ -51,6 +53,8 @@ export interface ShellOptions {
    * carries the glass beside other controls keeps those keys for itself.
    */
   ownsDocument?: boolean;
+  /** What the page the glass is embedded in holds shut from the start (src/ui/locks.ts). */
+  locks?: readonly SimLock[];
 }
 
 export class Shell {
@@ -84,6 +88,9 @@ export class Shell {
   private readonly offFocusRing: () => void;
   private readonly offSwipe: () => void;
   private readonly ownsDocument: boolean;
+  private readonly locks: Locks;
+  private readonly offLocked: () => void;
+  private readonly offRefusal: () => void;
 
   /**
    * `start` is what stands over HOME as the shell comes up, and the first screen
@@ -100,12 +107,17 @@ export class Shell {
     const nav = new Navigator({ id: "home" }, start);
     const focus = new FocusController();
     this.ownsDocument = options.ownsDocument ?? true;
+    const locks = new Locks(options.locks);
+    this.locks = locks;
+    this.offLocked = store.setLocked((path) => locks.path(path));
+    this.offRefusal = nav.setRefusal((route) => locks.screen(route.id));
     this.ctx = {
       store,
       model,
       focus,
       nav,
       actions: options.actions ?? emulatedActions,
+      locks,
       repaint: () => this.scheduleRepaint(),
       setKnobs: (specs) => {
         this.knobs = specs;
@@ -122,6 +134,7 @@ export class Shell {
         const opener = tapped?.isConnected === true ? tapped : activeIn(this.lcd);
         const refocus = this.focusPlace(opener);
         this.lcd.appendChild(node);
+        drawLocks(node, locks);
         const close = (): void => {
           if (!this.overlays.delete(close)) return;
           node.remove();
@@ -210,10 +223,19 @@ export class Shell {
     this.offStore();
     this.offWriteRule();
     this.offScreenOnly();
+    this.offLocked();
+    this.offRefusal();
     this.press.off();
     this.offFocusRing();
     this.offSwipe();
     this.closeOverlays();
+  }
+
+  /** Hold `locks` shut and nothing else, and draw the glass again under them. */
+  setLocks(locks: readonly SimLock[]): void {
+    this.locks.set(locks);
+    this.render();
+    for (const { node } of this.overlays.values()) drawLocks(node, this.locks);
   }
 
   private closeOverlays(): void {
@@ -244,7 +266,7 @@ export class Shell {
     const route = this.ctx.nav.current;
     const def = this.registry.get(route.id);
     if (def?.needsCard === true && !this.ctx.store.bool("sd.mounted", true)) {
-      this.ctx.nav.openTop({ id: "microsd" });
+      this.ctx.nav.openTop({ id: "microsd" }, true);
       return;
     }
     const refocus = this.focusPlace();
@@ -306,6 +328,7 @@ export class Shell {
     if (dims || body.main.classList.contains("pick-dialog")) {
       for (const control of this.knobStripNode.querySelectorAll(INTERACTIVE)) control.toggleAttribute("inert", true);
     }
+    drawLocks(this.lcd, this.locks);
     repress();
     rescroll();
     refocus();
@@ -415,9 +438,9 @@ export class Shell {
 
     if (kind === "home") {
       icons.classList.add("is-home");
-      icons.appendChild(iconBtn("SETUP", Icons.setup(), () => this.ctx.nav.openTop({ id: "setup" })));
+      icons.appendChild(iconBtn("SETUP", Icons.setup(), aimed(() => this.ctx.nav.openTop({ id: "setup" }), { kind: "screen", id: "setup" })));
       if (this.ctx.model.hasSD) {
-        const sd = iconBtn("microSD", Icons.storage(), () => this.ctx.nav.openTop({ id: "microsd" }));
+        const sd = iconBtn("microSD", Icons.storage(), aimed(() => this.ctx.nav.openTop({ id: "microsd" }), { kind: "screen", id: "microsd" }));
         // Recording mode marks the icon with the record dot at its lower right,
         // and a file playback holds, playing or paused, with the play triangle
         // where the dot stands.
@@ -432,7 +455,7 @@ export class Shell {
         }
         icons.appendChild(sd);
       }
-      icons.appendChild(iconBtn("MONITOR", Icons.monitor(), () => this.ctx.nav.openTop({ id: "monitor" })));
+      icons.appendChild(iconBtn("MONITOR", Icons.monitor(), aimed(() => this.ctx.nav.openTop({ id: "monitor" }), { kind: "screen", id: "monitor" })));
       icons.appendChild(el("span", { class: "toolbar-sep" }));
     } else if (this.ctx.nav.depth > 2) {
       // The arrow steps to the screen underneath. A screen the toolbar icons
@@ -463,10 +486,13 @@ export class Shell {
         "aria-label": `${side === "input" ? "INPUT" : "OUTPUT"} channel bank ${active + 1} of ${total}`,
         "aria-expanded": String(this.ctx.nav.current.id === "bank-select"),
       },
-      onTap: () => {
-        if (this.ctx.nav.current.id === "bank-select") this.ctx.nav.back();
-        else this.ctx.nav.push({ id: "bank-select" });
-      },
+      onTap: aimed(
+        () => {
+          if (this.ctx.nav.current.id === "bank-select") this.ctx.nav.back();
+          else this.ctx.nav.push({ id: "bank-select" });
+        },
+        { kind: "screen", id: "bank-select" },
+      ),
       children: [
         el("span", {
           class: "bank-label",
@@ -482,7 +508,7 @@ export class Shell {
     const node = el("button", {
       class: "udk-toggle",
       attrs: { "aria-label": "USER DEFINED KNOBS mode" },
-      onTap: () => void this.ctx.store.set("ui.userDefinedKnobs", !on),
+      onTap: aimed(() => void this.ctx.store.set("ui.userDefinedKnobs", !on), { kind: "path", path: "ui.userDefinedKnobs" }),
       children: [Icons.knob()],
     });
     setPressed(node, on);

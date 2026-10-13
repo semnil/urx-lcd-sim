@@ -6,7 +6,8 @@
 // nothing stored in the browser. The page's rules do not reach inside the shadow
 // tree and the glass's do not reach out of it (src/embed-css.ts), and the glass
 // takes no key pressed with nothing focused, so the page's own rules and keys
-// stay the page's.
+// stay the page's. The page can hold controls shut, each with its reason
+// (src/ui/locks.ts).
 
 import tokensCss from "./style/tokens.css?inline";
 import lcdCss from "./style/lcd.css?inline";
@@ -25,6 +26,7 @@ import { startMeterTicker } from "./screens/meters";
 import { startRecorderClock } from "./screens/recording";
 import { GLASS_ROOT } from "./ui/widgets";
 import { buildPanel } from "./ui/panel";
+import type { SimLock } from "./ui/locks";
 import { type EmbeddedStylesheet, type FontUrls, embedStylesheet } from "./embed-css";
 
 export type { FontUrls } from "./embed-css";
@@ -33,6 +35,7 @@ export { computerClock, refusedActions } from "./device/unit";
 export type { DeviceTransport, Notify } from "./device/transport";
 export type { ParamPath, ParamValue } from "./device/path";
 export type { ModelId } from "./model/types";
+export type { LockTarget, SimLock } from "./ui/locks";
 
 /** The class the element the glass stands on in the page carries; the glass is drawn in its shadow tree. */
 export const ROOT_CLASS = "urx-lcd-sim";
@@ -50,6 +53,8 @@ export interface EmbedOptions {
   zoom?: ZoomPercent;
   /** A write the unit refused, after the glass has put the value back. */
   onWriteFailure?: (failure: WriteFailure) => void;
+  /** The controls the glass draws held shut from its first paint. None by default. */
+  locks?: readonly SimLock[];
 }
 
 export interface EmbeddedSim {
@@ -57,6 +62,13 @@ export interface EmbeddedSim {
   readonly root: HTMLElement;
   readonly store: DeviceStore;
   setZoom(percent: ZoomPercent): void;
+  /**
+   * Hold `locks` shut and nothing else, and draw the glass again under them. A
+   * control whose value, screen or operation is held is drawn out of reach with
+   * a padlock at its top right corner and the lock's reason as its tooltip and
+   * its description, and does nothing however it is touched, turned or keyed.
+   */
+  setLocks(locks: readonly SimLock[]): void;
   /** Take the glass out of the page and let the unit go, closing its values' transport. */
   dispose(): void;
 }
@@ -104,7 +116,11 @@ export async function mountSim(host: HTMLElement, options: EmbedOptions): Promis
   const offFailure = options.onWriteFailure ? store.onWriteFailure(options.onWriteFailure) : () => undefined;
   // Ahead of the first screen, so the screen draws the unit's meters and clock from its first paint.
   const releaseUnit = useUnit(options.unit);
-  const shell = new Shell(buildRegistry(), store, model, [], { actions: options.unit.actions, ownsDocument: false });
+  const shell = new Shell(buildRegistry(), store, model, [], {
+    actions: options.unit.actions,
+    ownsDocument: false,
+    ...(options.locks ? { locks: options.locks } : {}),
+  });
   const root = document.createElement("div");
   root.className = ROOT_CLASS;
   const shadow = root.attachShadow({ mode: "open" });
@@ -125,6 +141,7 @@ export async function mountSim(host: HTMLElement, options: EmbedOptions): Promis
     root,
     store,
     setZoom,
+    setLocks: (locks) => shell.setLocks(locks),
     dispose() {
       if (disposed) return;
       disposed = true;
