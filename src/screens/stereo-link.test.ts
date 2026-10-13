@@ -71,11 +71,14 @@ async function link(store: DeviceStore, ...ids: string[]): Promise<void> {
   await flush();
 }
 
-/** Every value a channel is placed by: its own place and each of its sends'. */
+/**
+ * Every value a channel is placed by: its own place and each of its sends'. The
+ * pair's BALANCE is held on CH 1 alone.
+ */
 function placings(store: DeviceStore, id: string): number[] {
   const paths = [
     `ch.${id}.pan`,
-    `ch.${id}.balance`,
+    ...(id === "ch1" ? [`ch.${id}.balance`] : []),
     ...store.pathsUnder(`ch.${id}.send`).filter((p) => p.endsWith(".balance")),
   ];
   return paths.map((p) => store.num(p, NaN));
@@ -394,6 +397,7 @@ describe("the PAN / BAL choice a stereo pair carries", () => {
 
     expect(placings(store, "ch1").every((v) => v === -63), "CH 1 goes hard left").toBe(true);
     expect(placings(store, "ch2").every((v) => v === 63), "CH 2 goes hard right").toBe(true);
+    expect(store.has("ch.ch2.balance"), "and holds no BALANCE of its own").toBe(false);
     for (const [id, reading] of [["ch1", "L63"], ["ch2", "R63"]]) {
       await open(shell, "channel-view", id ?? "");
       expect(shell.root.querySelector(".cv-pan .cv-caption")?.textContent, id).toBe("PAN");

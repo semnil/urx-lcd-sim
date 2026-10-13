@@ -15,7 +15,7 @@ import { FX_EFFECT_DEFAULT, effectParams } from "./effects";
 import { OSC_TARGETS } from "./oscillator";
 import { SOURCES_SHIPPED_DOWN, digitalGainPath, digitalGainShipped } from "./source-gain";
 import type { Strip, UnitModel } from "./types";
-import { SENDS_TARGET_SHIPPED, channelPairs, sendsTo } from "./types";
+import { SENDS_TARGET_SHIPPED, allStrips, carriesInsert, channelPairs, findStrip, sendsTo } from "./types";
 import { UDK_BANKS, UDK_KNOBS, UDK_SHIPPED, UDK_UNASSIGNED, udkPath } from "./udk";
 
 /**
@@ -181,18 +181,74 @@ export function sendShipsOn(from: Pick<Strip, "kind">, to: Pick<Strip, "kind">):
   return !(from.kind === "mix" && to.kind === "stereo");
 }
 
+/** Whether a strip carries the four-band EQ: the input channels, the MIX buses and the stereo bus. */
+export function holdsEq(strip: Pick<Strip, "kind">): boolean {
+  return strip.kind === "monoIn" || strip.kind === "stIn" || strip.kind === "mix" || strip.kind === "stereo";
+}
+
+/** Whether a strip has a fader and an [ON]: every one but the streaming bus, which is fed and heard. */
+function holdsFader(strip: Pick<Strip, "kind">): boolean {
+  return strip.kind !== "streaming";
+}
+
+/**
+ * Whether a strip holds a BALANCE of its own. A mono pair is placed by its
+ * lower-numbered channel's, so the higher-numbered one holds none, and neither
+ * does the streaming bus.
+ */
+export function holdsBalance(strip: Pick<Strip, "kind" | "channels">): boolean {
+  if (strip.kind === "monoIn") return (strip.channels[0] ?? 1) % 2 === 1;
+  return strip.kind !== "streaming";
+}
+
+/**
+ * Whether a send into `to` carries `key`. A send into the stereo bus carries its
+ * switch alone: the channel's own fader and position stand for its level, tap
+ * and placing. A send into an FX bus is taken summed to one side, with no placing.
+ */
+function sendHolds(to: Pick<Strip, "kind">, key: string): boolean {
+  if (to.kind === "stereo") return key === "on";
+  return !(to.kind === "fx" && key === "balance");
+}
+
+/** LINE OUT's output patch, on a unit that has a LINE OUT. */
+const LINE_OUT_PATCH = path("setup", "outputPatch.lineOut");
+
+/** Whether the unit holds the value at `p`: what the predicates above leave out, it does not. */
+function holds(model: UnitModel, p: ParamPath): boolean {
+  if (p === LINE_OUT_PATCH) return model.hasLineOut;
+  const strip = allStrips(model).find((s) => p.startsWith(`ch.${s.id}.`));
+  if (!strip) return true;
+  const rest = p.slice(`ch.${strip.id}.`.length);
+  if (rest === "level" || rest === "on") return holdsFader(strip);
+  if (rest === "balance") return holdsBalance(strip);
+  if (rest.startsWith("eq.")) return holdsEq(strip);
+  if (rest.startsWith("insFx.")) return carriesInsert(strip);
+  const send = /^send\.(.+)\.([^.]+)$/.exec(rest);
+  const to = send ? findStrip(model, send[1] ?? "") : undefined;
+  return to === undefined || sendHolds(to, send?.[2] ?? "");
+}
+
+/**
+ * Values as they are put back on `model`: a browser save, a scene or a settings
+ * file that names a value the unit does not hold has it left out.
+ */
+export function onlyHeld(model: UnitModel, values: Record<ParamPath, ParamValue>): Record<ParamPath, ParamValue> {
+  return Object.fromEntries(Object.entries(values).filter(([p]) => holds(model, p)));
+}
+
 function seedStrip(out: Map<ParamPath, ParamValue>, strip: Strip, model: UnitModel): void {
   const p = (...rest: (string | number)[]): ParamPath => chPath(strip.id, ...rest);
   out.set(p("name"), factoryName(strip));
   out.set(p("color"), strip.color);
   const source = factorySource(model, strip);
   if (source !== undefined) out.set(p("source"), source);
-  out.set(p("on"), true);
+  if (holdsFader(strip)) out.set(p("on"), true);
   out.set(p("cue"), false);
-  out.set(p("level"), faderShipped(strip));
+  if (holdsFader(strip)) out.set(p("level"), faderShipped(strip));
   for (const [suffix, value] of compEqBankDefaults()) {
-    // Only a mono channel carries the compressor; every strip carries the EQ.
-    if (strip.kind !== "monoIn" && suffix.startsWith("comp.")) continue;
+    // Only a mono channel carries the compressor, and only a strip `holdsEq` names the EQ.
+    if (suffix.startsWith("comp.") ? strip.kind !== "monoIn" : !holdsEq(strip)) continue;
     out.set(p(suffix), value);
   }
 
@@ -205,7 +261,6 @@ function seedStrip(out: Map<ParamPath, ParamValue>, strip: Strip, model: UnitMod
     out.set(p("hpf.on"), false);
     out.set(p("hpf.freq"), 80);
     out.set(p("pan"), 0);
-    out.set(p("balance"), 0);
     out.set(p("recPoint"), "PRE FADER");
     out.set(p("compEqOrder"), "COMP->EQ");
     out.set(p("signalType"), "MONO x 2");
@@ -223,7 +278,6 @@ function seedStrip(out: Map<ParamPath, ParamValue>, strip: Strip, model: UnitMod
 
   if (strip.kind === "stIn") {
     out.set(p("recPoint"), "PRE FADER");
-    out.set(p("balance"), 0);
     out.set(p("phase.l"), false);
     out.set(p("phase.r"), false);
     out.set(p("ducker.on"), false);
@@ -255,10 +309,10 @@ function seedStrip(out: Map<ParamPath, ParamValue>, strip: Strip, model: UnitMod
     out.set(p("panLink"), false);
   }
 
-  // An FX channel and the MIX and stereo buses ship with their BALANCE at the centre.
-  if (strip.kind === "fx" || strip.kind === "mix" || strip.kind === "stereo") out.set(p("balance"), 0);
+  // A strip holding a BALANCE ships with it at the centre.
+  if (holdsBalance(strip)) out.set(p("balance"), 0);
 
-  if (strip.side === "output") {
+  if (strip.side === "output" && carriesInsert(strip)) {
     out.set(p("insFx.on"), false);
     out.set(p("insFx.effect"), "No Effect");
   }
@@ -281,7 +335,7 @@ export function factoryState(model: UnitModel): Map<ParamPath, ParamValue> {
   out.set(path("setup", "followUsb"), false);
   out.set(path("setup", "outputPatch.tab"), "Analog");
   out.set(path("setup", "outputPatch.mainOut"), "STEREO");
-  out.set(path("setup", "outputPatch.lineOut"), "MIX 1");
+  if (model.hasLineOut) out.set(LINE_OUT_PATCH, "MIX 1");
   for (const p of ["usbMainA", "usbMainB", "usbMainC", "usbSub"]) out.set(path("setup", `outputPatch.${p}`), "STEREO");
   out.set(path("setup", "peripheral.tab"), "Main");
   out.set(path("setup", "peripheral.usbSuppression"), "None");
@@ -321,17 +375,16 @@ export function factoryState(model: UnitModel): Map<ParamPath, ParamValue> {
 
   // Sends. Every one ships open with nothing going through it: the switch on,
   // the level at the bottom of the fader, the tap after the fader, and the send
-  // placed centre, but for the switches `sendShipsOn` leaves off.
+  // placed centre, but for the switches `sendShipsOn` leaves off. A send carries
+  // what `sendHolds` names of these alone.
   const stereo = model.outputs.filter((o) => o.kind === "stereo");
   const mixes = model.outputs.filter((o) => o.kind === "mix");
   const returns = model.inputs.filter((s) => s.kind === "fx");
   for (const from of [...model.inputs, ...model.outputs]) {
     const targets = [...stereo, ...mixes, ...returns].filter((to) => sendsTo(from, to));
     for (const to of targets) {
-      out.set(chPath(from.id, "send", to.id, "level"), LEVEL_MIN_DB);
-      out.set(chPath(from.id, "send", to.id, "on"), sendShipsOn(from, to));
-      out.set(chPath(from.id, "send", to.id, "pre"), false);
-      out.set(chPath(from.id, "send", to.id, "balance"), 0);
+      const shipped: [string, ParamValue][] = [["level", LEVEL_MIN_DB], ["on", sendShipsOn(from, to)], ["pre", false], ["balance", 0]];
+      for (const [key, value] of shipped) if (sendHolds(to, key)) out.set(chPath(from.id, "send", to.id, key), value);
     }
   }
 

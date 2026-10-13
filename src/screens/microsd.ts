@@ -11,6 +11,7 @@ import type { CardEntry } from "../model/card";
 import { CARD_ROOT, TAKE_SUFFIX, changeCard, filePath, folderPath, formatFree, formatRate, freeBytes, parentPath, readCard, roomFor, sameName, takeRate } from "../model/card";
 import { clockParts } from "../model/clock";
 import { applySettings, captureSettings } from "../model/settings-file";
+import { onlyHeld } from "../model/defaults";
 import { onDynamicsTimeStops } from "../model/dynamics-times";
 import { onPitchMidiControl } from "../model/effects";
 import { TRACK_COUNTS, dropTracksOverRate, trackCountCeiling } from "../model/track-count";
@@ -495,13 +496,14 @@ function saveLoadAction(ctx: AppContext, label: string): void {
 /**
  * Put a settings file back on the unit, a GATE, COMP or DUCKER time, and an SSMCS
  * frequency, Attack or Release, off its stops on the stop nearest it, and a delay
- * time off the hundredths of a ms on the hundredth nearest it.
+ * time off the hundredths of a ms on the hundredth nearest it. A value the unit
+ * does not hold is not put back.
  */
 function loadSettings(ctx: AppContext, entry: CardEntry): void {
   const held = ctx.store.str(filePath(entry), "");
   if (!held) return;
   const pairs = pairStates(ctx);
-  void applySettings(ctx.store, onDelayGrid(onSsmcsStops(onDynamicsTimeStops(onPitchMidiControl(fromJson(held) as Record<string, ParamValue>))))).then(() => {
+  void applySettings(ctx.store, onDelayGrid(onSsmcsStops(onDynamicsTimeStops(onPitchMidiControl(onlyHeld(ctx.model, fromJson(held) as Record<string, ParamValue>)))))).then(() => {
     followRecall(ctx, pairs);
     settlePanLink(ctx);
     const rate = ctx.store.num("setup.samplingFrequency", 48000);

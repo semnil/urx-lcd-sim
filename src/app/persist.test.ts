@@ -213,6 +213,26 @@ describe("what a reload carries over", () => {
     expect(store.has("ch.ch1.safe"), "the old name is not put back").toBe(false);
   });
 
+  it("leaves out what a stored unit holds and the unit does not, and brings back the rest", async () => {
+    // A unit stored while every send into STEREO kept a level, FX 1 an EQ and STREAMING a fader.
+    const unheld = ["ch.ch1.send.bus.stereo.level", "ch.ch1.send.fx1.balance", "ch.fx1.eq.low.gain", "ch.bus.stream.level", "ch.bus.stream.insFx.on", "ch.ch2.balance"];
+    window.localStorage.setItem(
+      "urx-lcd-sim.state",
+      JSON.stringify({ version: 1, model: MODEL, values: { ...Object.fromEntries(unheld.map((p) => [p, 5])), "ch.ch1.level": -4, "ch.ch1.send.fx1.level": -12 } }),
+    );
+    const store = await unit();
+    await bring(store);
+    expect(unheld.filter((p) => store.has(p))).toEqual([]);
+    expect([store.num("ch.ch1.level", 0), store.num("ch.ch1.send.fx1.level", 0)], "the rest comes back").toEqual([-4, -12]);
+  });
+
+  it("leaves LINE OUT's patch out of a URX22 stored with one", async () => {
+    window.localStorage.setItem("urx-lcd-sim.state", JSON.stringify({ version: 1, model: "URX22", values: { "setup.outputPatch.lineOut": "MIX 2", "setup.outputPatch.mainOut": "MIX 2" } }));
+    const store = await unit("URX22");
+    await bring(store, "URX22");
+    expect([store.has("setup.outputPatch.lineOut"), store.str("setup.outputPatch.mainOut", "")]).toEqual([false, "MIX 2"]);
+  });
+
   it("brings the sends into a bus on Pan Link back where their sources are, and a FIXED bus off Pan Link", async () => {
     // A unit stored while Pan Link left each send's own placing where it was.
     window.localStorage.setItem(

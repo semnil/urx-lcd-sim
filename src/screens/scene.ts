@@ -4,6 +4,7 @@
 import type { AppContext } from "../app/context";
 import { applyScene, asPutBack, captureScene, readScene } from "../model/scene-state";
 import { shippedScene } from "../model/scene-presets";
+import { onlyHeld } from "../model/defaults";
 import { onDynamicsTimeStops } from "../model/dynamics-times";
 import { onPitchMidiControl } from "../model/effects";
 import { dropInsertsOverRate } from "./insert-fx";
@@ -88,12 +89,13 @@ function statePath(bank: string, no: number): string {
  * copy. A source whose digital gain the scene does not name comes back to 0 dB,
  * a BALANCE it does not name to the centre, and a GATE, COMP or DUCKER time or an
  * SSMCS frequency, Attack or Release it holds off its stops on the stop nearest it.
+ * A value the unit does not hold is not put back.
  */
 export async function recallScene(ctx: AppContext, no: number): Promise<void> {
   const bank = storedBank(ctx, no);
   const state = bank ? readScene(ctx.store, statePath(bank, no)) : isFactoryLocked(no) ? shippedScene(ctx.model, isPreset(no) ? no - PRESET_BASE : 0) : undefined;
   const pairs = pairStates(ctx);
-  if (state) await applyScene(ctx.store, onSsmcsStops(onDynamicsTimeStops(onPitchMidiControl(asPutBack(ctx.store, state)))));
+  if (state) await applyScene(ctx.store, onSsmcsStops(onDynamicsTimeStops(onPitchMidiControl(asPutBack(ctx.store, onlyHeld(ctx.model, state))))));
   followRecall(ctx, pairs);
   // A scene stored while Pan Link left each send's own placing where it was, or
   // kept Pan Link on over a FIXED bus, comes back as the unit would hold it.
