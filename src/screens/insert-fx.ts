@@ -74,18 +74,22 @@ function seedEffect(ctx: AppContext, base: string, name: string): void {
  * puts those settings back. The effect, the switch and the settings are one
  * operation of the store.
  */
-export function takeEffect(ctx: AppContext, base: string, namePath: string, onPath: string, name: string): void {
+export function takeEffect(ctx: AppContext, base: string, namePath: string, onPath: string, name: string, seed = true): void {
   ctx.store.operation(() => {
     void ctx.store.set(namePath, name);
     if (onPath) void ctx.store.set(onPath, name !== NO_EFFECT);
-    seedEffect(ctx, base, name);
+    if (seed) seedEffect(ctx, base, name);
   });
 }
 
-/** Take an insert on a channel, which is the pair's where the pair is linked. */
+/**
+ * Take an insert on a channel, which is the pair's where the pair is linked. Where the page the glass
+ * is embedded in gives an insert's values, the effect and its switch are written and the values are
+ * left to what the page answers.
+ */
 export function takeInsert(ctx: AppContext, strip: Strip, name: string): void {
   const base = insertBase(ctx, strip);
-  takeEffect(ctx, base, `${base}.effect`, `${base}.on`, name);
+  takeEffect(ctx, base, `${base}.effect`, `${base}.on`, name, ctx.insertValuesFromPage !== true);
 }
 
 /**

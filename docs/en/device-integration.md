@@ -123,6 +123,14 @@ Each lock (`SimLock`) is a target and the reason the page gives for it. A target
   above still hold for it.
 - The simulator's own page holds nothing, and a page that passes no locks sees the glass as before.
 
+### An insert effect's values from the page
+
+Choosing an insert effect fills its values with the effect's own settings, as the unit does. A page that
+keeps those values itself — one that brings back what a node held the last time it carried that effect —
+passes `insertValuesFromPage: true` to `mountSim()`: choosing an effect then writes the effect and its
+switch alone, and the glass shows the values the unit answers with. The FX channels' effects are filled
+either way.
+
 ## Binding table
 
 `BindingTable` (`src/device/binding.ts`) holds the mapping from path to address + encoding.

@@ -55,6 +55,8 @@ export interface ShellOptions {
   ownsDocument?: boolean;
   /** What the page the glass is embedded in holds shut from the start (src/ui/locks.ts). */
   locks?: readonly SimLock[];
+  /** Whether an insert effect's values, as one is chosen, come from the page (AppContext). */
+  insertValuesFromPage?: boolean;
 }
 
 export class Shell {
@@ -118,6 +120,7 @@ export class Shell {
       nav,
       actions: options.actions ?? emulatedActions,
       locks,
+      insertValuesFromPage: options.insertValuesFromPage ?? false,
       repaint: () => this.scheduleRepaint(),
       setKnobs: (specs) => {
         this.knobs = specs;

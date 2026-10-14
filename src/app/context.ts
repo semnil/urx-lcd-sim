@@ -18,6 +18,12 @@ export interface AppContext {
   actions: UnitActions;
   /** What the page the glass is embedded in holds shut (src/ui/locks.ts); nothing on a page of its own. */
   locks: Locks;
+  /**
+   * Whether the values of an insert effect, as one is chosen, come from the page the glass is embedded
+   * in: the glass then writes the effect and its switch, and the values are what the page answers.
+   * On a page of its own the glass fills them with the effect's own settings.
+   */
+  insertValuesFromPage?: boolean;
   /** Rebuild the current screen. Screens call this after a state change. */
   repaint(): void;
   /**
