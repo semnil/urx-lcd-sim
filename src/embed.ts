@@ -55,6 +55,12 @@ export interface EmbedOptions {
   onWriteFailure?: (failure: WriteFailure) => void;
   /** The controls the glass draws held shut from its first paint. None by default. */
   locks?: readonly SimLock[];
+  /**
+   * Whether an insert effect's values, as one is chosen, come from the page: the glass writes the effect
+   * and its switch and shows the values the unit answers with. False by default, where the glass fills
+   * them with the effect's own settings.
+   */
+  insertValuesFromPage?: boolean;
 }
 
 export interface EmbeddedSim {
@@ -120,6 +126,7 @@ export async function mountSim(host: HTMLElement, options: EmbedOptions): Promis
     actions: options.unit.actions,
     ownsDocument: false,
     ...(options.locks ? { locks: options.locks } : {}),
+    ...(options.insertValuesFromPage ? { insertValuesFromPage: true } : {}),
   });
   const root = document.createElement("div");
   root.className = ROOT_CLASS;
