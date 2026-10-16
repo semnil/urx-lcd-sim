@@ -11,6 +11,7 @@
 - GATE・COMP・DUCKER のしきい値とレンジを、実機と同じく端数を 0 の側へ切り捨てて読むようにした。-45.5 dB は `-45`。これまでは端数を丸めたので `-46` と読めた。
 - 工場出荷時の Auto Power Off を、実機と同じく URX44V だけ入、URX44 と URX22 は切にし、[Follow USB] はどの機種も入にした。これまではどの機種も Auto Power Off が入、[Follow USB] が切だった。
 - URX22 の SETUP のメニューで、実機と同じく他の機種の Date/Time の位置を空けたままにし、[Software Integration] を段の右端に置いた。これまでは [Software Integration] が Date/Time の位置に詰まっていた。
+- バンク一覧の URX22 の 2 つ目の INPUT のバンクを、`CH 7 - 10` と `FX 1 - 2` の 2 行で、ほかのバンクと同じ幅のボタンに書くようにした。これまでは `CH 7 - 10, FX 1 - 2` の 1 行で、ボタンがほかより広かった。
 - microSD の再生がファイルを持っているあいだ (再生中・一時停止中)、実機と同じく、SETUP の [Sampling Frequency] と Operation Mode の箱を使えないボタンの面にし、押しても何も開かないようにした。これまでは [Sampling Frequency] は録音モードのあいだだけ使えず、Operation Mode の箱はいつでも開けた。
 - SETUP の [Software Integration] にマウスを重ねると、実機では使えず、画面を撮れるようにここでは使えるままにしていることをツールチップで出すようにした。
 - 画面上部のコントロールの行の右端に、ロゴだけを描いた GitHub へのリンクを追加した。リポジトリを別のタブで開く。

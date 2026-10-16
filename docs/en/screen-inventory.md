@@ -175,9 +175,9 @@ the unit, its row says so with the result and the date.
 
 HOME's captures have three INPUT bank marks, that is, they are of a model with 10 inputs. None shows
 a URX22 with two marks, and no display specific to the URX44 is confirmed, by an image or on the unit. Of the
-displays specific to the URX22, the connector [HI-Z] stands on, the layout of SETUP's menu and the question
-[All Input] / [All USB DAW] ask were checked on the unit (URX22, the operator, 2026-10-14 and 2026-10-16). The
-URX22's HOME banks were not checked.
+displays specific to the URX22, the connector [HI-Z] stands on, the layout of SETUP's menu, the question
+[All Input] / [All USB DAW] ask and the names in HOME's bank list were checked on the unit (URX22, the operator,
+2026-10-14 and 2026-10-16).
 
 ## Head amp in the channel view
 
@@ -2245,7 +2245,7 @@ bank stayed (confirmed on 2026-10-04).
 | OUTPUT | 1 | MIX 1, MIX 2, STEREO, STREAMING |
 
 The bank list names a bank by the range of numbers in it, `CH 1 - 4`, `CH 5 - 12` and `FX 1 - 2` (a URX22's are `CH 1 - 6` and
-`CH 7 - 10, FX 1 - 2`). The output side reads `MIX, ST` over `STREAMING`.
+`CH 7 - 10` over `FX 1 - 2`; URX22, the operator, 2026-10-16). The output side reads `MIX, ST` over `STREAMING`.
 
 The marks inside a bank button are one per bank, and the mark of the bank on display is wider than the
 others (25px against 14px, 6px apart, 15 rows high; on the INPUT side a bank not on display is
@@ -2280,5 +2280,6 @@ x106..207 / y49..271, and no PAD strip. The extracted file p048-3 holds a PAD st
 among HOME's strips.
 
 The URX44 has the same input strips as the URX44V and so the same three banks; the URX22 has two fewer
-mono channels and so two banks. This is derived from the confirmed "four strips per bank"; of the
-three models, the URX44V is the one whose arrangement was read on the unit.
+mono channels and so two banks. The URX22's two banks were checked on the unit by the names in its bank list
+(`CH 1 - 6` and `CH 7 - 10` over `FX 1 - 2`; the operator, 2026-10-16). The URX44's arrangement is derived from
+the confirmed "four strips per bank".
