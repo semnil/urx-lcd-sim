@@ -88,12 +88,13 @@ function bankGroups(strips: readonly Strip[]): string[] {
 }
 
 /**
- * What a bank is called in the bank list. The groups run together on one line;
- * from three groups on, the last one carries onto a second line.
+ * What a bank is called in the bank list. One group stands on one line; with
+ * more, the last group stands alone on a second line and the rest run together
+ * on the first.
  */
 export function bankName(strips: readonly Strip[]): string {
   const groups = bankGroups(strips);
-  if (groups.length < 3) return groups.join(", ");
+  if (groups.length < 2) return groups.join(", ");
   return `${groups.slice(0, -1).join(", ")}\n${groups.at(-1) ?? ""}`;
 }
 

@@ -2218,7 +2218,7 @@ bank stayed (confirmed on 2026-10-04).
 | OUTPUT | 1 | MIX 1, MIX 2, STEREO, STREAMING |
 
 The bank list names a bank by the range of numbers in it, `CH 1 - 4`, `CH 5 - 12` and `FX 1 - 2` (a URX22's are `CH 1 - 6` and
-`CH 7 - 10, FX 1 - 2`). The output side reads `MIX, ST` over `STREAMING`.
+`CH 7 - 10` over `FX 1 - 2`; URX22, the operator, 2026-10-16). The output side reads `MIX, ST` over `STREAMING`.
 
 The marks inside a bank button are one per bank, and the mark of the bank on display is wider than the
 others (25px against 14px, 6px apart, 15 rows high; on the INPUT side a bank not on display is
