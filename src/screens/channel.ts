@@ -2005,7 +2005,7 @@ export function oneKnobButton(ctx: AppContext, path: string, onTap?: (next: bool
   const on = ctx.store.bool(path, false);
   const node = el("button", {
     class: "oneknob",
-    onTap: () => (onTap ? onTap(!on) : void ctx.store.set(path, !on)),
+    onTap: writing(path, () => (onTap ? onTap(!on) : void ctx.store.set(path, !on))),
     children: [el("span", { class: "oneknob-mark", text: "1" }), el("span", { text: "1-knob" })],
   });
   setPressed(node, on);

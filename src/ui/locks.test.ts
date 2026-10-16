@@ -228,6 +228,249 @@ describe("a value the page holds shut", () => {
   });
 });
 
+describe("an effect setting the page holds shut", () => {
+  const INS = "ch.ch1.insFx";
+
+  /** CH 1's INS FX screen running `effect`, on page `page`, with `path` held. */
+  async function effectShut(effect: string, page: number, path: string): Promise<Shell> {
+    const shell = await shellOn([{ id: "channel-view", strip: "ch1" }, { id: "ch.insfx", strip: "ch1" }]);
+    shell.root.querySelector<HTMLElement>(".insfx-effect")?.click();
+    await flush();
+    byText(shell, ".source-sheet .source-btn", effect)?.click();
+    await flush();
+    await shell.ctx.store.set("ui.effectPage", page);
+    shell.setLocks([{ target: { kind: "path", path }, reason: REASON }]);
+    await flush();
+    return shell;
+  }
+
+  const pulldownFor = (shell: Shell, label: string): HTMLElement | undefined =>
+    [...shell.root.querySelectorAll<HTMLElement>(".pulldown")].find((n) => n.getAttribute("aria-label")?.startsWith(`${label}:`));
+
+  it("draws a row of buttons shut, and no button in it takes its value", async () => {
+    const shell = await effectShut("Clean", 1, `${INS}.mod`);
+    const vib = (): HTMLElement | undefined => byText(shell, ".efx-buttons .efx-button", "Vib");
+    for (const name of ["Cho", "Off", "Vib"]) drawnShut(byText(shell, ".efx-buttons .efx-button", name));
+    drawnOpen(byText(shell, ".efx-buttons .efx-button", "Gate"));
+    vib()?.click();
+    key(vib(), "Enter");
+    await flush();
+    expect(shell.ctx.store.str(`${INS}.mod`, "")).toBe("Off");
+  });
+
+  it("takes a button's value once the page lets the row go", async () => {
+    const shell = await effectShut("Clean", 1, `${INS}.mod`);
+    drawnShut(byText(shell, ".efx-buttons .efx-button", "Vib"));
+    shell.setLocks([]);
+    await flush();
+    drawnOpen(byText(shell, ".efx-buttons .efx-button", "Vib"));
+    byText(shell, ".efx-buttons .efx-button", "Vib")?.click();
+    await flush();
+    expect(shell.ctx.store.str(`${INS}.mod`, "")).toBe("Vib");
+  });
+
+  it("draws an effect's switch shut, and the switch writes nothing", async () => {
+    const shell = await effectShut("Clean", 1, `${INS}.gate`);
+    const gate = (): HTMLElement | undefined => byText(shell, ".efx-buttons .efx-button", "Gate");
+    drawnShut(gate());
+    drawnOpen(byText(shell, ".efx-buttons .efx-button", "Vib"));
+    gate()?.click();
+    key(gate(), "Enter");
+    await flush();
+    expect(shell.ctx.store.bool(`${INS}.gate`, true)).toBe(false);
+  });
+
+  it("flips an effect's switch once the page lets it go", async () => {
+    const shell = await effectShut("Clean", 1, `${INS}.gate`);
+    drawnShut(byText(shell, ".efx-buttons .efx-button", "Gate"));
+    shell.setLocks([]);
+    await flush();
+    drawnOpen(byText(shell, ".efx-buttons .efx-button", "Gate"));
+    byText(shell, ".efx-buttons .efx-button", "Gate")?.click();
+    await flush();
+    expect(shell.ctx.store.bool(`${INS}.gate`, false)).toBe(true);
+  });
+
+  it("draws an effect's pulldown shut, and opens no list", async () => {
+    const shell = await effectShut("Clean", 1, `${INS}.spType`);
+    const box = pulldownFor(shell, "SP Type");
+    drawnShut(box);
+    drawnOpen(pulldownFor(shell, "Mic Position"));
+    box?.click();
+    key(box, "Enter");
+    await flush();
+    expect(box?.getAttribute("aria-expanded")).toBe("false");
+    expect(shell.root.querySelector("[data-overlay]")).toBeNull();
+    expect(shell.ctx.store.str(`${INS}.spType`, "")).toBe("JC 2x12");
+  });
+
+  it("opens an effect's pulldown once the page lets it go", async () => {
+    const shell = await effectShut("Clean", 1, `${INS}.spType`);
+    drawnShut(pulldownFor(shell, "SP Type"));
+    shell.setLocks([]);
+    await flush();
+    const box = pulldownFor(shell, "SP Type");
+    drawnOpen(box);
+    box?.click();
+    await flush();
+    expect(box?.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("draws Pitch Fix's Scale list shut, and opens no list", async () => {
+    const shell = await effectShut("Pitch Fix", 1, `${INS}.scale`);
+    const box = pulldownFor(shell, "Scale");
+    drawnShut(box);
+    drawnOpen(pulldownFor(shell, "Key"));
+    box?.click();
+    key(box, "Enter");
+    await flush();
+    expect(box?.getAttribute("aria-expanded")).toBe("false");
+    expect(shell.root.querySelector("[data-overlay]")).toBeNull();
+    expect(shell.ctx.store.str(`${INS}.scale`, "")).toBe("Chromatic");
+  });
+
+  it("opens Pitch Fix's Scale list once the page lets it go", async () => {
+    const shell = await effectShut("Pitch Fix", 1, `${INS}.scale`);
+    drawnShut(pulldownFor(shell, "Scale"));
+    shell.setLocks([]);
+    await flush();
+    const box = pulldownFor(shell, "Scale");
+    drawnOpen(box);
+    box?.click();
+    await flush();
+    expect(box?.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("draws a key of Pitch Fix's keyboard shut, and the key turns no note over", async () => {
+    const shell = await effectShut("Pitch Fix", 1, `${INS}.note2`);
+    const d = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".pitch-key[aria-label='D']");
+    drawnShut(d());
+    drawnOpen(shell.root.querySelector(".pitch-key[aria-label='E']"));
+    d()?.click();
+    key(d(), "Enter");
+    await flush();
+    expect([shell.ctx.store.bool(`${INS}.note2`, false), shell.ctx.store.str(`${INS}.scale`, "")]).toEqual([true, "Chromatic"]);
+  });
+
+  it("turns a key's note over once the page lets it go", async () => {
+    const shell = await effectShut("Pitch Fix", 1, `${INS}.note2`);
+    drawnShut(shell.root.querySelector(".pitch-key[aria-label='D']"));
+    shell.setLocks([]);
+    await flush();
+    drawnOpen(shell.root.querySelector(".pitch-key[aria-label='D']"));
+    shell.root.querySelector<HTMLElement>(".pitch-key[aria-label='D']")?.click();
+    await flush();
+    expect([shell.ctx.store.bool(`${INS}.note2`, true), shell.ctx.store.str(`${INS}.scale`, "")]).toEqual([false, "Custom"]);
+  });
+
+  it("draws the INS FX block's switch shut, and the switch writes nothing", async () => {
+    const shell = await effectShut("Crunch", 0, `${INS}.on`);
+    const title = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".badge-title");
+    drawnShut(title());
+    title()?.click();
+    key(title(), "Enter");
+    await flush();
+    expect(shell.ctx.store.bool(`${INS}.on`, false)).toBe(true);
+  });
+
+  it("switches the INS FX block once the page lets it go", async () => {
+    const shell = await effectShut("Crunch", 0, `${INS}.on`);
+    drawnShut(shell.root.querySelector(".badge-title"));
+    shell.setLocks([]);
+    await flush();
+    drawnOpen(shell.root.querySelector(".badge-title"));
+    shell.root.querySelector<HTMLElement>(".badge-title")?.click();
+    await flush();
+    expect(shell.ctx.store.bool(`${INS}.on`, true)).toBe(false);
+  });
+});
+
+describe("an effect's name the page holds shut", () => {
+  const sheet = (shell: Shell): Element | null => shell.root.querySelector(".source-sheet");
+
+  async function insertShut(): Promise<Shell> {
+    return shellOn([{ id: "channel-view", strip: "ch1" }, { id: "ch.insfx", strip: "ch1" }], [{ target: { kind: "path", path: "ch.ch1.insFx.effect" }, reason: REASON }]);
+  }
+
+  it("draws the button that names the effect shut, and drops no sheet", async () => {
+    const shell = await insertShut();
+    const button = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".insfx-effect");
+    drawnShut(button());
+    button()?.click();
+    key(button(), "Enter");
+    await flush();
+    expect(sheet(shell)).toBeNull();
+  });
+
+  it("draws the block's name shut while it opens the sheet, and drops no sheet", async () => {
+    const shell = await insertShut();
+    const title = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".badge-title");
+    drawnShut(title());
+    title()?.click();
+    key(title(), "Enter");
+    await flush();
+    expect(sheet(shell)).toBeNull();
+  });
+
+  it.each([".insfx-effect", ".badge-title"])("drops the sheet from %s once the page lets the name go", async (selector) => {
+    const shell = await insertShut();
+    drawnShut(shell.root.querySelector(selector));
+    shell.setLocks([]);
+    await flush();
+    drawnOpen(shell.root.querySelector(selector));
+    shell.root.querySelector<HTMLElement>(selector)?.click();
+    await flush();
+    expect(sheet(shell)).not.toBeNull();
+  });
+});
+
+describe("a 1-knob switch the page holds shut", () => {
+  const SCREENS: { name: string; routes: Route[]; path: string; take?: string }[] = [
+    { name: "COMP", routes: [{ id: "channel-view", strip: "ch1" }, { id: "ch.comp", strip: "ch1" }], path: "ch.ch1.comp.oneKnob.on" },
+    { name: "EQ", routes: [{ id: "channel-view", strip: "ch1" }, { id: "ch.eq", strip: "ch1" }], path: "ch.ch1.eq.oneKnob.on" },
+    {
+      name: "M.B.Comp",
+      routes: [{ id: "channel-view", strip: "bus.stereo" }, { id: "ch.insfx", strip: "bus.stereo" }],
+      path: "ch.bus.stereo.insFx.oneKnobOn",
+      take: "M.B.Comp",
+    },
+  ];
+
+  async function screenShut(screen: (typeof SCREENS)[number]): Promise<Shell> {
+    const shell = await shellOn(screen.routes);
+    if (screen.take) {
+      shell.root.querySelector<HTMLElement>(".insfx-effect")?.click();
+      await flush();
+      byText(shell, ".source-sheet .source-btn", screen.take)?.click();
+      await flush();
+    }
+    shell.setLocks([{ target: { kind: "path", path: screen.path }, reason: REASON }]);
+    await flush();
+    return shell;
+  }
+
+  it.each(SCREENS)("draws $name's switch shut, and the switch writes nothing", async (screen) => {
+    const shell = await screenShut(screen);
+    const button = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".oneknob");
+    drawnShut(button());
+    button()?.click();
+    key(button(), "Enter");
+    await flush();
+    expect(shell.ctx.store.bool(screen.path, true)).toBe(false);
+  });
+
+  it.each(SCREENS)("switches $name's 1-knob on once the page lets it go", async (screen) => {
+    const shell = await screenShut(screen);
+    drawnShut(shell.root.querySelector(".oneknob"));
+    shell.setLocks([]);
+    await flush();
+    drawnOpen(shell.root.querySelector(".oneknob"));
+    shell.root.querySelector<HTMLElement>(".oneknob")?.click();
+    await flush();
+    expect(shell.ctx.store.bool(screen.path, false)).toBe(true);
+  });
+});
+
 describe("an operation the page holds shut", () => {
   const button = (shell: Shell, text: string): HTMLElement | undefined => byText(shell, ".scene-actions .btn", text);
 

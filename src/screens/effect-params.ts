@@ -26,6 +26,7 @@ import {
   pitchScaleNotes,
   pitchScaleSets,
 } from "../model/effects";
+import type { ParamPath } from "../device/path";
 import type { DeviceStore } from "../device/store";
 import { SENDS_TARGET_SHIPPED, findStrip, type Strip, type UnitModel } from "../model/types";
 import { el, writing } from "../ui/dom";
@@ -170,7 +171,7 @@ export function dropSendsOverRate(store: DeviceStore, model: UnitModel, rate: nu
 function effectButton(ctx: AppContext, holder: EffectHolder): HTMLElement {
   return el("button", {
     class: "insfx-effect",
-    onTap: () => chooseEffect(ctx, holder),
+    onTap: writing(holder.namePath, () => chooseEffect(ctx, holder)),
     attrs: { "aria-label": "Select the inserted effect" },
     children: [el("span", { text: holder.name }), el("span", { class: "insfx-effect-copy", children: [Icons.copy()] })],
   });
@@ -670,13 +671,13 @@ function cell(caption: string, control: HTMLElement, knob?: HTMLElement, extraCl
 
 /**
  * The options of a list the unit sets out as a row of buttons, the one taken
- * lit. `take` is left out where the row is only read.
+ * lit, each named as writing `path`.
  */
-function buttonRow(options: readonly string[], value: string, name: string, take?: (v: string) => void): HTMLElement {
+function buttonRow(options: readonly string[], value: string, name: string, path: ParamPath, take: (v: string) => void): HTMLElement {
   return el("div", {
     class: "efx-buttons",
     attrs: { role: "group", "aria-label": name },
-    children: options.map((o) => toggle(o, o === value, () => take?.(o), "efx-button")),
+    children: options.map((o) => toggle(o, o === value, writing(path, () => take(o)), "efx-button")),
   });
 }
 
@@ -725,18 +726,20 @@ function effectGrid(
       return cell(caption, valueBox(ctx, { ...spec, label: caption }, "efx-value"), knobControl(ctx, spec));
     }
     if (p.kind === "select") {
-      const value = ctx.store.str(`${holder.base}.${p.key}`, p.fallback);
+      const path = `${holder.base}.${p.key}`;
+      const value = ctx.store.str(path, p.fallback);
       const named = caption || p.name || "";
-      const take = (v: string): void => void ctx.store.set(`${holder.base}.${p.key}`, v);
-      if (p.buttons) return cell("", buttonRow(p.options, value, named, take), undefined, "has-buttons is-bare");
+      const take = (v: string): void => void ctx.store.set(path, v);
+      if (p.buttons) return cell("", buttonRow(p.options, value, named, path, take), undefined, "has-buttons is-bare");
       const place = [p.foot ? "is-foot" : "", p.bare ? "is-bare" : "", p.division ? "is-division" : ""].filter(Boolean).join(" ");
       const face = p.notes ? Icons.note : undefined;
       // The note values open in a place of their own, five across from the top left.
       const notes = face ? { face, listClass: "efx-note-list", optionClass: "efx-note-option" } : {};
-      return cell(caption, pulldown(ctx, value, p.options, take, { label: named, ...notes }), undefined, place);
+      return cell(caption, pulldown(ctx, value, p.options, take, { label: named, path, ...notes }), undefined, place);
     }
-    const on = ctx.store.bool(`${holder.base}.${p.key}`, p.fallback);
-    const flip = (): void => void ctx.store.set(`${holder.base}.${p.key}`, !on);
+    const path = `${holder.base}.${p.key}`;
+    const on = ctx.store.bool(path, p.fallback);
+    const flip = writing(path, (): void => void ctx.store.set(path, !on));
     // A switch stands on the glass and carries its own name, on the button the row of buttons uses.
     return cell("", el("div", { class: "efx-buttons", children: [toggle(caption, on, flip, "efx-button")] }), undefined, "is-bare");
   }
@@ -760,10 +763,14 @@ function effectHeader(
   if (!holder.switches) return { headerLeft, headerCenter: titleBox(holder.title) };
   const on = ctx.store.bool(holder.onPath, holder.onFallback);
   // With nothing taken, the name is no switch: it opens the sheet the effect is chosen on.
-  const title = titleBadge(holder.title, "insfx", on, () => {
-    if (holder.switchable) void ctx.store.set(holder.onPath, !on);
-    else chooseEffect(ctx, holder);
-  });
+  const title = titleBadge(
+    holder.title,
+    "insfx",
+    on,
+    holder.switchable
+      ? writing(holder.onPath, () => void ctx.store.set(holder.onPath, !on))
+      : writing(holder.namePath, () => chooseEffect(ctx, holder)),
+  );
   if (!holder.switchable) title.removeAttribute("aria-pressed");
   return { headerLeft, headerCenter: title };
 }
@@ -822,12 +829,15 @@ function pitchKeyboard(ctx: AppContext, holder: EffectHolder): HTMLElement {
       ...(style ? { style } : {}),
       attrs: { "aria-label": name, "aria-pressed": on ? "true" : "false", ...(held ? { "aria-disabled": "true" } : {}) },
       // The note and the scale it leaves are one operation of the store.
-      onTap: () =>
-        !held &&
-        ctx.store.operation(() => {
-          void ctx.store.set(path, !on);
-          void ctx.store.set(`${holder.base}.scale`, PITCH_CUSTOM);
-        }),
+      onTap: writing(
+        path,
+        () =>
+          !held &&
+          ctx.store.operation(() => {
+            void ctx.store.set(path, !on);
+            void ctx.store.set(`${holder.base}.scale`, PITCH_CUSTOM);
+          }),
+      ),
       children: [el("span", { class: "pitch-note", text: name })],
     });
     return node;
@@ -908,7 +918,7 @@ function pitchNotes(ctx: AppContext, holder: EffectHolder, params: readonly Effe
           class: "pitch-row",
           children: [
             el("span", { class: "pitch-row-caption", text: p.label }),
-            pulldown(ctx, at(p.key), offered(p), (v) => take(p, v), { label: p.label }),
+            pulldown(ctx, at(p.key), offered(p), (v) => take(p, v), { label: p.label, path: `${holder.base}.${p.key}` }),
           ],
         }),
       ),
