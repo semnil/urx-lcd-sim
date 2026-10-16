@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Read a guitar amp's Output as the unit does, 40·log10(p / 127) dB at place p to one decimal: place 1 reads `-84.2` and place 47 `-17.3`. The Output ran straight between six places the unit had been read at, so place 1 read `-57.3`, and the amps shipped reading `-17.7`, `-19.4` and `-19.1` where the unit reads `-17.3`, `-19.2` and `-18.8`. What the amp puts out follows the same law.
+- Read an M.B.Comp band's Gain as the unit does, 3 dB a step from -60 dB at place 1 to -24 dB at place 13 and a dB a step above it. The Gain ran straight from place 1 to place 20, so place 13 read `-33` where the unit reads `-24`. The band's curve and what it puts out follow the same law.
+- Read REV-X's Rev.Time as the unit does, three figures rounded half up, from one table of room steps the three rooms share: Room at Room Size 31 reads `45.3` and Plate `52.0`, and Hall at the place it ships at `2.51`. The time grew by a fixed factor with Room Size, so those read `45.6`, `52.8` and `2.49`, and a time under 10 s read two decimals (`0.17` for `0.172`).
+- Read Rev.R3's Rev.Time to one decimal, as the unit does (`0.3`, `5.0`, `30.0`). A time under 10 s read two decimals.
+- Read a compander's Threshold in whole dB with any tenths cut toward zero, and turn it a dB a detent from where it stands, the tenths kept, as the unit does. It read and turned in tenths of a dB.
+- Step a compander's Release through the unit's own 160 stops from 5.0 ms to 42.3 s, a detent each, and read it to three figures and no finer than 0.1 ms (`5.0`, `65.4`, `999`, `1.23s`, `42.3s`). It stopped on every millisecond under a second and every 10 ms above, and read `5` and `42.30`. A browser save, a settings file or a scene holding a Release off the stops comes back on the stop nearest it.
 - Take SETUP's [Sampling Frequency] and Operation Mode box out of reach while microSD playback holds a file, playing or paused, as the unit does: they take the face of a button that cannot be used and open nothing. [Sampling Frequency] was out of reach in recording mode alone, and the Operation Mode box always opened.
 - Give SETUP's [Software Integration] a tooltip, under a resting pointer, that the unit does not offer it and that it is left usable here for screenshots.
 - Add a GitHub link, drawn as the logo alone, at the right end of the row of controls above the screen, which opens the repository in another tab.

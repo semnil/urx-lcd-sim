@@ -806,7 +806,15 @@ dynamics screens give them.
 A value box and a reading print the number alone, with no unit (Hz, kHz, s, ms, dB, %), and the knob
 readout bar under the screen keeps the unit, both as the unit does (URX44V, the operator, 2026-09-22). FB.Gain
 and Pitch Fix's Coarse, Fine and Formant carry no `+` over zero and a `-` below it, in the box and on the bar
-alike (the operator, the same day).
+alike (the operator, the same day; the same on a URX22, the operator, 2026-10-15).
+
+Each effect has its own form of reading (each printed alike on a URX22 and a URX44V, checked on the units on
+2026-10-15 and 2026-10-16). Rev.R3's Rev.Time reads one decimal (`0.3`, `5.0`, `30.0`), and REV-X's Rev.Time
+three figures rounded half up (`0.172`, `10.3`). REV-X's Rev.Time is the product of Rev.Time's share at its place
+and the length at the Room Size's step, and Hall, Room and Plate share one table of steps (Room's Room Size n is
+Hall's n + 11, and Plate's n is Room's n + 4). A guitar amp's Output reads 40·log10(p / 127) dB to one decimal at
+place p (place 0 reads `-∞`). An M.B.Comp band's Gain runs 3 dB a step from -60 dB at place 1 to -24 dB at 13 and
+1 dB a step above that, read in whole dB. The tables and laws are in `src/model/effects.ts`.
 
 An effect with more than eight controls takes further pages, stepped by the round 36px page buttons
 SSMCS uses, in the place SSMCS puts them (x4 and x386 / y117), where they lie over the corner of the
@@ -905,7 +913,11 @@ there being no figure (`NOTE_PIXELS` in `src/ui/icons.ts`).
 Compander-H and Compander-S are the two effects that are not laid out in panels: they take the frame
 the channel's own COMP takes. The curve fills the left, the reduction meter stands beside it, then
 Attack, Release and Ratio, and the block's own input and output meters at the far right. This layout and the
-two pages of the readout bar under it were held against the unit and match (URX44V, the operator, 2026-09-23). Those boxes
+two pages of the readout bar under it were held against the unit and match (URX44V, the operator, 2026-09-23).
+Threshold reads in whole dB with any fraction cut toward zero, and the knob moves it a dB a detent and keeps the
+fraction (-23.5 dB reads `-23` and goes to -22.5 dB a detent up). Release steps through 160 stops from 5.0 ms to
+42.3 s, one a detent, and reads three figures to no finer than 0.1 ms (`5.0`, `65.4`, `999`, `1.23s`, `42.3s`; the
+stops are the same on a URX44V and a URX22, recorded on the units on 2026-10-16). Those boxes
 are narrow, so they print the millisecond as `m`, as the channel's own COMP does; the readout bar
 keeps `ms`. The values
 go on the readout bar four at a time, over two pages: Threshold, Ratio, Width and Gain on the first,
