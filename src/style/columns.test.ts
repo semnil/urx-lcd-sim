@@ -1211,21 +1211,20 @@ describe("a sheet over the screen below it", () => {
     expect(scrim["pointer-events"]).toBe("none");
   });
 
-  it("darkens what lies under it through the scrim filter, as the sheets and dialogs do", () => {
-    for (const sel of [".lcd.is-dimmed::after", ".source-overlay", ".dialog-overlay"]) {
+  it("multiplies the screen under it by the scrim, as the sheets and dialogs do", () => {
+    // The factors fitted to the guide's darkened captures, R 0.204 / G 0.202 / B 0.192, in 0-255.
+    expect(declarations(TOKENS, ":root")["--scrim"]).toBe(`#${[0.204, 0.202, 0.192].map((f) => Math.round(f * 255).toString(16).padStart(2, "0")).join("")}`);
+    for (const sel of [".lcd.is-dimmed::after", ".lcd:has(> .main > .pick-dialog) .knob-strip::before", ".dialog-overlay::before", ".source-overlay::before"]) {
       const d = declarations(CSS, sel);
-      expect([d["background"], d["backdrop-filter"]], sel).toEqual(["transparent", "url(#lcd-scrim)"]);
+      expect([d["content"], d["background"], d["mix-blend-mode"]], sel).toEqual(['""', "var(--scrim)", "multiply"]);
     }
-    // Where backdrop-filter is missing, the plain wash stands in for every layer that darkens through the filter.
-    const block = CSS.slice(CSS.indexOf("@supports not (backdrop-filter: none)"));
-    const fallback = styleRules(block.slice(0, block.indexOf("}") + 1))[0];
-    const filtered = styleRules(CSS)
-      .filter((r) => r.body["backdrop-filter"] === "url(#lcd-scrim)")
-      .flatMap((r) => r.selectors);
-    expect(filtered, "the layers that darken through it").toEqual(
-      expect.arrayContaining([".dialog-overlay", ".lcd.is-dimmed::after", ".source-overlay", ".lcd:has(> .main > .pick-dialog) .knob-strip::before"]),
-    );
-    expect([[...(fallback?.selectors ?? [])].sort(), fallback?.body["background"]], "the fallback").toEqual([[...filtered].sort(), "var(--scrim)"]);
+    // A dialog or a hung sheet stands above its own dark, and the overlay holding
+    // them is no group of its own that the dark would be multiplied into alone.
+    for (const overlay of [".dialog-overlay", ".source-overlay"]) {
+      expect(declarations(CSS, overlay)["z-index"], overlay).toBeUndefined();
+      expect([declarations(CSS, `${overlay}::before`)["z-index"], declarations(CSS, `${overlay} > *`)["z-index"]], overlay).toEqual(["10", "10"]);
+      expect(declarations(CSS, `${overlay}::before`)["pointer-events"], "a touch on the dark lands on the overlay").toBeUndefined();
+    }
   });
 
   it("keeps the sheet and the control it was opened from above it", () => {
@@ -3797,9 +3796,11 @@ describe("what lies over the USER DEFINED KNOBS bar", () => {
     const layers: [string, string | undefined][] = [
       ["a full-glass sheet", sheet?.body["z-index"]],
       ["a sheet over a darkened screen", declarations(CSS, ".lcd.is-dimmed .main")["z-index"]],
-      ["a picker sheet", declarations(CSS, ".source-overlay")["z-index"]],
+      ["a picker sheet", declarations(CSS, ".source-overlay > *")["z-index"]],
+      ["a picker sheet's dark", declarations(CSS, ".source-overlay::before")["z-index"]],
       ["a pulldown's list", declarations(CSS, ".dropdown-sheet")["z-index"]],
-      ["a dialog", declarations(CSS, ".dialog-overlay")["z-index"]],
+      ["a dialog", declarations(CSS, ".dialog-overlay > *")["z-index"]],
+      ["a dialog's dark", declarations(CSS, ".dialog-overlay::before")["z-index"]],
     ];
     expect(layers.filter(([, z]) => !(Number(z) > bar)).map(([name, z]) => `${name} ${z}`)).toEqual([]);
   });
@@ -3820,12 +3821,12 @@ describe("what lies over the USER DEFINED KNOBS bar", () => {
     ).toEqual([]);
   });
 
-  it("darkens what a full-glass sheet leaves in sight of it through the scrim filter, over all it draws", () => {
+  it("darkens what a full-glass sheet leaves in sight of it by the scrim, over all it draws", () => {
     // The dark keys on what the sheet's own rule keys on: a main area holding a full-glass sheet.
     const darkSelector = ".lcd:has(> .main > .pick-dialog) .knob-strip::before";
     expect(sheetSelector.endsWith(".main:has(> .pick-dialog)"), "the sheet's rule").toBe(true);
     const dark = declarations(CSS, darkSelector);
-    expect([dark["content"], dark["background"], dark["backdrop-filter"], dark["pointer-events"]]).toEqual(['""', "transparent", "url(#lcd-scrim)", "none"]);
+    expect([dark["content"], dark["background"], dark["mix-blend-mode"], dark["pointer-events"]]).toEqual(['""', "var(--scrim)", "multiply", "none"]);
     // It covers the bar's frame as the corners' layer does, and stands over every part of the bar,
     // none of which takes a z-index of its own.
     expect([dark["position"], dark["inset"]]).toEqual(["absolute", declarations(CSS, ".lcd .knob-strip::after")["inset"]]);
@@ -3863,6 +3864,11 @@ describe("the glass while something on it moves", () => {
     expect(transitions.length, "the sheet carries transitions to check").toBeGreaterThan(0);
     expect(transitions.filter((t) => ["all", ...LAYERED].includes(t.split(" ").at(-1) ?? ""))).toEqual([]);
     expect(styleRules(CSS).filter((r) => r.body["will-change"] !== undefined).flatMap((r) => r.selectors)).toEqual([]);
+  });
+
+  it("darkens and lights through plain colours and brightness, not through a backdrop or an SVG filter", () => {
+    expect(styleRules(CSS).filter((r) => r.body["backdrop-filter"] !== undefined).flatMap((r) => r.selectors)).toEqual([]);
+    expect(styleRules(CSS).filter((r) => /url\(/.test(r.body["filter"] ?? "")).flatMap((r) => r.selectors)).toEqual([]);
   });
 });
 

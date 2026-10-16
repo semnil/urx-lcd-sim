@@ -3479,7 +3479,9 @@ describe("the screen backlight", () => {
   it("covers what is layered over the screen as well as the screen", async () => {
     // A dialog box is on the glass too, so the backlight dims it with the rest.
     const dim = declarations(CSS, ".lcd-dim");
-    expect(Number(dim["z-index"])).toBeGreaterThan(Number(declarations(CSS, ".dialog-overlay")["z-index"]));
+    for (const layer of [".dialog-overlay > *", ".dialog-overlay::before", ".source-overlay > *", ".source-overlay::before"]) {
+      expect(Number(dim["z-index"]), layer).toBeGreaterThan(Number(declarations(CSS, layer)["z-index"]));
+    }
     expect(dim["pointer-events"], "and never takes a tap").toBe("none");
   });
 
@@ -5749,13 +5751,6 @@ describe("the MONITOR Setting toggles", () => {
     await press(".mon-cue", 2);
     await press(".mon-mono", 2);
     expect(seen(), "and back").toEqual([[true, false, true, false], [true, false, true, false]]);
-  });
-});
-
-describe("the LCD", () => {
-  it("carries the filter its sheets and dialogs darken the screen with", async () => {
-    const shell = await mount();
-    expect(shell.root.querySelector("filter#lcd-scrim")?.closest(".lcd")).toBe(shell.root);
   });
 });
 

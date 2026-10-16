@@ -1458,11 +1458,8 @@
 .dialog-overlay {
   position: absolute;
   inset: 0;
-  background: transparent;
-  backdrop-filter: url(#lcd-scrim);
   display: grid;
   place-items: center;
-  z-index: 10;
 }
 
 .dialog {
@@ -6132,14 +6129,14 @@
   background: var(--block-fx);
 }
 
-/* A sheet takes the screen under it down to about a sixth, and the control it
- * was opened from stays lit above it. */
+/* A sheet takes the screen under it down to about a fifth, multiplying each
+ * channel by `--scrim`, and the control it was opened from stays lit above it. */
 .lcd.is-dimmed::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: transparent;
-  backdrop-filter: url(#lcd-scrim);
+  background: var(--scrim);
+  mix-blend-mode: multiply;
   z-index: 5;
   pointer-events: none;
 }
@@ -6150,8 +6147,8 @@
   content: "";
   position: absolute;
   inset: -2px -2px 0;
-  background: transparent;
-  backdrop-filter: url(#lcd-scrim);
+  background: var(--scrim);
+  mix-blend-mode: multiply;
   z-index: 1;
   pointer-events: none;
 }
@@ -6162,22 +6159,23 @@
   visibility: hidden;
 }
 
-/* The overlays darken what lies under them through the filter the shell puts
- * in the LCD (src/ui/scrim.ts). A browser without backdrop-filter gets a plain
- * black wash instead. */
-@supports not (backdrop-filter: none) {
-  .dialog-overlay,
-  .lcd.is-dimmed::after,
-  .lcd:has(> .main > .pick-dialog) .knob-strip::before,
-  .source-overlay {
-    background: var(--scrim);
-  }
+/* A dialog or a sheet hung off the glass darkens the whole screen under it the
+ * same way, and stands above its own dark. The overlay takes no z-index: its
+ * dark is multiplied into the screen under it, and a touch on the dark lands on
+ * the overlay. */
+.dialog-overlay::before,
+.source-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+  mix-blend-mode: multiply;
+  z-index: 10;
 }
 
-.lcd-filters {
-  position: absolute;
-  width: 0;
-  height: 0;
+.dialog-overlay > *,
+.source-overlay > * {
+  z-index: 10;
 }
 
 .lcd.is-dimmed .main {
@@ -6660,9 +6658,6 @@
 .source-overlay {
   position: absolute;
   inset: 0;
-  background: transparent;
-  backdrop-filter: url(#lcd-scrim);
-  z-index: 10;
 }
 
 .source-popup.source-sheet {

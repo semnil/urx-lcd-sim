@@ -201,3 +201,22 @@ test.describe("[Device]", () => {
     await expect(device(page)).toBeFocused();
   });
 });
+
+test.describe("a sheet hung off the glass", () => {
+  test("goes down on a touch on its dark, stays up on a touch on its panel, and holds the screen under it out of reach", async ({ page }) => {
+    await go(page, "ch.input");
+    const sheet = lcd(page).locator(".source-overlay");
+    const panel = lcd(page).locator(".source-sheet");
+    await lcd(page).locator(".input-source-btn").click();
+    await expect(sheet).toHaveCount(1);
+    expect(await unreached(page)).toEqual([]);
+    const glass = (await lcd(page).boundingBox())!;
+    const box = (await panel.boundingBox())!;
+    // The top left corner of the glass lies outside the panel, on the dark.
+    expect(box.x - glass.x, "the panel leaves the corner bare").toBeGreaterThan(10);
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height - 4);
+    await expect(sheet).toHaveCount(1);
+    await page.mouse.click(glass.x + 5, glass.y + 5);
+    await expect(sheet).toHaveCount(0);
+  });
+});
