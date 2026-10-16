@@ -101,8 +101,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         timeout-minutes: 3
-      - name: Install Chromium
-        run: pnpm exec playwright install --with-deps chromium
+      - name: Install Chromium and WebKit
+        run: pnpm exec playwright install --with-deps chromium webkit
         timeout-minutes: 5
       - name: End-to-end tests
         run: pnpm test:e2e

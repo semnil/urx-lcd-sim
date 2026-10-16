@@ -24,6 +24,13 @@ export default defineConfig({
       name: "chromium",
       use: { ...devices["Desktop Chrome"], ...(executablePath ? { launchOptions: { executablePath } } : {}) },
     },
+    // WebKit paints differently from Chromium where the CSS it supports differs;
+    // it runs only the tests about that (`pnpm exec playwright install webkit` once first).
+    {
+      name: "webkit",
+      testMatch: /clip\.spec\.ts/,
+      use: { ...devices["Desktop Safari"] },
+    },
   ],
   webServer: {
     command: `pnpm exec vite build --logLevel warn && pnpm exec vite preview --port ${PORT} --strictPort`,

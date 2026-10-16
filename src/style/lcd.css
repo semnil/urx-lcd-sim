@@ -286,6 +286,15 @@
   overflow-clip-margin: 3px;
 }
 
+/* A browser without a clip margin (WebKit) would cut the frame and the panel off
+ * at the box's edge, so there the main area is not clipped at all. Nothing else
+ * in it reaches past the margin; its own lists and graphs clip what they hold. */
+@supports not (overflow-clip-margin: 2px) {
+  .main {
+    overflow: visible;
+  }
+}
+
 /* A screen that puts tabs or a meter down the right edge hands that strip over. */
 .lcd.has-side .main {
   right: 62px;
