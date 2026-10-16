@@ -85,6 +85,8 @@ address that was not verified against a connected unit
   click from a unit test skips: where a press lands, and where the focus moves on it. A change that
   adds a menu, a dialog or a sheet adds an end-to-end test under `e2e/` that opens it and answers it
   by clicks. A new screen adds a way onto it to `e2e/tour.ts`; `pnpm test` fails until it does.
+  `e2e/clip.spec.ts` also runs in WebKit, for what WebKit paints differently because it lacks
+  CSS that Chromium has.
 - A release is a pull request that changes nothing but `version` in `package.json`; see the
   README ("Hosting").
 

@@ -6,7 +6,7 @@ YAMAHA URX22 / URX44 / URX44V の 4.3 インチ LCD タッチ画面 (480x272) �
 ## 開発
 
 - 開発サーバーは `pnpm dev --port 5188 --strictPort` (`.claude/launch.json` と同じ設定)
-- 合否は `pnpm test` (Vitest + jsdom) と `pnpm typecheck`、それに `pnpm test:e2e` (Playwright + Chromium、`e2e/`)。Chromium が `/opt/pw-browsers/chromium` に入っている環境 (Claude Code のクラウド環境) では、落とさずに `PLAYWRIGHT_CHROMIUM_EXECUTABLE=/opt/pw-browsers/chromium pnpm test:e2e` で走らせる
+- 合否は `pnpm test` (Vitest + jsdom) と `pnpm typecheck`、それに `pnpm test:e2e` (Playwright + Chromium、`e2e/`。`e2e/clip.spec.ts` だけは WebKit でも走る)。Chromium が `/opt/pw-browsers/chromium` に入っている環境 (Claude Code のクラウド環境) では、落とさずに `PLAYWRIGHT_CHROMIUM_EXECUTABLE=/opt/pw-browsers/chromium pnpm test:e2e` で走らせる。WebKit が入っていない環境では `--project=chromium` を足し、WebKit 側は CI に任せる
 - 単体テストは 1 本 5,000 ms が上限で、全コアに負荷がかかると所要時間が 2 倍近くに延び、たまに落ちるテストになる。画面や値を何十も巡るテストは画面・値ごとの `it.each` に分け、Shell は `new Shell(registry, store, model, [route])` で目的の画面から立ち上げ (HOME を描いて捨てない)、描き直しは `setImmediate` で待つ (`setTimeout(0)` は 1 回約 1 ms 空回りする)
 - jsdom の `.click()` は押した位置の要素もフォーカスの移動も通らない。メニュー・ダイアログ・シートを足したら、開いて答えるまでを実クリックで通す E2E を `e2e/` に 1 本足す。画面を足したら `e2e/tour.ts` にそこへの道を足す (`src/app/e2e-tour.test.ts` が固定)
 - `package.json` の `version` を変えた main への push が Pages 公開と draft Release の作成になる。手順は README.md「Hosting」

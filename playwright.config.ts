@@ -27,6 +27,13 @@ export default defineConfig({
       testIgnore: "embed.spec.ts",
       use: { ...devices["Desktop Chrome"], ...(executablePath ? { launchOptions: { executablePath } } : {}) },
     },
+    // WebKit paints differently from Chromium where the CSS it supports differs;
+    // it runs only the tests about that (`pnpm exec playwright install webkit` once first).
+    {
+      name: "webkit",
+      testMatch: /clip\.spec\.ts/,
+      use: { ...devices["Desktop Safari"] },
+    },
     {
       name: "embed",
       testMatch: "embed.spec.ts",

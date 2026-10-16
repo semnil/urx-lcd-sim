@@ -2157,7 +2157,11 @@ channel. The value alone stays light because it has to be read: 4.5:1 over the w
 The selected strip's frame stands 2px **outside** the box (measured on p047-1). It takes the near 2px
 of the 8px gap between unselected strips, and for a strip at the edge of the screen it also appears in
 the 2px margin outside the main area (left x0-1, top y48-49, bottom y270-271). `.main` lets it
-overflow by that much (`overflow: clip` + `overflow-clip-margin`). The strip itself has no border;
+overflow by that much (`overflow: clip` + `overflow-clip-margin`). A browser without
+`overflow-clip-margin` (WebKit) cuts at the box's edge and loses the top, bottom and left sides, so
+there `.main` is not clipped at all (`@supports not`). Nothing in `.main` reaches past the margin,
+and its lists and graphs clip what they hold (`e2e/clip.spec.ts` holds all four sides in WebKit as
+well). The strip itself has no border;
 `padding` makes the inner margin.
 
 A strip that is not selected draws its corners in the pixels of [Button corners](#button-corners). The selected
