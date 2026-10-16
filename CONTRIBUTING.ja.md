@@ -64,7 +64,6 @@ urx-lcd-sim は単独メンテナーのプロジェクトだが、外部から�
 - コミットの件名は英語の命令形の文で、意味単位で分割する。
 - プルリクエストのタイトルには種別の接頭辞 — `bug:`・`feature:`・`perf:`・`docs:`・`chore:`・
   `release:` — を付け、タイトルと本文は英語で書く。
-- シミュレーターの変更は `CHANGES.md` と `CHANGES_ja.md` の未リリースの節に書く。
 - 画面に出る変更には、同じ機種・表示倍率・切り出し範囲で撮った変更前後の画像を添える。
 - GitHub Pages のワークフローは、`main` へのすべてのプルリクエストで `pnpm test` と `pnpm build` を実行する。
   CI のワークフローは同じプルリクエストで `pnpm typecheck` と `pnpm test:coverage` を実行し、
