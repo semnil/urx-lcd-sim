@@ -620,7 +620,7 @@
 
   /* What a sheet leaves of the screen it covers */
   --key-held: #ffffff3d; /* over a Pitch Fix key while it is held down */
-  --scrim: #000000ce;
+  --scrim: #343431; /* multiplied into the screen under a sheet or a dialog */
   /* The shadow a picker sheet drops to its right and below: black offset 1px and
    * 2px, darkening the first pixel outside by 0.82 and the second by 0.35 */
   --sheet-shadow-near: #000000b8;

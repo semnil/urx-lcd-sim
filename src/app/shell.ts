@@ -35,7 +35,6 @@ import { bankSide, bankTotal, currentBank, stepBank } from "../screens/strip-sta
 import type { AppContext, KnobReadout } from "./context";
 import { Navigator } from "./navigator";
 import type { Route, RouteChange } from "./navigator";
-import { scrimFilter } from "../ui/scrim";
 import { setSpokenAttr } from "../ui/spoken";
 
 /** Divisions the multi-function readout bar has. */
@@ -165,7 +164,7 @@ export class Shell {
     this.lcd = el("div", {
       class: "lcd",
       attrs: { role: "application", "aria-label": `${model.id} LCD` },
-      children: [this.toolbarNode, this.mainNode, this.sideNode, this.knobStripNode, this.dimNode, scrimFilter()],
+      children: [this.toolbarNode, this.mainNode, this.sideNode, this.knobStripNode, this.dimNode],
     });
     this.root = this.lcd;
 

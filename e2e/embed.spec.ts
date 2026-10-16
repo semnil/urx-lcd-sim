@@ -311,7 +311,16 @@ async function holdStill(page: Page): Promise<void> {
         a.currentTime = 0;
       } else a.finish();
     }
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const frames = (): Promise<unknown> => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await frames();
+    // A blink paused on the page's own thread is drawn at its paused value only once something else on the
+    // glass is drawn again, so every element is drawn once in other colours and then in its own.
+    const repaint = document.createElement("style");
+    repaint.textContent = "*, *::before, *::after { color: rgb(1, 2, 3) !important; fill: rgb(1, 2, 3) !important; border-color: rgb(1, 2, 3) !important; }";
+    tree.appendChild(repaint);
+    await frames();
+    repaint.remove();
+    await frames();
   });
 }
 
