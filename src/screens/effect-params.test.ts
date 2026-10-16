@@ -205,6 +205,8 @@ describe("taking an effect", () => {
     expect(shell.ctx.store.str("ch.ch1.insFx.effect", ""), "the channel is holding it to begin with").toBe("Pitch Fix");
 
     shell.ctx.nav.home();
+    // The unit on its own clock, so the row takes a frequency.
+    await shell.ctx.store.set("setup.followUsb", false);
     shell.ctx.nav.push({ id: "setup" });
     shell.ctx.nav.push({ id: "setup.rate" });
     await flush();

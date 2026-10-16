@@ -106,6 +106,8 @@ const OPERATIONS: Operation[] = [
     main: "setup.samplingFrequency",
     prep: async (ctx, shell) => {
       takeInsert(ctx, strip(ctx, "ch1"), "Pitch Fix");
+      // The unit on its own clock, so the row takes a frequency.
+      await ctx.store.set("setup.followUsb", false);
       await open(shell, "setup.rate");
     },
     act: async (_ctx, shell) => tap(shell, "button.rate-btn", "192kHz"),

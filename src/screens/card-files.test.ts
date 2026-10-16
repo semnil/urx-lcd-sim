@@ -259,6 +259,8 @@ describe("playing a file back", () => {
   it("lets go of the file it holds once the unit's sampling frequency changes", async () => {
     const shell = await mount({ id: "setup.rate" }, [{ name: "a.wav", kind: "take", seconds: 20, tracks: 2, stamp: "", dir: "/" }]);
     const store = shell.ctx.store;
+    // The unit on its own clock, so the row takes a frequency.
+    await store.set("setup.followUsb", false);
     const rate = async (label: string): Promise<void> => {
       [...shell.root.querySelectorAll<HTMLElement>(".rate-btn")].find((b) => b.textContent === label)?.click();
       await flush();
@@ -1003,6 +1005,8 @@ describe("what the card's own actions do to it", () => {
     // A settings file holds the frequency and not the track count: Load meets the recorder's own count with the file's frequency.
     const shell = await mount({ id: "microsd.saveload" }, card);
     const store = shell.ctx.store;
+    // The unit on its own clock, so the row takes a frequency.
+    await store.set("setup.followUsb", false);
     const open = async (...routes: Route[]): Promise<void> => {
       shell.ctx.nav.home();
       for (const route of routes) shell.ctx.nav.push(route);

@@ -3175,16 +3175,19 @@ describe("the sampling frequency row", () => {
     await flush();
   };
 
-  it("ships on 48kHz with the unit on its own clock", async () => {
-    // The screen opens with [Follow USB] unlit and 48kHz lit.
+  it("ships on 48kHz following the USB clock", async () => {
+    // The screen opens with [Follow USB] lit and 48kHz lit.
     const shell = await open();
-    expect(shell.ctx.store.bool("setup.followUsb", true)).toBe(false);
+    expect(shell.ctx.store.bool("setup.followUsb", false)).toBe(true);
     expect(lit(shell)).toBe("48kHz");
-    expect(shell.root.querySelector(".follow-usb")?.classList.contains("is-on")).toBe(false);
+    expect(shell.root.querySelector(".follow-usb")?.classList.contains("is-on")).toBe(true);
   });
 
   it("takes a frequency while the unit is on its own clock", async () => {
     const shell = await open();
+    shell.root.querySelector<HTMLElement>(".follow-usb")?.click();
+    await flush();
+    expect(shell.ctx.store.bool("setup.followUsb", true), "[Follow USB] turned off").toBe(false);
     await tap(shell, "96kHz");
     expect(shell.ctx.store.num("setup.samplingFrequency", 0)).toBe(96000);
     expect(lit(shell)).toBe("96kHz");
@@ -3285,8 +3288,6 @@ describe("the sampling frequency row", () => {
 
   it("keeps the frequency it holds while it follows the USB clock, and takes no other", async () => {
     const shell = await open();
-    shell.root.querySelector<HTMLElement>(".follow-usb")?.click();
-    await flush();
     expect(shell.root.querySelector(".rate-row")?.classList.contains("is-locked")).toBe(true);
 
     await tap(shell, "176.4kHz");
@@ -5136,8 +5137,9 @@ describe("what the dedicated channel screens draw", () => {
     for (const rate of [96000, 176400, 192000]) {
       const shell = await mount();
       const store = shell.ctx.store;
-      // HOME's [Sends] on FX 2, then the rate picked on SETUP.
+      // HOME's [Sends] on FX 2, then the rate picked on SETUP with the unit on its own clock.
       await store.set("ui.sendsTarget", "FX2");
+      await store.set("setup.followUsb", false);
       shell.ctx.nav.openTop({ id: "setup.rate" });
       await flush();
       [...shell.root.querySelectorAll<HTMLElement>(".rate-btn")].find((b) => b.textContent === `${rate / 1000}kHz`)?.click();
@@ -5196,6 +5198,8 @@ describe("what the dedicated channel screens draw", () => {
         const store = shell.ctx.store;
         await store.set("ch.ch1.send.fx1.level", -10);
         await store.set("ch.ch1.send.fx2.level", -20);
+        // The unit on its own clock, so the row takes a frequency.
+        await store.set("setup.followUsb", false);
         const read = async (): Promise<(string | null)[]> => {
           shell.ctx.nav.home();
           await flush();

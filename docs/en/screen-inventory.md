@@ -1598,6 +1598,11 @@ LICENSE takes the text's first line as its heading, 15px bold over a 1px `--text
 the rest as paragraphs at 12px leading 17px, a line's worth apart. The text starts at x32 (p054-1). The words are the
 simulator's own terms.
 
+Auto Power Off ships on on the URX44V and off on the URX44 and URX22 (the URX44V from the NOTE under the user
+guide's "Turning the power on/off", the URX22 checked on the unit as it left the factory (2026-10-14), and the URX44
+as the operator specified). SAMPLING FREQUENCY's [Follow USB] ships on on every model (checked on the URX44V and
+URX22 as they left the factory). While it is on, the row of frequencies cannot be taken.
+
 POWER MANAGEMENT turns Time with the fourth knob (p063-1). [Enable] sets its name at 13.5px and, unlit, takes the face
 `--surface-btn` and band `--btn-bevel-plain` HDMI's [Enable] takes (x18..103 / y101..140 in p063-1). A value card's knob at the bottom of its range keeps a lit dot at
 the start of its track (x357..359 / y223..225 in p063-1); a channel screen's knob shows no such dot at the bottom (p115-1).

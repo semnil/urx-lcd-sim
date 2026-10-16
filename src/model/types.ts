@@ -46,6 +46,8 @@ export interface UnitModel {
   hasLineOut: boolean;
   /** Date/Time menu is absent on the URX22 (user guide, SETUP > Top menu). */
   hasDateTime: boolean;
+  /** Whether the unit leaves the factory with Auto Power Off enabled. */
+  autoPowerOffShipped: boolean;
   monitorBuses: number;
 }
 

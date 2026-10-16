@@ -208,7 +208,7 @@ export const samplingRateScreen: ScreenDef = {
   title: () => "SAMPLING FREQUENCY",
   build(ctx): ScreenBody {
     const current = ctx.store.num("setup.samplingFrequency", 48000);
-    const followUsb = ctx.store.bool("setup.followUsb", false);
+    const followUsb = ctx.store.bool("setup.followUsb", true);
     const label = (hz: number): string => `${(hz / 1000).toFixed(1).replace(/\.0$/, "")}kHz`;
     // Following the USB clock leaves the frequency the unit holds where it is
     // and keeps showing it lit; the row simply cannot be used until the switch
@@ -485,7 +485,7 @@ export const powerScreen: ScreenDef = {
   toolbar: "sub",
   title: () => "POWER MANAGEMENT",
   build(ctx): ScreenBody {
-    const enabled = ctx.store.bool("setup.power.autoPowerOff", true);
+    const enabled = ctx.store.bool("setup.power.autoPowerOff", ctx.model.autoPowerOffShipped);
     // The unit offers 2 to 20 minutes in one-minute steps (Specifications).
     const spec = intSpec("setup.power.autoPowerOffMinutes", "Time", 2, 20, 20, " min");
     ctx.setKnobs([null, null, null, spec]);

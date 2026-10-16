@@ -45,6 +45,18 @@ describe("power-on state", () => {
     expect(disagreements).toEqual([]);
   });
 
+  it("ships Auto Power Off on the URX44V alone, and every model following the USB clock", () => {
+    const shipped = (["URX22", "URX44", "URX44V"] as const).map((id) => {
+      const seeded = factoryState(unitById(id));
+      return [id, seeded.get("setup.power.autoPowerOff"), seeded.get("setup.followUsb")];
+    });
+    expect(shipped).toEqual([
+      ["URX22", false, true],
+      ["URX44", false, true],
+      ["URX44V", true, true],
+    ]);
+  });
+
   it("finds enough of those reads that the check above cannot pass vacuously", () => {
     const seeded = factoryState(unitById("URX44V"));
     expect(literalReads().filter((r) => seeded.has(r.path)).length).toBeGreaterThan(10);
