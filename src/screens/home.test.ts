@@ -7433,3 +7433,23 @@ describe("the head amp belongs to the connector a channel is on", () => {
     expect(clip?.classList.contains("is-on"), "switched on from the channel view, lit on INPUT").toBe(true);
   });
 });
+
+describe("a dynamics level holding tenths", () => {
+  // The unit reads the 1 dB-grid levels in whole decibels, any tenths cut toward zero.
+  it.each([
+    ["ch.gate", "ch1", "gate.threshold", -45.5, "Threshold=-45dB"],
+    ["ch.gate", "ch1", "gate.range", -23.5, "Range=-23dB"],
+    ["ch.comp", "ch1", "comp.threshold", -18.5, "Threshold=-18dB"],
+    ["ch.ducker", "ch_5_6", "ducker.threshold", -40.5, "Threshold=-40dB"],
+    ["ch.ducker", "ch_5_6", "ducker.range", -24.5, "Range=-24dB"],
+  ])("reads %s on %s's %s at %s as %s", async (screen, strip, key, value, want) => {
+    const model = unitById("URX44V");
+    const store = new DeviceStore();
+    await store.attach(new SimTransport(factoryState(model)));
+    await store.set(`ch.${strip}.${key}`, value);
+    const shell = new Shell(buildRegistry(), store, model, [{ id: screen, strip }]);
+    await flush();
+    const read = [...shell.root.querySelectorAll("[aria-valuetext]")].map((n) => `${n.getAttribute("aria-label")}=${n.getAttribute("aria-valuetext")}`);
+    expect(read).toContain(want);
+  });
+});

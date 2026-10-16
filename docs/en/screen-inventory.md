@@ -204,7 +204,9 @@ place, `micLineConnector()` in `src/screens/head-amp.ts`.
 The head amp moves in 1 dB steps; the value is rounded to an integer and gets a `+` only when it is
 above 0 (`+14` / `0` / `-8`; the readout bar shows `+14dB`). Faders keep two decimal places.
 
-Dynamics threshold and range are integer dB (`-33dB` / `-20dB`, p099-1 / p103-1), and makeup gain
+Dynamics threshold and range are integer dB (`-33dB` / `-20dB`, p099-1 / p103-1), a value holding a fraction
+read with the fraction cut toward zero (-45.5 dB on GATE, COMP or DUCKER reads `-45dB`; URX22 and URX44V, the
+operator, 2026-10-15), and makeup gain
 has one decimal place (`18.0dB`). A time is spelled differently for the same value: `34.58m` in the
 panel's value box and `34.58ms` on the readout bar (p099-1 / p103-1). A time that can go past one
 second switches to seconds from 1000 ms (`4.8s`, p114-1). No space goes before the unit. Frequency
