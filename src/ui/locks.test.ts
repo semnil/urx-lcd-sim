@@ -185,6 +185,31 @@ describe("a value the page holds shut", () => {
     expect(shell.root.querySelector("[data-overlay]")).toBeNull();
   });
 
+  it("draws RECORDER's Track Count box shut, opens no list, and keeps the count", async () => {
+    const shell = await shellOn([{ id: "microsd" }, { id: "microsd.recorder" }], [{ target: { kind: "path", path: "sd.trackCount" }, reason: REASON }]);
+    const box = shell.root.querySelector<HTMLElement>(".dropdown-box");
+    expect(box?.getAttribute("aria-label")).toBe("Track Count: 16 Tracks");
+    drawnShut(box);
+    box?.click();
+    key(box, "Enter");
+    await flush();
+    expect(box?.getAttribute("aria-expanded")).toBe("false");
+    expect(shell.root.querySelector(".rec-track-list")).toBeNull();
+    expect(shell.ctx.store.num("sd.trackCount", Number.NaN)).toBe(16);
+  });
+
+  it("opens RECORDER's Track Count list once the page lets the count go", async () => {
+    const shell = await shellOn([{ id: "microsd" }, { id: "microsd.recorder" }], [{ target: { kind: "path", path: "sd.trackCount" }, reason: REASON }]);
+    shell.setLocks([]);
+    await flush();
+    const box = shell.root.querySelector<HTMLElement>(".dropdown-box");
+    drawnOpen(box);
+    box?.click();
+    await flush();
+    expect(box?.getAttribute("aria-expanded")).toBe("true");
+    expect(shell.root.querySelector(".rec-track-list")).not.toBeNull();
+  });
+
   it("is written by no edit, nor by one that carries a write onto it", async () => {
     const shell = await shellOn([], [{ target: { kind: "path", path: "ch.ch2.level" }, reason: REASON }]);
     const { store } = shell.ctx;
