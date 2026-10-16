@@ -122,7 +122,8 @@ IndexedDB を使う前の版が `localStorage` の `urx-lcd-sim.state` と `urx-
 保存は、その時計を戻さない (時計はコンピューターの時計と一緒に進む)。ギターアンプの Type / Amp Type を名前で
 持っていた保存は、つまみでその名前を読む位置として戻し、そのアンプに無い名前は戻さない。Pan Link が送り自身の定位を
 そのままにしていたころや、FIXED のバスで Pan Link を入のまま残していたころの保存は、Pan Link を実機の画面が残す状態に整えて戻す。
-GATE・COMP・DUCKER の時間、SSMCS の周波数・Attack・Release を段の外に持つ保存は、最も近い段へ寄せて戻す。DELAY の時間を
+GATE・COMP・DUCKER の時間、SSMCS の周波数・Attack・Release、インサートの Compander の Release を段の外に持つ保存は、
+最も近い段へ寄せて戻す。DELAY の時間を
 0.01 ms 刻みの外に持つ保存は、最も近い 0.01 ms へ寄せて戻す。
 本体が持たない値 (FX 1・FX 2・STREAMING の EQ、ステレオバスへの送りのレベルなど) を持つ保存・シーンメモリ・設定ファイルは、
 その値を除いて戻す (`src/model/defaults.ts` の `onlyHeld`)。

@@ -115,13 +115,27 @@ describe("the effect catalogue", () => {
 
   it("moves a REV-X reverb time when the room around it moves", () => {
     // The two are one setting: turning Room Size changes what the reverb time
-    // reads without the reverb time's own control being touched.
-    const small = reads("Rev-X Hall", "revTime", 23, { roomSize: 0 });
-    const large = reads("Rev-X Hall", "revTime", 23, { roomSize: 31 });
-    expect([small, large]).toEqual(["0.89s", "2.68s"]);
-    // And the three rooms run for different lengths at the same setting.
-    expect(reads("Rev-X Room", "revTime", 23, { roomSize: 0 })).toBe("1.32s");
-    expect(reads("Rev-X Plate", "revTime", 23, { roomSize: 0 })).toBe("1.53s");
+    // reads without the reverb time's own control being touched. The readings
+    // are the unit's at the top of the reverb time's scale.
+    const top = (name: string, roomSize: number): string => reads(name, "revTime", 69, { roomSize });
+    expect([0, 16, 31].map((n) => top("Rev-X Hall", n))).toEqual(["10.3s", "18.2s", "31.0s"]);
+    // The three rooms run for different lengths at the same setting: Room starts
+    // eleven of Hall's rooms up, and Plate four of Room's.
+    expect([0, 16, 30, 31].map((n) => top("Rev-X Room", n))).toEqual(["15.2s", "27.0s", "43.8s", "45.3s"]);
+    expect([0, 31].map((n) => top("Rev-X Plate", n))).toEqual(["17.6s", "52.0s"]);
+    expect(top("Rev-X Room", 4), "Room's Room Size 4 is Plate's 0").toBe(top("Rev-X Plate", 0));
+  });
+
+  it("reads a REV-X reverb time to three figures, rounded half up", () => {
+    // The unit's readings of Hall at Room Size 0, at every place of the reverb time.
+    const hall = [
+      "0.103", "0.137", "0.172", "0.206", "0.240", "0.275", "0.309", "0.343", "0.378", "0.412", "0.446", "0.481", "0.515",
+      "0.549", "0.584", "0.618", "0.652", "0.687", "0.721", "0.756", "0.790", "0.824", "0.859", "0.893", "0.927", "0.962",
+      "0.996", "1.03", "1.07", "1.10", "1.13", "1.17", "1.20", "1.24", "1.27", "1.30", "1.34", "1.37", "1.41", "1.44", "1.48",
+      "1.51", "1.54", "1.58", "1.61", "1.65", "1.68", "1.72", "1.89", "2.06", "2.23", "2.40", "2.58", "2.75", "2.92", "3.09",
+      "3.26", "3.43", "3.78", "4.12", "4.46", "4.81", "5.15", "5.49", "5.84", "6.18", "6.53", "6.87", "8.59", "10.3",
+    ];
+    expect(hall.map((_, i) => reads("Rev-X Hall", "revTime", i, { roomSize: 0 }))).toEqual(hall.map((t) => `${t}s`));
   });
 
   it("reads a delay time to a tenth of a millisecond at every length", () => {
@@ -146,6 +160,33 @@ describe("the effect catalogue", () => {
     expect([5, -5].map((v) => reads("Pitch Fix", "formant", v))).toEqual(["5", "-5"]);
   });
 
+  it("reads a compander's threshold in whole decibels and its release to three figures", () => {
+    // The threshold cuts any tenths toward zero.
+    expect([-23.4, -23.5, -23.6, -8].map((v) => reads("Compander-H", "threshold", v))).toEqual([
+      "-23dB", "-23dB", "-23dB", "-8dB",
+    ]);
+    // The release reads no finer than a tenth of a millisecond.
+    expect([5, 65.4, 999, 1234, 42300].map((v) => reads("Compander-S", "release", v))).toEqual([
+      "5.0ms", "65.4ms", "999ms", "1.23s", "42.3s",
+    ]);
+  });
+
+  it("steps a compander's release through the unit's own stops, a detent each", () => {
+    // The unit's stops, read a detent at a time from either end and from where Compander-S ships.
+    const release = effectParams("Compander-S").find((p) => p.key === "release");
+    if (release?.kind !== "num") throw new Error("Compander-S has no release");
+    const travel = effectSpec("b", release, {}).travel;
+    const walk = (from: number, detents: number): number[] => {
+      const out = [from];
+      for (let i = 0; i < detents; i++) out.push(travel?.step(out[out.length - 1] ?? from, 1) ?? from);
+      return out;
+    };
+    expect(walk(5, 6)).toEqual([5, 11, 16, 21, 27, 32, 37]);
+    expect(walk(165, 5)).toEqual([165, 171, 176, 187, 197, 208]);
+    expect(walk(1030, 8)).toEqual([1030, 1070, 1110, 1160, 1200, 1240, 1290, 1330, 1370]);
+    expect(walk(39600, 3), "and stops at the top").toEqual([39600, 41000, 42300, 42300]);
+  });
+
   it("reads the balance between a reverb's reflections and its tail", () => {
     expect(reads("Rev.R3 Hall", "erBalance", 0)).toBe("E63>R");
     expect(reads("Rev.R3 Hall", "erBalance", 63)).toBe("E=R");
@@ -156,20 +197,20 @@ describe("the effect catalogue", () => {
     // Every effect, every row: these are the values the unit holds after a reset,
     // and taking an effect puts them back.
     const want: Record<string, Record<string, string>> = {
-    "Compander-H": { "Threshold": "-10.0dB", "Ratio": "3.5:1", "Width": "6dB", "Gain": "0.0dB", "Attack": "1ms", "Release": "229ms" },
-    "Compander-S": { "Threshold": "-8.0dB", "Ratio": "4.0:1", "Width": "24dB", "Gain": "0.0dB", "Attack": "25ms", "Release": "165ms" },
+    "Compander-H": { "Threshold": "-10dB", "Ratio": "3.5:1", "Width": "6dB", "Gain": "0.0dB", "Attack": "1ms", "Release": "229ms" },
+    "Compander-S": { "Threshold": "-8dB", "Ratio": "4.0:1", "Width": "24dB", "Gain": "0.0dB", "Attack": "25ms", "Release": "165ms" },
     "M.B.Comp": { "Main 1-knob": "OFF", "Main 1-knob Level": "0", "Main L-M Xover": "125Hz", "Main M-H Xover": "3.35kHz", "Main Release": "75ms", "Main Out Gain": "4dB", "Low Bypass": "OFF", "Low Threshold": "-20dB", "Low Ratio": "2.0:1", "Low Attack": "30ms", "Low Gain": "2dB", "Mid Bypass": "OFF", "Mid Threshold": "-20dB", "Mid Ratio": "2.0:1", "Mid Attack": "40ms", "Mid Gain": "2dB", "High Bypass": "OFF", "High Threshold": "-20dB", "High Ratio": "2.0:1", "High Attack": "10ms", "High Gain": "2dB" },
     "Pitch Fix": { "Pitch Correction": "ON", "Pitch Coarse": "0", "Pitch Fine": "0", "Pitch Formant": "0", "MIDI Control": "Off", "Key": "C", "Scale": "Chromatic", "C": "ON", "C#": "ON", "D": "ON", "D#": "ON", "E": "ON", "F": "ON", "F#": "ON", "G": "ON", "G#": "ON", "A": "ON", "A#": "ON", "B": "ON", "Note Limit Low/High Mix": "126", "Note Limit Low/High Limit Low": "C-2", "Note Limit Low/High Limit High": "G8", "Note Limit Low/High Speed": "100", "Note Limit Low/High Tolerance": "50" },
     "Clean": { "Volume": "1.9", "Distortion": "0.0", "Blend": "5.0", "": "Off", "Speed": "5.0", "Depth": "5.0", "Bass": "6.1", "Middle": "5.0", "Treble": "4.0", "Presence": "3.0", "Output": "-11.9dB", "Gate": "OFF", "Gate Level": "2.0", "SP Type": "JC 2x12", "Mic Position": "Center" },
-    "Crunch": { "Type": "Bright", "Gain": "4.6", "Bass": "4.7", "Middle": "7.0", "Treble": "5.3", "Presence": "2.8", "Output": "-17.7dB", "Gate": "OFF", "Gate Level": "2.0", "SP Type": "AC 4x10", "Mic Position": "Center" },
-    "Lead": { "Type": "High", "Gain": "10.0", "Master": "4.9", "Bass": "6.6", "Middle": "8.0", "Treble": "3.0", "Presence": "2.9", "Output": "-19.4dB", "Gate": "OFF", "Gate Level": "2.0", "SP Type": "BS 4x12", "Mic Position": "Center" },
-    "Drive": { "Amp Type": "Vintage2", "Gain": "7.5", "Master": "4.0", "Bass": "4.0", "Middle": "5.0", "Treble": "8.0", "Presence": "9.0", "Output": "-19.1dB", "Gate": "OFF", "Gate Level": "2.0", "SP Type": "AM 4x12", "Mic Position": "Center" },
-    "Rev-X Hall": { "Diffusion": "10", "Hi.Ratio": "0.8", "Lo.Ratio": "1.2", "Lo.Freq.": "800Hz", "Rev.Time": "2.49s", "Ini.Delay": "3.2ms", "Decay": "27", "Room Size": "29", "HPF": "32Hz", "LPF": "6.30kHz" },
-    "Rev-X Room": { "Diffusion": "8", "Hi.Ratio": "0.7", "Lo.Ratio": "1.1", "Lo.Freq.": "800Hz", "Rev.Time": "0.78s", "Ini.Delay": "3.2ms", "Decay": "5", "Room Size": "15", "HPF": "40Hz", "LPF": "4.50kHz" },
+    "Crunch": { "Type": "Bright", "Gain": "4.6", "Bass": "4.7", "Middle": "7.0", "Treble": "5.3", "Presence": "2.8", "Output": "-17.3dB", "Gate": "OFF", "Gate Level": "2.0", "SP Type": "AC 4x10", "Mic Position": "Center" },
+    "Lead": { "Type": "High", "Gain": "10.0", "Master": "4.9", "Bass": "6.6", "Middle": "8.0", "Treble": "3.0", "Presence": "2.9", "Output": "-19.2dB", "Gate": "OFF", "Gate Level": "2.0", "SP Type": "BS 4x12", "Mic Position": "Center" },
+    "Drive": { "Amp Type": "Vintage2", "Gain": "7.5", "Master": "4.0", "Bass": "4.0", "Middle": "5.0", "Treble": "8.0", "Presence": "9.0", "Output": "-18.8dB", "Gate": "OFF", "Gate Level": "2.0", "SP Type": "AM 4x12", "Mic Position": "Center" },
+    "Rev-X Hall": { "Diffusion": "10", "Hi.Ratio": "0.8", "Lo.Ratio": "1.2", "Lo.Freq.": "800Hz", "Rev.Time": "2.51s", "Ini.Delay": "3.2ms", "Decay": "27", "Room Size": "29", "HPF": "32Hz", "LPF": "6.30kHz" },
+    "Rev-X Room": { "Diffusion": "8", "Hi.Ratio": "0.7", "Lo.Ratio": "1.1", "Lo.Freq.": "800Hz", "Rev.Time": "0.780s", "Ini.Delay": "3.2ms", "Decay": "5", "Room Size": "15", "HPF": "40Hz", "LPF": "4.50kHz" },
     "Rev-X Plate": { "Diffusion": "8", "Hi.Ratio": "0.9", "Lo.Ratio": "1.0", "Lo.Freq.": "800Hz", "Rev.Time": "2.66s", "Ini.Delay": "3.2ms", "Decay": "5", "Room Size": "18", "HPF": "80Hz", "LPF": "8.00kHz" },
-    "Rev.R3 Hall": { "Density": "3", "FB.Gain": "0%", "E/R Delay": "1.7ms", "E/R Bal.": "E8>R", "Rev.Time": "1.80s", "Ini.Delay": "39.5ms", "Hi.Ratio": "0.7", "Diffusion": "7", "HPF": "80.0Hz", "LPF": "4.50kHz" },
-    "Rev.R3 Room": { "Density": "1", "FB.Gain": "0%", "E/R Delay": "3.2ms", "E/R Bal.": "E15>R", "Rev.Time": "1.60s", "Ini.Delay": "3.2ms", "Hi.Ratio": "0.4", "Diffusion": "7", "HPF": "140Hz", "LPF": "9.00kHz" },
-    "Rev.R3 Plate": { "Density": "2", "FB.Gain": "0%", "E/R Delay": "0.1ms", "E/R Bal.": "E=R", "Rev.Time": "2.00s", "Ini.Delay": "19.0ms", "Hi.Ratio": "0.9", "Diffusion": "6", "HPF": "160Hz", "LPF": "9.00kHz" },
+    "Rev.R3 Hall": { "Density": "3", "FB.Gain": "0%", "E/R Delay": "1.7ms", "E/R Bal.": "E8>R", "Rev.Time": "1.8s", "Ini.Delay": "39.5ms", "Hi.Ratio": "0.7", "Diffusion": "7", "HPF": "80.0Hz", "LPF": "4.50kHz" },
+    "Rev.R3 Room": { "Density": "1", "FB.Gain": "0%", "E/R Delay": "3.2ms", "E/R Bal.": "E15>R", "Rev.Time": "1.6s", "Ini.Delay": "3.2ms", "Hi.Ratio": "0.4", "Diffusion": "7", "HPF": "140Hz", "LPF": "9.00kHz" },
+    "Rev.R3 Plate": { "Density": "2", "FB.Gain": "0%", "E/R Delay": "0.1ms", "E/R Bal.": "E=R", "Rev.Time": "2.0s", "Ini.Delay": "19.0ms", "Hi.Ratio": "0.9", "Diffusion": "6", "HPF": "160Hz", "LPF": "9.00kHz" },
     "Mono Delay": { "HPF": "150Hz", "LPF": "8.50kHz", "Delay": "500.0ms", "FB.Gain": "20%", "Hi.Ratio": "0.7", "Sync": "OFF", "BPM": "120", "Note": "1/4" },
     "Ping Pong": { "HPF": "THRU", "LPF": "15.0kHz", "Delay Time": "500.0ms", "FB.Gain": "14%", "Hi.Ratio": "0.4", "Sync": "OFF", "BPM": "120", "Note": "1/4" },
     };
@@ -194,21 +235,27 @@ describe("the effect catalogue", () => {
   it("reads every leg of the tables a reading is taken from", () => {
     // The laws are piecewise, and a point in the first leg says nothing about
     // the legs above it.
-    expect([0, 47, 48, 57, 58, 67, 68, 69].map((i) => reads("Rev.R3 Hall", "revTime", REVR3_SECONDS[i] ?? 0))).toEqual([
-      "0.30s", "5.00s", "5.50s", "10.0s", "11.0s", "20.0s", "25.0s", "30.0s",
+    // Rev.R3 reads its tail to one decimal, on each leg of its table.
+    expect([0, 16, 47, 48, 57, 58, 67, 68, 69].map((i) => reads("Rev.R3 Hall", "revTime", REVR3_SECONDS[i] ?? 0))).toEqual([
+      "0.3s", "1.9s", "5.0s", "5.5s", "10.0s", "11.0s", "20.0s", "25.0s", "30.0s",
     ]);
     // REV-X reverb time grows in four steps of its own, and again with the room.
     expect([0, 47, 57, 67, 69].map((i) => reads("Rev-X Hall", "revTime", i, { roomSize: 0 }))).toEqual([
-      "0.10s", "1.72s", "3.43s", "6.87s", "10.3s",
+      "0.103s", "1.72s", "3.43s", "6.87s", "10.3s",
     ]);
-    // A band's make-up runs steeply below the middle of its scale and evenly above.
-    expect([1, 10, 19, 20, 37, 55].map((i) => reads("M.B.Comp", "lowGain", i))).toEqual([
-      "-60dB", "-40dB", "-19dB", "-17dB", "0dB", "18dB",
+    // A band's make-up runs 3 dB a step up to step 13 and 1 dB a step above it.
+    expect([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 39, 47, 55].map((i) => reads("M.B.Comp", "lowGain", i))).toEqual([
+      "-∞", "-60dB", "-57dB", "-54dB", "-51dB", "-48dB", "-45dB", "-42dB", "-39dB", "-36dB", "-33dB", "-30dB", "-27dB",
+      "-24dB", "-23dB", "-22dB", "-21dB", "-20dB", "-19dB", "-18dB", "-17dB", "2dB", "10dB", "18dB",
     ]);
-    // An amp's output is read between the settings the unit was read at.
-    expect([1, 8, 20, 40, 64, 96, 127].map((i) => reads("Clean", "output", i))).toEqual([
-      "-57.3dB", "-48.0dB", "-32.1dB", "-20.1dB", "-11.9dB", "-4.9dB", "0.0dB",
-    ]);
+    // An amp's output, read at the settings the unit was read at.
+    const output: [number, string][] = [
+      [0, "-∞"], [1, "-84.2dB"], [2, "-72.1dB"], [4, "-60.1dB"], [7, "-50.3dB"], [8, "-48.0dB"], [10, "-44.2dB"],
+      [13, "-39.6dB"], [20, "-32.1dB"], [26, "-27.6dB"], [32, "-23.9dB"], [40, "-20.1dB"], [42, "-19.2dB"],
+      [43, "-18.8dB"], [47, "-17.3dB"], [51, "-15.8dB"], [64, "-11.9dB"], [68, "-10.9dB"], [75, "-9.1dB"],
+      [82, "-7.6dB"], [96, "-4.9dB"], [100, "-4.2dB"], [109, "-2.7dB"], [123, "-0.6dB"], [126, "-0.1dB"], [127, "0.0dB"],
+    ];
+    expect(output.map(([i]) => reads("Clean", "output", i))).toEqual(output.map(([, text]) => text));
   });
 
   it("names the one slot the two delays do not share", () => {

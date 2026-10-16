@@ -1,6 +1,6 @@
 // Power-on state.
 //
-// The channel values are a URX44V's own factory defaults: gain -8 dB and the
+// The channel values are a URX44V's and a URX22's own factory defaults: gain -8 dB and the
 // gate / comp settings below are what the unit holds after a reset, not
 // invented round numbers. The rest — SETUP menus, MONITOR, oscillator, scene
 // list — is the state those screens show at power-on.
@@ -332,7 +332,7 @@ export function factoryState(model: UnitModel): Map<ParamPath, ParamValue> {
   out.set(path("setup", "brightness"), 10);
   out.set(path("setup", "language"), "English");
   out.set(path("setup", "samplingFrequency"), 48000);
-  out.set(path("setup", "followUsb"), false);
+  out.set(path("setup", "followUsb"), true);
   out.set(path("setup", "outputPatch.tab"), "Analog");
   out.set(path("setup", "outputPatch.mainOut"), "STEREO");
   if (model.hasLineOut) out.set(LINE_OUT_PATCH, "MIX 1");
@@ -341,7 +341,7 @@ export function factoryState(model: UnitModel): Map<ParamPath, ParamValue> {
   out.set(path("setup", "peripheral.usbSuppression"), "None");
   out.set(path("setup", "peripheral.hdmiEnable"), true);
   out.set(path("setup", "peripheral.hdmiChannels"), "2 Channels");
-  out.set(path("setup", "power.autoPowerOff"), true);
+  out.set(path("setup", "power.autoPowerOff"), model.autoPowerOffShipped);
   out.set(path("setup", "power.autoPowerOffMinutes"), 20);
   // The clock runs with the computer's.
   out.set(CLOCK_OFFSET, 0);

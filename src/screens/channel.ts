@@ -17,7 +17,7 @@ import { el, makeTappable, setPressed } from "../ui/dom";
 import { inkOn } from "../ui/color";
 import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
-import { compRatioSpec, dbSpec, faderSpec, fineGainSpec, freqSpec, intSpec, logFreqSpec, msSpec, panSpec, stoppedMsSpec } from "../ui/param-spec";
+import { compRatioSpec, faderSpec, fineGainSpec, freqSpec, intSpec, logFreqSpec, msSpec, panSpec, stoppedMsSpec, wholeDbSpec } from "../ui/param-spec";
 import { attachDrag, attachSpin, knobControl, markFocus, meter, panSlider, pickerSheet, pulldown, setAriaValue, sideTab, toggle, unbuilt, valueBox } from "../ui/widgets";
 import { type GrSpec, type LampState, blockReduction, drawnLevels, inputMeterId, markBlockLamps, markClipSafe, markLevelBar, markReduction, showBlockLamps } from "./meters";
 import { DELAY_MAX_MS, type Tap, compSpec, duckerSources, duckerSpec, gateSpec, stripTap, tapId } from "./signal-flow";
@@ -392,9 +392,9 @@ function compMeters(ctx: AppContext, strip: Strip, base: string, marked: boolean
 const clampFraction = (v: number): number => Math.min(1, Math.max(0, v));
 
 /** The values a block's knob turns, the same on the channel view as on the block's own screen. */
-const gateThreshold = (b: string): NumericSpec => dbSpec(`${b}.gate.threshold`, "Threshold", -72, 0, GATE_DEFAULTS.threshold, 1, 0);
-const compThreshold = (b: string): NumericSpec => dbSpec(`${b}.comp.threshold`, "Threshold", COMP_THRESHOLD_MIN, 0, COMP_DEFAULTS.threshold, 1, 0);
-const duckerThreshold = (b: string): NumericSpec => dbSpec(`${b}.ducker.threshold`, "Threshold", -60, 0, -40, 1, 0);
+const gateThreshold = (b: string): NumericSpec => wholeDbSpec(`${b}.gate.threshold`, "Threshold", -72, 0, GATE_DEFAULTS.threshold);
+const compThreshold = (b: string): NumericSpec => wholeDbSpec(`${b}.comp.threshold`, "Threshold", COMP_THRESHOLD_MIN, 0, COMP_DEFAULTS.threshold);
+const duckerThreshold = (b: string): NumericSpec => wholeDbSpec(`${b}.ducker.threshold`, "Threshold", -60, 0, -40);
 /** One of GATE's, COMP's and DUCKER's times, on its own stops, read to the places the unit prints it to. */
 const dynTime = (b: string, time: DynamicsTime, label: string, fallback: number): NumericSpec =>
   stoppedMsSpec(`${b}.${time}`, label, DYNAMICS_TIME_STOPS[time], fallback, DYNAMICS_TIME_PLACES[time]);
@@ -1206,7 +1206,7 @@ export const gateScreen: ScreenDef = {
     if (!carriesBlock(ctx, strip, "GATE")) return noBlock(ctx, strip, route, "GATE");
     const b = `ch.${strip.id}`;
     const threshold = gateThreshold(b);
-    const range = dbSpec(`${b}.gate.range`, "Range", -73, 0, GATE_DEFAULTS.range, 1, 0);
+    const range = wholeDbSpec(`${b}.gate.range`, "Range", -73, 0, GATE_DEFAULTS.range);
     const attack = dynTime(b, "gate.attack", "Attack", GATE_DEFAULTS.attack);
     const hold = dynTime(b, "gate.hold", "Hold", GATE_DEFAULTS.hold);
     const decay = dynTime(b, "gate.decay", "Decay", GATE_DEFAULTS.decay);
@@ -1359,7 +1359,7 @@ export const duckerScreen: ScreenDef = {
     if (!carriesBlock(ctx, strip, "DUCKER")) return noBlock(ctx, strip, route, "DUCKER");
     const b = `ch.${strip.id}`;
     const threshold = duckerThreshold(b);
-    const range = dbSpec(`${b}.ducker.range`, "Range", -70, 0, -24, 1, 0);
+    const range = wholeDbSpec(`${b}.ducker.range`, "Range", -70, 0, -24);
     const attack = dynTime(b, "ducker.attack", "Attack", 20.17);
     const decay = dynTime(b, "ducker.decay", "Decay", 1000);
     ctx.setKnobs([range, attack, decay, threshold]);

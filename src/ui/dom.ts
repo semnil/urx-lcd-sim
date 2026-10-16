@@ -158,6 +158,11 @@ export function formatDb(value: number, digits = 2): string {
   return value.toFixed(digits);
 }
 
+/** Format a level on a whole-decibel grid the way the unit does: whole dB, any fraction cut toward zero. */
+export function formatWholeDb(value: number): string {
+  return formatDb(Math.trunc(value) || 0, 0);
+}
+
 /** The level below which a fader prints one decimal instead of two. */
 const LEVEL_COARSE_DB = -10;
 

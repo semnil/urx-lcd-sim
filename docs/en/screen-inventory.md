@@ -174,7 +174,10 @@ the unit, its row says so with the result and the date.
 ### Models
 
 HOME's captures have three INPUT bank marks, that is, they are of a model with 10 inputs. None shows
-a URX22 with two marks, and no display specific to the URX22 / URX44 is confirmed by an image.
+a URX22 with two marks, and no display specific to the URX44 is confirmed, by an image or on the unit. Of the
+displays specific to the URX22, the connector [HI-Z] stands on, the layout of SETUP's menu, the question
+[All Input] / [All USB DAW] ask and the names in HOME's bank list were checked on the unit (URX22, the operator,
+2026-10-14 and 2026-10-16).
 
 ## Head amp in the channel view
 
@@ -185,7 +188,8 @@ and CH 2 on 4), a stereo channel the connector of the side in view. Two channels
 the same values, and turning or switching them on either moves both. The values are kept under the
 mono channel of the connector's number. A.Gain, +48V, HI-Z and Clip Safe were checked on the unit: with
 CH 1 and CH 3 on the same connector, a change on one shows on the other (URX44V; A.Gain and HI-Z on
-2026-09-21, +48V and Clip Safe on 2026-09-22).
+2026-09-21, +48V and Clip Safe on 2026-09-22). On a URX22, A.Gain, +48V, Clip Safe and [HI-Z] were checked
+to belong to the connector rather than the channel too (the operator, 2026-10-14).
 
 On any other source a channel shows that source's `D.Gain` (-24..+24 dB). The D.Gain belongs to the
 input source, not to a channel. Channels on one source, mono or stereo, show the same D.Gain, and
@@ -204,7 +208,9 @@ place, `micLineConnector()` in `src/screens/head-amp.ts`.
 The head amp moves in 1 dB steps; the value is rounded to an integer and gets a `+` only when it is
 above 0 (`+14` / `0` / `-8`; the readout bar shows `+14dB`). Faders keep two decimal places.
 
-Dynamics threshold and range are integer dB (`-33dB` / `-20dB`, p099-1 / p103-1), and makeup gain
+Dynamics threshold and range are integer dB (`-33dB` / `-20dB`, p099-1 / p103-1), a value holding a fraction
+read with the fraction cut toward zero (-45.5 dB on GATE, COMP or DUCKER reads `-45dB`; URX22 and URX44V, the
+operator, 2026-10-15), and makeup gain
 has one decimal place (`18.0dB`). A time is spelled differently for the same value: `34.58m` in the
 panel's value box and `34.58ms` on the readout bar (p099-1 / p103-1). A time that can go past one
 second switches to seconds from 1000 ms (`4.8s`, p114-1). No space goes before the unit. Frequency
@@ -215,7 +221,8 @@ HI-Z belongs to the input jack, not to every MIC/LINE connector: MIC/LINE 3 and 
 URX44V, MIC/LINE 2 on the URX22. On a channel that is not on one of those, that cell of the head amp
 status panel is empty, and the INPUT screen shows no button for it. While HI-Z is on, that connector's
 A.Gain runs -8..+40 dB. An A.Gain above +40 dB comes down to +40 dB when HI-Z is switched on, and stays
-at +40 dB when HI-Z is switched off again (checked on a URX44V, 2026-09-22). The push-down is
+at +40 dB when HI-Z is switched off again (checked on a URX44V, 2026-09-22). On a URX22, HI-Z on MIC/LINE 2
+and A.Gain stopping at +40 dB while HI-Z is on were checked (the operator, 2026-10-14). The push-down is
 `hiZWriteRule()` in `src/screens/head-amp.ts`. The knob's direction is in [the "Strip rotary" section
 of design-tokens.md](design-tokens.md#strip-rotary).
 
@@ -274,7 +281,7 @@ write are in one place, `src/screens/stereo-link.ts`.
   between `PAN` and `BAL`, and out of `STEREO` — places both channels again. `PAN` puts the
   lower-numbered channel hard left (L63) and the other hard right (R63); `BAL` and unlinking put both
   in the centre (C). What is placed is the channel's own position and the position of each of its
-  sends.
+  sends. The same holds on a URX22's CH 1 and CH 2 (measured over the control link on 2026-10-14).
 - A linked pair holds one set of values. A write to either channel reaches the other, and linking
   copies the lower-numbered channel's values onto the other. Unlinking puts nothing back. What each
   member keeps its own of is the head amp (A.Gain, Clip Safe, Φ, +48V, Hi-Z), the input source, the
@@ -310,10 +317,11 @@ y209..248). The second row is empty. No other bus and no channel carries either.
   to L21; CH 5/6 at L20 read `Bal` L20, and one step took CH 5/6's BAL to L19). Switching it on moves each send's own placing to its source's position, and while it is on
   a move of the source's position moves the send's with it; switching it off leaves each send where its
   source was and does not bring back the placing it had before (URX44V, measured over the control link
-  on 2026-09-29).
+  on 2026-09-29; the same on a URX22, 2026-10-14).
 - `Pan Link` can be switched on only while the bus is `VARI`. Taking `FIXED` switches it off; while the
   bus is `FIXED` the button keeps its place and cannot be taken, and it stays off when the bus goes back
-  to `VARI` (URX44V, 2026-09-29, on the unit's screen and over the control link).
+  to `VARI` (URX44V, 2026-09-29, on the unit's screen and over the control link; the same on a URX22,
+  measured over the control link on 2026-10-14).
 
 The decision is in one place, `src/screens/mix-bus.ts`, and `src/screens/mix-bus.test.ts` pins it.
 
@@ -806,7 +814,15 @@ dynamics screens give them.
 A value box and a reading print the number alone, with no unit (Hz, kHz, s, ms, dB, %), and the knob
 readout bar under the screen keeps the unit, both as the unit does (URX44V, the operator, 2026-09-22). FB.Gain
 and Pitch Fix's Coarse, Fine and Formant carry no `+` over zero and a `-` below it, in the box and on the bar
-alike (the operator, the same day).
+alike (the operator, the same day; the same on a URX22, the operator, 2026-10-15).
+
+Each effect has its own form of reading (each printed alike on a URX22 and a URX44V, checked on the units on
+2026-10-15 and 2026-10-16). Rev.R3's Rev.Time reads one decimal (`0.3`, `5.0`, `30.0`), and REV-X's Rev.Time
+three figures rounded half up (`0.172`, `10.3`). REV-X's Rev.Time is the product of Rev.Time's share at its place
+and the length at the Room Size's step, and Hall, Room and Plate share one table of steps (Room's Room Size n is
+Hall's n + 11, and Plate's n is Room's n + 4). A guitar amp's Output reads 40·log10(p / 127) dB to one decimal at
+place p (place 0 reads `-∞`). An M.B.Comp band's Gain runs 3 dB a step from -60 dB at place 1 to -24 dB at 13 and
+1 dB a step above that, read in whole dB. The tables and laws are in `src/model/effects.ts`.
 
 An effect with more than eight controls takes further pages, stepped by the round 36px page buttons
 SSMCS uses, in the place SSMCS puts them (x4 and x386 / y117), where they lie over the corner of the
@@ -905,7 +921,11 @@ there being no figure (`NOTE_PIXELS` in `src/ui/icons.ts`).
 Compander-H and Compander-S are the two effects that are not laid out in panels: they take the frame
 the channel's own COMP takes. The curve fills the left, the reduction meter stands beside it, then
 Attack, Release and Ratio, and the block's own input and output meters at the far right. This layout and the
-two pages of the readout bar under it were held against the unit and match (URX44V, the operator, 2026-09-23). Those boxes
+two pages of the readout bar under it were held against the unit and match (URX44V, the operator, 2026-09-23).
+Threshold reads in whole dB with any fraction cut toward zero, and the knob moves it a dB a detent and keeps the
+fraction (-23.5 dB reads `-23` and goes to -22.5 dB a detent up). Release steps through 160 stops from 5.0 ms to
+42.3 s, one a detent, and reads three figures to no finer than 0.1 ms (`5.0`, `65.4`, `999`, `1.23s`, `42.3s`; the
+stops are the same on a URX44V and a URX22, recorded on the units on 2026-10-16). Those boxes
 are narrow, so they print the millisecond as `m`, as the channel's own COMP does; the readout bar
 keeps `ms`. The values
 go on the readout bar four at a time, over two pages: Threshold, Ratio, Width and Gain on the first,
@@ -1320,7 +1340,8 @@ p060-2).
 The simulator has no audio. The meters read a synthetic signal that every input source carries of its
 own, taken through the mixer along the unit's own routing (`src/screens/signal-flow.ts`). The laws and
 the points read in this section were confirmed on a URX44V (System 1.3.1.0) on 2026-09-28. The URX22
-and URX44 run the same laws, bar the number of channels.
+and URX44 run the same laws, bar the number of channels. That a send into a FIXED MIX bus hears neither the
+send's [PRE] nor its placing was checked on a URX22 too (2026-10-14).
 
 ### Input sources
 
@@ -1559,7 +1580,8 @@ the mode name is in the regular weight (p041-1).
 
 The four GENERAL items sit on a tray of their own (x31..448 / y54..107, face `--menu-tray`), as 100x46
 buttons 3px apart. The rest are stacked in three 120px columns (13px apart) from x47, 46px high at
-y112 / y166 / y220. A name on two lines leads 18px (the left column of the second row in wide/p052-1, its ink
+y112 / y166 / y220. The URX22 has no Date/Time, and leaves its place empty with [Software Integration] at the
+right end of the same row (URX22, the operator, 2026-10-16). A name on two lines leads 18px (the left column of the second row in wide/p052-1, its ink
 starting at y120 and y138). A name on one line, in the middle column of the third row, has its ink at
 y236..245 on a face (without the band) of y222..260 (wide/p052-1). Every name stands a pixel below where the
 button centres it (the ink of GENERAL's `Version` at y74..83, wide/p052-1).
@@ -1583,6 +1605,11 @@ option is disabled for good, drawn as an entry out of reach (face `--surface-dis
 LICENSE takes the text's first line as its heading, 15px bold over a 1px `--text` rule (x31..372 / y79 in p054-1), and sets
 the rest as paragraphs at 12px leading 17px, a line's worth apart. The text starts at x32 (p054-1). The words are the
 simulator's own terms.
+
+Auto Power Off ships on on the URX44V and off on the URX44 and URX22 (the URX44V from the NOTE under the user
+guide's "Turning the power on/off", the URX22 checked on the unit as it left the factory (2026-10-14), and the URX44
+as the operator specified). SAMPLING FREQUENCY's [Follow USB] ships on on every model (checked on the URX44V and
+URX22 as they left the factory). While it is on, the row of frequencies cannot be taken.
 
 POWER MANAGEMENT turns Time with the fourth knob (p063-1). [Enable] sets its name at 13.5px and, unlit, takes the face
 `--surface-btn` and band `--btn-bevel-plain` HDMI's [Enable] takes (x18..103 / y101..140 in p063-1). A value card's knob at the bottom of its range keeps a lit dot at
@@ -2253,5 +2280,6 @@ x106..207 / y49..271, and no PAD strip. The extracted file p048-3 holds a PAD st
 among HOME's strips.
 
 The URX44 has the same input strips as the URX44V and so the same three banks; the URX22 has two fewer
-mono channels and so two banks. This is derived from the confirmed "four strips per bank"; of the
-three models, the URX44V is the one whose arrangement was read on the unit.
+mono channels and so two banks. The URX22's two banks were checked on the unit by the names in its bank list
+(`CH 1 - 6` and `CH 7 - 10` over `FX 1 - 2`; the operator, 2026-10-16). The URX44's arrangement is derived from
+the confirmed "four strips per bank".

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDb, formatGain, formatHz, formatPan } from "./dom";
+import { formatDb, formatGain, formatHz, formatPan, formatWholeDb } from "./dom";
 import { FocusController } from "./focus";
 import { dbSpec, faderSpec, formatValue, freqSpec, intSpec, panSpec } from "./param-spec";
 import { fractionOf } from "./widgets";
@@ -18,6 +18,11 @@ describe("value formatting", () => {
     expect(formatGain(3.4)).toBe("+3");
     expect(formatGain(2.5)).toBe("+3");
     expect(formatGain(-0.4)).toBe("0");
+  });
+
+  it("prints a level on the whole-decibel grid in whole dB, cutting any tenths toward zero", () => {
+    // The unit's GATE, COMP and DUCKER readings of values written in tenths.
+    expect([-45.5, -23.5, -18.5, -40.5, -24.5, -45].map(formatWholeDb)).toEqual(["-45", "-23", "-18", "-40", "-24", "-45"]);
   });
 
   it("gives the off mark no unit, since it is not a number of dB", () => {

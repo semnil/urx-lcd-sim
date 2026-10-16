@@ -119,7 +119,7 @@ What the unit lacks, this simulator lacks as well.
 - **+48V and HI-Z held apart.** The user guide's description of [+48V] on the INPUT screen says "The
   phantom power supply and HI-Z cannot be turned on at the same time.", but on the unit pressing [HI-Z]
   with [+48V] on, or [+48V] with [HI-Z] on, leaves [+48V] and [HI-Z] on together (URX44V, confirmed on
-  the unit on 2026-09-22). The simulator lets the two be on at once as well.
+  the unit on 2026-09-22; the same on a URX22, confirmed on the unit on 2026-10-14). The simulator lets the two be on at once as well.
 - **Menus held back during USB Storage Mode.** The user guide's NOTE under "USB Storage Mode button" says "You
   cannot access any other menus from this product while USB Storage Mode is on.", but on the unit pressing HOME with
   the mode on goes to the HOME screen, and SETUP, MONITOR and the channel screens open as well (URX44V, confirmed on

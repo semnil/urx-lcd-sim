@@ -5,7 +5,7 @@
 
 import type { ParamPath } from "../device/path";
 import { path } from "../device/path";
-import { OFF_MARK, formatDb, formatGain, formatHz, formatLevel, formatPan, hzUnit } from "./dom";
+import { OFF_MARK, formatDb, formatGain, formatHz, formatLevel, formatPan, formatWholeDb, hzUnit } from "./dom";
 
 export interface NumericSpec {
   path: ParamPath;
@@ -266,6 +266,11 @@ export function dbSpec(
     format: (v) => formatDb(v, digits),
     unit: "dB",
   };
+}
+
+/** A level the unit turns a whole decibel a detent and reads in whole decibels: a dynamics threshold or range. */
+export function wholeDbSpec(path: ParamPath, label: string, min: number, max: number, fallback: number): NumericSpec {
+  return { ...dbSpec(path, label, min, max, fallback, 1, 0), format: formatWholeDb };
 }
 
 /** The head amp of an input channel: whole dB, and the unit prints the sign. Its mark follows `marks`. */

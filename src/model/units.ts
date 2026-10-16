@@ -98,6 +98,7 @@ function buildUnit(params: {
   hasHDMI: boolean;
   hasLineOut: boolean;
   hasDateTime: boolean;
+  autoPowerOffShipped: boolean;
   /** Mono channels whose connector takes a high-impedance source. */
   hiZChannels: number[];
 }): UnitModel {
@@ -124,6 +125,7 @@ function buildUnit(params: {
     hasHDMI: params.hasHDMI,
     hasLineOut: params.hasLineOut,
     hasDateTime: params.hasDateTime,
+    autoPowerOffShipped: params.autoPowerOffShipped,
     monitorBuses: 2,
   };
 }
@@ -137,6 +139,7 @@ export const URX22: UnitModel = buildUnit({
   hasHDMI: false,
   hasLineOut: false,
   hasDateTime: false,
+  autoPowerOffShipped: false,
   hiZChannels: [2],
 });
 
@@ -149,6 +152,7 @@ export const URX44: UnitModel = buildUnit({
   hasHDMI: false,
   hasLineOut: true,
   hasDateTime: true,
+  autoPowerOffShipped: false,
   hiZChannels: [3, 4],
 });
 
@@ -161,6 +165,7 @@ export const URX44V: UnitModel = buildUnit({
   hasHDMI: true,
   hasLineOut: true,
   hasDateTime: true,
+  autoPowerOffShipped: true,
   hiZChannels: [3, 4],
 });
 

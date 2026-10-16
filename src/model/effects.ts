@@ -132,29 +132,46 @@ function revxHz(hz: number): string {
   return hz >= 1000 ? formatHz(hz) : String(Math.round(hz));
 }
 
-/** A time the reverbs count their tails in. */
-function formatSec(s: number): string {
-  return s < 10 ? s.toFixed(2) : s.toFixed(1);
-}
+/** A REV-X tail: three significant figures. */
+const revxSec = (s: number): string => s.toPrecision(3);
+
+/** A Rev.R3 tail: one decimal. */
+const revr3Sec = (s: number): string => s.toFixed(1);
 
 /** The delay before a reverb's first reflections, and the one between its two stages. */
 const INITIAL_DELAY_MS = steps(128, (i) => round(0.1 + (i * 199.9) / 127, 1));
 
-/** How long a REV-X tail runs, from its own step, the room it is in and its kind. */
-const REVX_TIME_UNIT = 0.103 / 3;
+/**
+ * How long a REV-X tail runs at the top of its own scale, by room step. The three
+ * kinds share the table: a kind's Room Size n is the step n past its offset.
+ */
+const REVX_TIME_AT_TOP = [
+  10.3023, 10.7, 11.0701, 11.5, 11.9, 12.3, 12.8, 13.2, 13.7, 14.2, 14.7, 15.2286, 15.8, 16.4, 17, 17.6, 18.2133,
+  18.8881, 19.5782, 20.3, 21, 21.8, 22.5915, 23.389, 24.2003, 25.1, 26.0143, 27, 27.9345, 28.97, 30, 31, 32.1, 33.3,
+  34.4152, 35.6, 36.9, 38.2, 39.5, 40.9, 42.3, 43.8, 45.3012, 46.9, 48.6, 50.3, 52,
+];
+/** Where each REV-X kind's Room Size 0 stands on the shared room steps. */
+const REVX_HALL = 0;
+const REVX_ROOM = 11;
+const REVX_PLATE = 15;
+/** A step's share of the top of the scale, in three-hundredths. */
 function revxTimeUnits(step: number): number {
   if (step <= 47) return step + 3;
   if (step <= 57) return 50 + 5 * (step - 47);
   if (step <= 67) return 100 + 10 * (step - 57);
   return 200 + 50 * (step - 67);
 }
-function revxTimeSec(step: number, roomSize: number, kind: number): number {
-  return REVX_TIME_UNIT * kind * revxTimeUnits(step) * Math.pow(3, roomSize / 31);
+/** The steps whose share departs from `revxTimeUnits`, as the factor on it. */
+const REVX_SHARE_TRIM: Readonly<Record<number, number>> = {
+  0: 0.999239, 8: 0.999866, 19: 1.00003, 28: 1.00059, 35: 0.999882, 42: 0.999651, 47: 0.999883, 55: 0.999731,
+  57: 0.999805, 66: 1.00007, 68: 1.00003,
+};
+/** How long a REV-X tail runs, from its own step, the room it is in and where its kind's rooms start. */
+function revxTimeSec(step: number, roomSize: number, offset: number): number {
+  const s = Math.min(69, Math.max(0, Math.round(step)));
+  const room = Math.min(31, Math.max(0, Math.round(roomSize))) + offset;
+  return (REVX_TIME_AT_TOP[room] ?? 0) * (revxTimeUnits(s) / 300) * (REVX_SHARE_TRIM[s] ?? 1);
 }
-/** How much longer than Hall the other two REV-X rooms run at the same step. */
-const REVX_HALL = 1;
-const REVX_ROOM = 15.2 / 10.3;
-const REVX_PLATE = 17.6 / 10.3;
 
 /** The tails the reverb on FX 2 stops on. */
 const REVR3_TIME_SEC = steps(70, (i) => {
@@ -187,34 +204,16 @@ const MBC_RELEASE_MS = [
   10, 15, 25, 35, 45, 55, 65, 75, 85, 100, 115, 140, 170, 230, 340, 680, 850, 1000, 1200, 1500, 1700, 2000, 2400, 3000,
 ];
 
-/** What a band of the multi-band compressor puts back, over its own scale. */
+/** What a band of the multi-band compressor puts back, over its own scale: 3 dB a step up to step 13, 1 dB above. */
 export function mbcGainDb(step: number): number {
-  if (step >= 20) return step - 37;
-  return round(-60 + ((step - 1) * 43) / 19, 4);
+  return step <= 13 ? 3 * step - 63 : step - 37;
 }
 
-/** What a guitar amp leaves at its output, over its own scale. */
-const GUITAR_OUTPUT_ANCHORS: readonly (readonly [number, number])[] = [
-  [8, -48.0],
-  [20, -32.1],
-  [40, -20.1],
-  [64, -11.9],
-  [96, -4.9],
-  [127, 0],
-];
+/** The top of a guitar amp's output scale, where the output stands at 0 dB. */
+const GUITAR_OUTPUT_TOP = 127;
 /** What a guitar amp leaves at its output at a place `step` on the output's own scale, above its bottom. */
 export function guitarOutputDb(step: number): number {
-  const a = GUITAR_OUTPUT_ANCHORS;
-  const between = (x0: number, y0: number, x1: number, y1: number): number => y0 + ((y1 - y0) / (x1 - x0)) * (step - x0);
-  const first = a[0] ?? [0, 0];
-  const second = a[1] ?? first;
-  if (step <= first[0]) return between(first[0], first[1], second[0], second[1]);
-  for (let i = 1; i < a.length; i++) {
-    const lo = a[i - 1] ?? first;
-    const hi = a[i] ?? first;
-    if (step <= hi[0]) return between(lo[0], lo[1], hi[0], hi[1]);
-  }
-  return a[a.length - 1]?.[1] ?? 0;
+  return 40 * Math.log10(step / GUITAR_OUTPUT_TOP);
 }
 
 // ---- control shapes ----------------------------------------------------------
@@ -306,20 +305,56 @@ const TENTHS_0_10 = stops(steps(101, (i) => round(i / 10, 1)), (v) => v.toFixed(
 const RATIO_TENTHS = (max: number): ParamShape => stops(steps(max * 10, (i) => round((i + 1) / 10, 1)), (v) => v.toFixed(1));
 
 /**
- * The compander's release, which runs from milliseconds into tens of seconds. It
- * stops on every millisecond up to a second and on every hundredth of a second
- * above it, so a stop and the reading beside it are the same thing.
+ * The compander's release, which runs from milliseconds into tens of seconds: the stops one detent of the unit's
+ * encoder steps through, in milliseconds.
  */
-const COMPANDER_RELEASE_MS = [...steps(996, (i) => 5 + i), ...steps(4130, (i) => 1010 + i * 10)];
+const COMPANDER_RELEASE_MS = [
+  5, 11, 16, 21, 27, 32, 37, 43, 48, 53, 59, 64, 69, 75, 80, 85, 91, 96, 101, 107, 112, 117, 123, 128, 133, 139, 144,
+  149, 155, 160, 165, 171, 176, 187, 197, 208, 219, 229, 240, 251, 261, 272, 283, 293, 304, 315, 325, 336, 347, 368,
+  389, 411, 432, 453, 475, 496, 517, 539, 560, 581, 603, 624, 645, 667, 688, 730, 773, 816, 858, 901, 944, 986, 1030,
+  1070, 1110, 1160, 1200, 1240, 1290, 1330, 1370, 1460, 1540, 1630, 1710, 1800, 1880, 1970, 2050, 2140, 2220, 2310,
+  2390, 2480, 2570, 2650, 2740, 2910, 3080, 3250, 3420, 3590, 3760, 3930, 4100, 4270, 4440, 4610, 4780, 4950, 5120,
+  5300, 5470, 5810, 6150, 6490, 6830, 7170, 7510, 7850, 8200, 8540, 8880, 9220, 9560, 9900, 10200, 10600, 10900,
+  11600, 12300, 13000, 13700, 14300, 15000, 15700, 16400, 17100, 17800, 18400, 19100, 19800, 20500, 21200, 21800,
+  23200, 24600, 25900, 27300, 28700, 30000, 31400, 32800, 34100, 35500, 36900, 38200, 39600, 41000, 42300,
+];
 const COMPANDER_RELEASE = stops(
   COMPANDER_RELEASE_MS,
-  (v) => (v >= 1000 ? (v / 1000).toFixed(2) : String(Math.round(v))),
+  (v) => (v >= 1000 ? (v / 1000).toPrecision(3) : v < 100 ? v.toFixed(1) : String(Math.round(v))),
   { unit: (v: number) => (v >= 1000 ? "s" : "ms") },
 );
 
+/** Where an insert keeps the release of the compander it runs. */
+const INSERT_RELEASE = /^(ch\..+\.insFx)\.release$/;
+const COMPANDERS: readonly ParamValue[] = ["Compander-H", "Compander-S"];
+
+/**
+ * A saved state as it is put back, with each compander's release on the stop nearest the value it holds. A value
+ * off the stops comes back on one, and the next save holds that stop.
+ */
+export function onCompanderReleaseStops(state: Record<ParamPath, ParamValue>): Record<ParamPath, ParamValue> {
+  const out = { ...state };
+  const travel = COMPANDER_RELEASE.travel;
+  for (const [path, value] of Object.entries(state)) {
+    const base = INSERT_RELEASE.exec(path)?.[1];
+    if (base === undefined || !travel || typeof value !== "number") continue;
+    if (COMPANDERS.includes(state[`${base}.effect`] ?? "")) out[path] = travel.step(value, 0);
+  }
+  return out;
+}
+
+/**
+ * The compander's threshold: a whole decibel a detent from wherever it stands, any tenths kept, and read in
+ * whole decibels cut toward zero.
+ */
+const COMPANDER_THRESHOLD = even(-54, 0, 1, (v) => String(Math.trunc(v) || 0), {
+  unit: "dB",
+  turn: (v, by) => Math.min(0, Math.max(-54, round(v + by, 1))),
+});
+
 function companderFace(threshold: number, ratio: number, width: number, attack: number, release: number): readonly EffectFace[] {
   return ONE_FACE([
-    fixed("threshold", "Threshold", threshold, DB_TENTHS(-54, 0)),
+    fixed("threshold", "Threshold", threshold, COMPANDER_THRESHOLD),
     fixed("ratio", "Ratio", ratio, stops(steps(191, (i) => round(1 + i / 10, 1)), (v) => `${v.toFixed(1)}:1`)),
     fixed("width", "Width", width, even(1, 90, 1, (v) => String(Math.round(v)), { unit: "dB" })),
     fixed("gain", "Gain", 0, DB_TENTHS(-18, 0)),
@@ -579,14 +614,14 @@ const GUITAR_AMPS: readonly { name: string; settings: AmpSettings }[] = [
 
 // ---- the effects an FX channel is --------------------------------------------
 
-function revxFaces(kind: number, time: number, diffusion: number, initial: number, hpf: number, lpf: number, roomSize: number, hiRatio: number, lowRatio: number, decay: number): readonly EffectFace[] {
+function revxFaces(offset: number, time: number, diffusion: number, initial: number, hpf: number, lpf: number, roomSize: number, hiRatio: number, lowRatio: number, decay: number): readonly EffectFace[] {
   return ONE_FACE([
     fixed("diffusion", "Diffusion", diffusion, whole(0, 10)),
     fixed("hiRatio", "Hi.Ratio", hiRatio, RATIO_TENTHS(1)),
     fixed("lowRatio", "Lo.Ratio", lowRatio, RATIO_TENTHS(1.4)),
     fixed("lowFreq", "Lo.Freq.", 800, hzStops(REVX_LOW_FREQ_HZ, revxHz)),
     num("revTime", "Rev.Time", time, (values) =>
-      scale(70, (i) => formatSec(revxTimeSec(i, values.roomSize ?? roomSize, kind)), { unit: "s" }),
+      scale(70, (i) => revxSec(revxTimeSec(i, values.roomSize ?? roomSize, offset)), { unit: "s" }),
     ),
     fixed("initialDelay", "Ini.Delay", INITIAL_DELAY_MS[initial] ?? 0.1, stops(INITIAL_DELAY_MS, msReading, MS_UNITS)),
     fixed("decay", "Decay", decay, whole(0, 63)),
@@ -606,7 +641,7 @@ function revr3Faces(time: number, initial: number, hiRatio: number, diffusion: n
     fixed("feedback", "FB.Gain", 0, PERCENT),
     fixed("erDelay", "E/R Delay", INITIAL_DELAY_MS[erDelay] ?? 0.1, stops(INITIAL_DELAY_MS, msReading, MS_UNITS)),
     fixed("erBalance", "E/R Bal.", balance, scale(127, balanceLabel)),
-    fixed("revTime", "Rev.Time", REVR3_TIME_SEC[time] ?? 0.3, stops(REVR3_TIME_SEC, formatSec, { unit: "s" })),
+    fixed("revTime", "Rev.Time", REVR3_TIME_SEC[time] ?? 0.3, stops(REVR3_TIME_SEC, revr3Sec, { unit: "s" })),
     fixed("initialDelay", "Ini.Delay", INITIAL_DELAY_MS[initial] ?? 0.1, stops(INITIAL_DELAY_MS, msReading, MS_UNITS)),
     fixed("hiRatio", "Hi.Ratio", hiRatio, RATIO_TENTHS(1)),
     fixed("diffusion", "Diffusion", diffusion, whole(0, 10)),

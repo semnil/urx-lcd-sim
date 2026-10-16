@@ -1187,6 +1187,11 @@ describe("the menus that change with the model", () => {
       await flush();
       expect(names(".menu-btn"), "SETUP's menu").toContain("Version");
       expect(names(".menu-btn").includes("Date/Time"), "SETUP's Date/Time").toBe(row.dateTime);
+      // The URX22 leaves Date/Time's place empty, and Software Integration stays at the end of its row.
+      expect([...shell.root.querySelectorAll(".setup-menu > *")].map((n) => (n.textContent ?? "").replace("\n", " ")), "SETUP's places").toEqual([
+        "User Defined Knobs", "", "", "Sampling Frequency", "Output Patch", "Peripheral", "Power Management", row.dateTime ? "Date/Time" : "",
+        "Software Integration",
+      ]);
       shell.ctx.nav.push({ id: "setup.patch" });
       await flush();
       expect(names(".patch-caption"), "OUTPUT PATCH's Analog tab").toEqual(row.analog);
@@ -3175,16 +3180,19 @@ describe("the sampling frequency row", () => {
     await flush();
   };
 
-  it("ships on 48kHz with the unit on its own clock", async () => {
-    // The screen opens with [Follow USB] unlit and 48kHz lit.
+  it("ships on 48kHz following the USB clock", async () => {
+    // The screen opens with [Follow USB] lit and 48kHz lit.
     const shell = await open();
-    expect(shell.ctx.store.bool("setup.followUsb", true)).toBe(false);
+    expect(shell.ctx.store.bool("setup.followUsb", false)).toBe(true);
     expect(lit(shell)).toBe("48kHz");
-    expect(shell.root.querySelector(".follow-usb")?.classList.contains("is-on")).toBe(false);
+    expect(shell.root.querySelector(".follow-usb")?.classList.contains("is-on")).toBe(true);
   });
 
   it("takes a frequency while the unit is on its own clock", async () => {
     const shell = await open();
+    shell.root.querySelector<HTMLElement>(".follow-usb")?.click();
+    await flush();
+    expect(shell.ctx.store.bool("setup.followUsb", true), "[Follow USB] turned off").toBe(false);
     await tap(shell, "96kHz");
     expect(shell.ctx.store.num("setup.samplingFrequency", 0)).toBe(96000);
     expect(lit(shell)).toBe("96kHz");
@@ -3285,8 +3293,6 @@ describe("the sampling frequency row", () => {
 
   it("keeps the frequency it holds while it follows the USB clock, and takes no other", async () => {
     const shell = await open();
-    shell.root.querySelector<HTMLElement>(".follow-usb")?.click();
-    await flush();
     expect(shell.root.querySelector(".rate-row")?.classList.contains("is-locked")).toBe(true);
 
     await tap(shell, "176.4kHz");
@@ -5136,8 +5142,9 @@ describe("what the dedicated channel screens draw", () => {
     for (const rate of [96000, 176400, 192000]) {
       const shell = await mount();
       const store = shell.ctx.store;
-      // HOME's [Sends] on FX 2, then the rate picked on SETUP.
+      // HOME's [Sends] on FX 2, then the rate picked on SETUP with the unit on its own clock.
       await store.set("ui.sendsTarget", "FX2");
+      await store.set("setup.followUsb", false);
       shell.ctx.nav.openTop({ id: "setup.rate" });
       await flush();
       [...shell.root.querySelectorAll<HTMLElement>(".rate-btn")].find((b) => b.textContent === `${rate / 1000}kHz`)?.click();
@@ -5196,6 +5203,8 @@ describe("what the dedicated channel screens draw", () => {
         const store = shell.ctx.store;
         await store.set("ch.ch1.send.fx1.level", -10);
         await store.set("ch.ch1.send.fx2.level", -20);
+        // The unit on its own clock, so the row takes a frequency.
+        await store.set("setup.followUsb", false);
         const read = async (): Promise<(string | null)[]> => {
           shell.ctx.nav.home();
           await flush();
@@ -7431,5 +7440,25 @@ describe("the head amp belongs to the connector a channel is on", () => {
     await flush();
     const clip = [...shell.root.querySelectorAll<HTMLElement>(".input-flag")].find((b) => b.textContent === "Clip Safe");
     expect(clip?.classList.contains("is-on"), "switched on from the channel view, lit on INPUT").toBe(true);
+  });
+});
+
+describe("a dynamics level holding tenths", () => {
+  // The unit reads the 1 dB-grid levels in whole decibels, any tenths cut toward zero.
+  it.each([
+    ["ch.gate", "ch1", "gate.threshold", -45.5, "Threshold=-45dB"],
+    ["ch.gate", "ch1", "gate.range", -23.5, "Range=-23dB"],
+    ["ch.comp", "ch1", "comp.threshold", -18.5, "Threshold=-18dB"],
+    ["ch.ducker", "ch_5_6", "ducker.threshold", -40.5, "Threshold=-40dB"],
+    ["ch.ducker", "ch_5_6", "ducker.range", -24.5, "Range=-24dB"],
+  ])("reads %s on %s's %s at %s as %s", async (screen, strip, key, value, want) => {
+    const model = unitById("URX44V");
+    const store = new DeviceStore();
+    await store.attach(new SimTransport(factoryState(model)));
+    await store.set(`ch.${strip}.${key}`, value);
+    const shell = new Shell(buildRegistry(), store, model, [{ id: screen, strip }]);
+    await flush();
+    const read = [...shell.root.querySelectorAll("[aria-valuetext]")].map((n) => `${n.getAttribute("aria-label")}=${n.getAttribute("aria-valuetext")}`);
+    expect(read).toContain(want);
   });
 });

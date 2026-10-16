@@ -5,6 +5,7 @@
 
 import type { ParamPath, ParamValue } from "../device/path";
 import { type Travel, stopsTravel } from "../ui/param-spec";
+import { onCompanderReleaseStops } from "./effects";
 
 /** Attack, in microseconds: 0.092 ms to 80 ms. */
 const ATTACK_US = [
@@ -110,8 +111,8 @@ const TIME_TRAVELS: Readonly<Record<string, Travel>> = Object.fromEntries(
 
 /**
  * A saved state as it is put back, with each of GATE's, COMP's and DUCKER's
- * times on the stop nearest the value it holds. A value off the stops comes
- * back on one, and the next save holds that stop.
+ * times, and each insert compander's release, on the stop nearest the value it
+ * holds. A value off the stops comes back on one, and the next save holds that stop.
  */
 export function onDynamicsTimeStops(state: Record<ParamPath, ParamValue>): Record<ParamPath, ParamValue> {
   const out = { ...state };
@@ -120,5 +121,5 @@ export function onDynamicsTimeStops(state: Record<ParamPath, ParamValue>): Recor
     const travel = time === undefined ? undefined : TIME_TRAVELS[time];
     if (travel && typeof value === "number") out[path] = travel.step(value, 0);
   }
-  return out;
+  return onCompanderReleaseStops(out);
 }

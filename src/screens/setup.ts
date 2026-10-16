@@ -69,8 +69,8 @@ export const setupScreen: ScreenDef = {
       menuButton("Peripheral", open("setup.peripheral")),
       menuButton("Power\nManagement", open("setup.power")),
     ];
-    // The URX22 has no Date/Time menu (user guide note under GENERAL menu).
-    if (ctx.model.hasDateTime) rest.push(menuButton("Date/Time", open("setup.datetime")));
+    // The URX22 has no Date/Time menu (user guide note under GENERAL menu); its place stays empty.
+    rest.push(ctx.model.hasDateTime ? menuButton("Date/Time", open("setup.datetime")) : el("div"));
     // The unit offers Software Integration as an entry out of reach. Here it opens
     // and works, and its tooltip says the unit does not offer it.
     const integration = menuButton("Software\nIntegration", open("setup.integration"));
@@ -208,7 +208,7 @@ export const samplingRateScreen: ScreenDef = {
   title: () => "SAMPLING FREQUENCY",
   build(ctx): ScreenBody {
     const current = ctx.store.num("setup.samplingFrequency", 48000);
-    const followUsb = ctx.store.bool("setup.followUsb", false);
+    const followUsb = ctx.store.bool("setup.followUsb", true);
     const label = (hz: number): string => `${(hz / 1000).toFixed(1).replace(/\.0$/, "")}kHz`;
     // Following the USB clock leaves the frequency the unit holds where it is
     // and keeps showing it lit; the row simply cannot be used until the switch
@@ -485,7 +485,7 @@ export const powerScreen: ScreenDef = {
   toolbar: "sub",
   title: () => "POWER MANAGEMENT",
   build(ctx): ScreenBody {
-    const enabled = ctx.store.bool("setup.power.autoPowerOff", true);
+    const enabled = ctx.store.bool("setup.power.autoPowerOff", ctx.model.autoPowerOffShipped);
     // The unit offers 2 to 20 minutes in one-minute steps (Specifications).
     const spec = intSpec("setup.power.autoPowerOffMinutes", "Time", 2, 20, 20, " min");
     ctx.setKnobs([null, null, null, spec]);

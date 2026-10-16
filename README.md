@@ -104,7 +104,7 @@ Under [docs/en/](docs/en/), with the same documents in Japanese under [docs/ja/]
 ## Where the appearance comes from
 
 The palette and the dimensions were sampled pixel by pixel from the 480x272 screen captures
-embedded in the user guide (English, revision D0). The factory channel values are a URX44V's own
+embedded in the user guide (English, revision D0). The factory channel values are a URX44V's and a URX22's own
 settings after a factory reset. Details are in [design-tokens.md](docs/en/design-tokens.md).
 
 `reference/` holds those extracted captures. They are Yamaha's copyright, so the directory is

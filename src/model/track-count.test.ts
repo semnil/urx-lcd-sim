@@ -24,6 +24,8 @@ async function mount(id: "URX44V" | "URX22" = "URX44V"): Promise<Shell> {
 
 /** Take the SAMPLING FREQUENCY screen to `label`. */
 async function pickRate(shell: Shell, label: string): Promise<void> {
+  // The unit on its own clock, so the row takes a frequency.
+  await shell.ctx.store.set("setup.followUsb", false);
   shell.ctx.nav.push({ id: "setup" });
   shell.ctx.nav.push({ id: "setup.rate" });
   await flush();

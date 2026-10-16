@@ -416,6 +416,24 @@ describe("storing and recalling a scene", () => {
     expect(s.str("ui.sendsTarget", "")).toBe("FX1");
   });
 
+  it.each([
+    ["ch.ch1", "Compander-H", 300, 304],
+    ["ch.bus.stereo", "Compander-S", 300, 304],
+    ["ch.bus.mix1", "Compander-H", 300, 304],
+    ["ch.bus.mix2", "Compander-S", 300, 304],
+    ["ch.bus.stereo", "M.B.Comp", 100, 100],
+  ])("puts %s's %s release an older scene holds back on the compander's stops alone", async (base, effect, held, back) => {
+    // A scene stored by an earlier version, which stopped the compander's release on every millisecond under a second.
+    const shell = await mount();
+    const s = shell.ctx.store;
+    await s.set(`${base}.insFx.effect`, effect);
+    await s.set(`${base}.insFx.release`, held);
+    await s.set("scene.Standard.1.title", "older");
+    await storeScene(shell.ctx, "Standard", 1);
+    await recallScene(shell.ctx, 1);
+    expect(s.num(`${base}.insFx.release`, 0)).toBe(back);
+  });
+
   it("puts an SSMCS frequency, Attack or Release an older scene holds off the stops on the stop nearest it", async () => {
     // CH 1's strip as an earlier version shipped it, with LOW at that version's top and MID on one of its stops.
     const shell = await mount();

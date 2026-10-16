@@ -205,6 +205,8 @@ describe("taking an effect", () => {
     expect(shell.ctx.store.str("ch.ch1.insFx.effect", ""), "the channel is holding it to begin with").toBe("Pitch Fix");
 
     shell.ctx.nav.home();
+    // The unit on its own clock, so the row takes a frequency.
+    await shell.ctx.store.set("setup.followUsb", false);
     shell.ctx.nav.push({ id: "setup" });
     shell.ctx.nav.push({ id: "setup.rate" });
     await flush();
@@ -299,7 +301,7 @@ describe("the screen an effect is set on", () => {
   it("opens the effect it was taken on at its first page", async () => {
     const shell = await openParams("ch1", "Crunch");
     expect(captions(shell)).toEqual(["Type", "Gain", "Output", "Treble", "Middle", "Bass", "Presence"]);
-    expect(values(shell)).toEqual(["Bright", "4.6", "-17.7", "5.3", "7.0", "4.7", "2.8"]);
+    expect(values(shell)).toEqual(["Bright", "4.6", "-17.3", "5.3", "7.0", "4.7", "2.8"]);
   });
 
   it("puts every value it shows on the knobs, four divisions at a time", async () => {
@@ -614,9 +616,9 @@ describe("the screen an effect is set on", () => {
   });
 
   it("shows each value as a bare number, its unit left off", async () => {
-    // The unit's Rev-X Hall: 800 rather than 800Hz, 2.49 rather than 2.49s.
+    // The unit's Rev-X Hall: 800 rather than 800Hz, 2.51 rather than 2.51s.
     const shell = await mount([{ id: "channel-view", strip: "fx1" }, { id: "ch.effect", strip: "fx1" }]);
-    expect(values(shell)).toEqual(["10", "0.8", "1.2", "800", "2.49", "3.2", "27", "29"]);
+    expect(values(shell)).toEqual(["10", "0.8", "1.2", "800", "2.51", "3.2", "27", "29"]);
     await click(shell, ".efx-page-next");
     expect(values(shell)).toEqual(["32", "6.30"]);
   });
@@ -1075,7 +1077,7 @@ describe("a compander", () => {
       await flush();
     };
     expect(grip("T")?.getAttribute("role"), "a grip that turns a value is a control").toBe("slider");
-    expect(grip("T")?.getAttribute("aria-valuetext")).toBe("-10.0dB");
+    expect(grip("T")?.getAttribute("aria-valuetext")).toBe("-10dB");
 
     grip("T")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await flush();
@@ -1083,13 +1085,24 @@ describe("a compander", () => {
     expect(shell.ctx.focus.holds("ch.ch1.insFx.threshold"), "and the focus is on what it turns").toBe(true);
 
     await press("T", "ArrowRight");
-    expect(shell.ctx.store.num("ch.ch1.insFx.threshold", 0), "T moves the threshold").toBeCloseTo(-9.9, 5);
+    expect(shell.ctx.store.num("ch.ch1.insFx.threshold", 0), "T moves the threshold a whole decibel").toBeCloseTo(-9, 5);
     await press("G", "ArrowUp");
     expect(shell.ctx.store.num("ch.ch1.insFx.gain", -99), "G moves the output gain").toBeCloseTo(0, 5);
     await press("G", "ArrowDown");
     expect(shell.ctx.store.num("ch.ch1.insFx.gain", 0)).toBeCloseTo(-0.1, 5);
     await press("W", "ArrowRight");
     expect(shell.ctx.store.num("ch.ch1.insFx.width", 0), "and W the width of the band").toBe(7);
+  });
+
+  it("turns a threshold holding tenths a whole decibel, the tenths kept, and reads the whole decibels", async () => {
+    const shell = await openParams("ch1", "Compander-H");
+    await shell.ctx.store.set("ch.ch1.insFx.threshold", -23.5);
+    await flush();
+    const grip = (): HTMLElement | null => shell.root.querySelector<HTMLElement>('.dyn-handle[aria-label^="T handle"]');
+    expect(grip()?.getAttribute("aria-valuetext")).toBe("-23dB");
+    grip()?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
+    await flush();
+    expect([shell.ctx.store.num("ch.ch1.insFx.threshold", 0), grip()?.getAttribute("aria-valuetext")]).toEqual([-22.5, "-22dB"]);
   });
 
   it("holds the output at the crossing of the rules and slopes away from it", async () => {
@@ -1439,10 +1452,10 @@ describe("an FX channel", () => {
       [...shell.root.querySelectorAll(".efx-cell")]
         .find((c) => c.querySelector(".efx-cell-caption")?.textContent === "Rev.Time")
         ?.querySelector(".value-box")?.textContent ?? "";
-    expect(revTime()).toBe("2.49");
+    expect(revTime()).toBe("2.51");
     await shell.ctx.store.set("ch.fx1.effect.roomSize", 0);
     await flush();
-    expect(revTime()).toBe("0.89");
+    expect(revTime()).toBe("0.893");
   });
 
   it("opens the effect it is given on the first page", async () => {
