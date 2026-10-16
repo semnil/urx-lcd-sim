@@ -24,7 +24,7 @@ import { SSMCS_DEFAULTS } from "../model/defaults";
 import { grBarShare, ssmcsCorner } from "../model/dynamics";
 import { DYNAMICS_TIME_PLACES, DYNAMICS_TIME_STOPS } from "../model/dynamics-times";
 import { type SsmcsBand, ssmcsBand, ssmcsEqResponse } from "../model/channel-eq";
-import { el, formatHz, hzUnit, setPressed } from "../ui/dom";
+import { aimed, el, formatHz, hzUnit, setPressed, writing } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
 import { compRatioSpec, fineGainSpec, freqSpec, round, steps, stopsTravel } from "../ui/param-spec";
@@ -438,7 +438,7 @@ function blockSwitch(ctx: AppContext, label: string, kind: string, path: string,
   const node = el("button", {
     class: `badge badge-${kind} ${small ? "badge-switch" : "badge-title"} ssmcs-block-switch`,
     text: label,
-    onTap: () => void ctx.store.set(path, !on),
+    onTap: writing(path, () => void ctx.store.set(path, !on)),
   });
   setPressed(node, on);
   return node;
@@ -459,7 +459,7 @@ function litSwitch(label: string, cls: string, on: boolean, onTap: () => void, a
 /** The toolbar's own switch: the strip itself, on or off. */
 function ssmcsTitle(ctx: AppContext, b: string): HTMLElement {
   const on = ctx.store.bool(`${b}.ssmcs.on`, SSMCS_DEFAULTS.on);
-  return titleBadge("SSMCS", "ssmcs", on, () => void ctx.store.set(`${b}.ssmcs.on`, !on));
+  return titleBadge("SSMCS", "ssmcs", on, writing(`${b}.ssmcs.on`, () => void ctx.store.set(`${b}.ssmcs.on`, !on)));
 }
 
 /** The sheet the [Sweet Spot Data] button drops: the settings the Morphing knob moves between. */
@@ -512,7 +512,7 @@ export function ssmcsArea(ctx: AppContext, strip: Strip): HTMLElement {
         el("div", { class: "cv-ssmcs-eq", children: [eq as unknown as HTMLElement] }),
       ],
     }),
-    () => ctx.nav.push({ id: "ch.ssmcs", strip: strip.id }),
+    aimed(() => ctx.nav.push({ id: "ch.ssmcs", strip: strip.id }), { kind: "screen", id: "ch.ssmcs" }),
   );
 }
 
@@ -569,11 +569,11 @@ export const ssmcsScreen: ScreenDef = {
           knobPanel("ssmcs-morphing", "Morphing", morphing, [
             el("button", {
               class: "ssmcs-data",
-              onTap: () => void sweetSpotSheet(ctx, b),
+              onTap: writing(`${b}.ssmcs.data`, () => void sweetSpotSheet(ctx, b)),
               children: [el("span", { text: data }), el("span", { class: "ssmcs-data-mark", children: [Icons.copy()] })],
             }),
           ]),
-          pageArrow("next", () => ctx.nav.replace({ id: "ch.ssmcs.comp", strip: strip.id })),
+          pageArrow("next", aimed(() => ctx.nav.replace({ id: "ch.ssmcs.comp", strip: strip.id }), { kind: "screen", id: "ch.ssmcs.comp" })),
           dynMeters(ctx, strip, "ssmcs"),
         ],
       }),
@@ -624,7 +624,7 @@ function compFace(ctx: AppContext, route: Route, sideChain: boolean): ScreenBody
         reductionMeter(ctx, ssmcsSpec(ctx, strip)),
         ...(sideChain
           ? [
-              litSwitch("Side Chain", "ssmcs-sc-switch", scOn, () => void ctx.store.set(`${b}.ssmcs.sc.on`, !scOn)),
+              litSwitch("Side Chain", "ssmcs-sc-switch", scOn, writing(`${b}.ssmcs.sc.on`, () => void ctx.store.set(`${b}.ssmcs.sc.on`, !scOn))),
               // The rows name the three shortly; the readout bar carries the SC- names.
               el("div", {
                 class: "dyn-sets ssmcs-sets",
@@ -640,17 +640,17 @@ function compFace(ctx: AppContext, route: Route, sideChain: boolean): ScreenBody
                 class: "dyn-row dyn-row-knee ssmcs-knee",
                 children: [
                   el("span", { class: "dyn-caption", text: "Knee" }),
-                  pulldown(ctx, ctx.store.str(`${b}.ssmcs.comp.knee`, SSMCS_DEFAULTS.knee), KNEES, (v) => void ctx.store.set(`${b}.ssmcs.comp.knee`, v), { label: "Knee" }),
+                  pulldown(ctx, ctx.store.str(`${b}.ssmcs.comp.knee`, SSMCS_DEFAULTS.knee), KNEES, (v) => void ctx.store.set(`${b}.ssmcs.comp.knee`, v), { path: `${b}.ssmcs.comp.knee`, label: "Knee" }),
                 ],
               }),
               el("div", { class: "dyn-sets ssmcs-sets", children: [attack, release].map((s) => dynSetting(ctx, s)) }),
             ]),
         sideChain
-          ? pageArrow("prev", () => ctx.nav.replace({ id: "ch.ssmcs.comp", strip: strip.id }))
-          : pageArrow("prev", () => ctx.nav.replace({ id: "ch.ssmcs", strip: strip.id })),
+          ? pageArrow("prev", aimed(() => ctx.nav.replace({ id: "ch.ssmcs.comp", strip: strip.id }), { kind: "screen", id: "ch.ssmcs.comp" }))
+          : pageArrow("prev", aimed(() => ctx.nav.replace({ id: "ch.ssmcs", strip: strip.id }), { kind: "screen", id: "ch.ssmcs" })),
         sideChain
-          ? pageArrow("next", () => ctx.nav.replace({ id: "ch.ssmcs.eq", strip: strip.id }))
-          : pageArrow("next", () => ctx.nav.replace({ id: "ch.ssmcs.sc", strip: strip.id })),
+          ? pageArrow("next", aimed(() => ctx.nav.replace({ id: "ch.ssmcs.eq", strip: strip.id }), { kind: "screen", id: "ch.ssmcs.eq" }))
+          : pageArrow("next", aimed(() => ctx.nav.replace({ id: "ch.ssmcs.sc", strip: strip.id }), { kind: "screen", id: "ch.ssmcs.sc" })),
         dynMeters(ctx, strip, "ssmcs"),
       ],
     }),
@@ -728,9 +728,9 @@ export const ssmcsEqScreen: ScreenDef = {
         class: "ssmcs-eq-screen",
         children: [
           blockSwitch(ctx, "EQ", "eq", `${b}.eq.on`),
-          litSwitch(band.label, "ssmcs-band", bandOn, () => void ctx.store.set(`${b}.ssmcs.eq.${band.key}.on`, !bandOn), `${band.label} band on`),
+          litSwitch(band.label, "ssmcs-band", bandOn, writing(`${b}.ssmcs.eq.${band.key}.on`, () => void ctx.store.set(`${b}.ssmcs.eq.${band.key}.on`, !bandOn)), `${band.label} band on`),
           plot,
-          pageArrow("prev", () => ctx.nav.replace({ id: "ch.ssmcs.sc", strip: strip.id })),
+          pageArrow("prev", aimed(() => ctx.nav.replace({ id: "ch.ssmcs.sc", strip: strip.id }), { kind: "screen", id: "ch.ssmcs.sc" })),
           dynMeters(ctx, strip, "ssmcs"),
         ],
       }),

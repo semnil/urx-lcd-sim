@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DeviceStore } from "../device/store";
+import type { UnitActions } from "../device/unit";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
-import { freeBytes, readCard } from "../model/card";
+import { freeBytes, readCard, writeCard } from "../model/card";
 import { clockParts } from "../model/clock";
 import { unitById } from "../model/units";
 import { formatClock, pausePlayback, pauseTake, playedSeconds, recordTake, startPlayback, startRecorderClock, stopTake, takeOpen, takeSeconds } from "./recording";
@@ -80,7 +81,7 @@ describe("the recorder's take", () => {
     recordTake(s);
     // 4.3 s before the pause, so the room runs out 5.7 s after the take goes on.
     const full = Date.now() + 5_700;
-    const stop = startRecorderClock(s, document.createElement("div"), 4_000);
+    const stop = startRecorderClock(s, document.createElement("div"), { kind: "simulated" }, 4_000);
     vi.advanceTimersByTime(4_000);
     const short = s.str("sd.rec", "");
     vi.advanceTimersByTime(4_000);
@@ -120,12 +121,42 @@ describe("the recorder's take", () => {
     counter.dataset["recClock"] = "";
     counter.textContent = "00:00:00";
     root.appendChild(counter);
-    const stop = startRecorderClock(s, root, 200);
+    const stop = startRecorderClock(s, root, { kind: "simulated" }, 200);
     vi.advanceTimersByTime(2_100);
     const running = counter.textContent;
     pauseTake(s);
     vi.advanceTimersByTime(5_000);
     stop();
     expect([running, counter.textContent]).toEqual(["00:00:02", "00:00:02"]);
+  });
+
+  /** A take recording past the room the card has and a file played past its end, on a clock run for 20 s on `actions`. */
+  async function runOut(actions: UnitActions): Promise<{ rec: string; playing: boolean; held: number; files: number; written: number }> {
+    vi.useFakeTimers();
+    vi.setSystemTime(2_000_000);
+    const s = await store();
+    await s.set("sd.capacity", 10 * 48_000 * 3 * 2 + 1_000);
+    await s.set("sd.trackCount", 2);
+    await writeCard(s, [{ name: "TAKE.wav", kind: "take", seconds: 5, tracks: 2, rate: 48_000, dir: "/" }]);
+    await s.set("sd.rec", "armed");
+    recordTake(s);
+    startPlayback(s, 0);
+    let written = 0;
+    const off = s.onChange(() => void written++);
+    const stop = startRecorderClock(s, document.createElement("div"), actions, 100);
+    vi.advanceTimersByTime(20_000);
+    stop();
+    off();
+    return { rec: s.str("sd.rec", ""), playing: s.bool("sd.playing", false), held: s.num("sd.playingFile", -1), files: readCard(s).length, written };
+  }
+
+  it("runs the simulated recorder out of room and the simulated file to its end", async () => {
+    const out = await runOut({ kind: "simulated" });
+    expect([out.rec, out.playing, out.held, out.files]).toEqual(["idle", false, -1, 2]);
+  });
+
+  it("writes nothing as time passes on a unit that runs its own recorder and playback", async () => {
+    const out = await runOut({ kind: "device", perform: () => false });
+    expect([out.rec, out.playing, out.held, out.files, out.written]).toEqual(["recording", true, 0, 1, 0]);
   });
 });

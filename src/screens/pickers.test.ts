@@ -9,6 +9,7 @@ import type { Route } from "../app/navigator";
 import { refreshDateTime } from "./date-time";
 import { buildRegistry } from "./index";
 import { pulldown } from "../ui/widgets";
+import { spoken } from "../ui/spoken";
 
 // The buttons that carry the mark the guide's legend calls "Shows a separate
 // popup screen for making detailed settings." Each one has to drop a sheet, and
@@ -363,7 +364,7 @@ describe("the DATE / TIME popup buttons", () => {
     expect(names()).toEqual([
       "Date / Time 01 / 01 / 2020 09 : 00",
       "Time Zone Tokyo",
-      "Date: MM/DD/YYYY (3 options)",
+      spoken("Date: MM/DD/YYYY (3 options)"),
       "Time: 24h (2 options)",
     ]);
     vi.setSystemTime(NOW + 61_000);
@@ -571,16 +572,16 @@ describe("the pulldowns' names", () => {
       "MIX 1 CH SETTING": await screen({ id: "ch.setting", strip: "bus.mix1" }),
     };
     expect(seen).toEqual({
-      "SETUP DATE / TIME": ["Date: MM/DD/YYYY (3 options)", "Time: 24h (2 options)"],
-      "SETUP SOFTWARE INTEGRATION": ["for FX1: MIX 1 (2 options)", "for FX2: MIX 1 (2 options)"],
-      "CH 1 CH SETTING": ["Rec Point: PRE FADER (5 options)", "COMP / EQ: COMP->EQ (2 options)", "Signal Type: MONO x 2 (2 options)"],
-      "CH 1 COMP": ["Auto Makeup: Off (2 options)", "Knee: Medium (3 options)"],
-      "CH 1 EQ, LOW": ["LOW Shape: L.Shelf (3 options)"],
-      "CH 1 EQ, HIGH": ["HIGH Shape: H.Shelf (3 options)"],
-      "CH 1 EQ, 1-knob": ["1-knob type: Intensity (3 options)"],
-      "CH 1 SSMCS Comp": ["Knee: Medium (3 options)"],
-      "CH 5/6 DUCKER": ["Ducker Source: CH 1 (11 options)"],
-      "MIX 1 CH SETTING": ["BUS Type: VARI (2 options)"],
+      "SETUP DATE / TIME": ["Date: MM/DD/YYYY (3 options)", "Time: 24h (2 options)"].map((name) => spoken(name)),
+      "SETUP SOFTWARE INTEGRATION": ["for FX1: MIX 1 (2 options)", "for FX2: MIX 1 (2 options)"].map((name) => spoken(name)),
+      "CH 1 CH SETTING": ["Rec Point: PRE FADER (5 options)", "COMP / EQ: COMP->EQ (2 options)", "Signal Type: MONO x 2 (2 options)"].map((name) => spoken(name)),
+      "CH 1 COMP": ["Auto Makeup: Off (2 options)", "Knee: Medium (3 options)"].map((name) => spoken(name)),
+      "CH 1 EQ, LOW": ["LOW Shape: L.Shelf (3 options)"].map((name) => spoken(name)),
+      "CH 1 EQ, HIGH": ["HIGH Shape: H.Shelf (3 options)"].map((name) => spoken(name)),
+      "CH 1 EQ, 1-knob": ["1-knob type: Intensity (3 options)"].map((name) => spoken(name)),
+      "CH 1 SSMCS Comp": ["Knee: Medium (3 options)"].map((name) => spoken(name)),
+      "CH 5/6 DUCKER": ["Ducker Source: CH 1 (11 options)"].map((name) => spoken(name)),
+      "MIX 1 CH SETTING": ["BUS Type: VARI (2 options)"].map((name) => spoken(name)),
     });
     for (const [where, list] of Object.entries(seen)) {
       expect(new Set(list.map((n) => n.split(": ")[0])).size, `${where}: one setting to a name`).toBe(list.length);

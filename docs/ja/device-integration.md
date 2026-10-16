@@ -28,6 +28,100 @@ export interface DeviceLink {
 }
 ```
 
+## 画面の裏にある本体
+
+値は、本体が自分で行うことの 1 つにすぎない。`Unit` (`src/device/unit.ts`) はその 4 つを持ち、画面は
+どの種類の本体が答えるかを知らずにこれに尋ねる。
+
+| 部分 | 中身 | シミュレーターの本体 |
+| --- | --- | --- |
+| `params` | store がつなぐ `DeviceTransport` | `SimTransport` |
+| `levels` | メーターが読むもの。`simulated`、または dB のレベルを返す読み手と端子ごとの Clip Safe の状態を持つ `device` | 合成信号 (`src/screens/signal-flow.ts`) |
+| `actions` | 本体が自分のメモリー・カード・レコーダーに対して行う操作を、誰が行うか。`simulated`、または操作を受け取ったかを答える `perform(op)` を持つ `device` | すべてシミュレーターのメモリーで行う (`emulatedActions`) |
+| `clock` | DATE / TIME で動かす前の、本体の時計が刻む時刻 | コンピューターの時計 |
+
+操作 (`UnitOp`) は、本体がそれを行うのに要るものをすべて持ち、画面のものもシミュレーターのものも持たない。
+
+| 操作 | 引数 |
+| --- | --- |
+| `scene.recall` | `scene`: 番号。0 とプリセットは工場出荷のシーン |
+| `scene.store` | `bank`・`scene`、入力した題名 `title` |
+| `scene.protect` | `bank`・`scene`、保護するかどうか `protect` |
+| `scene.delete` | `bank`・`scene` |
+| `settings.save` | `file`: フォルダーと名前。そこにある同じ名前の設定ファイルに上書きし、無ければ新しく書く |
+| `settings.load` | `file` |
+| `card.insert`・`card.eject`・`card.test` | なし |
+| `card.format` | `label`: 入力したボリュームラベル。無ければ空 |
+| `card.delete` | `file` |
+| `card.rename` | `file`、新しい名前 `to` |
+| `card.newFolder` | `file`: 作る先のフォルダーと名前 |
+| `recorder.arm`・`recorder.record`・`recorder.pause`・`recorder.stop` | なし |
+| `playback.start` | `file`: 再生するファイル、または一時停止から続けるファイル |
+| `playback.pause`・`playback.stop` | なし |
+
+画面は操作を求められて確定した時点で渡し、それを行えるかは本体が答える。シミュレーターの本体は、カードに無い
+項目・中身の無い設定ファイル・カードに入りきらないファイルや録音は行わない。`device` の本体には操作が渡され、
+シミュレーターのメモリー・カード・レコーダーは何も動かない (`refusedActions` は、すべてを断り、断るたびに知らせる
+本体)。シミュレーターのレコーダーは、カウンターの時計に合わせて、カードの空きで録音を止め、ファイルの終わりで
+再生を止める。`device` の本体のレコーダーと再生は、その値が知らせるとおりにだけ動き、カウンターは何も書かない。
+画面が値を編集するのは、どの種類の本体でも `params` の役目のまま。
+
+`useUnit()` (`src/app/unit.ts`) は本体のメーターと時計を、メーターと時計に渡す。1 つのページにつなぐ本体は
+同時に 1 つだけ。本体のメーターは `setMeterSource()` と `setClipSafeSource()` (`src/screens/meters.ts`) を通して
+メーターに届き、その id は下の「組み込み手順」に書く。
+
+## 別のページへの埋め込み
+
+`mountSim()` (`src/embed.ts`。`urx-lcd-sim/embed` として公開) は、ある機種の画面を別のページの要素の中に置き、
+渡された `Unit` を通して値を読み書きする。置くのは 480x272 の画面だけで、機種と表示倍率のセレクタ・Device メニュー・
+接続表示は置かず、ブラウザに何も保存しない。戻り値で表示倍率を変え、画面を外す (本体の transport も閉じる)。
+
+- 画面はページの 1 つの要素 (`.urx-lcd-sim`) の shadow tree の中に描くので、ページの規則は中の要素に届かず、
+  画面の規則もページの要素に届かない (`src/embed-css.ts`)。tree の中では `:root` は画面自身の起点
+  (`.embed-glass`) を指し、その起点はページから受け継ぐ値ではなく、すべてのプロパティの初期値から始まる。shadow
+  tree が受け付けない `@font-face` と `@property` はページに置き、フォントのファイルはページが渡す URL から読む
+  (`fonts`。`public/fonts/` のファイル名で指定し、パッケージは `urx-lcd-sim/fonts/*` として公開する)。
+- フォーカス・キー・ポインターは、画面自身の tree の中で読む (`src/ui/active.ts`)。ページから見ると、画面の中の
+  フォーカスと画面の中から来たイベントは、shadow tree を持つ要素の上にあるように見える。
+- 何にもフォーカスが無いときのキーはページのもの。Escape で画面が戻るのは、フォーカスが画面にあるときだけで、
+  画面のダイアログの中で Tab が回るのも、フォーカスが画面にあるときだけ。
+- 値のドラッグ中の印は、ページではなく画面の起点の要素に付く。
+- `shippedValues(model)` は、画面が読み書きするすべてのパスを出荷時の値と並べて返す。本体の側がどのパスに
+  答えるかを決めるためのもの。
+
+### ページが使えなくするコントロール
+
+ページは、画面のコントロールを使えなくし、その理由を示せる。`mountSim()` のオプションの `locks` と、戻り値の
+`setLocks()` で渡す。`setLocks()` は組全体を置き換えて画面を描き直す (`src/ui/locks.ts`)。1 つのロック
+(`SimLock`) は、対象と、ページが示す理由の組。対象 (`LockTarget`) は次のどれか。
+
+| 対象 | 使えなくなるもの |
+| --- | --- |
+| `{ kind: "path", path }` | そのパスに書くコントロール。値ボックス・ノブ・フェーダー・スイッチ・プルダウン・その値を選ぶシートを開くボタン。複数のパスに書くコントロールは、最初のパスで決まる。 |
+| `{ kind: "screen", id }` | その route id の画面を開くボタン。HOME の `setup` / `microsd` / `monitor`、SETUP の項目 (`setup.language`、`setup.rate` など)、microSD の項目 (`microsd.saveload` など)、チャンネルのブロック (`ch.eq` など)。 |
+| `{ kind: "op", op }` | 本体にその操作を渡すボタン (`UnitOp["kind"]`。`scene.recall`、`recorder.arm`、`card.eject` など)。状態ごとに渡す操作が変わるトランスポートのボタンは、いま押したときに渡す操作で決まる。 |
+
+- 使えなくしたコントロールは、使えないコントロールの見た目 (`is-disabled`、`aria-disabled="true"`) と
+  `is-held-shut` を持ち、右上の角に錠前の印 (`aria-hidden="true"`) を付け、ページが示した理由を `title` と
+  `aria-description` に持つ。名前は変えない。ロックを外すと、コントロールが前に持っていたものを戻すので、
+  画面自身が使えなくしていたコントロールは使えないまま残る。
+- タッチ・Enter・Space に答えず、使えなくした値はドラッグ・ホイール・キーで動かない。
+- 見た目の裏でも、使えなくしたコントロールがすることを、どこから届いても拒否する。`DeviceStore.setLocked()` は、
+  使えなくしたパスへの編集と、それへ書き込みを運ぶ編集 (ステレオペアのもう片方など) を丸ごと拒否し、
+  `onWriteFailure` には何も知らせない。ナビゲーターは使えなくした画面を開かない (`Navigator.setRefusal()`。
+  戻る矢印と HOME ボタンは除く)。`perform()` は使えなくした操作を本体に渡さない。本体が自分で変えた値は
+  これまでどおり画面に届く。
+- コントロールは、作るところで自分の対象を名乗る (`src/ui/dom.ts` の `lockable`・`writes`・`writing`・`aimed`)。
+  `NumericSpec` から作る数値のコントロールはそのパスを自分で名乗り、プルダウンは渡された `path` を名乗る。
+  何も名乗らないコントロールは見た目が変わらないが、上の拒否はそのコントロールにも効く。
+- シミュレーター自身のページは何も使えなくせず、ロックを渡さないページでは画面はこれまでどおり。
+
+### INS FX のエフェクトの値をページが決める
+
+INS FX のエフェクトを選ぶと、本体と同じく、その値をエフェクト自身の設定で埋める。値をページの側で持つページ (前回そのエフェクト
+だったときの値を戻すページなど) は、`mountSim()` に `insertValuesFromPage: true` を渡す。するとエフェクトを選んだときに書くのは
+エフェクトとそのスイッチだけになり、画面は本体が答えた値を表示する。FX チャンネルのエフェクトはどちらでも埋める。
+
 ## 束縛テーブル
 
 `BindingTable` (`src/device/binding.ts`) がパス → アドレス + 符号化の対応を持つ。
@@ -90,8 +184,8 @@ sequenceDiagram
    だけをシミュレーターへ渡す。
 2. `BindingTable` を検証済みカタログから埋める。
 3. `new BridgeTransport(link, bindings)` を `store.attach()` に渡す。
-4. メーターを実機の値にする場合は `setMeterSource()` (`src/screens/meters.ts`) に実機の
-   メーターストリームを渡す。渡した関数は、ストリップの id とそのストリップ上の読む点を `@` でつないだ id
+4. メーターを実機の値にする場合は、`levels` が `device` の `Unit` を `useUnit()` に渡すか、`setMeterSource()`
+   (`src/screens/meters.ts`) に実機のメーターストリームを直接渡す。渡した関数は、ストリップの id とそのストリップ上の読む点を `@` でつないだ id
    (`ch3@preFader`・`bus.mix1@post` など、読む点は `src/screens/signal-flow.ts` の `Tap`) と、`monitor.<n>`・`cue`・`osc`・
    `playback` (カードの再生が出すもの。microSD Playback の D.Gain の後) を受け取る。`@` の無いストリップの id (`bus.stereo`・`ch1` など) も
    受け取り、これはそのストリップの出力で、`<strip>@post` と同じ値を返す。レベルは dB で返し、数でない値は無音、0 dB を超える値は

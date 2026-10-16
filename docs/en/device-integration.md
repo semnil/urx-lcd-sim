@@ -28,6 +28,109 @@ export interface DeviceLink {
 }
 ```
 
+## The unit behind the screens
+
+The values are one of four things the unit does by itself. `Unit` (`src/device/unit.ts`) carries all of
+them, and the screens ask it without knowing which kind of unit answers.
+
+| Part | What it is | Simulated unit |
+| --- | --- | --- |
+| `params` | The `DeviceTransport` the store attaches to | `SimTransport` |
+| `levels` | What the meters read: `simulated`, or `device` with a reader of levels in dB and a Clip Safe state per connector | The synthetic signal (`src/screens/signal-flow.ts`) |
+| `actions` | Who carries out the operations on the unit's own memory, card and recorder: `simulated`, or `device` with a `perform(op)` that answers whether the unit took the operation | Each carried out on the simulated memory (`emulatedActions`) |
+| `clock` | The moment the unit's clock runs off, before the DATE / TIME dialog moves it | The computer's clock |
+
+An operation (`UnitOp`) carries everything the unit needs to carry it out, and nothing of the screens or of
+the simulator:
+
+| Operation | Arguments |
+| --- | --- |
+| `scene.recall` | `scene`: the number, 0 and the presets being the factory scenes |
+| `scene.store` | `bank`, `scene`, and the `title` typed for it |
+| `scene.protect` | `bank`, `scene`, and `protect`: whether it is protected after |
+| `scene.delete` | `bank`, `scene` |
+| `settings.save` | `file`: the folder and the name, written over a settings file of that name there or as a new one |
+| `settings.load` | `file` |
+| `card.insert`, `card.eject`, `card.test` | none |
+| `card.format` | `label`: the volume label typed, empty for none |
+| `card.delete` | `file` |
+| `card.rename` | `file`, and the name `to` |
+| `card.newFolder` | `file`: the folder it is made in and its name |
+| `recorder.arm`, `recorder.record`, `recorder.pause`, `recorder.stop` | none |
+| `playback.start` | `file`: the file to play, or the one paused to go on with |
+| `playback.pause`, `playback.stop` | none |
+
+A screen hands an operation over as soon as it is asked for and confirmed, and whether the unit can carry
+it out is the unit's to answer: the simulated unit leaves undone an entry its card does not carry, a
+settings file holding nothing, and a file or a take its card has no room for. A `device` unit is handed
+the operation and nothing of the simulator's own memory, card or recorder moves — `refusedActions` is one
+that refuses each one and reports it. The simulated recorder also stops a take at the room its card has
+and a file at its end, on the counters' clock; a `device` unit's recorder and playback move only as its
+values report them, and the counters write nothing. The edits a screen makes to values stay `params`'
+business, as they are on every kind of unit.
+
+`useUnit()` (`src/app/unit.ts`) hands a unit's levels and clock to the meters and the clock; one unit is
+mounted on a page at a time. A unit's levels reach the meters through `setMeterSource()` and
+`setClipSafeSource()` (`src/screens/meters.ts`), whose ids are described under "Wiring it up" below.
+
+## Embedding the glass in another page
+
+`mountSim()` (`src/embed.ts`, exported as `urx-lcd-sim/embed`) mounts the glass of a model in an element
+of another page, reading and writing through the `Unit` it is handed. It mounts the 480x272 glass alone:
+no unit model or display scale selector, no Device menu, no link indicator, and nothing stored in the
+browser. What it returns sets the display scale and lets the glass go, closing the unit's transport.
+
+- The glass is drawn in the shadow tree of one element of the page (`.urx-lcd-sim`), so the page's rules
+  do not reach the elements inside it and the glass's rules do not reach the page's (`src/embed-css.ts`).
+  Inside the tree, `:root` reads as the glass's own root (`.embed-glass`), which starts from the initial
+  value of every property rather than from what the page passes in. `@font-face` and `@property`, which a
+  shadow tree does not take, stand on the page, and a font file loads from the URL the page passes in for
+  it (`fonts`, by the file name under `public/fonts/`, which the package exports as
+  `urx-lcd-sim/fonts/*`).
+- The focus, a key and a pointer are read in the glass's own tree (`src/ui/active.ts`): seen from the
+  page, the focus inside the glass and an event from inside it stand on the host element.
+- A key pressed with nothing focused is the page's: Escape steps the glass back only while the focus is
+  on the glass, and Tab is kept inside a dialog of the glass only while the focus is on the glass.
+- A value drag marks the glass's root rather than the page.
+- `shippedValues(model)` lists every path the glass reads and writes, with the value it ships with, for a
+  host deciding which of them it answers.
+
+### Controls the page holds shut
+
+A page can hold controls of the glass shut and say why: `locks` in the options `mountSim()` takes, and
+`setLocks()` on what it returns, which replaces the whole set and draws the glass again (`src/ui/locks.ts`).
+Each lock (`SimLock`) is a target and the reason the page gives for it. A target (`LockTarget`) is one of:
+
+| Target | Holds shut |
+| --- | --- |
+| `{ kind: "path", path }` | a control that writes that path: a value box, a knob, a fader, a switch, a pulldown, a button that opens the sheet picking it. A control that writes several paths is held by its first. |
+| `{ kind: "screen", id }` | a button that opens the screen of that route id: HOME's `setup` / `microsd` / `monitor`, SETUP's entries (`setup.language`, `setup.rate`, ...), microSD's (`microsd.saveload`, ...), a channel's blocks (`ch.eq`, ...). |
+| `{ kind: "op", op }` | a button that hands the unit that operation (`UnitOp["kind"]`: `scene.recall`, `recorder.arm`, `card.eject`, ...). A transport button that hands the unit a different operation in each state is held by the one it would hand it now. |
+
+- A control held shut takes the face of a control out of reach (`is-disabled`, `aria-disabled="true"`) and
+  `is-held-shut`, carries a padlock at its top right corner (`aria-hidden="true"`), and gives the page's
+  reason as its `title` and its `aria-description`. Its name is left as it was. Letting it go gives back
+  what the control carried before, so a control the screen itself holds out of reach stays out of reach.
+- It answers no touch, Enter or Space, and a value held shut turns by no drag, wheel or key.
+- Behind the drawing, the glass refuses what a held control would do however it is reached:
+  `DeviceStore.setLocked()` refuses an edit of a held path whole, and one that carries a write onto one
+  (a linked pair's other channel, say), reporting nothing to `onWriteFailure`; the navigator opens no held
+  screen (`Navigator.setRefusal()`, the back arrow and the home button aside); `perform()` hands the unit
+  no held operation. A value the unit changes itself still reaches the glass.
+- A control names its target where it is built (`lockable`, `writes`, `writing` and `aimed` in
+  `src/ui/dom.ts`): the numeric controls built from a `NumericSpec` name its path themselves, and a
+  pulldown names the `path` it is given. A control that names none is drawn as it is, while the refusals
+  above still hold for it.
+- The simulator's own page holds nothing, and a page that passes no locks sees the glass as before.
+
+### An insert effect's values from the page
+
+Choosing an insert effect fills its values with the effect's own settings, as the unit does. A page that
+keeps those values itself — one that brings back what a node held the last time it carried that effect —
+passes `insertValuesFromPage: true` to `mountSim()`: choosing an effect then writes the effect and its
+switch alone, and the glass shows the values the unit answers with. The FX channels' effects are filled
+either way.
+
 ## Binding table
 
 `BindingTable` (`src/device/binding.ts`) holds the mapping from path to address + encoding.
@@ -92,8 +195,8 @@ sequenceDiagram
    these five verbs to the simulator.
 2. Fill `BindingTable` from a validated catalog.
 3. Pass `new BridgeTransport(link, bindings)` to `store.attach()`.
-4. To drive the meters from the unit, pass the unit's meter stream to `setMeterSource()`
-   (`src/screens/meters.ts`). The function passed is given a strip's id and the point on the strip it
+4. To drive the meters from the unit, hand a `Unit` whose `levels` are `device` to `useUnit()` — or
+   pass the unit's meter stream to `setMeterSource()` (`src/screens/meters.ts`) directly. The function passed is given a strip's id and the point on the strip it
    reads, joined by `@` (`ch3@preFader`, `bus.mix1@post`, and so on; the points are `Tap` in
    `src/screens/signal-flow.ts`), and `monitor.<n>`, `cue`, `osc` and `playback` (what the card's
    playback puts out, after microSD Playback's D.Gain). It is also given a strip's id alone, with no `@`

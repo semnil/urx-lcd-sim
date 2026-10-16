@@ -2,6 +2,8 @@
 // and "Other operations > Storing a scene").
 
 import type { AppContext } from "../app/context";
+import { perform } from "../app/perform";
+import type { SceneBank, UnitOp } from "../device/unit";
 import { applyScene, asPutBack, captureScene, readScene } from "../model/scene-state";
 import { shippedScene } from "../model/scene-presets";
 import { onlyHeld } from "../model/defaults";
@@ -11,7 +13,7 @@ import { dropInsertsOverRate } from "./insert-fx";
 import { followRecall, pairStates } from "./stereo-link";
 import { settlePanLink } from "./mix-bus";
 import { onSsmcsStops } from "./ssmcs";
-import { el, markShut } from "../ui/dom";
+import { aimOf, aimed, el, lockable, markShut, writing } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { LIST_THUMB_MIN_PX, SHORT_PROGRESS_MS, button, dialog, listView, loadingDialog, menuButton, menuGrid, scrollbar, sideTab, toggle } from "../ui/widgets";
 import { draftTitle, openTitleEntry } from "./title-entry";
@@ -113,7 +115,7 @@ export async function recallScene(ctx: AppContext, no: number): Promise<void> {
  * the number in one operation of the store, and `Scene store is in progress...`
  * stands over the list as long as the other short progress modals.
  */
-function storeTitled(ctx: AppContext, bank: string, no: number, title: string): void {
+function storeTitled(ctx: AppContext, bank: SceneBank, no: number, title: string): void {
   ctx.store.operation(() => {
     void ctx.store.set(`scene.${bank}.${no}.title`, title);
     void storeScene(ctx, bank, no);
@@ -161,8 +163,8 @@ function readOnlyBank(ctx: AppContext, bank: string): boolean {
 }
 
 /** The bank SCENE LIST lists: Simple's alone in Simple Mode, else the tab last picked. */
-function openBank(ctx: AppContext): string {
-  return ctx.store.str("setup.operationMode", "Standard") === "Simple" ? "Simple" : ctx.store.str("scene.bank", "Standard");
+function openBank(ctx: AppContext): SceneBank {
+  return ctx.store.str("setup.operationMode", "Standard") === "Simple" || ctx.store.str("scene.bank", "Standard") === "Simple" ? "Simple" : "Standard";
 }
 
 /** The row SCENE LIST's cursor stands on. A selection the bank does not list falls to its first row. */
@@ -202,6 +204,8 @@ function glyphButton(label: string, glyph: SVGSVGElement, enabled: boolean, onTa
       if (enabled) onTap();
     },
   });
+  const aim = aimOf(onTap);
+  if (aim) lockable(node, aim);
   return markShut(node, !enabled);
 }
 
@@ -211,7 +215,7 @@ export const sceneTopScreen: ScreenDef = {
   toolbar: "sub",
   title: () => "SCENE",
   build(ctx): ScreenBody {
-    return { main: menuGrid([menuButton("Scene List", () => ctx.nav.push({ id: "scene.list" }))], "menu-grid-wide") };
+    return { main: menuGrid([menuButton("Scene List", aimed(() => ctx.nav.push({ id: "scene.list" }), { kind: "screen", id: "scene.list" }))], "menu-grid-wide") };
   },
 };
 
@@ -242,7 +246,7 @@ export const sceneScreen: ScreenDef = {
       return {
         key: String(no),
         selected: no === selected,
-        onTap: () => void ctx.store.set("scene.selected", no),
+        onTap: writing("scene.selected", () => void ctx.store.set("scene.selected", no)),
         description: marks.join(", ") || undefined,
         cells: [
           el("span", {
@@ -257,18 +261,18 @@ export const sceneScreen: ScreenDef = {
 
     // Only a number holding a scene can be recalled.
     const recallShut = owner === null && !isFactoryLocked(selected);
-    const recall = markShut(button("Recall", () => {
+    const recall = markShut(button("Recall", aimed(() => {
       if (recallShut) return;
       ctx.overlay(
         dialog({
           message: `Recall scene "${sceneTitle(ctx, selected)}"?`,
-          onOk: () => void recallScene(ctx, selected),
+          onOk: () => void perform(ctx, { kind: "scene.recall", scene: selected }),
         }),
       );
-    }), recallShut);
+    }, { kind: "op", op: "scene.recall" })), recallShut);
 
     const storeShut = isFactoryLocked(selected) || guarded || readOnly;
-    const store = markShut(button("Store", () => {
+    const store = markShut(button("Store", aimed(() => {
       if (storeShut) return;
       // Any number is named on the title entry sheet first, starting from the
       // recalled scene's title, and [OK] there asks before anything is stored.
@@ -279,33 +283,34 @@ export const sceneScreen: ScreenDef = {
           ctx.overlay(
             dialog({
               message: `Store to "Scene Memory #${sceneNumber(selected)}"?`,
-              onOk: () => storeTitled(ctx, bank, selected, typed),
+              onOk: () => void perform(ctx, { kind: "scene.store", bank, scene: selected, title: typed }),
             }),
           );
         },
       });
       ctx.nav.push({ id: "scene.title" });
-    }), storeShut);
+    }, { kind: "op", op: "scene.store" })), storeShut);
 
     // Only a stored scene can be protected, and only one left unprotected deleted or renamed.
     const editable = owner !== null && !readOnly;
-    const protectPath = `scene.${owner}.${selected}.protect`;
     const titlePath = `scene.${owner}.${selected}.title`;
     const edit = [
-      glyphButton("Protect", Icons.lock(), editable, () => void ctx.store.set(protectPath, guarded ? 0 : 1), guarded),
-      glyphButton("Delete", Icons.trash(), editable && !guarded, () => {
+      glyphButton(
+        "Protect",
+        Icons.lock(),
+        editable,
+        aimed(() => void (owner && perform(ctx, { kind: "scene.protect", bank: owner, scene: selected, protect: !guarded })), { kind: "op", op: "scene.protect" }),
+        guarded,
+      ),
+      glyphButton("Delete", Icons.trash(), editable && !guarded, aimed(() => {
         ctx.overlay(
           dialog({
             message: `Delete "Scene Memory #${sceneNumber(selected)}"?`,
-            onOk: () => {
-              void ctx.store.set(titlePath, "");
-              void ctx.store.set(protectPath, 0);
-              void ctx.store.set(statePath(`${owner}`, selected), "");
-            },
+            onOk: () => void (owner && perform(ctx, { kind: "scene.delete", bank: owner, scene: selected })),
           }),
         );
-      }),
-      glyphButton("Title", Icons.rename(), editable && !guarded, () => openTitleEntry(ctx, titlePath, sceneTitle(ctx, selected))),
+      }, { kind: "op", op: "scene.delete" })),
+      glyphButton("Title", Icons.rename(), editable && !guarded, aimed(() => openTitleEntry(ctx, titlePath, sceneTitle(ctx, selected)), { kind: "screen", id: "scene.title" })),
     ];
 
     const list = listView("Scene List", ["No.", "Title", "Lock"], rows, "list-carded scene-list");
@@ -362,3 +367,23 @@ export const sceneScreen: ScreenDef = {
     };
   },
 };
+
+/** The simulated unit's scene memory carrying `op` out. */
+export function emulateSceneOp(ctx: AppContext, op: Extract<UnitOp, { kind: `scene.${string}` }>): boolean {
+  switch (op.kind) {
+    case "scene.recall":
+      void recallScene(ctx, op.scene);
+      return true;
+    case "scene.store":
+      storeTitled(ctx, op.bank, op.scene, op.title);
+      return true;
+    case "scene.protect":
+      void ctx.store.set(`scene.${op.bank}.${op.scene}.protect`, op.protect ? 1 : 0);
+      return true;
+    case "scene.delete":
+      void ctx.store.set(`scene.${op.bank}.${op.scene}.title`, "");
+      void ctx.store.set(`scene.${op.bank}.${op.scene}.protect`, 0);
+      void ctx.store.set(statePath(op.bank, op.scene), "");
+      return true;
+  }
+}

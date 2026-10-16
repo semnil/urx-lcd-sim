@@ -5,6 +5,7 @@ import { el, setPressed } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { button, dialog } from "../ui/widgets";
 import type { ScreenBody, ScreenDef } from "./types";
+import { setSpokenAttr } from "../ui/spoken";
 
 /** Where the sheet keeps the title being typed, and where it goes, until [OK]. */
 const DRAFT = "ui.titleEntry";
@@ -252,7 +253,7 @@ export const titleEntryScreen: ScreenDef = {
           : button(face, tap, "title-key");
       if (k.action.kind === "shift") setPressed(node, shift);
       const name = KEY_NAMES[k.action.kind];
-      if (name) node.setAttribute("aria-label", name);
+      if (name) setSpokenAttr(node, "aria-label", name);
       node.style.gridColumn = `${k.col + 1} / span ${k.span}`;
       node.style.gridRow = String(row + 1);
       node.tabIndex = -1;

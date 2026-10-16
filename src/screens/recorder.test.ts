@@ -8,6 +8,7 @@ import { buildRegistry } from "./index";
 import type { CardEntry } from "../model/card";
 import { freeBytes, readCard, writeCard } from "../model/card";
 import { recordTake, stopTake } from "./recording";
+import { spoken } from "../ui/spoken";
 
 // Track Count is a value with eight settings. It sits in the toolbar as a box
 // that opens the list of them, rather than as eight buttons taking up the screen.
@@ -273,7 +274,7 @@ describe("the record-source sheet", () => {
     const shell = await mount();
     shell.root.querySelector<HTMLElement>(".rec-slot-src")?.click();
     await flush();
-    expect(shell.root.querySelector('[role="dialog"][aria-label="REC Track 1/2 source"]'), "the sheet is open").not.toBeNull();
+    expect(shell.root.querySelector(`[role="dialog"][aria-label="${spoken("REC Track 1/2 source")}"]`), "the sheet is open").not.toBeNull();
     expect(shell.root.querySelector(".scrollbar")).toBeNull();
   });
 });

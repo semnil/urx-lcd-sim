@@ -108,6 +108,11 @@ export class DeviceStore {
   /** Whether a path holds a value the screens keep for themselves. */
   private screenOnly: (path: ParamPath) => boolean = () => false;
 
+  /** Whether the page the glass is embedded in holds a path shut, so no edit writes it. */
+  private locked: (path: ParamPath) => boolean = () => false;
+  /** Whether the edit under way reached a path held shut, which refuses the whole of it. */
+  private lockRefused = false;
+
   /** Paths changed since the last flush, coalesced into one notification. */
   private pending = new Set<ParamPath>();
   private changes = 0;
@@ -258,12 +263,34 @@ export class DeviceStore {
   }
 
   /**
+   * The paths no edit may write. The store knows nothing of why; the caller
+   * supplies the meaning. An edit of one of them, or one that carries a write
+   * onto one, is refused whole, as though it had not been made, and reported to
+   * no one: the mirror keeps what it held and nothing goes to the transport. A
+   * value put back by `restore` is not an edit and is not refused. The function
+   * returned lets it go: the one it replaced is held again, unless another has
+   * since taken its place.
+   */
+  setLocked(locked: ((path: ParamPath) => boolean) | null): () => void {
+    const previous = this.locked;
+    const held = locked ?? (() => false);
+    this.locked = held;
+    return () => {
+      if (this.locked === held) this.locked = previous;
+    };
+  }
+
+  /**
    * Edit a value: mirror it now, send it to the device, revert on rejection.
    * The edit and the writes its rule carries go to the transport together, or
    * none of them does, as with `operation`. Returns the write promise so
    * callers that must sequence can await it; UI handlers ignore it.
    */
   set(path: ParamPath, value: ParamValue): Promise<void> {
+    if (this.locked(path)) {
+      if (this.edit) this.lockRefused = true;
+      return Promise.resolve();
+    }
     return this.together(() => this.write(path, value, true));
   }
 
@@ -299,15 +326,22 @@ export class DeviceStore {
     if (this.edit) return op();
     const edit: Queued[] = [];
     this.edit = edit;
+    this.lockRefused = false;
     let result: Promise<void>;
     try {
       result = op();
     } catch (error) {
       this.edit = null;
+      this.lockRefused = false;
       this.undo(edit);
       throw error;
     }
     this.edit = null;
+    if (this.lockRefused) {
+      this.lockRefused = false;
+      this.undo(edit);
+      return result;
+    }
     const t = this.transport;
     const unwritable = t ? edit.filter((q) => t.writable?.(q.path) === false) : [];
     const refused = unwritable.filter((q) => !this.screenOnly(q.path));
@@ -341,6 +375,10 @@ export class DeviceStore {
   }
 
   private write(path: ParamPath, value: ParamValue, carry: boolean, carried = false): Promise<void> {
+    if (carried && this.locked(path)) {
+      this.lockRefused = true;
+      return Promise.resolve();
+    }
     const previous = this.mirror.get(path);
     // A value the mirror already holds is sent again only while an earlier
     // write to the path awaits the device, and never as a write a rule carries.

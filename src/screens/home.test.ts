@@ -20,6 +20,7 @@ import { udkAssignment } from "../model/udk";
 import { openDateTimeSet, openTimeZone } from "./date-time";
 import { pausePlayback, startPlayback, stopPlayback } from "./recording";
 import { version as packageVersion } from "../../package.json";
+import { spoken } from "../ui/spoken";
 
 const flush = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 /** What a control is called: its label where it carries one, else its words, as a mark drawn instead of a letter is named. */
@@ -102,11 +103,11 @@ describe("the HOME send-destination tab", () => {
     const readout = (): string | null | undefined => shell.root.querySelector(".strip-level-value")?.textContent;
     const label = (): string | null | undefined => shell.root.querySelector(".strip-level")?.getAttribute("aria-label");
     // The channel's own fader feeds the stereo bus, so STEREO shows the fader.
-    expect([readout(), label()]).toEqual(["0.00", "CH 1 LEVEL"]);
+    expect([readout(), label()]).toEqual(["0.00", spoken("CH 1 LEVEL")]);
 
     await shell.ctx.store.set("ui.sendsTarget", "MIX1");
     await flush();
-    expect([readout(), label()], "the send, which ships at the bottom").toEqual(["-\u221e", "CH 1 Level"]);
+    expect([readout(), label()], "the send, which ships at the bottom").toEqual(["-\u221e", spoken("CH 1 Level")]);
 
     await shell.ctx.store.set("ch.ch1.send.bus.mix1.level", -12);
     await flush();
@@ -118,11 +119,11 @@ describe("the HOME send-destination tab", () => {
     const shell = await mount();
     const knob = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".strip-level");
     // STEREO is fed by the fader, and the send there carries the switch alone.
-    expect([knob()?.getAttribute("aria-label"), knob()?.classList.contains("is-send-off")]).toEqual(["CH 1 LEVEL", false]);
+    expect([knob()?.getAttribute("aria-label"), knob()?.classList.contains("is-send-off")]).toEqual([spoken("CH 1 LEVEL"), false]);
 
     await shell.ctx.store.set("ch.ch1.send.bus.stereo.on", false);
     await flush();
-    expect([knob()?.getAttribute("aria-label"), knob()?.classList.contains("is-send-off")]).toEqual(["CH 1 LEVEL", true]);
+    expect([knob()?.getAttribute("aria-label"), knob()?.classList.contains("is-send-off")]).toEqual([spoken("CH 1 LEVEL"), true]);
 
     const before = shell.ctx.store.num("ch.ch1.level", 0);
     knob()?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true, cancelable: true }));
@@ -650,7 +651,7 @@ describe("a strip on the bank", () => {
       level()?.dispatchEvent(ev);
       return ev.defaultPrevented;
     };
-    expect(level()?.getAttribute("aria-label")).toBe("CH 1 LEVEL");
+    expect(level()?.getAttribute("aria-label")).toBe(spoken("CH 1 LEVEL"));
 
     expect(press("End"), "End is the slider's own key").toBe(true);
     await flush();
@@ -1691,6 +1692,25 @@ describe("the SEND TO destination tabs", () => {
     } finally {
       setMeterSource(null);
     }
+  });
+
+  it.each([
+    ["ch.ducker", "ch_5_6", "ducker"],
+    ["ch.delay", "bus.stream", "delay"],
+  ])("switches %s on and off from the title box in its toolbar", async (id, strip, kind) => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id, strip });
+    await flush();
+    const title = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(`.toolbar .badge-title.badge-${kind}`);
+    const before = title()?.getAttribute("aria-pressed");
+    expect(before === "true" || before === "false", "the title box says whether it is on").toBe(true);
+
+    title()?.click();
+    await flush();
+    expect(title()?.getAttribute("aria-pressed")).toBe(before === "true" ? "false" : "true");
+    title()?.click();
+    await flush();
+    expect(title()?.getAttribute("aria-pressed")).toBe(before);
   });
 
   it("counts a delay in every frame rate the unit offers, drop frame included", async () => {
@@ -3685,7 +3705,7 @@ describe("the moves USER DEFINED KNOBS mode goes off on", () => {
 
   it("stays on from a strip on HOME to its channel view, and from a block there to its screen", async () => {
     const shell = await onAt();
-    for (let i = 0; i < 2 && shell.ctx.nav.current.id === "home"; i++) await tap(shell, '[aria-label="CH 1 settings"]');
+    for (let i = 0; i < 2 && shell.ctx.nav.current.id === "home"; i++) await tap(shell, `[aria-label="${spoken("CH 1 settings")}"]`);
     expect([where(shell), ...mode(shell)], "the strip").toEqual(["channel-view ch1", ...ON]);
     // The first touch takes the knob, the second opens the screen.
     await tap(shell, ".cv-block-comp");
@@ -3759,7 +3779,7 @@ describe("the moves USER DEFINED KNOBS mode goes off on", () => {
 
   it("stays on under a pulldown's list and once it closes on a pick", async () => {
     const shell = await onAt([{ id: "setup" }, { id: "setup.datetime" }]);
-    await tap(shell, ".pulldown", "Date: MM/DD/YYYY (3 options)");
+    await tap(shell, ".pulldown", spoken("Date: MM/DD/YYYY (3 options)"));
     expect([shell.root.querySelector(".dropdown-sheet") !== null, ...mode(shell)], "the list up").toEqual([true, ...ON]);
     await tap(shell, ".dropdown-option", "DD/MM/YYYY");
     expect([shell.root.querySelector(".dropdown-sheet") !== null, shell.ctx.store.str("setup.dateTime.dateFormat", ""), ...mode(shell)], "picked").toEqual([
@@ -3860,7 +3880,7 @@ describe("the USER DEFINED KNOBS bar under a sheet, a list or a dialog", () => {
       close: (s) => tap(s, ".source-sheet .source-back"),
       darkBy: "source-overlay",
     },
-    { name: "the Date format list", under: [{ id: "setup" }, { id: "setup.datetime" }], open: (s) => tap(s, ".pulldown", "Date: MM/DD/YYYY (3 options)"), close: escape, darkBy: "dropdown-sheet" },
+    { name: "the Date format list", under: [{ id: "setup" }, { id: "setup.datetime" }], open: (s) => tap(s, ".pulldown", spoken("Date: MM/DD/YYYY (3 options)")), close: escape, darkBy: "dropdown-sheet" },
     { name: "the eject dialog", under: [{ id: "microsd" }, { id: "microsd.saveload" }], open: (s) => tap(s, ".sd-eject"), close: escape, darkBy: "dialog-overlay" },
   ];
 
@@ -4234,7 +4254,7 @@ describe("the channel the dedicated screens show", () => {
 
   it("selects a strip at a tap on its indicator rows, and opens its channel view at a tap once it is selected", async () => {
     const shell = await mount();
-    const indicators = (): HTMLElement | null => shell.root.querySelector<HTMLElement>('[aria-label="CH 2 settings"]');
+    const indicators = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(`[aria-label="${spoken("CH 2 settings")}"]`);
     const state = (): string[] => [
       shell.ctx.store.str("ui.selectedStrip", ""),
       shell.ctx.nav.current.id,
@@ -4306,7 +4326,7 @@ describe("EQ's shape list and Operation Mode's previews", () => {
     expect(before[0], "LOW as the unit ships").toBe("L.Shelf");
     shell.root.querySelector<HTMLElement>(".eq-screen > .pulldown")?.click();
     await flush();
-    [...shell.root.querySelectorAll<HTMLElement>(".dropdown-option.eq-shape-option")].find((o) => o.getAttribute("aria-label") === "HPF")?.click();
+    [...shell.root.querySelectorAll<HTMLElement>(".dropdown-option.eq-shape-option")].find((o) => o.getAttribute("aria-label") === spoken("HPF"))?.click();
     await flush();
     expect(shell.root.querySelector(".dropdown-option"), "the list closes on the pick").toBeNull();
     expect(shapes()).toEqual(["HPF", before[1]]);
@@ -4956,7 +4976,7 @@ describe("what the dedicated channel screens draw", () => {
     const flags = [...shell.root.querySelectorAll<HTMLElement>(".input-flag")];
     const named = (cls: string): HTMLElement | undefined => flags.find((f) => f.classList.contains(cls));
     expect(named("is-phantom")?.textContent).toBe("+48V");
-    expect(named("is-phase")?.getAttribute("aria-label")).toBe("Φ");
+    expect(named("is-phase")?.getAttribute("aria-label")).toBe(spoken("Φ"));
     // Drawn as the mark HOME draws, a bar running through a ring and out of it, not as a letter.
     expect(named("is-phase")?.querySelector("svg")?.getAttribute("class")).toBe("icon-phase");
     expect(named("is-phase")?.textContent).toBe("");
@@ -5488,8 +5508,8 @@ describe("what the dedicated channel screens draw", () => {
     };
     // A mono channel has the whole head amp; a stereo pair has no phantom power,
     // no clip guard and no filter; a bus has no head amp at all.
-    expect(await shown("ch1")).toEqual(["+48V", "Clip Safe", "Auto Gain", "Φ", "HPF", "A.Gain", "HPF Freq.", "Input Source"]);
-    expect(await shown("ch_5_6")).toEqual(["Φ", "D.Gain", "Input Source"]);
+    expect(await shown("ch1")).toEqual(["+48V", "Clip Safe", "Auto Gain", spoken("Φ"), "HPF", "A.Gain", "HPF Freq.", "Input Source"]);
+    expect(await shown("ch_5_6")).toEqual([spoken("Φ"), "D.Gain", "Input Source"]);
     expect(await shown("bus.stereo")).toEqual([]);
     expect(await shown("bus.stream"), "STREAMING keeps what it is fed from").toEqual(["Input Source"]);
 
@@ -5522,15 +5542,15 @@ describe("what the dedicated channel screens draw", () => {
     const marks = (): string[] => [...shell.root.querySelectorAll<HTMLElement>(".cv-gain-flags > *")].map(accessibleName);
 
     // CH 3 is on MIC/LINE 3, a connector that takes HI-Z.
-    expect(await onInput()).toEqual(["+48V", "HI-Z", "Clip Safe", "Auto Gain", "Φ", "HPF", "A.Gain", "HPF Freq."]);
-    expect(marks()).toEqual(["+48V", "Φ", "HPF", "HI-Z"]);
+    expect(await onInput()).toEqual(["+48V", "HI-Z", "Clip Safe", "Auto Gain", spoken("Φ"), "HPF", "A.Gain", "HPF Freq."]);
+    expect(marks()).toEqual(["+48V", spoken("Φ"), "HPF", "HI-Z"]);
 
     await shell.ctx.store.set("ch.ch3.source", "USB DAW 3/4");
-    expect(await onInput(), "the digital gain, and what does not belong to the head amp").toEqual(["Φ", "HPF", "D.Gain", "HPF Freq."]);
-    expect(marks(), "the two cells keep their places, empty").toEqual(["", "Φ", "HPF", ""]);
+    expect(await onInput(), "the digital gain, and what does not belong to the head amp").toEqual([spoken("Φ"), "HPF", "D.Gain", "HPF Freq."]);
+    expect(marks(), "the two cells keep their places, empty").toEqual(["", spoken("Φ"), "HPF", ""]);
 
     await shell.ctx.store.set("ch.ch3.source", "MIC/LINE 3/4");
-    expect(await onInput(), "back on the connector, all of it again").toEqual(["+48V", "HI-Z", "Clip Safe", "Auto Gain", "Φ", "HPF", "A.Gain", "HPF Freq."]);
+    expect(await onInput(), "back on the connector, all of it again").toEqual(["+48V", "HI-Z", "Clip Safe", "Auto Gain", spoken("Φ"), "HPF", "A.Gain", "HPF Freq."]);
   });
 
   it("prints an INPUT frequency without its unit in the box and with it in the bar", async () => {
@@ -5977,7 +5997,7 @@ describe("screens laid out from the guide's figures", () => {
       return icon?.outerHTML;
     };
     const press = async (label: string): Promise<void> => {
-      [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === label)?.click();
+      [...shell.root.querySelectorAll<HTMLElement>(".sd-actions > *")].find((b) => b.getAttribute("aria-label") === spoken(label))?.click();
       await flush();
     };
     const recorder = async (): Promise<void> => {
@@ -6117,8 +6137,8 @@ describe("screens laid out from the guide's figures", () => {
     shell.ctx.nav.push({ id: "ch.input", strip: "ch_5_6" });
     await flush();
     const phase = (): HTMLButtonElement | undefined =>
-      [...shell.root.querySelectorAll<HTMLButtonElement>(".input-flag")].find((b) => accessibleName(b) === "Φ");
-    expect([...shell.root.querySelectorAll(".input-flag")].filter((b) => accessibleName(b) === "Φ").length).toBe(1);
+      [...shell.root.querySelectorAll<HTMLButtonElement>(".input-flag")].find((b) => accessibleName(b) === spoken("Φ"));
+    expect([...shell.root.querySelectorAll(".input-flag")].filter((b) => accessibleName(b) === spoken("Φ")).length).toBe(1);
     expect(phase()?.classList.contains("is-on")).toBe(false);
 
     phase()?.click();
@@ -6130,7 +6150,7 @@ describe("screens laid out from the guide's figures", () => {
     ], "the L side alone, and no control writes a path the screens do not read").toEqual([true, false, false]);
 
     const next = [...shell.root.querySelectorAll<HTMLButtonElement>(".ch-arrow")].find(
-      (b) => b.getAttribute("aria-label") === "Next channel",
+      (b) => b.getAttribute("aria-label") === spoken("Next channel"),
     );
     next?.click();
     await flush();
@@ -6145,7 +6165,7 @@ describe("screens laid out from the guide's figures", () => {
     shell.ctx.nav.push({ id: "channel-view", strip: "ch_9_10" });
     await flush();
     const marks = (): HTMLElement[] => [...shell.root.querySelectorAll<HTMLElement>(".cv-gain .flag.is-phase")];
-    expect(marks().map((n) => [n.getAttribute("aria-label"), n.querySelector("svg")?.getAttribute("class")])).toEqual([["Φ", "icon-phase"]]);
+    expect(marks().map((n) => [n.getAttribute("aria-label"), n.querySelector("svg")?.getAttribute("class")])).toEqual([[spoken("Φ"), "icon-phase"]]);
 
     await shell.ctx.store.set("ch.ch_9_10.phase.l", true);
     await flush();
@@ -6248,14 +6268,14 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
     expect(
       [
         ["+48V", "is-phantom"],
-        ["Φ", "is-phase"],
+        [spoken("Φ"), "is-phase"],
       ].map(([text, kind]) => {
         const node = mark(text ?? "");
         return [text, node?.classList.contains(kind ?? ""), node?.classList.contains("is-on")];
       }),
     ).toEqual([
       ["+48V", true, true],
-      ["Φ", true, true],
+      [spoken("Φ"), true, true],
     ]);
     // HPF and HI-Z claim nothing of their own: they take the lit mark's colour.
     for (const text of ["HPF", "HI-Z"]) {
@@ -7146,7 +7166,7 @@ describe("the head amp belongs to the connector a channel is on", () => {
     for (const id of ["ch1", "ch2"]) await store.set(`ch.${id}.source`, "MIC/LINE 3/4");
 
     const ch1 = await input(shell, "ch1");
-    expect(ch1.shown, "MIC/LINE 3 takes HI-Z, so CH 1 on it carries the button").toEqual(["+48V", "HI-Z", "Clip Safe", "Auto Gain", "Φ", "HPF", "A.Gain", "HPF Freq."]);
+    expect(ch1.shown, "MIC/LINE 3 takes HI-Z, so CH 1 on it carries the button").toEqual(["+48V", "HI-Z", "Clip Safe", "Auto Gain", spoken("Φ"), "HPF", "A.Gain", "HPF Freq."]);
     expect(ch1.box, "CH 3's gain").toBe("+30");
     expect((await input(shell, "ch2")).box, "CH 2 sits on MIC/LINE 4, CH 4's").toBe("-8");
 
@@ -7365,7 +7385,7 @@ describe("the head amp belongs to the connector a channel is on", () => {
     await store.set("ch.ch_5_6.source", "MIC/LINE 1/2");
 
     const left = await input(shell, "ch_5_6");
-    expect(left.shown).toEqual(["+48V", "Clip Safe", "Auto Gain", "Φ", "A.Gain"]);
+    expect(left.shown).toEqual(["+48V", "Clip Safe", "Auto Gain", spoken("Φ"), "A.Gain"]);
     expect(left.box, "CH 5 is on MIC/LINE 1").toBe("+12");
     await store.set("ui.lane.ch_5_6", 1);
     expect((await input(shell, "ch_5_6")).box, "CH 6 on MIC/LINE 2").toBe("+20");
@@ -7373,7 +7393,7 @@ describe("the head amp belongs to the connector a channel is on", () => {
     shell.ctx.nav.push({ id: "channel-view", strip: "ch_5_6" });
     await flush();
     expect([...shell.root.querySelectorAll<HTMLElement>(".cv-gain-buttons .btn")].map((b) => b.textContent)).toEqual(["AUTO", "SAFE"]);
-    expect([...shell.root.querySelectorAll<HTMLElement>(".cv-gain-flags > *")].map(accessibleName)).toEqual(["+48V", "Φ"]);
+    expect([...shell.root.querySelectorAll<HTMLElement>(".cv-gain-flags > *")].map(accessibleName)).toEqual(["+48V", spoken("Φ")]);
     shell.ctx.nav.back();
     await flush();
 
@@ -7393,7 +7413,7 @@ describe("the head amp belongs to the connector a channel is on", () => {
 
     await store.set("ch.ch_5_6.source", "MIC/LINE 3/4");
     await store.set("ui.lane.ch_5_6", 1);
-    expect((await input(shell, "ch_5_6")).shown, "MIC/LINE 4 takes HI-Z").toEqual(["+48V", "HI-Z", "Clip Safe", "Auto Gain", "Φ", "A.Gain"]);
+    expect((await input(shell, "ch_5_6")).shown, "MIC/LINE 4 takes HI-Z").toEqual(["+48V", "HI-Z", "Clip Safe", "Auto Gain", spoken("Φ"), "A.Gain"]);
 
     await store.set("ui.bank", 1);
     expect((await homeMarks(shell))[0], "HOME marks it as it marks a mono channel: CH 6 is on MIC/LINE 4, its phantom off").toBe("CH 5/6:unlit");
@@ -7408,8 +7428,8 @@ describe("the head amp belongs to the connector a channel is on", () => {
     const store = shell.ctx.store;
     for (const id of ["ch1", "ch2"]) await store.set(`ch.${id}.source`, "None");
     await store.set("ch.ch_5_6.source", "None");
-    expect((await input(shell, "ch_5_6")).shown, "the level bar alone on the left, Φ on the right").toEqual(["Φ"]);
-    expect((await input(shell, "ch1")).shown).toEqual(["Φ", "HPF", "HPF Freq."]);
+    expect((await input(shell, "ch_5_6")).shown, "the level bar alone on the left, Φ on the right").toEqual([spoken("Φ")]);
+    expect((await input(shell, "ch1")).shown).toEqual([spoken("Φ"), "HPF", "HPF Freq."]);
 
     for (const [route, strip] of [["ch.input", "ch_5_6"], ["channel-view", "ch_5_6"], ["channel-view", "ch1"]] as const) {
       shell.ctx.nav.push({ id: route, strip });
@@ -7420,7 +7440,7 @@ describe("the head amp belongs to the connector a channel is on", () => {
         expect(
           [...shell.root.querySelectorAll<HTMLElement>(".cv-gain-flags > *")].map(accessibleName),
           `${strip}: a mono channel differs from a stereo one by HPF alone`,
-        ).toEqual(strip === "ch1" ? ["", "Φ", "HPF", ""] : ["", "Φ"]);
+        ).toEqual(strip === "ch1" ? ["", spoken("Φ"), "HPF", ""] : ["", spoken("Φ")]);
         expect(shell.root.querySelector(".cv-caption")?.textContent, `${strip}: no gain named`).toBe("");
         expect(shell.root.querySelector(".cv-gain-stack .value-box"), `${strip}: no gain to turn`).toBeNull();
         expect(shell.root.querySelector(".cv-gain .meter"), `${strip}: the meter stays`).not.toBeNull();
