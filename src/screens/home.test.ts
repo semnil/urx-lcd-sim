@@ -505,7 +505,7 @@ describe("the channel-bank list", () => {
     // The URX22 is two mono channels short, which packs its banks differently.
     const small = unitById("URX22");
     expect(small.inputs.map((s) => s.label)).not.toEqual(unitById("URX44V").inputs.map((s) => s.label));
-    expect([0, 1].map((b) => bankName(bankStrips(small.inputs, b)))).toEqual(["CH 1 - 6", "CH 7 - 10, FX 1 - 2"]);
+    expect([0, 1].map((b) => bankName(bankStrips(small.inputs, b)))).toEqual(["CH 1 - 6", "CH 7 - 10\nFX 1 - 2"]);
     expect(bankName(bankStrips(small.outputs, 0))).toBe("MIX, ST\nSTREAMING");
   });
 });

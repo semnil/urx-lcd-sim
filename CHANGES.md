@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Write the URX22's second INPUT bank in the bank list as `CH 7 - 10` over `FX 1 - 2`, on a button as wide as the other banks'. It read `CH 7 - 10, FX 1 - 2` on one line, on a button wider than the others.
 - Take SETUP's [Sampling Frequency] and Operation Mode box out of reach while microSD playback holds a file, playing or paused, as the unit does: they take the face of a button that cannot be used and open nothing. [Sampling Frequency] was out of reach in recording mode alone, and the Operation Mode box always opened.
 - Give SETUP's [Software Integration] a tooltip, under a resting pointer, that the unit does not offer it and that it is left usable here for screenshots.
 - Add a GitHub link, drawn as the logo alone, at the right end of the row of controls above the screen, which opens the repository in another tab.
