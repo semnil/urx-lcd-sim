@@ -49,6 +49,15 @@ describe("the embedded stylesheet", () => {
     expect(page).toContain('url("/fonts/Other.ttf")');
   });
 
+  it("ends a top-level statement at its semicolon, not at one inside its string, and drops a comment left open at the end", () => {
+    const { page, shadow } = embedStylesheet('@import "a\\";b.css"; @font-face { font-family: "Plex"; } /* open', "glass");
+    expect(shadow).toContain('@import "a\\";b.css";');
+    expect(shadow, "the block after the statement is a block of its own").not.toContain("@font-face");
+    expect(page).toContain('@font-face { font-family: "Plex"; }');
+    expect(page).not.toContain("@import");
+    expect(`${page}${shadow}`).not.toContain("open");
+  });
+
   it("drops comments, a brace inside one included", () => {
     const { shadow } = embedStylesheet("/* { not a rule */\n.a { color: red; /* } */ }\n", "glass");
     expect(shadow).not.toContain("not a rule");

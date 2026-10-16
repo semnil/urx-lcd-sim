@@ -1694,6 +1694,25 @@ describe("the SEND TO destination tabs", () => {
     }
   });
 
+  it.each([
+    ["ch.ducker", "ch_5_6", "ducker"],
+    ["ch.delay", "bus.stream", "delay"],
+  ])("switches %s on and off from the title box in its toolbar", async (id, strip, kind) => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id, strip });
+    await flush();
+    const title = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(`.toolbar .badge-title.badge-${kind}`);
+    const before = title()?.getAttribute("aria-pressed");
+    expect(before === "true" || before === "false", "the title box says whether it is on").toBe(true);
+
+    title()?.click();
+    await flush();
+    expect(title()?.getAttribute("aria-pressed")).toBe(before === "true" ? "false" : "true");
+    title()?.click();
+    await flush();
+    expect(title()?.getAttribute("aria-pressed")).toBe(before);
+  });
+
   it("counts a delay in every frame rate the unit offers, drop frame included", async () => {
     const shell = await mount();
     shell.ctx.nav.push({ id: "ch.delay", strip: "bus.stream" });

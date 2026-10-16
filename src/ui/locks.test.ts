@@ -10,7 +10,7 @@ import { factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
 import { buildRegistry } from "../screens";
 import { el, markShut, writes } from "./dom";
-import { LOCK_MARK_CLASS, type SimLock } from "./locks";
+import { LOCK_MARK_CLASS, Locks, type SimLock, drawLocks } from "./locks";
 
 const flush = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 
@@ -287,5 +287,54 @@ describe("an overlay up while the page changes what it holds", () => {
     expect(shut.classList.contains("is-disabled")).toBe(true);
     expect(shut.getAttribute("aria-disabled")).toBe("true");
     expect(shut.hasAttribute("title")).toBe(false);
+  });
+});
+
+describe("a field the page holds shut", () => {
+  const held = (path: string): Locks => new Locks([{ target: { kind: "path", path }, reason: REASON }]);
+
+  it("keeps its text and takes no typing, its padlock standing just after it, and lets it go as it was", () => {
+    const box = el("div");
+    const field = writes(el("input"), "ch.ch1.name") as HTMLInputElement;
+    field.value = "Vocal";
+    box.appendChild(field);
+
+    drawLocks(box, held("ch.ch1.name"));
+    expect(field.classList.contains("is-held-shut")).toBe(true);
+    expect(field.getAttribute("aria-disabled")).toBe("true");
+    expect(field.getAttribute("title")).toBe(REASON);
+    expect(field.readOnly).toBe(true);
+    expect(field.value).toBe("Vocal");
+    expect(field.childElementCount, "a field holds no children").toBe(0);
+    expect(field.nextElementSibling?.classList.contains(LOCK_MARK_CLASS), "its padlock stands after it").toBe(true);
+
+    drawLocks(box, new Locks());
+    expect(field.readOnly).toBe(false);
+    expect(field.classList.contains("is-held-shut")).toBe(false);
+    expect(box.querySelector(`.${LOCK_MARK_CLASS}`)).toBeNull();
+  });
+
+  it("stays read-only once let go when it was read-only before it was held", () => {
+    const box = el("div");
+    const field = writes(el("input"), "ch.ch1.name") as HTMLInputElement;
+    field.readOnly = true;
+    box.appendChild(field);
+
+    drawLocks(box, held("ch.ch1.name"));
+    drawLocks(box, new Locks());
+    expect(field.readOnly).toBe(true);
+  });
+});
+
+describe("the locks a page gives", () => {
+  it("answers the reason of the first lock given for a target, and none for a target it does not hold", () => {
+    const locks = new Locks([
+      { target: { kind: "op", op: "scene.recall" }, reason: "first" },
+      { target: { kind: "op", op: "scene.recall" }, reason: "second" },
+      { target: { kind: "screen", id: "setup" }, reason: "screen" },
+    ]);
+    expect(locks.reason({ kind: "op", op: "scene.recall" })).toBe("first");
+    expect(locks.reason({ kind: "screen", id: "setup" })).toBe("screen");
+    expect(locks.reason({ kind: "path", path: "ch.ch1.on" })).toBeUndefined();
   });
 });

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { Shell } from "./app/shell";
 import type { Route } from "./app/navigator";
 import { SimTransport } from "./device/sim-transport";
-import { DeviceStore } from "./device/store";
+import { DeviceStore, type WriteFailure } from "./device/store";
 import type { Unit, UnitActions, UnitOp } from "./device/unit";
 import { computerClock, emulatedActions, refusedActions } from "./device/unit";
 import { factoryState } from "./model/defaults";
@@ -10,7 +10,7 @@ import { clockParts } from "./model/clock";
 import { unitById } from "./model/units";
 import { buildRegistry } from "./screens";
 import { meterLevels } from "./screens/meters";
-import { type EmbeddedSim, ROOT_CLASS, type SimLock, mountSim } from "./embed";
+import { type EmbeddedSim, ROOT_CLASS, type SimLock, mountSim, shippedValues } from "./embed";
 
 const flush = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 
@@ -80,6 +80,37 @@ describe("the embedded glass", () => {
     expect(styles().length).toBe(1);
     b.sim.dispose();
     expect(styles().length).toBe(0);
+  });
+
+  it("takes its stylesheet off the page and throws when the unit's values cannot be read", async () => {
+    const params = new SimTransport([]);
+    params.snapshot = () => Promise.reject(new Error("unit unreachable"));
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    await expect(mountSim(host, { model: "URX44V", unit: simulated({ params }) })).rejects.toThrow("unit unreachable");
+    expect(styles()).toEqual([]);
+    expect(host.childElementCount, "no glass is left behind").toBe(0);
+  });
+
+  it("reports a write the unit refuses to the page that asked to be told, and stops once it is let go", async () => {
+    const params = new SimTransport(factoryState(unitById("URX44V")));
+    params.write = () => Promise.reject(new Error("refused"));
+    const failures: WriteFailure[] = [];
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const sim = await mountSim(host, { model: "URX44V", unit: simulated({ params }), onWriteFailure: (f) => failures.push(f) });
+    mounted.push(sim);
+    await sim.store.set("ch.ch1.level", -10);
+    await flush();
+    expect(failures.map((f) => [f.path, f.attempted])).toEqual([["ch.ch1.level", -10]]);
+    sim.dispose();
+    await sim.store.set("ch.ch1.level", -20);
+    await flush();
+    expect(failures.length, "a write refused after the glass is let go reaches no one").toBe(1);
+  });
+
+  it("names every value the unit ships with, as the simulator holds them", () => {
+    expect(shippedValues("URX22")).toEqual(factoryState(unitById("URX22")));
   });
 
   it("draws at the scale it is given", async () => {
