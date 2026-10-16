@@ -1521,12 +1521,21 @@
   /* The circle is 2 * PI * 18.5 = 116.2 long. */
   stroke-dasharray: 12 116;
   transform-origin: 50% 50%;
+  transform: rotate(var(--spin));
   animation: spin-turn 1.4s linear infinite, spin-stretch 1.4s ease-in-out infinite;
+}
+
+/* The ring turns through `--spin` rather than through its transform directly:
+ * the glass keeps the sharpness it has at rest while the ring turns. */
+@property --spin {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
 }
 
 @keyframes spin-turn {
   to {
-    transform: rotate(360deg);
+    --spin: 360deg;
   }
 }
 
@@ -2362,9 +2371,11 @@
 }
 
 /* How far the sunk face has slid down, from 0 to the band's depth (`--press`). The
- * cut at the foot goes down with the face, in step with its translate, so the
+ * face's translate (src/ui/press.ts) and the cut at the foot both take it, so the
  * control's foot stays where it was at rest: a quick tap let go while the face
- * is still sliding lands on the control, band and all. */
+ * is still sliding lands on the control, band and all. The slide runs on this
+ * length, not on the translate: the glass keeps the sharpness it has at rest
+ * while a face goes down. */
 @property --press-at {
   syntax: "<length>";
   inherits: false;
@@ -2380,7 +2391,7 @@
   box-shadow: none !important;
   --press-at: var(--press);
   clip-path: inset(0 0 var(--press-at) 0 round var(--press-radius));
-  transition: translate 30ms ease-out, --press-at 30ms ease-out;
+  transition: --press-at 30ms ease-out;
   /* The corner cut at the foot follows the face down, so a sunk button keeps the
    * outline it has at rest. */
   --px-foot-off: var(--press);
@@ -5498,9 +5509,13 @@
   animation: focus-mark-blink 2s ease-in-out infinite;
 }
 
+/* A blinking mark fades its own colours out and back in rather than its
+ * opacity: the glass keeps the sharpness it has at rest while a mark blinks. */
 @keyframes focus-mark-blink {
   50% {
-    opacity: 0;
+    color: transparent;
+    fill: transparent;
+    border-color: transparent;
   }
 }
 

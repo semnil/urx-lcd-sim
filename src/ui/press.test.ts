@@ -63,7 +63,7 @@ describe("a pressed control", () => {
       true,
       "3px",
       ["4px", expect.stringMatching(/^0(px)?$/), "3px", "2px"],
-      "2px calc(-1px + 3px)",
+      "2px calc(-1px + var(--press-at))",
     ]);
     window.dispatchEvent(new MouseEvent("pointerup"));
     expect([banded.classList.contains("is-pressed"), banded.style.getPropertyValue("--press"), banded.style.translate]).toEqual([false, "", ""]);
@@ -215,7 +215,7 @@ describe("a pressed control", () => {
 
     // Two fingers on one control: it sinks once, and rises when the last of them is let go.
     finger("pointerdown", banded, 3);
-    expect(banded.style.translate, "sunk once").toBe("2px calc(-1px + 3px)");
+    expect(banded.style.translate, "sunk once").toBe("2px calc(-1px + var(--press-at))");
     finger("pointercancel", window, 1);
     expect(sunk(), "the first finger cancelled").toEqual([true, false]);
     finger("pointerup", window, 3);
@@ -267,7 +267,7 @@ describe("a pressed control", () => {
     const other = redraw(second, "inset 0 -4px 0 rgb(0, 0, 0)");
     both();
     const sunk = (): boolean[] => [first, other].map((b) => b.classList.contains("is-pressed"));
-    expect([...sunk(), first.style.translate], "drawn again under two fingers").toEqual([true, true, "2px calc(-1px + 3px)"]);
+    expect([...sunk(), first.style.translate], "drawn again under two fingers").toEqual([true, true, "2px calc(-1px + var(--press-at))"]);
     expect([first, other].map((b) => b.classList.contains("is-carried")), "down already, so they do not slide down again").toEqual([true, true]);
     finger("pointerup", window, 2);
     expect([...sunk(), other.classList.contains("is-carried")], "the second finger let go").toEqual([true, false, false]);

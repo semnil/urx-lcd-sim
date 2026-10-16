@@ -69,8 +69,9 @@ export interface Press {
  * Sink the banded control each pointer presses inside `root` until that pointer
  * lets go or is cancelled, and the one holding the focus while Enter or Space is
  * down: `is-pressed` on it, the band's depth in `--press`, its four corner radii
- * in `--press-radius`, and its translate moved down by the depth. A pointer that
- * presses again lets its last control rise first, and a control two of them hold
+ * in `--press-radius`, and its translate moved down by `--press-at`, which the
+ * style takes from 0 to the depth. A pointer that presses again lets its last
+ * control rise first, and a control two of them hold
  * sinks once and rises when the last of them lets go. While the key is
  * down, the control the focus comes back to after the screen is drawn again sinks
  * in the place of the one the key went down on; the focus moving to another
@@ -104,7 +105,7 @@ export function attachPress(root: HTMLElement): Press {
       node.style.setProperty("--press", `${depth}px`);
       const corners = [style.borderTopLeftRadius, style.borderTopRightRadius, style.borderBottomRightRadius, style.borderBottomLeftRadius];
       node.style.setProperty("--press-radius", corners.map((r) => r || "0px").join(" "));
-      node.style.setProperty("translate", `${x} calc(${y} + ${depth}px)`);
+      node.style.setProperty("translate", `${x} calc(${y} + var(--press-at))`);
       node.classList.add("is-pressed");
       if (carried) node.classList.add("is-carried");
     }

@@ -3388,7 +3388,10 @@ describe("the marks on the control holding the focus", () => {
     const held = declarations(CSS, ".dyn-handle-mark.is-held .dyn-handle-arrow");
     expect([held["visibility"], held["animation"]]).toEqual(["visible", "focus-mark-blink 2s ease-in-out infinite"]);
     expect(declarations(CSS, ".eq-grip.is-held::before")["animation"]).toBe("focus-mark-blink 2s ease-in-out infinite");
-    expect(CSS).toMatch(/@keyframes focus-mark-blink\s*\{\s*50%\s*\{\s*opacity:\s*0;/);
+    // A mark fades its own colours, whichever of text, fill and border draw it.
+    expect(CSS).toMatch(/@keyframes focus-mark-blink\s*\{\s*50%\s*\{\s*color: transparent;\s*fill: transparent;\s*border-color: transparent;\s*\}\s*\}/);
+    const blinking = styleRules(CSS).filter((r) => r.body["animation"]?.startsWith("focus-mark-blink"));
+    expect([blinking.length > 0, blinking.filter((r) => r.body["opacity"] !== undefined).flatMap((r) => r.selectors)]).toEqual([true, []]);
     expect(CSS, "no blinking for a reader who asks for less motion").toMatch(
       /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.dyn-handle-mark\.is-held \.dyn-handle-arrow\s*\{\s*animation: none;/,
     );
@@ -3464,7 +3467,7 @@ describe("the marks on the control holding the focus", () => {
       "none !important",
       "var(--press)",
       "inset(0 0 var(--press-at) 0 round var(--press-radius))",
-      "translate 30ms ease-out, --press-at 30ms ease-out",
+      "--press-at 30ms ease-out",
     ]);
     // The cut at the foot slides down with the face rather than ahead of it, so a
     // quick tap let go mid-slide still lands on the control (e2e/press.spec.ts).
@@ -3828,6 +3831,38 @@ describe("what lies over the USER DEFINED KNOBS bar", () => {
     expect([dark["position"], dark["inset"]]).toEqual(["absolute", declarations(CSS, ".lcd .knob-strip::after")["inset"]]);
     const parts = rules.filter((r) => r.selectors.some((s) => /\.knob-(cell|bank|page)/.test(s)) && "z-index" in r.body);
     expect([Number(dark["z-index"]) > 0, parts.map((r) => r.selectors.join())]).toEqual([true, []]);
+  });
+});
+
+describe("the glass while something on it moves", () => {
+  // The properties a browser may hand to a layer of its own while they change.
+  const LAYERED = ["opacity", "transform", "translate", "rotate", "scale", "filter", "backdrop-filter"];
+
+  it("slides and turns through a length and an angle of its own and blinks through colours, not through a layered property", () => {
+    const keyframes: string[] = [];
+    for (const m of CSS.matchAll(/@keyframes\s+([\w-]+)\s*\{/g)) {
+      let depth = 1;
+      let at = (m.index ?? 0) + m[0].length;
+      const from = at;
+      while (depth > 0 && at < CSS.length) {
+        if (CSS[at] === "{") depth++;
+        else if (CSS[at] === "}") depth--;
+        at++;
+      }
+      for (const d of CSS.slice(from, at).matchAll(/([\w-]+)\s*:/g)) keyframes.push(`${m[1]} ${d[1]}`);
+    }
+    expect(keyframes.length, "the sheet carries keyframes to check").toBeGreaterThan(0);
+    expect(keyframes.filter((k) => LAYERED.includes(k.split(" ")[1] ?? ""))).toEqual([]);
+    const transitions = styleRules(CSS).flatMap((r) =>
+      (r.body["transition"] ?? "")
+        .split(",")
+        .map((t) => t.trim().split(/\s+/)[0] ?? "")
+        .filter((name) => name && name !== "none")
+        .map((name) => `${r.selectors.join()} ${name}`),
+    );
+    expect(transitions.length, "the sheet carries transitions to check").toBeGreaterThan(0);
+    expect(transitions.filter((t) => ["all", ...LAYERED].includes(t.split(" ").at(-1) ?? ""))).toEqual([]);
+    expect(styleRules(CSS).filter((r) => r.body["will-change"] !== undefined).flatMap((r) => r.selectors)).toEqual([]);
   });
 });
 
