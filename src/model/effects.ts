@@ -325,7 +325,7 @@ const COMPANDER_RELEASE = stops(
 );
 
 /** Where an insert keeps the release of the compander it runs. */
-const INSERT_RELEASE = /^(ch\.[^.]+\.insFx)\.release$/;
+const INSERT_RELEASE = /^(ch\..+\.insFx)\.release$/;
 const COMPANDERS: readonly ParamValue[] = ["Compander-H", "Compander-S"];
 
 /**

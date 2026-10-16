@@ -348,26 +348,32 @@ describe("what a reload carries over", () => {
     ).toEqual([20.17, 16, 150.2, 218, 1000, 4.122]);
   });
 
-  it("brings a compander's release stored off its stops back on the stop nearest it, and no other effect's", async () => {
+  it.each([
+    ["ch.ch1", "Compander-H"],
+    ["ch.ch2", "Compander-S"],
+    ["ch.bus.stereo", "Compander-S"],
+    ["ch.bus.mix1", "Compander-H"],
+    ["ch.bus.mix2", "Compander-S"],
+  ])("brings %s's %s release stored off its stops back on the stop nearest it", async (base, effect) => {
     // A unit stored by an earlier version, which stopped the release on every millisecond under a second.
     window.localStorage.setItem(
       "urx-lcd-sim.state",
-      JSON.stringify({
-        version: 1,
-        model: MODEL,
-        values: {
-          "ch.ch1.insFx.effect": "Compander-H",
-          "ch.ch1.insFx.release": 300,
-          "ch.ch2.insFx.effect": "Compander-S",
-          "ch.ch2.insFx.release": 1015,
-          "ch.bus.stereo.insFx.effect": "M.B.Comp",
-          "ch.bus.stereo.insFx.release": 100,
-        },
-      }),
+      JSON.stringify({ version: 1, model: MODEL, values: { [`${base}.insFx.effect`]: effect, [`${base}.insFx.release`]: 300 } }),
     );
     const store = await unit();
     await bring(store);
-    expect(["ch.ch1", "ch.ch2", "ch.bus.stereo"].map((b) => store.num(`${b}.insFx.release`, 0))).toEqual([304, 1030, 100]);
+    expect(store.num(`${base}.insFx.release`, 0)).toBe(304);
+  });
+
+  it("leaves another effect's release where it was stored", async () => {
+    // 100 ms is a stop of the multi-band compressor's own, and the compander's nearest stop to it is 101 ms.
+    window.localStorage.setItem(
+      "urx-lcd-sim.state",
+      JSON.stringify({ version: 1, model: MODEL, values: { "ch.bus.stereo.insFx.effect": "M.B.Comp", "ch.bus.stereo.insFx.release": 100 } }),
+    );
+    const store = await unit();
+    await bring(store);
+    expect(store.num("ch.bus.stereo.insFx.release", 0)).toBe(100);
   });
 
   it("brings an SSMCS frequency, Attack or Release stored off the stops back on the stop nearest it", async () => {

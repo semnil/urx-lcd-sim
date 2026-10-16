@@ -361,6 +361,29 @@ describe("playing a file back", () => {
     expect(times.map(([p]) => store.num(p, 0)), "each on its nearest stop, the SSMCS strip's Attack on its own").toEqual([16, 34.58, 1000, 4.122]);
   });
 
+  it.each([
+    ["ch.ch1", "Compander-H", 300, 304],
+    ["ch.bus.stereo", "Compander-S", 300, 304],
+    ["ch.bus.mix1", "Compander-H", 300, 304],
+    ["ch.bus.mix2", "Compander-S", 300, 304],
+    ["ch.bus.stereo", "M.B.Comp", 100, 100],
+  ])("puts %s's %s release an older settings file holds back on the compander's stops alone", async (base, effect, held, back) => {
+    // A file saved by an earlier version, which stopped the compander's release on every millisecond under a second.
+    const shell = await mount({ id: "microsd.saveload" }, [{ name: "Recordings", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" }]);
+    const store = shell.ctx.store;
+    await store.set(`${base}.insFx.effect`, effect);
+    await store.set(`${base}.insFx.release`, held);
+    action(shell, "Save as")?.click();
+    await flush();
+    await typeTitle(shell, "older");
+    await store.set("sd.selectedFile", readCard(store).findIndex((e) => e.name === "older.urxf"));
+    await flush();
+    action(shell, "Load")?.click();
+    await flush();
+    await flush();
+    expect(store.num(`${base}.insFx.release`, 0)).toBe(back);
+  });
+
   it("puts an SSMCS frequency, Attack or Release an older settings file holds off the stops on the stop nearest it", async () => {
     // A file saved by an earlier version, with the side chain and Release where that version shipped them.
     const shell = await mount({ id: "microsd.saveload" }, [{ name: "Recordings", kind: "folder", seconds: 0, tracks: 0, stamp: "", dir: "/" }]);
