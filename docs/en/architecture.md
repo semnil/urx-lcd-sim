@@ -28,6 +28,7 @@ flowchart TB
     TR["DeviceTransport"]
     SIM["SimTransport<br/>in-process simulated device"]
     BR["BridgeTransport<br/>real unit (DeviceLink injected)"]
+    UN["Unit<br/>params / levels / actions / clock"]
   end
 
   S --> W
@@ -39,6 +40,8 @@ flowchart TB
   ST --> TR
   TR --> SIM
   TR --> BR
+  S --> UN
+  UN --> TR
   UM --> S
   DF --> SIM
   CD --> S
@@ -54,7 +57,10 @@ takes from `src/screens/mix-bus.ts` how Pan Link is brought into place when a st
 layer shares the value ranges and display formats (`src/ui/param-spec.ts`, `src/ui/dom.ts`) with the
 screen layer. The device layer imports no other layer. The screen layer reads and writes
 parameter values through `DeviceStore`, and does not distinguish whether a value lives in this process
-or inside the unit.
+or inside the unit. What else the unit does by itself — its meters, the operations on its memory, card
+and recorder, and its clock — the screens ask of the `Unit` (`src/device/unit.ts`; "The unit behind the
+screens" in [device-integration.md](device-integration.md)), which is also how the glass is embedded in
+another page (`src/embed.ts`).
 
 ## Value flow
 
@@ -329,3 +335,10 @@ The desktop GUI minimum touch target of 36x36 is met by the default `--scale` of
 display scale of 100%. The parts the unit draws under 18 screen pixels, the readout bar's page steps, the
 USER DEFINED KNOBS bank steps and a list's scroll bar and thumb, draw as they are and take a touch over
 18x18 screen pixels, ahead of what they reach over. Below 100%, the actual size shrinks in proportion.
+
+A name or a description handed to a screen reader carries the marks a screen reader reads as something other than
+what they are in readings of their own (`src/ui/spoken.ts`): "CH" letter by letter (`C H 1 LEVEL`), an a/b pair as
+its two halves with "slash" between them (`Play slash Pause`), a slash on its own as "slash", the middle dot as
+"dot", and the polarity mark as "Phase". What the glass prints is left as the unit prints it. `el()` and every
+place that sets `aria-label` or `aria-description` itself go through `setSpokenAttr`, and `e2e/spoken.spec.ts`
+walks every screen for a name still in its printed form.

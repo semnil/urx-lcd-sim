@@ -5,7 +5,7 @@
 
 import type { AppContext } from "../app/context";
 import { STRIPS_PER_BANK, allStrips, bankCount, bankStrips, type Strip } from "../model/types";
-import { el, formatPan, makeTappable } from "../ui/dom";
+import { aimed, el, formatPan, makeTappable, writing } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { faderSpec, rangeAttrs, type NumericSpec } from "../ui/param-spec";
 import { SSMCS_DEFAULTS, faderShipped, sendShipsOn } from "../model/defaults";
@@ -41,6 +41,7 @@ import {
 } from "./strip-state";
 import { CUE_METER, drawnLevels, homeMeterTap, lampState, lampTap, simulatedLevel, tapId } from "./meters";
 import { nameCursorScene } from "./scene";
+import { setSpokenAttr } from "../ui/spoken";
 
 /**
  * The pair of lamps every indicator block opens with: the left one is green
@@ -216,7 +217,7 @@ function stripView(ctx: AppContext, strip: Strip, selected: boolean, linkedTo?: 
   // its strip keeps [CUE] alone.
   const streaming = strip.kind === "streaming";
   const indicators = indicatorRows(ctx, strip);
-  makeTappable(indicators, () => {
+  makeTappable(indicators, aimed(() => {
     selectStrip(ctx, strip.id);
     if (selected) {
       // Only a stereo input remembers which channel its screens open on; the
@@ -224,13 +225,13 @@ function stripView(ctx: AppContext, strip: Strip, selected: boolean, linkedTo?: 
       if (stripLanes(strip) === 2 && strip.kind !== "stIn") setStripLane(ctx, strip, 0);
       ctx.nav.push({ id: "channel-view", strip: strip.id });
     } else ctx.repaint();
-  });
-  indicators.setAttribute("aria-label", `${strip.label} settings`);
+  }, { kind: "screen", id: "channel-view" }));
+  setSpokenAttr(indicators, "aria-label", `${strip.label} settings`);
 
-  const onBtn = toggle("ON", ctx.store.bool(`${base}.on`, true), () => {
+  const onBtn = toggle("ON", ctx.store.bool(`${base}.on`, true), writing(`${base}.on`, () => {
     void ctx.store.set(`${base}.on`, !ctx.store.bool(`${base}.on`, true));
-  }, "btn-switch btn-on");
-  const cueBtn = toggle("CUE", ctx.store.bool(`${base}.cue`, false), () => toggleCue(ctx, strip), "btn-switch btn-cue");
+  }), "btn-switch btn-on");
+  const cueBtn = toggle("CUE", ctx.store.bool(`${base}.cue`, false), writing(`${base}.cue`, () => toggleCue(ctx, strip)), "btn-switch btn-cue");
 
   const panValue = ctx.store.num(stripPosition(ctx, strip).path, 0);
 
@@ -362,10 +363,10 @@ export function homeSide(ctx: AppContext): HTMLElement[] {
   const open = ctx.nav.current.id === "sends-select";
   const sends = el("button", {
     class: `sends-btn sends-${sendsAccent(ctx)}${open ? " is-lit" : ""}`,
-    onTap: () => {
+    onTap: aimed(() => {
       if (open) ctx.nav.back();
       else ctx.nav.push({ id: "sends-select" });
-    },
+    }, { kind: "screen", id: "sends-select" }),
     children: [
       el("span", {
         class: "sends-line",
@@ -450,5 +451,5 @@ export const bankSelectScreen: ScreenDef = {
 
 /** The scene name box at the top-left of the HOME toolbar; opens the SCENE screen. */
 export function sceneBox(ctx: AppContext): HTMLElement {
-  return nameCursorScene(ctx, el("button", { class: "scene-box", onTap: () => ctx.nav.openTop({ id: "scene" }) }));
+  return nameCursorScene(ctx, el("button", { class: "scene-box", onTap: aimed(() => ctx.nav.openTop({ id: "scene" }), { kind: "screen", id: "scene" }) }));
 }

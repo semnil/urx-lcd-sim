@@ -787,6 +787,56 @@ describe("DeviceStore", () => {
   });
 });
 
+describe("DeviceStore locks", () => {
+  it("refuses an edit of a held path, sending nothing, until the hold is let go", async () => {
+    const { transport, writes } = heldDevice([["a", 1], ["b", 1]]);
+    const store = new DeviceStore();
+    await store.attach(transport);
+    const release = store.setLocked((path) => path === "a");
+
+    await store.set("a", 2);
+    void store.set("b", 2);
+    expect(store.num("a"), "the held path keeps what it held").toBe(1);
+    expect(store.num("b")).toBe(2);
+    expect(writes.map((w) => w.path)).toEqual(["b"]);
+
+    release();
+    void store.set("a", 3);
+    expect(store.num("a")).toBe(3);
+    expect(writes.map((w) => w.path)).toEqual(["b", "a"]);
+  });
+
+  it("holds nothing once it is handed no function", async () => {
+    const { transport, writes } = heldDevice([["a", 1]]);
+    const store = new DeviceStore();
+    await store.attach(transport);
+    store.setLocked((path) => path === "a");
+    store.setLocked(null);
+
+    void store.set("a", 2);
+    expect(store.num("a")).toBe(2);
+    expect(writes.map((w) => w.path)).toEqual(["a"]);
+  });
+
+  it("puts the mirror back, sending nothing, when an operation throws part-way", async () => {
+    const { transport, writes } = heldDevice([["a", 1], ["b", 1]]);
+    const store = new DeviceStore();
+    await store.attach(transport);
+
+    expect(() =>
+      store.operation(() => {
+        void store.set("a", 2);
+        throw new Error("the screen gave up");
+      }),
+    ).toThrow("the screen gave up");
+    expect(store.num("a"), "the edit made before the throw is undone").toBe(1);
+    expect(writes).toEqual([]);
+
+    void store.set("b", 2);
+    expect(writes.map((w) => w.path), "the next edit is an operation of its own").toEqual(["b"]);
+  });
+});
+
 describe("SimTransport", () => {
   it("marks its own write echoes and a device-side change differently", async () => {
     const transport = new SimTransport([["p", 1]]);

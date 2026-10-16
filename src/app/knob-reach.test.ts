@@ -11,6 +11,7 @@ import type { NumericSpec } from "../ui/param-spec";
 import { snapshot } from "./persist";
 import { Shell } from "./shell";
 import type { Route } from "./navigator";
+import { spoken } from "../ui/spoken";
 
 // Nothing in this project draws the unit's physical knobs, so a parameter a
 // screen hands to the multi-function knobs has to be turnable on the glass. If
@@ -140,7 +141,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     await flush();
 
     const level = [...shell.root.querySelectorAll<HTMLElement>('[role="slider"]')].find(
-      (n) => n.getAttribute("aria-label") === "CH 1 LEVEL",
+      (n) => n.getAttribute("aria-label") === spoken("CH 1 LEVEL"),
     );
     expect(level, "HOME draws the strip level as a control").toBeDefined();
 
@@ -230,7 +231,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     const level = async (downShift: boolean, moves: [number, boolean][]): Promise<number> => {
       await store.set("osc.level", -14);
       await flush();
-      const node = turnables(shell.root).find((n) => n.getAttribute("aria-label") === "Level");
+      const node = turnables(shell.root).find((n) => n.getAttribute("aria-label") === spoken("Level"));
       if (!node) throw new Error("no Level");
       node.dispatchEvent(new MouseEvent("pointerdown", { clientY: 200, shiftKey: downShift, bubbles: true }));
       for (const [dy, shiftKey] of moves) window.dispatchEvent(new MouseEvent("pointermove", { clientY: 200 + dy, shiftKey }));
@@ -325,7 +326,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     shell.ctx.nav.home();
     await flush();
     const level = [...shell.root.querySelectorAll<HTMLElement>('[role="slider"]')].find(
-      (n) => n.getAttribute("aria-label") === "CH 1 LEVEL",
+      (n) => n.getAttribute("aria-label") === spoken("CH 1 LEVEL"),
     );
     const turning = (): boolean => document.documentElement.classList.contains("is-turning");
 
@@ -343,7 +344,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     await open(shell, { id: "channel-view", strip: "ch1" });
     const pan = (): number => store.num("ch.ch1.pan", NaN);
     const box = (): HTMLElement | undefined =>
-      turnables(shell.root).find((n) => n.classList.contains("value-box") && n.getAttribute("aria-label") === "PAN");
+      turnables(shell.root).find((n) => n.classList.contains("value-box") && n.getAttribute("aria-label") === spoken("PAN"));
     const turning = (): boolean => document.documentElement.classList.contains("is-turning");
     const pe = (type: string, init: PointerEventInit): PointerEvent => new PointerEvent(type, { bubbles: true, cancelable: true, ...init });
     expect(pan()).toBe(0);
@@ -387,7 +388,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     shell.ctx.nav.home();
     await flush();
     const level = (ch: number): HTMLElement | undefined =>
-      turnables(shell.root).find((n) => n.getAttribute("aria-label") === `CH ${ch} LEVEL`);
+      turnables(shell.root).find((n) => n.getAttribute("aria-label") === spoken(`CH ${ch} LEVEL`));
     const value = (ch: number): number => store.num(`ch.ch${ch}.level`, NaN);
     const finger = (node: EventTarget | undefined, type: string, pointerId: number, clientY: number): void => {
       const buttons = type === "pointerdown" || type === "pointermove" ? 1 : 0;
@@ -414,7 +415,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     shell.ctx.nav.home();
     await flush();
     const level = (ch: number): HTMLElement | undefined =>
-      turnables(shell.root).find((n) => n.getAttribute("aria-label") === `CH ${ch} LEVEL`);
+      turnables(shell.root).find((n) => n.getAttribute("aria-label") === spoken(`CH ${ch} LEVEL`));
     const value = (ch: number): number => store.num(`ch.ch${ch}.level`, NaN);
     const finger = (node: EventTarget | undefined, type: string, pointerId: number, clientY: number): void => {
       const buttons = type === "pointerdown" || type === "pointermove" ? 1 : 0;
@@ -567,7 +568,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     const { shell, store } = await mount();
     await store.set("ch.ch1.gain", 30);
     const level = (): HTMLElement | undefined =>
-      turnables(shell.root).find((n) => n.getAttribute("aria-label") === "CH 1 LEVEL");
+      turnables(shell.root).find((n) => n.getAttribute("aria-label") === spoken("CH 1 LEVEL"));
     const gain = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".cv-gain-stack .value-box");
     const roll = async (node: HTMLElement | null | undefined, init: WheelEventInit): Promise<boolean> => {
       if (!node) throw new Error("no control");
@@ -606,7 +607,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     const { shell, store } = await mount();
     /** One keydown on the control named `label`; whether the page took it. */
     const press = async (label: string, key: string, init: KeyboardEventInit = {}): Promise<boolean> => {
-      const node = turnables(shell.root).find((n) => n.getAttribute("aria-label") === label);
+      const node = turnables(shell.root).find((n) => n.getAttribute("aria-label") === spoken(label));
       if (!node) throw new Error(`no ${label}`);
       const ev = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...init });
       node.dispatchEvent(ev);
@@ -637,7 +638,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
 
   it("lands the keys and the wheel on the value's own steps, as a drag does", async () => {
     const control = (shell: Shell, label: string): HTMLElement => {
-      const node = turnables(shell.root).find((n) => n.getAttribute("aria-label") === label);
+      const node = turnables(shell.root).find((n) => n.getAttribute("aria-label") === spoken(label));
       if (!node) throw new Error(`no ${label}`);
       return node;
     };
@@ -730,7 +731,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     for (const [path, value] of gain.setup) await store.set(path, value);
     await open(shell, gain.route);
     const node = (): HTMLElement => {
-      const found = turnables(shell.root).find((n) => n.getAttribute("aria-label") === gain.label);
+      const found = turnables(shell.root).find((n) => n.getAttribute("aria-label") === spoken(gain.label));
       if (!found) throw new Error(`${gain.route.id} draws no ${gain.label}`);
       return found;
     };
@@ -924,13 +925,13 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     await open(shell, { id: "channel-view", strip: "ch1" });
     // Four cells, two to a row, as the unit lays them out. CH 1 is not on a
     // high-impedance connector, so that cell stands empty.
-    expect(head(shell)).toEqual({ label: "A.Gain", flags: ["+48V", "Φ", "HPF", ""] });
+    expect(head(shell)).toEqual({ label: "A.Gain", flags: ["+48V", spoken("Φ"), "HPF", ""] });
 
     // Phantom power is the analog head amp's, so it goes when the source does,
     // leaving its cell empty rather than moving the two that stay.
     await store.set("ch.ch1.source", "USB DAW 1/2");
     await flush();
-    expect(head(shell)).toEqual({ label: "D.Gain", flags: ["", "Φ", "HPF", ""] });
+    expect(head(shell)).toEqual({ label: "D.Gain", flags: ["", spoken("Φ"), "HPF", ""] });
 
     await store.set("ch.ch1.source", "MIC/LINE 1/2");
     await flush();
@@ -939,7 +940,7 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     // HI-Z belongs to the connector, not to every mono channel: on a URX44V it
     // is CH 3 and CH 4 that take a high-impedance source.
     await open(shell, { id: "channel-view", strip: "ch3" });
-    expect(head(shell).flags).toEqual(["+48V", "\u03a6", "HPF", "HI-Z"]);
+    expect(head(shell).flags).toEqual(["+48V", spoken("\u03a6"), "HPF", "HI-Z"]);
     expect([...shell.root.querySelectorAll(".cv-gain-flags .flag")].length, "the panel keeps its four cells").toBe(4);
   });
 

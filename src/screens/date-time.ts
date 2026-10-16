@@ -8,7 +8,7 @@
 
 import type { AppContext } from "../app/context";
 import type { DeviceStore, WriteRule } from "../device/store";
-import { clockParts, daysInMonth, setClock, type ClockTime } from "../model/clock";
+import { clockParts, daysInMonth, setClock, unitNow, type ClockTime } from "../model/clock";
 import { TIME_ZONE_CITIES, TIME_ZONE_SHIPPED } from "../model/time-zone";
 import { el } from "../ui/dom";
 import { intSpec } from "../ui/param-spec";
@@ -69,7 +69,7 @@ export function dateTimeSpans(ctx: AppContext): HTMLElement[] {
 }
 
 /** Move the [Date/Time] button's reading on to the clock as it stands. */
-export function refreshDateTime(store: DeviceStore, root: ParentNode, at = Date.now()): void {
+export function refreshDateTime(store: DeviceStore, root: ParentNode, at = unitNow()): void {
   const now = clockParts(store, at);
   const write = (selector: string, text: string): void => {
     for (const node of root.querySelectorAll<HTMLElement>(selector)) if (node.textContent !== text) node.textContent = text;

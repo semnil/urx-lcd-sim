@@ -28,6 +28,7 @@ flowchart TB
     TR["DeviceTransport"]
     SIM["SimTransport<br/>プロセス内の疑似デバイス"]
     BR["BridgeTransport<br/>実機 (DeviceLink 注入)"]
+    UN["Unit<br/>params / levels / actions / clock"]
   end
 
   S --> W
@@ -39,6 +40,8 @@ flowchart TB
   ST --> TR
   TR --> SIM
   TR --> BR
+  S --> UN
+  UN --> TR
   UM --> S
   DF --> SIM
   CD --> S
@@ -50,7 +53,8 @@ Shell は画面を組んで出すために画面層を import し、ツールバ
 自分のために持つ値 `screenOnly`)、バンクの切り替え、描く画面が読み取りを取る時刻 (`drawAtOneMoment`)、microSD のアイコンの録音の印と再生の印も `src/screens` から取り、`src/app/persist.ts` は保存を戻すときの Pan Link の
 整え方を `src/screens/mix-bus.ts` から取る。モデル層は値の範囲と表示の書式 (`src/ui/param-spec.ts`,
 `src/ui/dom.ts`) を画面層と共有する。デバイス層はほかの層を import しない。画面層はパラメータの値を
-`DeviceStore` を通して読み書きし、値がプロセス内にあるか実機の中にあるかを区別しない。
+`DeviceStore` を通して読み書きし、値がプロセス内にあるか実機の中にあるかを区別しない。本体が自分で行うそれ以外のこと (メーター、メモリー・カード・レコーダーへの操作、時計) は `Unit` (`src/device/unit.ts`、
+[device-integration.md](device-integration.md)「画面の裏にある本体」) に尋ね、別のページへの埋め込み (`src/embed.ts`) もこれを通す。
 
 ## 値の流れ
 
@@ -294,3 +298,9 @@ GUI の最小タッチターゲット 36x36 は、`--scale` の既定値 2 と�
 満たされる。実機の描く大きさが 18 画面ピクセルに満たない読み出しバーのページ送り・USER DEFINED KNOBS の
 バンク送り・一覧のスクロールバーとつまみは、描く形はそのままで触れられる範囲を 18x18 画面ピクセルまで広げてあり、
 重なる所ではそれらが優先する。表示倍率を 100% 未満にすると実寸がそれに比例して小さくなる。
+
+スクリーンリーダーに渡す名前と説明では、読み上げで別のものに聞こえる記号を、それぞれの読み方にして渡す
+(`src/ui/spoken.ts`)。"CH" は 1 文字ずつ (`C H 1 LEVEL`)、a/b の組は 2 つの間に "slash" を挟んで (`Play slash Pause`)、
+単独のスラッシュは "slash"、中黒は "dot"、極性の記号は "Phase" と読む。画面に描く文字は本体の表記のまま変えない。
+`el()` と、`aria-label` / `aria-description` を直接設定する箇所はすべて `setSpokenAttr` を通し、`e2e/spoken.spec.ts` が
+全画面を巡って、表記どおりの記号が残る名前が無いことを確かめる。

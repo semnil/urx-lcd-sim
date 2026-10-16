@@ -9,10 +9,12 @@ import type { AppContext } from "../app/context";
 import { clamp } from "../device/store";
 import { levelBarShare } from "../model/dynamics";
 import { CLIP_DB } from "../model/levels";
-import { OFF_MARK, drawnScale, el, fromInnerControl, makeTappable, setPressed } from "./dom";
+import type { ParamPath } from "../device/path";
+import { LOCKED_CLASS, OFF_MARK, drawnScale, el, fromInnerControl, makeTappable, setPressed, writes } from "./dom";
 import { Icons } from "./icons";
 import type { NumericSpec } from "./param-spec";
 import { KNOB_SIZE, KNOB_START_DEG, KNOB_SWEEP_DEG, formatValue, rangeAttrs, unitOf } from "./param-spec";
+import { setSpokenAttr } from "./spoken";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -312,7 +314,7 @@ export function drawFace(node: HTMLElement, value: string, face: OptionFace | un
   const mark = face?.(value);
   if (!mark) return node;
   node.replaceChildren(mark);
-  node.setAttribute("aria-label", value);
+  setSpokenAttr(node, "aria-label", value);
   return node;
 }
 
@@ -325,6 +327,8 @@ export function pulldown(
   look: Pick<OptionListSpec, "render" | "optionClass" | "listClass" | "place"> & {
     /** The setting the box sets, which leads the name a reader hears and names the sheet a long list opens on. */
     label: string;
+    /** The value a pick writes, which holds the box shut while the embedding page holds it shut. */
+    path?: ParamPath;
     open?: () => void;
     columns?: number;
     /** What the list marks as held, where the box prints the value by another name. */
@@ -340,7 +344,8 @@ export function pulldown(
     class: "pulldown",
     children: [drawFace(el("span", { class: "pulldown-value", text: value }), value, look.face), el("span", { class: "pulldown-mark" })],
   });
-  const { label, open, columns, current, face, ...list } = look;
+  const { label, path, open, columns, current, face, ...list } = look;
+  if (path !== undefined) writes(node, path);
   const held = current ?? value;
   // A list the glass cannot hold opens on the sheet the unit opens a long list
   // on. A list that draws its own faces stays on the glass, since the sheet's
@@ -372,7 +377,7 @@ export function pulldown(
             });
           }),
   );
-  node.setAttribute("aria-label", `${label ? `${label}: ` : ""}${value} (${options.length} options)`);
+  setSpokenAttr(node, "aria-label", `${label ? `${label}: ` : ""}${value} (${options.length} options)`);
   return node;
 }
 
@@ -427,7 +432,7 @@ export function pickerSheet(ctx: AppContext, spec: PickerSheetSpec): HTMLElement
   const content = spec.build(() => close());
 
   const back = button("", () => close(), "source-back");
-  back.setAttribute("aria-label", `Close the ${spec.label ?? spec.title} list`);
+  setSpokenAttr(back, "aria-label", `Close the ${spec.label ?? spec.title} list`);
   back.appendChild(Icons.back());
 
   const panel = el("div", {
@@ -549,6 +554,14 @@ export function pickerGrid(rows: (HTMLElement | null)[][]): HTMLElement {
 /** Set on the page while a value is being dragged. */
 const TURNING = "is-turning";
 
+/** The root of an embedded glass inside its shadow tree, which its stylesheet reads as :root. */
+export const GLASS_ROOT = "embed-glass";
+
+/** Where the drag marker goes: the embedded glass's root, or the page for the simulator alone. */
+function turningRoot(node: Element): Element {
+  return node.closest(`.${GLASS_ROOT}`) ?? document.documentElement;
+}
+
 /** Pointer travel past the slop that covers a control's whole range, in pixels. */
 const DRAG_FULL_RANGE_PX = 192;
 
@@ -574,8 +587,10 @@ export function attachSpin(
   drag: boolean | DragAxis = true,
 ): void {
   const value = (): number => ctx.store.num(spec.path, spec.fallback);
-  const still = (): boolean => standsStill(ctx, spec);
+  // A value the embedding page holds shut takes no turn, by any of the ways in.
+  const still = (): boolean => standsStill(ctx, spec) || node.classList.contains(LOCKED_CLASS);
   const put = (v: number): void => putValue(ctx, spec, v);
+  writes(node, spec.path);
 
   const nudge = (steps: number, fast: boolean): void => {
     const travel = spec.travel;
@@ -609,7 +624,7 @@ export function attachSpin(
   node.addEventListener("keydown", (ev) => {
     // A control inside this one, such as a block's switch, keeps the keys it takes.
     if (fromInnerControl(ev, node)) return;
-    if (ev.altKey || ev.metaKey || ev.ctrlKey) return;
+    if (ev.altKey || ev.metaKey || ev.ctrlKey || node.classList.contains(LOCKED_CLASS)) return;
     const map: Record<string, number> = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 };
     const ends: Record<string, number> = { Home: 0, End: 1 };
     const dir = map[ev.key];
@@ -663,13 +678,14 @@ export function attachDrag(ctx: AppContext, node: HTMLElement, spec: NumericSpec
   const sense = (drag.sense ?? 1) * (axis === "x" ? -1 : 1);
   const along = (ev: { clientX: number; clientY: number }): number => (axis === "x" ? ev.clientX : ev.clientY) * sense;
   const put = (v: number): void => putValue(ctx, spec, v);
+  writes(node, spec.path);
   // A finger turns the value and leaves the page where it is. A grip drawn in an
   // SVG holds its whole drawing still under the finger.
   node.style.touchAction = "none";
   if (node instanceof SVGElement) node.ownerSVGElement?.style.setProperty("touch-action", "none");
   node.addEventListener("pointerdown", (ev) => {
     // The main button turns the value, as a finger and a pen's tip do; the other buttons do not.
-    if (ev.button !== 0) return;
+    if (ev.button !== 0 || node.classList.contains(LOCKED_CLASS)) return;
     // One pointer at a time turns a value, and each value a turn of it writes as
     // well, such as a linked pair's other channel, on whatever control turns them.
     const holds = valueHoldsOf(ctx);
@@ -679,7 +695,8 @@ export function attachDrag(ctx: AppContext, node: HTMLElement, spec: NumericSpec
     if (standsStill(ctx, spec)) return;
     // A drag sweeps the pointer across whatever is in its way; marking the page
     // is what keeps those from lighting up under it.
-    document.documentElement.classList.add(TURNING);
+    const marked = turningRoot(node);
+    marked.classList.add(TURNING);
     let anchorAt = along(ev);
     let anchorValue = ctx.store.num(spec.path, spec.fallback);
     let fine = false;
@@ -725,7 +742,7 @@ export function attachDrag(ctx: AppContext, node: HTMLElement, spec: NumericSpec
       put(onStep(spec, raw));
     };
     const up = (): void => {
-      document.documentElement.classList.remove(TURNING);
+      marked.classList.remove(TURNING);
       leave();
     };
     // The first turn repaints the screen and this node is replaced, so the rest
@@ -1061,7 +1078,7 @@ function openOptions(ctx: AppContext, spec: OptionListSpec): void {
     if (spec.render) {
       node.textContent = "";
       node.appendChild(spec.render(option));
-      node.setAttribute("aria-label", option);
+      setSpokenAttr(node, "aria-label", option);
     }
     list.appendChild(node);
   }

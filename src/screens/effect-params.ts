@@ -28,7 +28,7 @@ import {
 } from "../model/effects";
 import type { DeviceStore } from "../device/store";
 import { SENDS_TARGET_SHIPPED, findStrip, type Strip, type UnitModel } from "../model/types";
-import { el } from "../ui/dom";
+import { el, writing } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { COMPANDER_EXPANSION, compResponse, companderCurve, grBarShare } from "../model/dynamics";
 import type { NumericSpec } from "../ui/param-spec";
@@ -526,7 +526,7 @@ function mbcBandPage(
   // While the unit's own knob drives a row, the row keeps its reading and takes
   // no touch, as the rows it drives do wherever they are drawn.
   const driven = sets.some((set) => set.locked);
-  const switchNode = toggle("Bypass", bypass, () => void ctx.store.set(bypassPath, !bypass), "mbc-bypass");
+  const switchNode = toggle("Bypass", bypass, writing(bypassPath, () => void ctx.store.set(bypassPath, !bypass)), "mbc-bypass");
   return {
     plot,
     rows: [
@@ -944,7 +944,7 @@ function pitchBody(
         ...(rows.length > 0 ? [pitchNotes(ctx, holder, rows)] : []),
         ...(page?.label ? [el("span", { class: "efx-band", text: page.label })] : []),
         ...(corner
-          ? [toggle(corner.label, on, () => void ctx.store.set(`${holder.base}.${corner.key}`, !on), "pitch-corner")]
+          ? [toggle(corner.label, on, writing(`${holder.base}.${corner.key}`, () => void ctx.store.set(`${holder.base}.${corner.key}`, !on)), "pitch-corner")]
           : []),
         ...pageArrows(ctx, at, pages.length),
         dynMeters(ctx, strip, "insFx"),

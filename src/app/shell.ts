@@ -4,12 +4,17 @@
 
 import { clamp, combineWriteRules } from "../device/store";
 import type { DeviceStore } from "../device/store";
+import type { UnitActions } from "../device/unit";
+import { emulatedActions } from "../device/unit";
 import type { UnitModel } from "../model/types";
 import { UDK_BANKS, UDK_KNOBS, UDK_UNASSIGNED, udkAssignment, udkPath } from "../model/udk";
-import { INTERACTIVE, clear, el, setPressed, tappedControl } from "../ui/dom";
+import { INTERACTIVE, aimed, clear, el, setPressed, tappedControl } from "../ui/dom";
 import { FocusController } from "../ui/focus";
 import { Icons } from "../ui/icons";
+import { activeIn, elementAt, originOf } from "../ui/active";
 import { attachFocusRing } from "../ui/focus-ring";
+import { Locks, drawLocks } from "../ui/locks";
+import type { SimLock } from "../ui/locks";
 import type { Press } from "../ui/press";
 import { attachPress } from "../ui/press";
 import { PointerHolds, attachSpin, modalOf, setAriaValue, standsStill } from "../ui/widgets";
@@ -31,12 +36,28 @@ import type { AppContext, KnobReadout } from "./context";
 import { Navigator } from "./navigator";
 import type { Route, RouteChange } from "./navigator";
 import { scrimFilter } from "../ui/scrim";
+import { setSpokenAttr } from "../ui/spoken";
 
 /** Divisions the multi-function readout bar has. */
 const KNOB_CELLS = 4;
 
 /** How much black the glass carries at the bottom of the brightness range. */
 const DIMMEST = 0.7;
+
+export interface ShellOptions {
+  /** The unit's operations on its memory, card and recorder. The simulated unit's by default. */
+  actions?: UnitActions;
+  /**
+   * Whether a key pressed with nothing focused belongs to the glass: Escape then
+   * steps back, as it does on a page that is the simulator alone. A page that
+   * carries the glass beside other controls keeps those keys for itself.
+   */
+  ownsDocument?: boolean;
+  /** What the page the glass is embedded in holds shut from the start (src/ui/locks.ts). */
+  locks?: readonly SimLock[];
+  /** Whether an insert effect's values, as one is chosen, come from the page (AppContext). */
+  insertValuesFromPage?: boolean;
+}
 
 export class Shell {
   readonly ctx: AppContext;
@@ -68,6 +89,10 @@ export class Shell {
   private readonly press: Press;
   private readonly offFocusRing: () => void;
   private readonly offSwipe: () => void;
+  private readonly ownsDocument: boolean;
+  private readonly locks: Locks;
+  private readonly offLocked: () => void;
+  private readonly offRefusal: () => void;
 
   /**
    * `start` is what stands over HOME as the shell comes up, and the first screen
@@ -79,14 +104,23 @@ export class Shell {
     store: DeviceStore,
     model: UnitModel,
     start: Route[] = [],
+    options: ShellOptions = {},
   ) {
     const nav = new Navigator({ id: "home" }, start);
     const focus = new FocusController();
+    this.ownsDocument = options.ownsDocument ?? true;
+    const locks = new Locks(options.locks);
+    this.locks = locks;
+    this.offLocked = store.setLocked((path) => locks.path(path));
+    this.offRefusal = nav.setRefusal((route) => locks.screen(route.id));
     this.ctx = {
       store,
       model,
       focus,
       nav,
+      actions: options.actions ?? emulatedActions,
+      locks,
+      insertValuesFromPage: options.insertValuesFromPage ?? false,
       repaint: () => this.scheduleRepaint(),
       setKnobs: (specs) => {
         this.knobs = specs;
@@ -100,9 +134,10 @@ export class Shell {
         node.dataset["overlay"] = "";
         // The control whose touch or key put it up, or else where the focus stood when it went up.
         const tapped = tappedControl();
-        const opener = tapped?.isConnected === true ? tapped : document.activeElement;
+        const opener = tapped?.isConnected === true ? tapped : activeIn(this.lcd);
         const refocus = this.focusPlace(opener);
         this.lcd.appendChild(node);
+        drawLocks(node, locks);
         const close = (): void => {
           if (!this.overlays.delete(close)) return;
           node.remove();
@@ -191,10 +226,19 @@ export class Shell {
     this.offStore();
     this.offWriteRule();
     this.offScreenOnly();
+    this.offLocked();
+    this.offRefusal();
     this.press.off();
     this.offFocusRing();
     this.offSwipe();
     this.closeOverlays();
+  }
+
+  /** Hold `locks` shut and nothing else, and draw the glass again under them. */
+  setLocks(locks: readonly SimLock[]): void {
+    this.locks.set(locks);
+    this.render();
+    for (const { node } of this.overlays.values()) drawLocks(node, this.locks);
   }
 
   private closeOverlays(): void {
@@ -225,7 +269,7 @@ export class Shell {
     const route = this.ctx.nav.current;
     const def = this.registry.get(route.id);
     if (def?.needsCard === true && !this.ctx.store.bool("sd.mounted", true)) {
-      this.ctx.nav.openTop({ id: "microsd" });
+      this.ctx.nav.openTop({ id: "microsd" }, true);
       return;
     }
     const refocus = this.focusPlace();
@@ -287,6 +331,7 @@ export class Shell {
     if (dims || body.main.classList.contains("pick-dialog")) {
       for (const control of this.knobStripNode.querySelectorAll(INTERACTIVE)) control.toggleAttribute("inert", true);
     }
+    drawLocks(this.lcd, this.locks);
     repress();
     rescroll();
     refocus();
@@ -318,7 +363,7 @@ export class Shell {
    * other screen leaves the focus where the rebuild left it. The control it starts
    * from is `active`, the one holding the focus unless another is named.
    */
-  private focusPlace(active: Element | null = document.activeElement): () => void {
+  private focusPlace(active: Element | null = activeIn(this.root)): () => void {
     if (!active || active === this.root || !this.root.contains(active)) return () => undefined;
     // A control's kind is its tag and its classes, less the ones naming its state.
     const kind = (node: Element): string => [node.tagName, ...[...node.classList].filter((c) => !c.startsWith("is-"))].join(" ");
@@ -396,9 +441,9 @@ export class Shell {
 
     if (kind === "home") {
       icons.classList.add("is-home");
-      icons.appendChild(iconBtn("SETUP", Icons.setup(), () => this.ctx.nav.openTop({ id: "setup" })));
+      icons.appendChild(iconBtn("SETUP", Icons.setup(), aimed(() => this.ctx.nav.openTop({ id: "setup" }), { kind: "screen", id: "setup" })));
       if (this.ctx.model.hasSD) {
-        const sd = iconBtn("microSD", Icons.storage(), () => this.ctx.nav.openTop({ id: "microsd" }));
+        const sd = iconBtn("microSD", Icons.storage(), aimed(() => this.ctx.nav.openTop({ id: "microsd" }), { kind: "screen", id: "microsd" }));
         // Recording mode marks the icon with the record dot at its lower right,
         // and a file playback holds, playing or paused, with the play triangle
         // where the dot stands.
@@ -413,7 +458,7 @@ export class Shell {
         }
         icons.appendChild(sd);
       }
-      icons.appendChild(iconBtn("MONITOR", Icons.monitor(), () => this.ctx.nav.openTop({ id: "monitor" })));
+      icons.appendChild(iconBtn("MONITOR", Icons.monitor(), aimed(() => this.ctx.nav.openTop({ id: "monitor" }), { kind: "screen", id: "monitor" })));
       icons.appendChild(el("span", { class: "toolbar-sep" }));
     } else if (this.ctx.nav.depth > 2) {
       // The arrow steps to the screen underneath. A screen the toolbar icons
@@ -444,10 +489,13 @@ export class Shell {
         "aria-label": `${side === "input" ? "INPUT" : "OUTPUT"} channel bank ${active + 1} of ${total}`,
         "aria-expanded": String(this.ctx.nav.current.id === "bank-select"),
       },
-      onTap: () => {
-        if (this.ctx.nav.current.id === "bank-select") this.ctx.nav.back();
-        else this.ctx.nav.push({ id: "bank-select" });
-      },
+      onTap: aimed(
+        () => {
+          if (this.ctx.nav.current.id === "bank-select") this.ctx.nav.back();
+          else this.ctx.nav.push({ id: "bank-select" });
+        },
+        { kind: "screen", id: "bank-select" },
+      ),
       children: [
         el("span", {
           class: "bank-label",
@@ -463,7 +511,7 @@ export class Shell {
     const node = el("button", {
       class: "udk-toggle",
       attrs: { "aria-label": "USER DEFINED KNOBS mode" },
-      onTap: () => void this.ctx.store.set("ui.userDefinedKnobs", !on),
+      onTap: aimed(() => void this.ctx.store.set("ui.userDefinedKnobs", !on), { kind: "path", path: "ui.userDefinedKnobs" }),
       children: [Icons.knob()],
     });
     setPressed(node, on);
@@ -486,7 +534,7 @@ export class Shell {
     const v = this.ctx.store.num(spec.path, spec.fallback);
     cell.tabIndex = 0;
     cell.setAttribute("role", "slider");
-    cell.setAttribute("aria-label", name);
+    setSpokenAttr(cell, "aria-label", name);
     setAriaValue(cell, spec, v);
     if (standsStill(this.ctx, spec)) cell.setAttribute("aria-disabled", "true");
     attachSpin(this.ctx, cell, spec, onEngage);
@@ -611,12 +659,14 @@ export class Shell {
   private buildTabTrap(): (ev: KeyboardEvent) => void {
     return (ev) => {
       if (ev.key !== "Tab") return;
+      const focused = activeIn(this.lcd);
+      if (!this.ownsDocument && !this.lcd.contains(focused)) return;
       const top = this.topLayer();
       if (!top?.modal) return;
       const stops = [...top.node.querySelectorAll<HTMLElement>("*")].filter((n) => n.tabIndex >= 0);
       if (stops.length === 0) return;
       ev.preventDefault();
-      const at = stops.indexOf(document.activeElement as HTMLElement);
+      const at = stops.indexOf(focused as HTMLElement);
       const step = ev.shiftKey ? -1 : 1;
       const next = at < 0 ? (ev.shiftKey ? stops.length - 1 : 0) : (at + step + stops.length) % stops.length;
       stops[next]?.focus();
@@ -634,8 +684,10 @@ export class Shell {
     // On the window: a screen that draws no exits leaves focus on the document.
     return (ev) => {
       if (ev.key !== "Escape" || ev.isComposing) return;
-      const target = ev.target instanceof HTMLElement ? ev.target : null;
-      if (target && target !== document.body && target !== document.documentElement && !this.lcd.contains(target)) return;
+      const origin = originOf(ev);
+      const target = origin instanceof HTMLElement ? origin : null;
+      const unfocused = !target || target === document.body || target === document.documentElement;
+      if (unfocused ? !this.ownsDocument : !this.lcd.contains(target)) return;
       if (this.lcd.querySelector("[data-overlay]")) {
         const cancel = this.topLayer()?.modal?.cancel;
         if (!cancel) return;
@@ -673,7 +725,7 @@ export class Shell {
       stop = holds.follow(ev, [this.mainNode], () => undefined, (last) => {
         if (last?.type !== "pointerup" || !swipes()) return;
         const dx = last.clientX - startX;
-        const over = document.elementFromPoint(last.clientX, last.clientY);
+        const over = elementAt(this.mainNode, last.clientX, last.clientY);
         if (Math.abs(dx) < 40 || over === null || !this.mainNode.contains(over)) return;
         stepBank(this.ctx, dx < 0 ? 1 : -1);
       });

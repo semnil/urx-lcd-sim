@@ -10075,3 +10075,42 @@
   width: 100%;
   height: 100%;
 }
+
+/* A control the page the glass is embedded in holds shut (src/ui/locks.ts): the
+ * face of a control out of reach, with a padlock at its top right corner. It
+ * still takes the pointer, so its tooltip gives the page's reason and a touch on
+ * it stops there rather than reaching what stands under it. */
+:where(.is-held-shut) {
+  position: relative;
+}
+
+.lcd .is-held-shut.is-disabled {
+  pointer-events: auto;
+  cursor: not-allowed;
+}
+
+/* A control with no face of its own for being out of reach is drawn faint. */
+:where(.is-held-shut:not(.btn, .menu-btn, .side-tab, .sd-eject, .lang-btn, .mode-card, .dropdown-box)) {
+  opacity: 0.5;
+}
+
+/* Two classes on the mark, so a rule that places a control's own spans does not place it. */
+.lcd .is-held-shut > span.lock-mark.lock-mark,
+.lcd .is-held-shut + span.lock-mark.lock-mark {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  z-index: 1;
+  width: 8px;
+  height: 10px;
+  color: var(--text);
+  line-height: 0;
+  pointer-events: none;
+}
+
+.lcd .is-held-shut > span.lock-mark.lock-mark svg,
+.lcd .is-held-shut + span.lock-mark.lock-mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

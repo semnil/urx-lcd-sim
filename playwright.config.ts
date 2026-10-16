@@ -8,6 +8,8 @@ import { defineConfig, devices } from "@playwright/test";
 /** A Chromium already on the machine, used in place of the one Playwright downloads. */
 const executablePath = process.env["PLAYWRIGHT_CHROMIUM_EXECUTABLE"];
 const PORT = 5189;
+/** The dev server the embedding spec mounts the glass from, as another page imports it. */
+const EMBED_PORT = 5190;
 
 export default defineConfig({
   testDir: "e2e",
@@ -22,6 +24,7 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
+      testIgnore: "embed.spec.ts",
       use: { ...devices["Desktop Chrome"], ...(executablePath ? { launchOptions: { executablePath } } : {}) },
     },
     // WebKit paints differently from Chromium where the CSS it supports differs;
@@ -31,11 +34,24 @@ export default defineConfig({
       testMatch: /clip\.spec\.ts/,
       use: { ...devices["Desktop Safari"] },
     },
+    {
+      name: "embed",
+      testMatch: "embed.spec.ts",
+      use: { ...devices["Desktop Chrome"], baseURL: `http://localhost:${EMBED_PORT}/`, ...(executablePath ? { launchOptions: { executablePath } } : {}) },
+    },
   ],
-  webServer: {
-    command: `pnpm exec vite build --logLevel warn && pnpm exec vite preview --port ${PORT} --strictPort`,
-    url: `http://localhost:${PORT}/`,
-    reuseExistingServer: false,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: `pnpm exec vite build --logLevel warn && pnpm exec vite preview --port ${PORT} --strictPort`,
+      url: `http://localhost:${PORT}/`,
+      reuseExistingServer: false,
+      timeout: 120_000,
+    },
+    {
+      command: `pnpm exec vite --port ${EMBED_PORT} --strictPort`,
+      url: `http://localhost:${EMBED_PORT}/`,
+      reuseExistingServer: false,
+      timeout: 120_000,
+    },
+  ],
 });
