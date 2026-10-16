@@ -75,7 +75,6 @@ address that was not verified against a connected unit
 - Commit subjects are English sentences in the imperative, split by semantic unit.
 - Pull request titles take a type prefix — `bug:`, `feature:`, `perf:`, `docs:`, `chore:` or
   `release:` — and the title and body are in English.
-- Record changes to the simulator in `CHANGES.md` and `CHANGES_ja.md` under Unreleased.
 - Include before/after crops for changes on screen, taken with the same model, display scale
   and crop.
 - The GitHub Pages workflow runs `pnpm test` and `pnpm build` on every pull request to `main`.

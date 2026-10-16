@@ -38,6 +38,5 @@
 
 - [ ] Tests added for new behavior
 - [ ] `docs/en` and `docs/ja` (and `README.md` / `README.ja.md`) updated together
-- [ ] `CHANGES.md` and `CHANGES_ja.md` updated together
 - [ ] A control or screen left unbuilt is drawn where the unit has it and listed in `docs/*/known-issues.md`
 - [ ] Nothing from `reference/` is committed, and no address is added to `BindingTable` without verification on hardware
