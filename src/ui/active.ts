@@ -10,19 +10,6 @@ export function activeIn(node: Node): Element | null {
   return root instanceof ShadowRoot ? root.activeElement : document.activeElement;
 }
 
-/**
- * Whether anything holds the focus, on the glass `node` is in or on the page
- * around it. The host of the glass's shadow tree holding it stands for the
- * glass, which is asked of its own tree.
- */
-export function focusHeld(node: Node): boolean {
-  const inner = activeIn(node);
-  if (inner && inner !== document.body) return true;
-  const outer = document.activeElement;
-  const root = node.getRootNode();
-  return outer !== null && outer !== document.body && !(root instanceof ShadowRoot && outer === root.host);
-}
-
 /** The element an event was sent to, inside a shadow tree as much as outside one. */
 export function originOf(ev: Event): EventTarget | null {
   return ev.composedPath()[0] ?? ev.target;
