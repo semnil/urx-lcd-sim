@@ -171,7 +171,7 @@ export function dropSendsOverRate(store: DeviceStore, model: UnitModel, rate: nu
 function effectButton(ctx: AppContext, holder: EffectHolder): HTMLElement {
   return el("button", {
     class: "insfx-effect",
-    onTap: () => chooseEffect(ctx, holder),
+    onTap: writing(holder.namePath, () => chooseEffect(ctx, holder)),
     attrs: { "aria-label": "Select the inserted effect" },
     children: [el("span", { text: holder.name }), el("span", { class: "insfx-effect-copy", children: [Icons.copy()] })],
   });
@@ -767,7 +767,9 @@ function effectHeader(
     holder.title,
     "insfx",
     on,
-    holder.switchable ? writing(holder.onPath, () => void ctx.store.set(holder.onPath, !on)) : () => chooseEffect(ctx, holder),
+    holder.switchable
+      ? writing(holder.onPath, () => void ctx.store.set(holder.onPath, !on))
+      : writing(holder.namePath, () => chooseEffect(ctx, holder)),
   );
   if (!holder.switchable) title.removeAttribute("aria-pressed");
   return { headerLeft, headerCenter: title };
