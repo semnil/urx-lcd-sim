@@ -1187,6 +1187,11 @@ describe("the menus that change with the model", () => {
       await flush();
       expect(names(".menu-btn"), "SETUP's menu").toContain("Version");
       expect(names(".menu-btn").includes("Date/Time"), "SETUP's Date/Time").toBe(row.dateTime);
+      // The URX22 leaves Date/Time's place empty, and Software Integration stays at the end of its row.
+      expect([...shell.root.querySelectorAll(".setup-menu > *")].map((n) => (n.textContent ?? "").replace("\n", " ")), "SETUP's places").toEqual([
+        "User Defined Knobs", "", "", "Sampling Frequency", "Output Patch", "Peripheral", "Power Management", row.dateTime ? "Date/Time" : "",
+        "Software Integration",
+      ]);
       shell.ctx.nav.push({ id: "setup.patch" });
       await flush();
       expect(names(".patch-caption"), "OUTPUT PATCH's Analog tab").toEqual(row.analog);

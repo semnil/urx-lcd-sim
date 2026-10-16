@@ -69,8 +69,8 @@ export const setupScreen: ScreenDef = {
       menuButton("Peripheral", open("setup.peripheral")),
       menuButton("Power\nManagement", open("setup.power")),
     ];
-    // The URX22 has no Date/Time menu (user guide note under GENERAL menu).
-    if (ctx.model.hasDateTime) rest.push(menuButton("Date/Time", open("setup.datetime")));
+    // The URX22 has no Date/Time menu (user guide note under GENERAL menu); its place stays empty.
+    rest.push(ctx.model.hasDateTime ? menuButton("Date/Time", open("setup.datetime")) : el("div"));
     // The unit offers Software Integration as an entry out of reach. Here it opens
     // and works, and its tooltip says the unit does not offer it.
     const integration = menuButton("Software\nIntegration", open("setup.integration"));

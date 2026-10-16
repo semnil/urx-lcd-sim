@@ -1573,7 +1573,8 @@ the mode name is in the regular weight (p041-1).
 
 The four GENERAL items sit on a tray of their own (x31..448 / y54..107, face `--menu-tray`), as 100x46
 buttons 3px apart. The rest are stacked in three 120px columns (13px apart) from x47, 46px high at
-y112 / y166 / y220. A name on two lines leads 18px (the left column of the second row in wide/p052-1, its ink
+y112 / y166 / y220. The URX22 has no Date/Time, and leaves its place empty with [Software Integration] at the
+right end of the same row (URX22, the operator, 2026-10-16). A name on two lines leads 18px (the left column of the second row in wide/p052-1, its ink
 starting at y120 and y138). A name on one line, in the middle column of the third row, has its ink at
 y236..245 on a face (without the band) of y222..260 (wide/p052-1). Every name stands a pixel below where the
 button centres it (the ink of GENERAL's `Version` at y74..83, wide/p052-1).
