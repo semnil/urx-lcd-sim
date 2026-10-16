@@ -174,7 +174,10 @@ the unit, its row says so with the result and the date.
 ### Models
 
 HOME's captures have three INPUT bank marks, that is, they are of a model with 10 inputs. None shows
-a URX22 with two marks, and no display specific to the URX22 / URX44 is confirmed by an image.
+a URX22 with two marks, and no display specific to the URX44 is confirmed, by an image or on the unit. Of the
+displays specific to the URX22, the connector [HI-Z] stands on, the layout of SETUP's menu and the question
+[All Input] / [All USB DAW] ask were checked on the unit (URX22, the operator, 2026-10-14 and 2026-10-16). The
+URX22's HOME banks were not checked.
 
 ## Head amp in the channel view
 
@@ -185,7 +188,8 @@ and CH 2 on 4), a stereo channel the connector of the side in view. Two channels
 the same values, and turning or switching them on either moves both. The values are kept under the
 mono channel of the connector's number. A.Gain, +48V, HI-Z and Clip Safe were checked on the unit: with
 CH 1 and CH 3 on the same connector, a change on one shows on the other (URX44V; A.Gain and HI-Z on
-2026-09-21, +48V and Clip Safe on 2026-09-22).
+2026-09-21, +48V and Clip Safe on 2026-09-22). On a URX22, A.Gain, +48V, Clip Safe and [HI-Z] were checked
+to belong to the connector rather than the channel too (the operator, 2026-10-14).
 
 On any other source a channel shows that source's `D.Gain` (-24..+24 dB). The D.Gain belongs to the
 input source, not to a channel. Channels on one source, mono or stereo, show the same D.Gain, and
@@ -217,7 +221,8 @@ HI-Z belongs to the input jack, not to every MIC/LINE connector: MIC/LINE 3 and 
 URX44V, MIC/LINE 2 on the URX22. On a channel that is not on one of those, that cell of the head amp
 status panel is empty, and the INPUT screen shows no button for it. While HI-Z is on, that connector's
 A.Gain runs -8..+40 dB. An A.Gain above +40 dB comes down to +40 dB when HI-Z is switched on, and stays
-at +40 dB when HI-Z is switched off again (checked on a URX44V, 2026-09-22). The push-down is
+at +40 dB when HI-Z is switched off again (checked on a URX44V, 2026-09-22). On a URX22, HI-Z on MIC/LINE 2
+and A.Gain stopping at +40 dB while HI-Z is on were checked (the operator, 2026-10-14). The push-down is
 `hiZWriteRule()` in `src/screens/head-amp.ts`. The knob's direction is in [the "Strip rotary" section
 of design-tokens.md](design-tokens.md#strip-rotary).
 
@@ -276,7 +281,7 @@ write are in one place, `src/screens/stereo-link.ts`.
   between `PAN` and `BAL`, and out of `STEREO` — places both channels again. `PAN` puts the
   lower-numbered channel hard left (L63) and the other hard right (R63); `BAL` and unlinking put both
   in the centre (C). What is placed is the channel's own position and the position of each of its
-  sends.
+  sends. The same holds on a URX22's CH 1 and CH 2 (measured over the control link on 2026-10-14).
 - A linked pair holds one set of values. A write to either channel reaches the other, and linking
   copies the lower-numbered channel's values onto the other. Unlinking puts nothing back. What each
   member keeps its own of is the head amp (A.Gain, Clip Safe, Φ, +48V, Hi-Z), the input source, the
@@ -312,10 +317,11 @@ y209..248). The second row is empty. No other bus and no channel carries either.
   to L21; CH 5/6 at L20 read `Bal` L20, and one step took CH 5/6's BAL to L19). Switching it on moves each send's own placing to its source's position, and while it is on
   a move of the source's position moves the send's with it; switching it off leaves each send where its
   source was and does not bring back the placing it had before (URX44V, measured over the control link
-  on 2026-09-29).
+  on 2026-09-29; the same on a URX22, 2026-10-14).
 - `Pan Link` can be switched on only while the bus is `VARI`. Taking `FIXED` switches it off; while the
   bus is `FIXED` the button keeps its place and cannot be taken, and it stays off when the bus goes back
-  to `VARI` (URX44V, 2026-09-29, on the unit's screen and over the control link).
+  to `VARI` (URX44V, 2026-09-29, on the unit's screen and over the control link; the same on a URX22,
+  measured over the control link on 2026-10-14).
 
 The decision is in one place, `src/screens/mix-bus.ts`, and `src/screens/mix-bus.test.ts` pins it.
 
@@ -1334,7 +1340,8 @@ p060-2).
 The simulator has no audio. The meters read a synthetic signal that every input source carries of its
 own, taken through the mixer along the unit's own routing (`src/screens/signal-flow.ts`). The laws and
 the points read in this section were confirmed on a URX44V (System 1.3.1.0) on 2026-09-28. The URX22
-and URX44 run the same laws, bar the number of channels.
+and URX44 run the same laws, bar the number of channels. That a send into a FIXED MIX bus hears neither the
+send's [PRE] nor its placing was checked on a URX22 too (2026-10-14).
 
 ### Input sources
 

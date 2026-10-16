@@ -1,6 +1,6 @@
 // Power-on state.
 //
-// The channel values are a URX44V's own factory defaults: gain -8 dB and the
+// The channel values are a URX44V's and a URX22's own factory defaults: gain -8 dB and the
 // gate / comp settings below are what the unit holds after a reset, not
 // invented round numbers. The rest — SETUP menus, MONITOR, oscillator, scene
 // list — is the state those screens show at power-on.

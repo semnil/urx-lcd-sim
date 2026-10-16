@@ -99,7 +99,7 @@
 - **+48V と HI-Z の排他。** ユーザーガイドは INPUT 画面の [+48V] の説明で「The phantom power supply
   and HI-Z cannot be turned on at the same time.」とするが、実機は [+48V] を入れたまま [HI-Z] を押しても、
   [HI-Z] を入れたまま [+48V] を押しても、[+48V] と [HI-Z] がどちらも入になる (URX44V、2026-09-22 に
-  実機で確認)。このシミュレーターも 2 つを同時に入れられる。
+  実機で確認。URX22 も同じ、2026-10-14 に実機で確認)。このシミュレーターも 2 つを同時に入れられる。
 - **USB Storage Mode 中のメニューの制限。** ユーザーガイドは「USB Storage Mode button」の NOTE で「You cannot access any
   other menus from this product while USB Storage Mode is on.」とするが、実機はモードを入れたまま HOME を押すと HOME 画面へ
   移り、SETUP・MONITOR・チャンネルの画面も開く (URX44V、2026-09-22 に実機で確認)。このシミュレーターも移動を制限しない。
