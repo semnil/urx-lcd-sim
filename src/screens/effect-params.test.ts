@@ -968,9 +968,11 @@ describe("the screen an effect is set on", () => {
     expect(shell.root.querySelectorAll(".dyn-handle text").length, "and carry no letter").toBe(0);
     expect(shell.root.querySelector(".dyn-plot")?.classList.contains("is-oneknob")).toBe(true);
 
-    // Out Gain is the one row the knob leaves to the operator.
+    // Out Gain stays on the first page, held as well: the knob sets it when it is switched on.
     await click(shell, ".efx-page-prev");
-    expect(shell.root.querySelectorAll(".efx-cell .value-box").length).toBe(1);
+    const outGain = [...shell.root.querySelectorAll<HTMLElement>(".efx-cell .value-box")];
+    expect(outGain.length).toBe(1);
+    expect(outGain[0]!.getAttribute("aria-disabled"), "held by the unit").toBe("true");
     expect(knobLabels(shell)).toEqual(["1-knob Level", "", "", ""]);
   });
 

@@ -32,8 +32,8 @@
   終わってから 0.5〜1.5 秒で入力を下げ始めた (URX44V、2026-09-22 に実機で記録した入力メーターを 2026-10-12 に
   読み直した)。このシミュレーターはクリップを読み取った直後から下げる。
 - **M.B.Comp の 1-knob は行を預かるだけ。** 入にすると帯域の Threshold / Ratio / Gain / Attack と
-  Release と 2 つの Xover は読みだけを残して操作を受けず ([Bypass] はページから消え)、実機と同じく
-  その中で操作できるのは Out Gain だけ。ただし 1-knob Level に合わせて値を計算し直さない。
+  Release と 2 つの Xover と Out Gain は、実機と同じく読みだけを残して操作を受けず ([Bypass] は
+  ページから消える)。ただし 1-knob Level に合わせて値を計算し直さない。
 - **SSMCS の Morphing と Sweet Spot Data は自分の値だけを動かす。** 実機はどちらを動かしても
   ストリップの連続値 (コンプの Attack / Release / Ratio / Knee、サイドチェーンの Q / Freq. /
   Gain、EQ 3 バンドの Freq. / Gain と MID の Q、Out Gain) を計算し直すが、その計算の中身は

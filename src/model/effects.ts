@@ -403,12 +403,14 @@ export const MBC_GAIN_RANGE: readonly [number, number] = [mbcGainDb(1), mbcGainD
 /** The frequencies that page runs across, which the crossovers stand at. */
 export const MBC_PLOT_HZ: readonly [number, number] = [20, 20000];
 
-/** The rows the unit's multi-band compressor drives itself while 1-knob is on. */
-export const MBC_ONE_KNOB_DRIVEN: readonly string[] = [
+/** The rows the unit's multi-band compressor holds still while 1-knob is on: the ones the knob
+ *  drives, and Out Gain, which the knob sets when it is switched on. */
+export const MBC_ONE_KNOB_HELD: readonly string[] = [
   ...["low", "mid", "high"].flatMap((b) => [`${b}Bypass`, `${b}Threshold`, `${b}Ratio`, `${b}Attack`, `${b}Gain`]),
   "release",
   "xoverLowMid",
   "xoverMidHigh",
+  "outGain",
 ];
 
 const SEMITONES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
