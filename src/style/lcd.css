@@ -3331,6 +3331,16 @@
   height: 10px;
 }
 
+/* A value box out of reach darkens its band with its face, and opens no popup, so the padlock
+ * stands where its copy mark was. */
+.dt-screen .dt-value.is-disabled {
+  box-shadow: inset 0 -4px 0 var(--btn-bevel-disabled);
+}
+
+.dt-screen .dt-value.is-held-shut > .dt-copy {
+  visibility: hidden;
+}
+
 /* The [Date/Time] dialog: the parts of the clock on one row, in the middle of
  * the sheet under its title. */
 .pick-dialog-body {
@@ -10116,6 +10126,7 @@
   color: var(--text);
   line-height: 0;
   pointer-events: none;
+  translate: none;
 }
 
 .lcd .is-held-shut > span.lock-mark.lock-mark svg,

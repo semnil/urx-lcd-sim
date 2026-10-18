@@ -216,6 +216,36 @@ test("draws at the scale it is given", async ({ page }) => {
   expect(await width()).toBeCloseTo(full / 2, 0);
 });
 
+// A value box held shut carries the face of a control out of reach, its band included, and the
+// padlock inside its own corner where the copy mark stood, as every other held control does.
+test("draws a held Date / Time value box with its band darkened and the padlock inside it", async ({ page }) => {
+  await open(page, true, false);
+  await mountGlass(page, [{ target: { kind: "screen", id: "setup.datetime.set" }, reason: "Held by the page" }]);
+  const glass = page.locator(".urx-lcd-sim .lcd[data-screen]:not([inert])");
+  await glass.getByRole("button", { name: "SETUP", exact: true }).click();
+  const setup = page.locator('.urx-lcd-sim .lcd[data-screen="setup"]:not([inert])');
+  await setup.getByRole("button", { name: "Date/Time", exact: true }).click();
+  const box = page.locator('.urx-lcd-sim .lcd[data-screen="setup.datetime"]:not([inert]) .dt-value').first();
+  await expect(box).toHaveAttribute("aria-disabled", "true");
+  const drawn = await box.evaluate((v) => {
+    const r = (e: Element) => e.getBoundingClientRect();
+    const lock = r(v.querySelector(".lock-mark")!);
+    const own = r(v);
+    const bevel = getComputedStyle(v).boxShadow;
+    const plain = document.createElement("button");
+    plain.className = "btn dt-value";
+    v.parentElement!.append(plain);
+    const plainBevel = getComputedStyle(plain).boxShadow;
+    plain.remove();
+    return {
+      inside: lock.top >= own.top && lock.right <= own.right,
+      copy: getComputedStyle(v.querySelector(".dt-copy")!).visibility,
+      bandMoved: bevel !== plainBevel,
+    };
+  });
+  expect(drawn).toEqual({ inside: true, copy: "hidden", bandMoved: true });
+});
+
 test("draws the glass's text in the simulator's own font, loaded on the page", async ({ page }) => {
   await open(page, true);
   await page.evaluate(() => document.fonts.ready);
