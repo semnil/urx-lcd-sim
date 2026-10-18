@@ -837,6 +837,54 @@ describe("DeviceStore locks", () => {
   });
 });
 
+describe("DeviceStore.writesOf", () => {
+  it("counts every path an operation's edits name, a value already held and the writes the rule carries, writing none of them", async () => {
+    const { transport, writes } = heldDevice([["a", 1], ["b", 1], ["c", 1]]);
+    const store = new DeviceStore();
+    await store.attach(transport);
+    store.setWriteRule((path, value) => (path === "a" ? [["c", value]] : []));
+    const heard = vi.fn();
+    store.onChange(heard);
+
+    const counted = store.writesOf(() =>
+      store.operation(() => {
+        void store.set("a", 2);
+        void store.set("b", 1);
+        // An edit reads what an edit before it took.
+        if (store.num("a") === 2) void store.set("d", 3);
+      }),
+    );
+    await tick();
+    expect(counted).toEqual(["a", "c", "b", "d"]);
+    expect([store.num("a"), store.num("b"), store.num("c"), store.has("d")], "the mirror is as it was").toEqual([1, 1, 1, false]);
+    expect(writes, "nothing reached the device").toEqual([]);
+    expect(heard, "and no listener heard of it").not.toHaveBeenCalled();
+
+    void store.set("a", 2);
+    expect(writes.map((w) => w.path).sort(), "an edit after it writes as ever").toEqual(["a", "c"]);
+  });
+
+  it("counts a path the page holds shut", async () => {
+    const { transport } = heldDevice([["a", 1]]);
+    const store = new DeviceStore();
+    await store.attach(transport);
+    store.setLocked((path) => path === "a");
+    expect(store.writesOf(() => void store.set("a", 2))).toEqual(["a"]);
+  });
+
+  it("refuses an operation that returns a promise, with the mirror put back", async () => {
+    const { transport } = heldDevice([["a", 1]]);
+    const store = new DeviceStore();
+    await store.attach(transport);
+    expect(() =>
+      store.writesOf((async () => {
+        void store.set("a", 2);
+      }) as () => void),
+    ).toThrow("writesOf counts a synchronous op");
+    expect(store.num("a")).toBe(1);
+  });
+});
+
 describe("SimTransport", () => {
   it("marks its own write echoes and a device-side change differently", async () => {
     const transport = new SimTransport([["p", 1]]);
