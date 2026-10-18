@@ -66,7 +66,7 @@ import {
 import { type GrSpec, blockReduction, markReduction } from "./meters";
 import { insertSpec, stripTap } from "./signal-flow";
 import type { EffectChoice } from "./insert-fx";
-import { carriesInsert, effectSheet, insertBase, insertFxOptions, takeEffect, takeInsert } from "./insert-fx";
+import { carriesInsert, effectSheet, effectWrites, insertBase, insertFxOptions, insertWrites, takeEffect, takeInsert } from "./insert-fx";
 import type { ScreenBody, ScreenDef } from "./types";
 
 /** Where a strip keeps the effect it runs, and what it is offered instead. */
@@ -92,6 +92,8 @@ export interface EffectHolder {
   perRow: number;
   /** The screen the effect's name is chosen on. */
   pick(name: string): void;
+  /** Every value picking `name` writes. */
+  writes(name: string): string[];
 }
 
 /** The effect a strip runs, or nothing where the strip runs none. */
@@ -117,6 +119,7 @@ export function effectHolder(ctx: AppContext, strip: Strip): EffectHolder | null
         toFirstPage(ctx);
         takeEffect(ctx, base, `${base}.type`, "", name);
       },
+      writes: (name) => effectWrites(base, `${base}.type`, "", name),
     };
   }
   if (!carriesInsert(strip)) return null;
@@ -136,6 +139,7 @@ export function effectHolder(ctx: AppContext, strip: Strip): EffectHolder | null
       toFirstPage(ctx);
       takeInsert(ctx, strip, name);
     },
+    writes: (name) => insertWrites(ctx, strip, name),
   };
 }
 
@@ -184,6 +188,7 @@ function chooseEffect(ctx: AppContext, holder: EffectHolder): void {
     choices: holder.choices(),
     perRow: holder.perRow,
     onPick: holder.pick,
+    writes: holder.writes,
   });
 }
 
@@ -824,20 +829,19 @@ function pitchKeyboard(ctx: AppContext, holder: EffectHolder): HTMLElement {
     const path = `${holder.base}.${pitchNoteKey(semitone)}`;
     const on = ctx.store.bool(path, true);
     const name = PITCH_NOTE_NAMES[semitone] ?? "";
+    // The note and the scale it leaves are one operation of the store.
+    const turn = (): void => {
+      if (held) return;
+      ctx.store.operation(() => {
+        void ctx.store.set(path, !on);
+        void ctx.store.set(`${holder.base}.scale`, PITCH_CUSTOM);
+      });
+    };
     const node = el("button", {
       class: cls,
       ...(style ? { style } : {}),
       attrs: { "aria-label": name, "aria-pressed": on ? "true" : "false", ...(held ? { "aria-disabled": "true" } : {}) },
-      // The note and the scale it leaves are one operation of the store.
-      onTap: writing(
-        path,
-        () =>
-          !held &&
-          ctx.store.operation(() => {
-            void ctx.store.set(path, !on);
-            void ctx.store.set(`${holder.base}.scale`, PITCH_CUSTOM);
-          }),
-      ),
+      onTap: writing([path, ...ctx.store.writesOf(turn)], turn),
       children: [el("span", { class: "pitch-note", text: name })],
     });
     return node;
@@ -918,7 +922,11 @@ function pitchNotes(ctx: AppContext, holder: EffectHolder, params: readonly Effe
           class: "pitch-row",
           children: [
             el("span", { class: "pitch-row-caption", text: p.label }),
-            pulldown(ctx, at(p.key), offered(p), (v) => take(p, v), { label: p.label, path: `${holder.base}.${p.key}` }),
+            pulldown(ctx, at(p.key), offered(p), (v) => take(p, v), {
+              label: p.label,
+              path: `${holder.base}.${p.key}`,
+              writes: (v) => ctx.store.writesOf(() => take(p, v)),
+            }),
           ],
         }),
       ),

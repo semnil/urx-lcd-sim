@@ -13,7 +13,7 @@ import { attachSpin, fractionOf, knobGraphic, meter, panSlider, toggle } from ".
 import type { ScreenBody, ScreenDef } from "./types";
 import { fxShutOut } from "./effect-params";
 import { headAmpSwitch, micLineConnector } from "./head-amp";
-import { clearCues, toggleCue } from "./cue";
+import { clearCueWrites, clearCues, toggleCue } from "./cue";
 import { insertBase } from "./insert-fx";
 import { FIXED_LEVEL_TEXT, sendLocks } from "./mix-bus";
 import { isStereoLinked, linkPartner, stripPosition } from "./stereo-link";
@@ -231,7 +231,7 @@ function stripView(ctx: AppContext, strip: Strip, selected: boolean, linkedTo?: 
   const onBtn = toggle("ON", ctx.store.bool(`${base}.on`, true), writing(`${base}.on`, () => {
     void ctx.store.set(`${base}.on`, !ctx.store.bool(`${base}.on`, true));
   }), "btn-switch btn-on");
-  const cueBtn = toggle("CUE", ctx.store.bool(`${base}.cue`, false), writing(`${base}.cue`, () => toggleCue(ctx, strip)), "btn-switch btn-cue");
+  const cueBtn = toggle("CUE", ctx.store.bool(`${base}.cue`, false), writing(ctx.store.writesOf(() => toggleCue(ctx, strip)), () => toggleCue(ctx, strip)), "btn-switch btn-cue");
 
   const panValue = ctx.store.num(stripPosition(ctx, strip).path, 0);
 
@@ -381,7 +381,7 @@ export function homeSide(ctx: AppContext): HTMLElement[] {
 
   const cueActive = allStrips(ctx.model).some((s) => ctx.store.bool(`ch.${s.id}.cue`, false));
   const masterStrip = ctx.model.outputs.find((s) => s.kind === "stereo") ?? ctx.model.outputs[0];
-  const clearCue = (): void => clearCues(ctx);
+  const clearCue = writing(clearCueWrites(ctx.model), (): void => clearCues(ctx));
   // While anything is cued the meter reads the cue bus rather than the stereo
   // bus: a frame around it, its name over it, and the bin in the corner that
   // empties the cue.

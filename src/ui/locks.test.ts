@@ -70,6 +70,9 @@ const key = (node: Element | null | undefined, k: string): void => {
 const byText = (shell: Shell, selector: string, text: string): HTMLElement | undefined =>
   [...shell.root.querySelectorAll<HTMLElement>(selector)].find((n) => n.textContent === text);
 
+const pulldownFor = (shell: Shell, label: string): HTMLElement | undefined =>
+  [...shell.root.querySelectorAll<HTMLElement>(".pulldown")].find((n) => n.getAttribute("aria-label")?.startsWith(`${label}:`));
+
 describe("a screen the page holds shut", () => {
   const icon = (shell: Shell, label: string): HTMLElement | null => shell.root.querySelector<HTMLElement>(`.icon-btn[aria-label='${label}']`);
 
@@ -231,24 +234,88 @@ describe("a value the page holds shut", () => {
   });
 });
 
+describe("a choice on the short list Signal Type opens", () => {
+  const SIGNAL = "ch.ch1.signalType";
+  // Taking STEREO takes the insert effect off both channels of the pair; staying MONO writes nothing.
+  const INSERT = "ch.ch1.insFx.effect";
+  // The glass draws the box again as the page's locks change, so whether the list is up is read off the list.
+  const boxExpanded = (shell: Shell): boolean => pulldownFor(shell, "Signal Type")?.getAttribute("aria-expanded") === "true";
+  const listUp = (shell: Shell): boolean => shell.root.querySelector("[data-overlay] .dropdown-list") !== null;
+  const choice = (shell: Shell, name: string): HTMLElement | undefined => byText(shell, "[data-overlay] .dropdown-option", name);
+
+  async function signalTypeOn(locks: readonly SimLock[] = []): Promise<Shell> {
+    const shell = await shellOn([{ id: "channel-view", strip: "ch1" }, { id: "ch.setting", strip: "ch1" }], locks);
+    const box = pulldownFor(shell, "Signal Type");
+    expect(box?.getAttribute("aria-haspopup"), "the list opens on the glass").toBe("listbox");
+    drawnOpen(box);
+    box?.click();
+    await flush();
+    expect(boxExpanded(shell)).toBe(true);
+    expect(listUp(shell)).toBe(true);
+    return shell;
+  }
+
+  /** Touch and key STEREO, and whether it took nothing and left the list up. */
+  async function refused(shell: Shell): Promise<void> {
+    choice(shell, "STEREO")?.click();
+    key(choice(shell, "STEREO"), "Enter");
+    await flush();
+    expect(shell.ctx.store.str(SIGNAL, ""), "the channel stays mono").toBe("MONO x 2");
+    expect(listUp(shell), "the list stays up").toBe(true);
+  }
+
+  /** Let the page's locks go, then touch STEREO, and whether it took the pair stereo and took the list down. */
+  async function taken(shell: Shell): Promise<void> {
+    shell.setLocks([]);
+    await flush();
+    drawnOpen(choice(shell, "STEREO"));
+    choice(shell, "STEREO")?.click();
+    await flush();
+    expect(shell.ctx.store.str(SIGNAL, "")).toBe("STEREO");
+    expect(listUp(shell)).toBe(false);
+    expect(boxExpanded(shell)).toBe(false);
+  }
+
+  it("draws a choice shut where the page holds a value it writes and the box does not, and takes it once the page lets the value go", async () => {
+    const shell = await signalTypeOn([{ target: { kind: "path", path: INSERT }, reason: REASON }]);
+    drawnShut(choice(shell, "STEREO"));
+    drawnOpen(choice(shell, "MONO x 2"));
+    await refused(shell);
+    await taken(shell);
+  });
+
+  it("draws its choices shut as the page takes hold of the value with the list up, and takes one once the page lets it go", async () => {
+    const shell = await signalTypeOn();
+    drawnOpen(choice(shell, "STEREO"));
+    shell.setLocks([{ target: { kind: "path", path: SIGNAL }, reason: REASON }]);
+    await flush();
+    drawnShut(choice(shell, "STEREO"));
+    await refused(shell);
+    await taken(shell);
+  });
+});
+
 describe("an effect setting the page holds shut", () => {
   const INS = "ch.ch1.insFx";
 
-  /** CH 1's INS FX screen running `effect`, on page `page`, with `path` held. */
-  async function effectShut(effect: string, page: number, path: string): Promise<Shell> {
+  /** CH 1's INS FX screen running `effect`, on page `page`. */
+  async function effectOn(effect: string, page: number): Promise<Shell> {
     const shell = await shellOn([{ id: "channel-view", strip: "ch1" }, { id: "ch.insfx", strip: "ch1" }]);
     shell.root.querySelector<HTMLElement>(".insfx-effect")?.click();
     await flush();
     byText(shell, ".source-sheet .source-btn", effect)?.click();
     await flush();
     await shell.ctx.store.set("ui.effectPage", page);
+    return shell;
+  }
+
+  /** CH 1's INS FX screen running `effect`, on page `page`, with `path` held. */
+  async function effectShut(effect: string, page: number, path: string): Promise<Shell> {
+    const shell = await effectOn(effect, page);
     shell.setLocks([{ target: { kind: "path", path }, reason: REASON }]);
     await flush();
     return shell;
   }
-
-  const pulldownFor = (shell: Shell, label: string): HTMLElement | undefined =>
-    [...shell.root.querySelectorAll<HTMLElement>(".pulldown")].find((n) => n.getAttribute("aria-label")?.startsWith(`${label}:`));
 
   it("draws a row of buttons shut, and no button in it takes its value", async () => {
     const shell = await effectShut("Clean", 1, `${INS}.mod`);
@@ -344,6 +411,63 @@ describe("an effect setting the page holds shut", () => {
     expect(box?.getAttribute("aria-expanded")).toBe("true");
   });
 
+  describe("a choice on the sheet Pitch Fix's Key list opens", () => {
+    // The glass draws the box again as the page's locks change, so whether the sheet is up is read off the sheet.
+    const boxExpanded = (shell: Shell): boolean => pulldownFor(shell, "Key")?.getAttribute("aria-expanded") === "true";
+    const keySheetUp = (shell: Shell): boolean => shell.root.querySelector("[data-overlay] .source-btn") !== null;
+    const choice = (shell: Shell, name: string): HTMLElement | undefined => byText(shell, "[data-overlay] .source-btn", name);
+
+    async function openKeySheet(shell: Shell): Promise<void> {
+      const box = pulldownFor(shell, "Key");
+      expect(box?.getAttribute("aria-haspopup"), "the list opens on a sheet").toBe("dialog");
+      box?.click();
+      await flush();
+      expect(boxExpanded(shell)).toBe(true);
+      expect(keySheetUp(shell)).toBe(true);
+    }
+
+    /** Touch and key the choice `name`, and whether it took nothing and left the sheet up. */
+    async function refused(shell: Shell, name: string): Promise<void> {
+      choice(shell, name)?.click();
+      key(choice(shell, name), "Enter");
+      await flush();
+      expect(shell.ctx.store.str(`${INS}.key`, ""), "the key is kept").toBe("C");
+      expect(keySheetUp(shell), "the sheet stays up").toBe(true);
+    }
+
+    /** Let the page's locks go, then touch the choice `name`, and whether it took the key and took the sheet down. */
+    async function taken(shell: Shell, name: string): Promise<void> {
+      shell.setLocks([]);
+      await flush();
+      drawnOpen(choice(shell, name));
+      choice(shell, name)?.click();
+      await flush();
+      expect(shell.ctx.store.str(`${INS}.key`, "")).toBe(name);
+      expect(keySheetUp(shell)).toBe(false);
+      expect(boxExpanded(shell)).toBe(false);
+    }
+
+    it("draws a choice shut where the page holds a note it fills in and the box does not, and takes it once the page lets the note go", async () => {
+      const shell = await effectShut("Pitch Fix", 1, `${INS}.note2`);
+      drawnOpen(pulldownFor(shell, "Key"));
+      await openKeySheet(shell);
+      drawnShut(choice(shell, "D"));
+      await refused(shell, "D");
+      await taken(shell, "D");
+    });
+
+    it("draws its choices shut as the page takes hold of the key with the sheet up, and takes one once the page lets it go", async () => {
+      const shell = await effectOn("Pitch Fix", 1);
+      await openKeySheet(shell);
+      drawnOpen(choice(shell, "D"));
+      shell.setLocks([{ target: { kind: "path", path: `${INS}.key` }, reason: REASON }]);
+      await flush();
+      drawnShut(choice(shell, "D"));
+      await refused(shell, "D");
+      await taken(shell, "D");
+    });
+  });
+
   it("draws a key of Pitch Fix's keyboard shut, and the key turns no note over", async () => {
     const shell = await effectShut("Pitch Fix", 1, `${INS}.note2`);
     const d = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".pitch-key[aria-label='D']");
@@ -366,6 +490,14 @@ describe("an effect setting the page holds shut", () => {
     expect([shell.ctx.store.bool(`${INS}.note2`, true), shell.ctx.store.str(`${INS}.scale`, "")]).toEqual([false, "Custom"]);
   });
 
+  it("draws every key of Pitch Fix's keyboard shut where the page holds the Scale a touch takes to Custom", async () => {
+    const shell = await effectShut("Pitch Fix", 1, `${INS}.scale`);
+    for (const name of ["C", "D", "C#"]) drawnShut(shell.root.querySelector(`.pitch-keys [aria-label='${name}']`));
+    shell.root.querySelector<HTMLElement>(".pitch-key[aria-label='D']")?.click();
+    await flush();
+    expect([shell.ctx.store.bool(`${INS}.note2`, false), shell.ctx.store.str(`${INS}.scale`, "")]).toEqual([true, "Chromatic"]);
+  });
+
   it("draws the INS FX block's switch shut, and the switch writes nothing", async () => {
     const shell = await effectShut("Crunch", 0, `${INS}.on`);
     const title = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".badge-title");
@@ -385,6 +517,36 @@ describe("an effect setting the page holds shut", () => {
     shell.root.querySelector<HTMLElement>(".badge-title")?.click();
     await flush();
     expect(shell.ctx.store.bool(`${INS}.on`, true)).toBe(false);
+  });
+});
+
+describe("a control that writes several values", () => {
+  it("draws EQ's [1-knob] shut where the page holds the curve's level switching it on takes, and the switch writes nothing", async () => {
+    const shell = await shellOn([{ id: "ch.eq", strip: "ch1" }], [{ target: { kind: "path", path: "ch.ch1.eq.oneKnob.level" }, reason: REASON }]);
+    const button = shell.root.querySelector<HTMLElement>(".oneknob");
+    drawnShut(button);
+    button?.click();
+    await flush();
+    expect(shell.ctx.store.bool("ch.ch1.eq.oneKnob.on", false)).toBe(false);
+  });
+
+  it.each(["freq", "gain"])("draws an EQ band's grip shut where the page holds its %s", async (value) => {
+    const shell = await shellOn([{ id: "ch.eq", strip: "ch1" }], [{ target: { kind: "path", path: `ch.ch1.eq.low.${value}` }, reason: REASON }]);
+    drawnShut(shell.root.querySelector(".eq-grip[aria-label='LOW band']"));
+    drawnOpen(shell.root.querySelector(".eq-grip[aria-label='HIGH band']"));
+  });
+
+  it.each([
+    ["bus.stereo", "an output's, which takes the input cue out", true],
+    ["ch2", "another input's, which leaves it in", false],
+  ])("draws %s [CUE] — %s — by whether the page holds CH 1's cue", async (strip, _, shut) => {
+    const shell = await shellOn([{ id: "channel-view", strip }]);
+    await shell.ctx.store.set("ch.ch1.cue", true);
+    shell.setLocks([{ target: { kind: "path", path: "ch.ch1.cue" }, reason: REASON }]);
+    await flush();
+    const cue = shell.root.querySelector(".btn-cue");
+    if (shut) drawnShut(cue);
+    else drawnOpen(cue);
   });
 });
 

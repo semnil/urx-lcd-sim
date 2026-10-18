@@ -469,11 +469,11 @@ function sweetSpotSheet(ctx: AppContext, b: string): HTMLElement {
   const rows: (HTMLElement | null)[][] = [];
   for (let i = 0; i < SWEET_SPOT_DATA.length; i += 2) {
     const row = SWEET_SPOT_DATA.slice(i, i + 2).map((name) =>
-      toggle(name, name === current, () => {
+      toggle(name, name === current, writing(path, () => {
         void ctx.store.set(path, name);
         close();
         ctx.repaint();
-      }, "source-btn ssmcs-data-option"),
+      }), "source-btn ssmcs-data-option"),
     );
     rows.push([...row, ...Array<null>(2 - row.length).fill(null)]);
   }

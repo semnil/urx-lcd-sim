@@ -107,7 +107,7 @@ Each lock (`SimLock`) is a target and the reason the page gives for it. A target
 
 | Target | Holds shut |
 | --- | --- |
-| `{ kind: "path", path }` | a control that writes that path: a value box, a knob, a fader, a switch, a pulldown, a button that opens the sheet picking it. A control that writes several paths is held by its first. |
+| `{ kind: "path", path }` | a control that writes that path: a value box, a knob, a fader, a switch, a pulldown, a button that opens the sheet picking it. A control that writes several paths names each of them, and the page holding any one of them holds it. |
 | `{ kind: "screen", id }` | a button that opens the screen of that route id: HOME's `setup` / `microsd` / `monitor`, SETUP's entries (`setup.language`, `setup.rate`, ...), microSD's (`microsd.saveload`, ...), a channel's blocks (`ch.eq`, ...). |
 | `{ kind: "op", op }` | a button that hands the unit that operation (`UnitOp["kind"]`: `scene.recall`, `recorder.arm`, `card.eject`, ...). A transport button that hands the unit a different operation in each state is held by the one it would hand it now. |
 
@@ -121,9 +121,17 @@ Each lock (`SimLock`) is a target and the reason the page gives for it. A target
   (a linked pair's other channel, say), reporting nothing to `onWriteFailure`; the navigator opens no held
   screen (`Navigator.setRefusal()`, the back arrow and the home button aside); `perform()` hands the unit
   no held operation. A value the unit changes itself still reaches the glass.
-- A control names its target where it is built (`lockable`, `writes`, `writing` and `aimed` in
-  `src/ui/dom.ts`): the numeric controls built from a `NumericSpec` name its path themselves, a
-  pulldown names the `path` it is given, and a dialog's [OK] (`dialog` and `pickDialog` in
+- A control names its targets where it is built (`lockable`, `writes`, `writing` and `aimed` in
+  `src/ui/dom.ts`), every value a press on it writes among them: the numeric controls built from a
+  `NumericSpec` name its path themselves, and a pulldown names the `path` it is given. Where what a
+  press writes depends on what the store holds — [CUE], which takes the other group out, a 1-knob
+  switch, a sampling frequency, a choice that rewrites a pair of channels — the control names what
+  its edit would write as the glass is drawn (`DeviceStore.writesOf()`, which runs the edit against
+  the mirror and puts the mirror back, writing nothing), a value the store already holds included,
+  since a held path refuses that too. A choice on a list or a sheet names what picking it writes,
+  and the box that opens it names the value it picks. A list or a sheet already up when the page
+  holds a value one of its choices writes draws that choice shut and stays up, and the choice takes
+  nothing until the page lets the value go. A dialog's [OK] (`dialog` and `pickDialog` in
   `src/ui/widgets.ts`) names what its `onOk` was named with, and the title entry's [OK] names the path it
   writes what is typed to, so a dialog or a sheet already open when the page holds that target has its [OK]
   drawn shut. A control that names none is drawn as it is, while the refusals

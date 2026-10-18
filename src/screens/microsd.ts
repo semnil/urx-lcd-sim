@@ -25,7 +25,7 @@ import { settlePanLink } from "./mix-bus";
 import { onSsmcsStops } from "./ssmcs";
 import { onDelayGrid } from "./channel";
 import { allStrips, channelPairs } from "../model/types";
-import { aimed, el, markShut, setPressed, writes, writing } from "../ui/dom";
+import { aimed, el, markShut, setPressed, writing } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { LIST_THUMB_MIN_PX, SHORT_PROGRESS_MS, button, dialog, dropdown, listView, loadingDialog, menuButton, menuGrid, meter, pickerGrid, pickerSheet, scrollbar, sideTab, toggle } from "../ui/widgets";
 import { drawnLevels, pairMeterId } from "./meters";
@@ -170,7 +170,9 @@ function cardBrowser(ctx: AppContext, opts: BrowserOptions): HTMLElement {
       // The first touch brings the cursor to the row; a folder already under it
       // opens on the next touch, where the browser opens folders.
       onTap:
-        entry.kind === "folder" && i === selected && opens ? () => openFolder(ctx, entry) : () => void ctx.store.set("sd.selectedFile", i),
+        entry.kind === "folder" && i === selected && opens
+          ? writing(OPEN_WRITES, () => openFolder(ctx, entry))
+          : writing("sd.selectedFile", () => void ctx.store.set("sd.selectedFile", i)),
       cells: [
         el("span", { class: "sd-icon", children: [entry.kind === "folder" ? Icons.folder() : fileIcon(entry, i)] }),
         entry.name,
@@ -199,7 +201,7 @@ function cardBrowser(ctx: AppContext, opts: BrowserOptions): HTMLElement {
             el("button", {
               class: "btn sd-up",
               attrs: { "aria-label": "Up one level" },
-              onTap: climbs ? () => openPath(ctx, parentPath(path)) : () => undefined,
+              onTap: climbs ? writing(OPEN_WRITES, () => openPath(ctx, parentPath(path))) : () => undefined,
               children: [Icons.upFolder()],
             }),
             !climbs,
@@ -225,6 +227,9 @@ function cardPath(ctx: AppContext): string {
 }
 
 /** Open a folder, with the cursor on the first thing in it. */
+/** What opening a folder writes: the folder, and the row the cursor stands on in it. */
+const OPEN_WRITES = ["sd.path", "sd.selectedFile"] as const;
+
 function openPath(ctx: AppContext, path: string): void {
   ctx.store.operation(() => {
     void ctx.store.set("sd.path", path);
@@ -614,9 +619,9 @@ export const recorderScreen: ScreenDef = {
           ? [
               (() => {
                 // It greys its mark and takes nothing until playback holds a file.
-                const node = iconButton("Move the cursor to the file playing", Icons.toPlaying(), `sd-locate${held ? "" : " is-disabled"}`, () => {
+                const node = iconButton("Move the cursor to the file playing", Icons.toPlaying(), `sd-locate${held ? "" : " is-disabled"}`, writing("sd.selectedFile", () => {
                   if (held) void ctx.store.set("sd.selectedFile", playingFile(ctx));
-                });
+                }));
                 if (!held) node.setAttribute("aria-disabled", "true");
                 return node;
               })(),
@@ -731,7 +736,7 @@ export const recorderScreen: ScreenDef = {
       headerRight: ejectButton(ctx),
       headerLeft: (() => {
         const ceiling = trackCountCeiling(ctx.store.num("setup.samplingFrequency", 48000));
-        const node = writes(dropdown(ctx, {
+        const node = dropdown(ctx, {
           label: "Track Count",
           value: `${tracks} Tracks`,
           options: TRACK_COUNTS.map((n) => `${n} Tracks`),
@@ -740,7 +745,8 @@ export const recorderScreen: ScreenDef = {
           disabled: TRACK_COUNTS.filter((n) => n > ceiling).map((n) => `${n} Tracks`),
           onPick: (v) => void ctx.store.set("sd.trackCount", Number.parseInt(v, 10)),
           listClass: "rec-track-list",
-        }), "sd.trackCount");
+          path: "sd.trackCount",
+        });
         // In recording mode the box keeps its name, darkened, and opens nothing.
         if (busy) {
           node.classList.add("is-disabled");
@@ -998,7 +1004,7 @@ export function recordSourceSheet(ctx: AppContext, slot: number): HTMLElement {
       };
       return pickerGrid(
         recordSourceRows(ctx).map((row) =>
-          row.map((label) => (label === null ? null : toggle(label, label === current, () => pick(label), "source-btn"))),
+          row.map((label) => (label === null ? null : toggle(label, label === current, writing(key, () => pick(label)), "source-btn"))),
         ),
       );
     },

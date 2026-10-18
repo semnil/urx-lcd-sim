@@ -9,6 +9,7 @@
 
 import type { AppContext } from "../app/context";
 import type { UnitModel } from "../model/types";
+import { writing } from "../ui/dom";
 import { pickerGrid, pickerSheet, toggle } from "../ui/widgets";
 
 /** What an output carries when nothing is patched to it. */
@@ -63,7 +64,7 @@ export function patchSourceSheet(ctx: AppContext, caption: string, path: string,
           row.map((label) =>
             label === null
               ? null
-              : toggle(label, label.replace("\n", " ") === current, () => pick(label), "source-btn"),
+              : toggle(label, label.replace("\n", " ") === current, writing(path, () => pick(label)), "source-btn"),
           ),
         ),
       );

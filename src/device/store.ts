@@ -113,6 +113,9 @@ export class DeviceStore {
   /** Whether the edit under way reached a path held shut, which refuses the whole of it. */
   private lockRefused = false;
 
+  /** While `writesOf` counts, the paths written so far and what the mirror held at each before. */
+  private counting: { paths: ParamPath[]; held: [ParamPath, ParamValue | undefined][] } | null = null;
+
   /** Paths changed since the last flush, coalesced into one notification. */
   private pending = new Set<ParamPath>();
   private changes = 0;
@@ -287,6 +290,10 @@ export class DeviceStore {
    * callers that must sequence can await it; UI handlers ignore it.
    */
   set(path: ParamPath, value: ParamValue): Promise<void> {
+    if (this.counting) {
+      this.count(path, value, true, true);
+      return Promise.resolve();
+    }
     if (this.locked(path)) {
       if (this.edit) this.lockRefused = true;
       return Promise.resolve();
@@ -300,7 +307,53 @@ export class DeviceStore {
    * edit carries.
    */
   restore(path: ParamPath, value: ParamValue): Promise<void> {
+    if (this.counting) {
+      this.count(path, value, false, false);
+      return Promise.resolve();
+    }
     return this.together(() => this.write(path, value, false));
+  }
+
+  /**
+   * The paths the edits `op` makes would write, each write their rule carries
+   * included, with nothing written: every path an edit names counts, whether or
+   * not it holds that value already, as every one of them is refused while it is
+   * held shut. `op` runs against the mirror, which is put back as it was once it
+   * returns; nothing goes to the transport and no listener hears of it. `op` is
+   * synchronous: a promise it returns is refused, since what it would do after
+   * its first await would be written.
+   */
+  writesOf(op: () => void): ParamPath[] {
+    if (this.counting) {
+      op();
+      return [];
+    }
+    const counting: NonNullable<DeviceStore["counting"]> = { paths: [], held: [] };
+    this.counting = counting;
+    let result: unknown;
+    try {
+      result = op();
+    } finally {
+      this.counting = null;
+      for (const [path, held] of counting.held.reverse()) {
+        if (held === undefined) this.mirror.delete(path);
+        else this.mirror.set(path, held);
+      }
+    }
+    if (result instanceof Promise) throw new Error("writesOf counts a synchronous op");
+    return [...new Set(counting.paths)];
+  }
+
+  /** Take `value` at `path` into the mirror while counting, and what the rule carries from it where `carry`. */
+  private count(path: ParamPath, value: ParamValue, carry: boolean, counted: boolean): void {
+    const counting = this.counting;
+    if (!counting) return;
+    if (counted) counting.paths.push(path);
+    const previous = this.mirror.get(path);
+    if (previous === value) return;
+    counting.held.push([path, previous]);
+    this.mirror.set(path, value);
+    if (carry && this.writeRule) for (const [p, v] of this.writeRule(path, value)) this.count(p, v, true, true);
   }
 
   /**
