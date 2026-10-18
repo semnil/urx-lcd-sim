@@ -4421,7 +4421,8 @@ describe("EQ's shape list and Operation Mode's previews", () => {
     };
     expect(await labels("lowMid")).toEqual(["L-MID Q", "L-MID Freq.", "L-MID Gain"]);
     expect(await labels("highMid")).toEqual(["H-MID Q", "H-MID Freq.", "H-MID Gain"]);
-    expect(await labels("high")).toEqual(["HIGH Q", "HIGH Freq.", "HIGH Gain"]);
+    // HIGH ships H.Shelf, which reads no Q.
+    expect(await labels("high")).toEqual(["HIGH Freq.", "HIGH Gain"]);
   });
 
   it("leaves a band switched off out of the channel view's EQ thumbnail", async () => {
@@ -7011,10 +7012,11 @@ describe("the control the knob turns", () => {
 
     shell.ctx.nav.replace({ id: "ch.eq", strip: "ch1" });
     await flush();
-    expect(reach(), "EQ").toEqual(["1-knob: live", "LOW Q: true", "LOW Freq.: true", "LOW Gain: true"]);
+    // LOW ships L.Shelf, which reads no Q.
+    expect(reach(), "EQ").toEqual(["1-knob: live", "LOW Freq.: true", "LOW Gain: true"]);
     await shell.ctx.store.set("ch.ch1.eq.oneKnob.on", false);
     await flush();
-    expect(reach(), "EQ with 1-knob off").toEqual(["LOW Q: live", "LOW Freq.: live", "LOW Gain: live"]);
+    expect(reach(), "EQ with 1-knob off").toEqual(["LOW Freq.: live", "LOW Gain: live"]);
   });
 
   it("rims only the touched column in the USER DEFINED KNOBS picker, and the input source sheet's bar", async () => {

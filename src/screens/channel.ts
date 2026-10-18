@@ -9,7 +9,7 @@ import { clamp } from "../device/store";
 import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, GATE_DEFAULTS, compEqBankDefaults, faderShipped, holdsEq, sendShipsOn, ssmcsBankDefaults } from "../model/defaults";
 import { COMP_KNEE_WIDTH, compResponse, grBarShare, levelBarShare } from "../model/dynamics";
 import { DYNAMICS_TIME_PLACES, DYNAMICS_TIME_STOPS, type DynamicsTime } from "../model/dynamics-times";
-import { EQ_SHAPES, eqBandOn, eqBandShape, fourBandResponse } from "../model/channel-eq";
+import { EQ_SHAPES, eqBandOn, eqBandShape, eqShapeReads, fourBandResponse } from "../model/channel-eq";
 import type { Strip, StripKind } from "../model/types";
 import { findStrip, sendsTo } from "../model/types";
 import { CH_COLOR_NONE, CH_COLOR_OFF, CH_COLOR_PALETTE } from "../model/units";
@@ -1670,10 +1670,12 @@ export const eqScreen: ScreenDef = {
     // The screen opens holding the band picked last, on any channel.
     if (!oneKnob && ctx.focus.idle) ctx.focus.takeKey(`${base}.eq.${band.key}.grip`);
     const specs = eqBandSpecs(base, band);
-    ctx.setKnobs([null, specs[0] ?? null, specs[1] ?? null, specs[2] ?? null]);
-    const on = ctx.store.bool(`${base}.eq.on`, true);
     const shapes = EQ_SHAPES[band.key];
     const shape = eqBandShape(ctx.store, base, band.key);
+    // The readout bar carries only the values the band's shape reads, each in its own place.
+    const reads = eqShapeReads(shape);
+    ctx.setKnobs([null, reads.q ? (specs[0] ?? null) : null, specs[1] ?? null, reads.gain ? (specs[2] ?? null) : null]);
+    const on = ctx.store.bool(`${base}.eq.on`, true);
 
     const svg = document.createElementNS(NS, "svg");
     svg.setAttribute("viewBox", `0 0 ${EQ_W} ${EQ_H}`);

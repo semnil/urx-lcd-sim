@@ -26,6 +26,12 @@ export const EQ_SHAPES: Record<EqBandKey, readonly string[]> = {
   high: ["Bell", "H.Shelf", "LPF"],
 };
 
+/** Which of a band's values its filter shape reads: Q on a Bell alone, and the gain on every shape
+ *  but a pass filter. The unit's readout bar leaves out the boxes a shape does not read. */
+export function eqShapeReads(shape: string): { q: boolean; gain: boolean } {
+  return { q: shape === "Bell", gain: shape !== "HPF" && shape !== "LPF" };
+}
+
 /** The filter shape an EQ band holds, or its first shape where it holds one the band cannot take. */
 export function eqBandShape(store: DeviceStore, base: string, key: EqBandKey): string {
   const shapes = EQ_SHAPES[key];

@@ -482,3 +482,25 @@ describe("COMP's makeup gain while Auto Makeup is on", () => {
     expect(store.num("ch.ch1.comp.gain", 0), "and the key does not move it").toBe(before);
   });
 });
+
+describe("the EQ screen's readout bar", () => {
+  const labels = (shell: Shell): string[] =>
+    [...shell.root.querySelectorAll(".knob-cell")].map((c) => c.querySelector(".knob-cell-label")?.textContent ?? "");
+
+  // Q on a Bell alone and the gain on every shape but a pass filter, each in its own box.
+  it.each([
+    ["low", "HPF", ["", "", "LOW Freq.", ""]],
+    ["low", "L.Shelf", ["", "", "LOW Freq.", "LOW Gain"]],
+    ["low", "Bell", ["", "LOW Q", "LOW Freq.", "LOW Gain"]],
+    ["high", "LPF", ["", "", "HIGH Freq.", ""]],
+    ["high", "H.Shelf", ["", "", "HIGH Freq.", "HIGH Gain"]],
+    ["high", "Bell", ["", "HIGH Q", "HIGH Freq.", "HIGH Gain"]],
+  ])("carries what a %s band's %s reads", async (band, shape, want) => {
+    const { shell, store } = await mount();
+    await store.set("ui.eqBand", band);
+    await store.set(`ch.ch1.eq.${band}.shape`, shape);
+    await open(shell, "channel-view", "ch1");
+    await open(shell, "ch.eq", "ch1");
+    expect(labels(shell)).toEqual(want);
+  });
+});

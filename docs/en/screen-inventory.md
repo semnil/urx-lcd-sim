@@ -1047,7 +1047,7 @@ puts that band on the knobs. Dragging one moves its frequency across the graph a
 band on the knobs too (e under "EQ screen" in the user guide). A handle's name is 13.5px in the regular weight in the middle of its ring (p106-1). The handle of the band on
 the knobs carries a 6x8 triangle on either side, 3px outside its ring and level with its middle (y130..137 in p106-1).
 The triangles fade out and back in over two seconds.
-The knob readout names a band as the band box does (`L-MID Q`, `H-MID Gain` and so on). The rules are 1px on whole rows, and the curve's line is `--eq-line`.
+The knob readout names a band as the band box does (`L-MID Q`, `H-MID Gain` and so on), and carries only what the band's shape reads, each in its own division with the others empty: Q in the second on a Bell alone, Freq. in the third, and Gain in the fourth on every shape but HPF and LPF (URX44V / System 1.3.1.0, the operator on CH 1's EQ screen, 2026-10-18). The rules are 1px on whole rows, and the curve's line is `--eq-line`.
 
 A press on the band box at the top left switches the band on the knobs on and off (b under "EQ screen" in the user
 guide). The box of a band that is on has the `--accent-band` face; the box of a band that is off has the pale face of a
