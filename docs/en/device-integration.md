@@ -129,7 +129,9 @@ Each lock (`SimLock`) is a target and the reason the page gives for it. A target
   its edit would write as the glass is drawn (`DeviceStore.writesOf()`, which runs the edit against
   the mirror and puts the mirror back, writing nothing), a value the store already holds included,
   since a held path refuses that too. A choice on a list or a sheet names what picking it writes,
-  and the box that opens it names the value it picks. A dialog's [OK] (`dialog` and `pickDialog` in
+  and the box that opens it names the value it picks. A list or a sheet already up when the page
+  holds a value one of its choices writes draws that choice shut and stays up, and the choice takes
+  nothing until the page lets the value go. A dialog's [OK] (`dialog` and `pickDialog` in
   `src/ui/widgets.ts`) names what its `onOk` was named with, and the title entry's [OK] names the path it
   writes what is typed to, so a dialog or a sheet already open when the page holds that target has its [OK]
   drawn shut. A control that names none is drawn as it is, while the refusals
