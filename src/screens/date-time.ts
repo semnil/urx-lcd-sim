@@ -10,7 +10,7 @@ import type { AppContext } from "../app/context";
 import type { DeviceStore, WriteRule } from "../device/store";
 import { clockParts, daysInMonth, setClock, unitNow, type ClockTime } from "../model/clock";
 import { TIME_ZONE_CITIES, TIME_ZONE_SHIPPED } from "../model/time-zone";
-import { el } from "../ui/dom";
+import { el, writing } from "../ui/dom";
 import { intSpec } from "../ui/param-spec";
 import { pickColumn, pickDialog, valueBox } from "../ui/widgets";
 import type { ScreenBody, ScreenDef } from "./types";
@@ -192,10 +192,10 @@ export const timeZoneScreen: ScreenDef = {
       main: pickDialog({
         title: "TIME ZONE",
         onCancel: () => ctx.nav.back(),
-        onOk: () => {
+        onOk: writing("setup.dateTime.timeZone", () => {
           void ctx.store.set("setup.dateTime.timeZone", pick);
           ctx.nav.back();
-        },
+        }),
         body: [
           el("div", {
             class: "pick-dialog-cols is-centred",

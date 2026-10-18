@@ -266,7 +266,7 @@ export const sceneScreen: ScreenDef = {
       ctx.overlay(
         dialog({
           message: `Recall scene "${sceneTitle(ctx, selected)}"?`,
-          onOk: () => void perform(ctx, { kind: "scene.recall", scene: selected }),
+          onOk: aimed(() => void perform(ctx, { kind: "scene.recall", scene: selected }), { kind: "op", op: "scene.recall" }),
         }),
       );
     }, { kind: "op", op: "scene.recall" })), recallShut);
@@ -283,7 +283,7 @@ export const sceneScreen: ScreenDef = {
           ctx.overlay(
             dialog({
               message: `Store to "Scene Memory #${sceneNumber(selected)}"?`,
-              onOk: () => void perform(ctx, { kind: "scene.store", bank, scene: selected, title: typed }),
+              onOk: aimed(() => void perform(ctx, { kind: "scene.store", bank, scene: selected, title: typed }), { kind: "op", op: "scene.store" }),
             }),
           );
         },
@@ -306,7 +306,7 @@ export const sceneScreen: ScreenDef = {
         ctx.overlay(
           dialog({
             message: `Delete "Scene Memory #${sceneNumber(selected)}"?`,
-            onOk: () => void (owner && perform(ctx, { kind: "scene.delete", bank: owner, scene: selected })),
+            onOk: aimed(() => void (owner && perform(ctx, { kind: "scene.delete", bank: owner, scene: selected })), { kind: "op", op: "scene.delete" }),
           }),
         );
       }, { kind: "op", op: "scene.delete" })),

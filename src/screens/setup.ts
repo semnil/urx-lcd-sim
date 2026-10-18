@@ -328,10 +328,10 @@ export const udkAssignScreen: ScreenDef = {
         sub: `Bank ${bank}, Knob ${knob}`,
         coversBar: true,
         onCancel: () => ctx.nav.back(),
-        onOk: () => {
+        onOk: writing(udkPath(bank, knob), () => {
           void ctx.store.set(udkPath(bank, knob), picked.value);
           ctx.nav.back();
-        },
+        }),
         body: [
           el("div", {
             class: "pick-dialog-cols",
@@ -504,7 +504,7 @@ export const powerScreen: ScreenDef = {
             ctx.overlay(
               dialog({
                 message: AUTO_POWER_OFF_WARNING,
-                onOk: () => void ctx.store.set("setup.power.autoPowerOff", false),
+                onOk: writing("setup.power.autoPowerOff", () => void ctx.store.set("setup.power.autoPowerOff", false)),
               }),
             );
           })),

@@ -101,12 +101,12 @@ function ejectButton(ctx: AppContext): HTMLElement {
         message: "Now you may safely remove the microSD card.",
         okOnly: true,
         // The test's result and the card leave in one operation of the store.
-        onOk: () => void perform(ctx, { kind: "card.eject" }),
+        onOk: aimed(() => void perform(ctx, { kind: "card.eject" }), { kind: "op", op: "card.eject" }),
       }),
     );
   };
   const ask = (): void => {
-    ctx.overlay(dialog({ message: "Eject the microSD card?", onOk: pull }));
+    ctx.overlay(dialog({ message: "Eject the microSD card?", onOk: aimed(pull, { kind: "op", op: "card.eject" }) }));
   };
   return el("button", {
     class: `sd-eject${usable ? "" : " is-disabled"}`,
@@ -122,7 +122,7 @@ function ejectButton(ctx: AppContext): HTMLElement {
  */
 function insertCardLine(ctx: AppContext): HTMLElement {
   const ask = (): void => {
-    ctx.overlay(dialog({ message: "Simulate inserting the microSD card?", onOk: () => void perform(ctx, { kind: "card.insert" }) }));
+    ctx.overlay(dialog({ message: "Simulate inserting the microSD card?", onOk: aimed(() => void perform(ctx, { kind: "card.insert" }), { kind: "op", op: "card.insert" }) }));
   };
   return el("button", { class: "sd-no-card", text: "Not inserted microSD card", onTap: aimed(ask, { kind: "op", op: "card.insert" }) });
 }
@@ -377,7 +377,7 @@ function deleteSelected(ctx: AppContext): void {
   ctx.overlay(
     dialog({
       message: "Delete the selected file?",
-      onOk: () => void perform(ctx, { kind: "card.delete", file: fileOf(entry) }),
+      onOk: aimed(() => void perform(ctx, { kind: "card.delete", file: fileOf(entry) }), { kind: "op", op: "card.delete" }),
     }),
   );
 }
@@ -453,7 +453,7 @@ function saveLoadAction(ctx: AppContext, label: string): void {
       const over = (): void => {
         if (settingsRow(ctx, name) >= 0) saveSettings(ctx, name);
       };
-      ctx.overlay(dialog({ message: REPLACE_ASK, onOk: over }));
+      ctx.overlay(dialog({ message: REPLACE_ASK, onOk: aimed(over, { kind: "op", op: "settings.save" }) }));
     }, { suffix: SETTINGS_SUFFIX, max: SAVE_AS_MAX });
     return;
   }
@@ -463,7 +463,7 @@ function saveLoadAction(ctx: AppContext, label: string): void {
     return;
   }
   // Saving over the file the cursor stands on asks first; nothing else does.
-  ctx.overlay(dialog({ message: REPLACE_ASK, onOk: () => saveSettings(ctx, entry.name) }));
+  ctx.overlay(dialog({ message: REPLACE_ASK, onOk: aimed(() => saveSettings(ctx, entry.name), { kind: "op", op: "settings.save" }) }));
 }
 
 /** Put a settings file back on the unit. */
@@ -837,7 +837,7 @@ function askVolumeLabel(ctx: AppContext): void {
 
 /** The warning's [OK] formats the card under `label`. */
 function warnFormat(ctx: AppContext, label: string): void {
-  ctx.overlay(dialog({ message: FORMAT_WARNING, caution: true, onOk: () => formatUnder(ctx, label) }));
+  ctx.overlay(dialog({ message: FORMAT_WARNING, caution: true, onOk: aimed(() => formatUnder(ctx, label), { kind: "op", op: "card.format" }) }));
 }
 
 /** What a card formatted with no volume label is called. */
@@ -919,10 +919,10 @@ function usbStorageAsk(ctx: AppContext, on: boolean): void {
   ctx.overlay(
     dialog({
       message: on ? USB_LEAVE : USB_ENTER,
-      onOk: () => {
+      onOk: writing("sd.usbStorage", () => {
         void ctx.store.set("sd.usbStorage", !on);
         ctx.repaint();
-      },
+      }),
     }),
   );
 }
