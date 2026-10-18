@@ -107,3 +107,7 @@ export function carriesInsert(strip: Pick<Strip, "kind">): boolean {
 
 /** The destination HOME's [Sends] ships on: the stereo bus. */
 export const SENDS_TARGET_SHIPPED = "ST";
+
+/** Whether a compatible DAW holds the unit, as the page the glass is embedded in reads it from the
+ *  unit. Absent when nothing says. */
+export const INTEGRATION_DAW = "setup.integration.daw";

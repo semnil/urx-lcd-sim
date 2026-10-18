@@ -10,7 +10,7 @@ import type { ParamPath, ParamValue } from "../device/path";
 import type { DeviceStore } from "../device/store";
 import { isClockPath } from "./clock";
 import { asPutBack, withEverySceneCleared } from "./scene-state";
-import { SENDS_TARGET_SHIPPED } from "./types";
+import { INTEGRATION_DAW, SENDS_TARGET_SHIPPED } from "./types";
 
 /** What stays behind when a settings file is written. */
 const NOT_SAVED = ["ui.", "sd.", "pair."];
@@ -25,9 +25,12 @@ const SENDS_TARGET: ParamPath = "ui.sendsTarget";
  */
 const SCREEN_STATE = new Set<ParamPath>(["setup.outputPatch.tab", "setup.peripheral.tab", "scene.bank"]);
 
+/** What follows the unit rather than the file outside `sd.`: whether a DAW holds it. */
+const UNIT_STATE = new Set<ParamPath>([INTEGRATION_DAW]);
+
 /** Whether a settings file carries the value at this path. */
 export function inSettingsFile(path: ParamPath): boolean {
-  return path === SENDS_TARGET || (!NOT_SAVED.some((p) => path.startsWith(p)) && !SCREEN_STATE.has(path) && !isClockPath(path));
+  return path === SENDS_TARGET || (!NOT_SAVED.some((p) => path.startsWith(p)) && !SCREEN_STATE.has(path) && !UNIT_STATE.has(path) && !isClockPath(path));
 }
 
 /** The unit as it stands, ready to be written to the card. */

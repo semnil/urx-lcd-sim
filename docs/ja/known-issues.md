@@ -75,7 +75,8 @@
 - **SETUP の [Software Integration] は開いて操作できる。** 実機では、microSD の再生の有無によらず使えないボタンの面で、
   押しても何もしない (URX44V・System ファームウェア 1.3.1.0、2026-10-13 操作者確認)。このシミュレーターは画面を撮れるように
   通常の面のまま SOFTWARE INTEGRATION を開き、マウスを重ねると `Not available on the unit; left usable here for screenshots.`
-  のツールチップを出す。
+  のツールチップを出す。埋め込み先のページが DAW の有無 (`setup.integration.daw`) を渡したときは、本体と同じ面に従う
+  ([device-integration.md](device-integration.md)「別のページへの埋め込み」)。
 - **時計は実機と同じく都市ごとにどの年も同じ時差で進み、SAVE/LOAD の一覧の時刻を 24 時間で出すが、2000〜2099 年の外では実機と違う年を出す。**
   時計は実機と同じく、[Time Zone] の都市ごとに
   UTC との時差を 1 つだけ持ち、一年を通しても、どの年でも同じ時差で表示し、夏時間に切り替わらない (9 月に Tokyo の 21:15 が
