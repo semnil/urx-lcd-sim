@@ -6809,6 +6809,12 @@
   outline: none;
 }
 
+/* A list the bar beside it scrolls is moved by script alone (src/ui/widgets.ts `scrollbar`), never
+ * by the browser. */
+.lcd .scroll-host {
+  overflow-y: hidden;
+}
+
 .scroll-thumb {
   position: absolute;
   left: 0;
