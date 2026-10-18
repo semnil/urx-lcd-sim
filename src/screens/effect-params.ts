@@ -14,7 +14,7 @@ import {
   FX_EFFECTS,
   FX_EFFECT_DEFAULT,
   MBC_GAIN_RANGE,
-  MBC_ONE_KNOB_DRIVEN,
+  MBC_ONE_KNOB_HELD,
   MBC_PLOT_HZ,
   NO_EFFECT,
   PITCH_NOTE_NAMES,
@@ -604,8 +604,8 @@ function mbcGr(ctx: AppContext, strip: Strip, base: string, fallbackOf: (key: st
 /**
  * The multi-band compressor, on the screen the channel's own COMP takes: the
  * bands on the first page and one page each for LOW, MID and HIGH. While 1-knob
- * is on the unit sets the bands itself, so the values it drives are read and not
- * turned, and the knob strip carries its level alone.
+ * is on the unit sets the bands itself and holds Out Gain where the knob put it, so
+ * those values are read and not turned, and the knob strip carries its level alone.
  */
 function mbcBody(
   ctx: AppContext,
@@ -615,9 +615,9 @@ function mbcBody(
 ): { main: HTMLElement; knobs: NumericSpec[]; boxed?: NumericSpec } {
   const params = effectParams(holder.name).filter((p): p is EffectNumeric => p.kind === "num");
   const values = faceValues(ctx, holder, params);
-  const driven = drivenRows(ctx, holder);
+  const held = heldRows(ctx, holder);
   const specs = new Map(
-    params.map((p) => [p.key, driven.has(p.key) ? { ...effectSpec(holder.base, p, values), locked: true } : effectSpec(holder.base, p, values)]),
+    params.map((p) => [p.key, held.has(p.key) ? { ...effectSpec(holder.base, p, values), locked: true } : effectSpec(holder.base, p, values)]),
   );
   const spec = (key: string): NumericSpec | undefined => specs.get(key);
   const valueAt = (key: string): number => values[key] ?? spec(key)?.fallback ?? 0;
@@ -643,10 +643,10 @@ function mbcBody(
   };
 }
 
-/** The rows the unit drives itself, which the operator cannot turn. */
-function drivenRows(ctx: AppContext, holder: EffectHolder): ReadonlySet<string> {
+/** The rows the unit holds still, which the operator cannot turn. */
+function heldRows(ctx: AppContext, holder: EffectHolder): ReadonlySet<string> {
   if (holder.name !== "M.B.Comp" || !ctx.store.bool(`${holder.base}.oneKnobOn`, false)) return new Set();
-  return new Set(MBC_ONE_KNOB_DRIVEN);
+  return new Set(MBC_ONE_KNOB_HELD);
 }
 
 /** Every numeric value on a face, read at once so a reading that follows another has it. */

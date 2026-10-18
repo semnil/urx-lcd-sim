@@ -35,9 +35,9 @@ is built is in [screen-inventory.md](screen-inventory.md).
   on the unit on 2026-09-22 and read again on 2026-10-12). The simulator takes it down as soon as it has read
   the clip.
 - **M.B.Comp's 1-knob only takes the rows.** Switching it on leaves each band's Threshold, Ratio,
-  Gain and Attack, the Release and the two Xovers reading but not turning, and takes [Bypass] off the
-  page; Out Gain is the one the operator keeps, as it is on the unit. What it does not do is recompute
-  any of them from the 1-knob Level.
+  Gain and Attack, the Release, the two Xovers and Out Gain reading but not turning, and takes
+  [Bypass] off the page, as the unit does. What it does not do is recompute any of them from the
+  1-knob Level.
 - **SSMCS's Morphing and Sweet Spot Data move their own value alone.** On the unit either of them
   recomputes the strip's continuous values (the compressor's Attack, Release, Ratio and Knee, the side
   chain's Q, Freq. and Gain, the three EQ bands' Freq. and Gain with MID's Q, and Out Gain). What that
