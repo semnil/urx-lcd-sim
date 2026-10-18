@@ -308,7 +308,13 @@ were scrolled before the redraw, so a row touched stays in view; the other bank 
 the card start from the top (the shell's `scrollPlace`). A rotary drawn beside a value box stays out of the Tab order, the box
 carrying its keys. A list's scroll bar answers the pointer alone; the keys scroll a list by moving through
 its rows, and the LICENSE text, which holds no rows, is a Tab stop of its own that rims its bar when it
-takes the focus. On SCENE LIST and the microSD lists the up and down arrow keys, Home and End move the focus
+takes the focus. The browser does not scroll a list (`.scroll-host`): the page's script moves it, by the wheel
+and by the up and down arrow keys, Page Up / Page Down, Home and End, whether the list or something inside it holds
+the focus, a step being one row (40px on the LICENSE text); a key or a wheel a control inside has taken (a row's
+arrows, Home and End stepping the focus) moves it no further, and a list at its end leaves the wheel to the page. A box the
+browser scrolls is drawn on a layer of its own, and a macOS WKWebView shows the whole glass softened at its
+scale while one is on screen (SCENE LIST measured at about half the edge contrast of the same screen without
+it). On SCENE LIST and the microSD lists the up and down arrow keys, Home and End move the focus
 from row to row too and leave the selection where it is; Enter or Space takes a row. The still of HOME on
 Operation Mode is `inert` and holds no Tab stop. The keys of the title sheet
 are pressed by a finger, so they hold no Tab stop either; the field itself holds one (`role="textbox"`) and takes

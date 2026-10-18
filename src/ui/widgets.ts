@@ -224,6 +224,35 @@ export function scrollbar(
     holds.follow(start, [target], move, up);
   };
 
+  // The browser does not scroll the list itself (`.scroll-host` in lcd.css): the wheel and the keys
+  // move it here, a step being a row, or a browser's own arrow step where the list has no rows. They
+  // reach it from the list and from whatever inside it holds the focus, and one a control inside it
+  // has already taken (a row stepping the focus, a value turning) is that control's.
+  const step = unit > 1 ? unit : KEY_STEP_PX;
+  const scrollBy = (dy: number): boolean => {
+    const before = target.scrollTop;
+    target.scrollTop = before + dy;
+    return target.scrollTop !== before;
+  };
+  target.addEventListener(
+    "wheel",
+    (ev) => {
+      if (ev.defaultPrevented || ev.deltaY === 0 || ev.ctrlKey) return;
+      const px = ev.deltaMode === WheelEvent.DOM_DELTA_LINE ? ev.deltaY * step : ev.deltaMode === WheelEvent.DOM_DELTA_PAGE ? ev.deltaY * target.clientHeight : ev.deltaY;
+      // A list at its end leaves the wheel to the page, as a list the browser scrolls does.
+      if (scrollBy(px)) ev.preventDefault();
+    },
+    { passive: false },
+  );
+  target.addEventListener("keydown", (ev) => {
+    if (ev.defaultPrevented || ev.altKey || ev.ctrlKey || ev.metaKey) return;
+    const page = Math.max(step, target.clientHeight - step);
+    const by: Record<string, number> = { ArrowDown: step, ArrowUp: -step, PageDown: page, PageUp: -page, Home: -target.scrollHeight, End: target.scrollHeight };
+    if (!(ev.key in by)) return;
+    ev.preventDefault();
+    scrollBy(by[ev.key]!);
+  });
+
   // A finger on the rows or on the thumb scrolls the list and leaves the page where it is.
   target.style.touchAction = "none";
   thumb.style.touchAction = "none";
@@ -240,6 +269,9 @@ export function scrollbar(
   queueMicrotask(size);
   return bar;
 }
+
+/** How far an arrow key scrolls a box with no rows in a browser that scrolls it itself. */
+const KEY_STEP_PX = 40;
 
 /** The shortest thumb the bar of a carded list draws. */
 export const LIST_THUMB_MIN_PX = 15;

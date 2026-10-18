@@ -609,7 +609,7 @@ describe("what SCENE LIST's rows tell assistive technology", () => {
       const selected = [...shell.root.querySelectorAll(".scene-list .list-row")].map((r) => r.getAttribute("aria-selected")).indexOf("true");
       expect([shell.ctx.store.num("scene.selected", 0), selected], "the selection where it was").toEqual([0, 0]);
       (body as HTMLElement | null)?.focus();
-      expect([document.activeElement === body, ...key("ArrowDown")], "the list itself leaves the key to its own scroll").toEqual([true, false, -1, 0]);
+      expect([document.activeElement === body, ...key("ArrowDown")], "the list itself takes the key to scroll by").toEqual([true, true, -1, 0]);
     } finally {
       shell.destroy();
       shell.root.remove();
