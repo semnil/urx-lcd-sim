@@ -377,8 +377,12 @@ export function pulldown(
     class: "pulldown",
     children: [drawFace(el("span", { class: "pulldown-value", text: value }), value, look.face), el("span", { class: "pulldown-mark" })],
   });
-  const { label, path, open, columns, current, face, ...list } = look;
-  for (const p of typeof path === "string" ? [path] : (path ?? [])) writes(node, p);
+  const { label, path, open, columns, current, face, writes: pickWrites, ...list } = look;
+  const paths = typeof path === "string" ? [path] : (path ?? []);
+  for (const p of paths) writes(node, p);
+  // A choice on the list names what picking it writes: the value the box picks where nothing
+  // more is given.
+  const optionWrites = pickWrites ?? ((): readonly ParamPath[] => paths);
   const held = current ?? value;
   // A list the glass cannot hold opens on the sheet the unit opens a long list
   // on. A list that draws its own faces stays on the glass, since the sheet's
@@ -395,7 +399,7 @@ export function pulldown(
       (onSheet
         ? () => {
             expand(true);
-            optionSheet(ctx, label, options, held, onPick, columns, () => expand(false), list.writes);
+            optionSheet(ctx, label, options, held, onPick, columns, () => expand(false), optionWrites);
           }
         : () => {
             expand(true);
@@ -405,6 +409,7 @@ export function pulldown(
               onPick,
               anchor: node,
               onClose: () => expand(false),
+              writes: optionWrites,
               ...(render ? { render } : {}),
               ...list,
             });
@@ -1041,6 +1046,8 @@ export interface DropdownSpec {
   listClass?: string;
   /** Options the list draws on a face that cannot be used, and that take nothing. */
   disabled?: readonly string[];
+  /** The value a pick writes, which the box and each choice on its list are named as writing. */
+  path?: ParamPath;
 }
 
 /** Where `node` sits inside `root`, in the frame's own pixels. */
@@ -1095,8 +1102,9 @@ function listOption(label: string, held: boolean, onTap: () => void, extraClass:
 function openOptions(ctx: AppContext, spec: OptionListSpec): void {
   const list = el("div", { class: `dropdown-list ${spec.listClass ?? ""}`.trim(), attrs: { role: "listbox" } });
   const sheet = el("div", { class: "dropdown-sheet", children: [list] });
+  // The choices are on the list before it goes up, so the page's locks are drawn on them as it does.
+  let close = (): void => undefined;
   MODALS.set(sheet, { cancel: () => close() });
-  const close = ctx.overlay(sheet, spec.onClose);
   let held: HTMLElement | null = null;
   for (const option of spec.options) {
     const out = spec.disabled?.includes(option) === true;
@@ -1123,6 +1131,7 @@ function openOptions(ctx: AppContext, spec: OptionListSpec): void {
     if ((ev.target as HTMLElement).closest(".dropdown-list")) return;
     close();
   });
+  close = ctx.overlay(sheet, spec.onClose);
 
   // A list with no place of its own opens under the box it belongs to, pulled
   // back onto the screen when it would run off an edge.
@@ -1141,15 +1150,21 @@ function openOptions(ctx: AppContext, spec: OptionListSpec): void {
 
 /** A box that names a setting and opens the list of values it can take, standing expanded while the list is up. */
 export function dropdown(ctx: AppContext, spec: DropdownSpec): HTMLElement {
+  const { path, ...list } = spec;
   const node = el("button", {
     class: "dropdown-box",
     attrs: { "aria-haspopup": "listbox", "aria-expanded": "false", "aria-label": `${spec.label}: ${spec.value}` },
     children: [el("span", { text: spec.label }), el("span", { class: "dropdown-mark", text: "▼" })],
     onTap: () => {
       node.setAttribute("aria-expanded", "true");
-      openOptions(ctx, { ...spec, onClose: () => node.setAttribute("aria-expanded", "false") });
+      openOptions(ctx, {
+        ...list,
+        ...(path === undefined ? {} : { writes: () => [path] }),
+        onClose: () => node.setAttribute("aria-expanded", "false"),
+      });
     },
   });
+  if (path !== undefined) writes(node, path);
   return node;
 }
 

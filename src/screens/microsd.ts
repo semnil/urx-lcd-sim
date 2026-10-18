@@ -25,7 +25,7 @@ import { settlePanLink } from "./mix-bus";
 import { onSsmcsStops } from "./ssmcs";
 import { onDelayGrid } from "./channel";
 import { allStrips, channelPairs } from "../model/types";
-import { aimed, el, markShut, setPressed, writes, writing } from "../ui/dom";
+import { aimed, el, markShut, setPressed, writing } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { LIST_THUMB_MIN_PX, SHORT_PROGRESS_MS, button, dialog, dropdown, listView, loadingDialog, menuButton, menuGrid, meter, pickerGrid, pickerSheet, scrollbar, sideTab, toggle } from "../ui/widgets";
 import { drawnLevels, pairMeterId } from "./meters";
@@ -736,7 +736,7 @@ export const recorderScreen: ScreenDef = {
       headerRight: ejectButton(ctx),
       headerLeft: (() => {
         const ceiling = trackCountCeiling(ctx.store.num("setup.samplingFrequency", 48000));
-        const node = writes(dropdown(ctx, {
+        const node = dropdown(ctx, {
           label: "Track Count",
           value: `${tracks} Tracks`,
           options: TRACK_COUNTS.map((n) => `${n} Tracks`),
@@ -745,7 +745,8 @@ export const recorderScreen: ScreenDef = {
           disabled: TRACK_COUNTS.filter((n) => n > ceiling).map((n) => `${n} Tracks`),
           onPick: (v) => void ctx.store.set("sd.trackCount", Number.parseInt(v, 10)),
           listClass: "rec-track-list",
-        }), "sd.trackCount");
+          path: "sd.trackCount",
+        });
         // In recording mode the box keeps its name, darkened, and opens nothing.
         if (busy) {
           node.classList.add("is-disabled");
