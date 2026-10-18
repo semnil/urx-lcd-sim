@@ -1657,7 +1657,8 @@ the unit's physical knob; it turns nothing.
 
 LANGUAGE offers only English: the simulator's messages are in English, so [Japanese] and [Chinese,
 Simplified] are disabled for good, drawn as an entry out of reach (face `--surface-disabled`, name
-`--menu-text-disabled`, band `--btn-bevel-disabled`), where p055-1 draws them usable.
+`--menu-text-disabled`, band `--btn-bevel-disabled`), where p055-1 draws them usable. The one the
+unit is set to stays lit, on the lit face [English] takes, so a unit set to Japanese leaves a button lit.
 
 ## Section bands
 
