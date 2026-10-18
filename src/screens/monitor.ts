@@ -204,9 +204,12 @@ export const oscillatorScreen: ScreenDef = {
             el("button", {
               class: "btn osc-clear",
               text: "Clear All",
-              onTap: () => {
-                for (const t of OSC_TARGETS) void ctx.store.set(`osc.assign.${t.id}`, false);
-              },
+              onTap: writing(
+                OSC_TARGETS.map((t) => `osc.assign.${t.id}`),
+                () => {
+                  for (const t of OSC_TARGETS) void ctx.store.set(`osc.assign.${t.id}`, false);
+                },
+              ),
             }),
           ],
         }),

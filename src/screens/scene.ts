@@ -204,8 +204,7 @@ function glyphButton(label: string, glyph: SVGSVGElement, enabled: boolean, onTa
       if (enabled) onTap();
     },
   });
-  const aim = aimOf(onTap);
-  if (aim) lockable(node, aim);
+  for (const aim of aimOf(onTap)) lockable(node, aim);
   return markShut(node, !enabled);
 }
 
@@ -327,7 +326,7 @@ export const sceneScreen: ScreenDef = {
           class: "scene-banks",
           children: (["Standard", "Simple"] as const).map((b) => {
             const shut = simpleMode && b === "Standard";
-            const node = toggle(b, b === bank, () => {
+            const node = toggle(b, b === bank, writing(["scene.bank", "scene.selected"], () => {
               if (shut) return;
               ctx.store.operation(() => {
                 void ctx.store.set("scene.bank", b);
@@ -336,7 +335,7 @@ export const sceneScreen: ScreenDef = {
                 // The menu shown is kept, and a bank whose list cannot be edited moves it to Store/Recall.
                 void ctx.store.set("ui.sceneMenu", readOnlyBank(ctx, b) ? "Store/Recall" : menu);
               });
-            }, "scene-bank");
+            }), "scene-bank");
             return markShut(node, shut);
           }),
         }),

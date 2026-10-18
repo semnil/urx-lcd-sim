@@ -9,7 +9,7 @@ import type { EffectOption } from "../model/effects";
 import { INPUT_INSERT_EFFECTS, NO_EFFECT, OUTPUT_INSERT_EFFECTS, effectParams } from "../model/effects";
 import type { Strip } from "../model/types";
 import { allStrips, carriesInsert } from "../model/types";
-import { markShut } from "../ui/dom";
+import { markShut, writing } from "../ui/dom";
 import { pickerGrid, pickerSheet, toggle } from "../ui/widgets";
 import { insertBase } from "./signal-flow";
 import { carriesStereo } from "./stereo-link";
@@ -61,6 +61,11 @@ export function insertFxOptions(ctx: AppContext, strip: Strip): EffectChoice[] {
   });
 }
 
+/** Every value taking `name` writes: the effect, its switch where it has one, and, where `seed`, each value the effect holds. */
+export function effectWrites(base: string, namePath: string, onPath: string, name: string, seed = true): string[] {
+  return [namePath, ...(onPath ? [onPath] : []), ...(seed ? effectParams(name).map((p) => `${base}.${p.key}`) : [])];
+}
+
 /** Every value the effect holds, back at what the unit comes up at. */
 function seedEffect(ctx: AppContext, base: string, name: string): void {
   for (const p of effectParams(name)) {
@@ -80,6 +85,12 @@ export function takeEffect(ctx: AppContext, base: string, namePath: string, onPa
     if (onPath) void ctx.store.set(onPath, name !== NO_EFFECT);
     if (seed) seedEffect(ctx, base, name);
   });
+}
+
+/** Every value taking the insert `name` on `strip` writes. */
+export function insertWrites(ctx: AppContext, strip: Strip, name: string): string[] {
+  const base = insertBase(ctx, strip);
+  return effectWrites(base, `${base}.effect`, `${base}.on`, name, ctx.insertValuesFromPage !== true);
 }
 
 /**
@@ -114,19 +125,19 @@ export const EFFECT_SHEET_TITLE = "EFFECT TYPE";
 
 export function effectSheet(
   ctx: AppContext,
-  spec: { current: string; choices: EffectChoice[]; perRow: number; onPick: (name: string) => void },
+  spec: { current: string; choices: EffectChoice[]; perRow: number; onPick: (name: string) => void; writes: (name: string) => readonly string[] },
 ): HTMLElement {
   return pickerSheet(ctx, {
     title: EFFECT_SHEET_TITLE,
     label: EFFECT_SHEET_TITLE,
     build: (close) => {
       const tile = (o: EffectChoice): HTMLElement =>
-        markShut(toggle(o.name, o.name === spec.current, () => {
+        markShut(toggle(o.name, o.name === spec.current, writing(spec.writes(o.name), () => {
           if (!o.enabled) return;
           spec.onPick(o.name);
           close();
           ctx.repaint();
-        }, "source-btn"), !o.enabled);
+        }), "source-btn"), !o.enabled);
       const rows: (HTMLElement | null)[][] = [];
       const pad = (row: HTMLElement[]): (HTMLElement | null)[] => [
         ...row,

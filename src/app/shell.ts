@@ -8,7 +8,7 @@ import type { UnitActions } from "../device/unit";
 import { emulatedActions } from "../device/unit";
 import type { UnitModel } from "../model/types";
 import { UDK_BANKS, UDK_KNOBS, UDK_UNASSIGNED, udkAssignment, udkPath } from "../model/udk";
-import { INTERACTIVE, aimed, clear, el, setPressed, tappedControl } from "../ui/dom";
+import { INTERACTIVE, aimed, clear, el, setPressed, tappedControl, writing } from "../ui/dom";
 import { FocusController } from "../ui/focus";
 import { Icons } from "../ui/icons";
 import { activeIn, elementAt, originOf } from "../ui/active";
@@ -567,7 +567,7 @@ export class Shell {
           el("button", {
             class: `knob-bank-step knob-bank-${delta < 0 ? "prev" : "next"}`,
             attrs: { "aria-label": `User defined knobs page ${to}` },
-            onTap: () => void this.ctx.store.set("setup.udk.bank", to),
+            onTap: writing("setup.udk.bank", () => void this.ctx.store.set("setup.udk.bank", to)),
             text: mark,
           }),
         );

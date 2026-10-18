@@ -12,6 +12,7 @@
 import type { AppContext } from "../app/context";
 import { factorySource } from "../model/defaults";
 import type { Strip } from "../model/types";
+import { writing } from "../ui/dom";
 import { dialog, pickerGrid, pickerSheet, toggle } from "../ui/widgets";
 import { linkPartner } from "./stereo-link";
 
@@ -86,11 +87,11 @@ function busSourceSheet(ctx: AppContext, strip: Strip): HTMLElement {
           row.map((label) =>
             label === null
               ? null
-              : toggle(label, label === current, () => {
+              : toggle(label, label === current, writing(path, () => {
                   void ctx.store.set(path, label);
                   close();
                   ctx.repaint();
-                }, "source-btn"),
+                }), "source-btn"),
           ),
         ),
       ),
@@ -127,15 +128,18 @@ export function inputSourceSheet(ctx: AppContext, strip: Strip): HTMLElement {
         close();
         ctx.repaint();
       };
+      // What a pick writes: the channel's source, and its partner's while the pair is linked.
+      const partner = linkPartner(ctx, strip);
+      const picks = [path, ...(partner ? [`ch.${partner.id}.source`] : [])];
       const choice = (label: string, onTap: () => void, on = false): HTMLElement =>
         toggle(label, on, onTap, "source-btn");
 
       const rows: (HTMLElement | null)[][] = [
         [
-          choice("None", () => pick("None"), current === "None"),
+          choice("None", writing(picks, () => pick("None")), current === "None"),
           null,
-          choice("All Input", () => bulkAssign(ctx, "input", close)),
-          choice("All USB DAW", () => bulkAssign(ctx, "usbdaw", close)),
+          choice("All Input", writing(bulkWrites(ctx, "input"), () => bulkAssign(ctx, "input", close))),
+          choice("All USB DAW", writing(bulkWrites(ctx, "usbdaw"), () => bulkAssign(ctx, "usbdaw", close))),
         ],
       ];
       for (const group of sourceRows(ctx)) {
@@ -143,7 +147,7 @@ export function inputSourceSheet(ctx: AppContext, strip: Strip): HTMLElement {
         // needs, so that each row of the list is one row of the scroll.
         for (let i = 0; i < group.length; i += COLUMNS) {
           rows.push(group.slice(i, i + COLUMNS).map((label) =>
-            choice(label, () => pick(label), label.replace("\n", " ") === current),
+            choice(label, writing(picks, () => pick(label)), label.replace("\n", " ") === current),
           ));
         }
       }
@@ -170,6 +174,13 @@ function bulkSource(ctx: AppContext, strip: Strip, kind: "input" | "usbdaw"): st
   return patch !== undefined && !patch.startsWith("USB") ? patch : undefined;
 }
 
+/** The sources a bulk button writes. */
+function bulkWrites(ctx: AppContext, kind: "input" | "usbdaw"): string[] {
+  return bulkStrips(ctx)
+    .filter((s) => bulkSource(ctx, s, kind) !== undefined)
+    .map((s) => `ch.${s.id}.source`);
+}
+
 /** What the unit asks before a bulk button rewrites the channels. */
 function bulkAsk(ctx: AppContext, kind: "input" | "usbdaw"): string {
   const channels = bulkStrips(ctx).flatMap((s) => s.channels);
@@ -187,13 +198,13 @@ function bulkAssign(ctx: AppContext, kind: "input" | "usbdaw", close: () => void
   ctx.overlay(
     dialog({
       message: bulkAsk(ctx, kind),
-      onOk: () => {
+      onOk: writing(bulkWrites(ctx, kind), () => {
         for (const s of bulkStrips(ctx)) {
           const label = bulkSource(ctx, s, kind);
           if (label !== undefined) void ctx.store.set(`ch.${s.id}.source`, label);
         }
         ctx.repaint();
-      },
+      }),
       onCancel: () => ctx.repaint(),
     }),
   );

@@ -37,6 +37,11 @@ function cuedIn(ctx: CueCtx, side: StripSide): Strip[] {
   return allStrips(ctx.model).filter((s) => cueGroup(s) === side && ctx.store.bool(cuePath(s), false));
 }
 
+/** Every cue CLEAR CUE writes. */
+export function clearCueWrites(model: CueCtx["model"]): string[] {
+  return allStrips(model).map(cuePath);
+}
+
 /**
  * [CUE] on a strip: put it in the cue or take it out, as one operation of the
  * store. Putting it in takes every strip of the other group out. The first

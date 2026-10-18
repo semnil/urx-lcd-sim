@@ -224,7 +224,7 @@ export const samplingRateScreen: ScreenDef = {
     const rates = SAMPLING_RATES.map((hz) => {
       // The frequency and what it takes off the inserts, the recorder, playback and HOME's [Sends] are one operation
       // of the store.
-      const cell = toggle(label(hz), hz === current, writing("setup.samplingFrequency", () => {
+      const pick = (): void => {
         if (followUsb) return;
         ctx.store.operation(() => {
           void ctx.store.set("setup.samplingFrequency", hz);
@@ -233,7 +233,8 @@ export const samplingRateScreen: ScreenDef = {
           releaseOnRateChange(ctx.store, current, hz);
           dropSendsOverRate(ctx.store, ctx.model, hz);
         });
-      }), "rate-btn");
+      };
+      const cell = toggle(label(hz), hz === current, writing(["setup.samplingFrequency", ...ctx.store.writesOf(pick)], pick), "rate-btn");
       if (followUsb) cell.setAttribute("aria-disabled", "true");
       return cell;
     });
@@ -406,7 +407,7 @@ export const outputPatchScreen: ScreenDef = {
           el("div", { class: "section-band", text: tab.toUpperCase() }),
           grid,
           // [Default] asks first, and [OK] puts back the outputs on this tab alone.
-          button("Default", () => ctx.overlay(dialog({ message: PATCH_DEFAULT_ASK, onOk: () => resetPatch(ctx, rows.map((r) => r.path)) })), "patch-default"),
+          button("Default", () => ctx.overlay(dialog({ message: PATCH_DEFAULT_ASK, onOk: writing(rows.map((r) => r.path), () => resetPatch(ctx, rows.map((r) => r.path))) })), "patch-default"),
         ],
       }),
       side,

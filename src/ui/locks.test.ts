@@ -366,6 +366,14 @@ describe("an effect setting the page holds shut", () => {
     expect([shell.ctx.store.bool(`${INS}.note2`, true), shell.ctx.store.str(`${INS}.scale`, "")]).toEqual([false, "Custom"]);
   });
 
+  it("draws every key of Pitch Fix's keyboard shut where the page holds the Scale a touch takes to Custom", async () => {
+    const shell = await effectShut("Pitch Fix", 1, `${INS}.scale`);
+    for (const name of ["C", "D", "C#"]) drawnShut(shell.root.querySelector(`.pitch-keys [aria-label='${name}']`));
+    shell.root.querySelector<HTMLElement>(".pitch-key[aria-label='D']")?.click();
+    await flush();
+    expect([shell.ctx.store.bool(`${INS}.note2`, false), shell.ctx.store.str(`${INS}.scale`, "")]).toEqual([true, "Chromatic"]);
+  });
+
   it("draws the INS FX block's switch shut, and the switch writes nothing", async () => {
     const shell = await effectShut("Crunch", 0, `${INS}.on`);
     const title = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".badge-title");
@@ -385,6 +393,36 @@ describe("an effect setting the page holds shut", () => {
     shell.root.querySelector<HTMLElement>(".badge-title")?.click();
     await flush();
     expect(shell.ctx.store.bool(`${INS}.on`, true)).toBe(false);
+  });
+});
+
+describe("a control that writes several values", () => {
+  it("draws EQ's [1-knob] shut where the page holds the curve's level switching it on takes, and the switch writes nothing", async () => {
+    const shell = await shellOn([{ id: "ch.eq", strip: "ch1" }], [{ target: { kind: "path", path: "ch.ch1.eq.oneKnob.level" }, reason: REASON }]);
+    const button = shell.root.querySelector<HTMLElement>(".oneknob");
+    drawnShut(button);
+    button?.click();
+    await flush();
+    expect(shell.ctx.store.bool("ch.ch1.eq.oneKnob.on", false)).toBe(false);
+  });
+
+  it.each(["freq", "gain"])("draws an EQ band's grip shut where the page holds its %s", async (value) => {
+    const shell = await shellOn([{ id: "ch.eq", strip: "ch1" }], [{ target: { kind: "path", path: `ch.ch1.eq.low.${value}` }, reason: REASON }]);
+    drawnShut(shell.root.querySelector(".eq-grip[aria-label='LOW band']"));
+    drawnOpen(shell.root.querySelector(".eq-grip[aria-label='HIGH band']"));
+  });
+
+  it.each([
+    ["bus.stereo", "an output's, which takes the input cue out", true],
+    ["ch2", "another input's, which leaves it in", false],
+  ])("draws %s [CUE] — %s — by whether the page holds CH 1's cue", async (strip, _, shut) => {
+    const shell = await shellOn([{ id: "channel-view", strip }]);
+    await shell.ctx.store.set("ch.ch1.cue", true);
+    shell.setLocks([{ target: { kind: "path", path: "ch.ch1.cue" }, reason: REASON }]);
+    await flush();
+    const cue = shell.root.querySelector(".btn-cue");
+    if (shut) drawnShut(cue);
+    else drawnOpen(cue);
   });
 });
 

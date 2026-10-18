@@ -170,7 +170,9 @@ function cardBrowser(ctx: AppContext, opts: BrowserOptions): HTMLElement {
       // The first touch brings the cursor to the row; a folder already under it
       // opens on the next touch, where the browser opens folders.
       onTap:
-        entry.kind === "folder" && i === selected && opens ? () => openFolder(ctx, entry) : () => void ctx.store.set("sd.selectedFile", i),
+        entry.kind === "folder" && i === selected && opens
+          ? writing(OPEN_WRITES, () => openFolder(ctx, entry))
+          : writing("sd.selectedFile", () => void ctx.store.set("sd.selectedFile", i)),
       cells: [
         el("span", { class: "sd-icon", children: [entry.kind === "folder" ? Icons.folder() : fileIcon(entry, i)] }),
         entry.name,
@@ -199,7 +201,7 @@ function cardBrowser(ctx: AppContext, opts: BrowserOptions): HTMLElement {
             el("button", {
               class: "btn sd-up",
               attrs: { "aria-label": "Up one level" },
-              onTap: climbs ? () => openPath(ctx, parentPath(path)) : () => undefined,
+              onTap: climbs ? writing(OPEN_WRITES, () => openPath(ctx, parentPath(path))) : () => undefined,
               children: [Icons.upFolder()],
             }),
             !climbs,
@@ -225,6 +227,9 @@ function cardPath(ctx: AppContext): string {
 }
 
 /** Open a folder, with the cursor on the first thing in it. */
+/** What opening a folder writes: the folder, and the row the cursor stands on in it. */
+const OPEN_WRITES = ["sd.path", "sd.selectedFile"] as const;
+
 function openPath(ctx: AppContext, path: string): void {
   ctx.store.operation(() => {
     void ctx.store.set("sd.path", path);
@@ -614,9 +619,9 @@ export const recorderScreen: ScreenDef = {
           ? [
               (() => {
                 // It greys its mark and takes nothing until playback holds a file.
-                const node = iconButton("Move the cursor to the file playing", Icons.toPlaying(), `sd-locate${held ? "" : " is-disabled"}`, () => {
+                const node = iconButton("Move the cursor to the file playing", Icons.toPlaying(), `sd-locate${held ? "" : " is-disabled"}`, writing("sd.selectedFile", () => {
                   if (held) void ctx.store.set("sd.selectedFile", playingFile(ctx));
-                });
+                }));
                 if (!held) node.setAttribute("aria-disabled", "true");
                 return node;
               })(),

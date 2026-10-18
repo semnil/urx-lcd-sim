@@ -10,7 +10,7 @@ import { clamp } from "../device/store";
 import { levelBarShare } from "../model/dynamics";
 import { CLIP_DB } from "../model/levels";
 import type { ParamPath } from "../device/path";
-import { LOCKED_CLASS, OFF_MARK, aimOf, aimed, drawnScale, el, fromInnerControl, makeTappable, setPressed, writes } from "./dom";
+import { LOCKED_CLASS, OFF_MARK, aimOf, aimed, drawnScale, el, fromInnerControl, makeTappable, setPressed, writes, writing } from "./dom";
 import { Icons } from "./icons";
 import type { NumericSpec } from "./param-spec";
 import { KNOB_SIZE, KNOB_START_DEG, KNOB_SWEEP_DEG, formatValue, rangeAttrs, unitOf } from "./param-spec";
@@ -316,6 +316,7 @@ export function optionSheet(
   onPick: (value: string) => void,
   columns = SHEET_COLUMNS,
   onClose?: () => void,
+  pickWrites?: (value: string) => readonly ParamPath[],
 ): HTMLElement {
   return pickerSheet(ctx, {
     title: label,
@@ -325,11 +326,11 @@ export function optionSheet(
       const rows: (HTMLElement | null)[][] = [];
       for (let i = 0; i < options.length; i += columns) {
         const row = options.slice(i, i + columns).map((o) =>
-          toggle(o, o === current, () => {
+          toggle(o, o === current, writing(pickWrites?.(o) ?? [], () => {
             onPick(o);
             close();
             ctx.repaint();
-          }, "source-btn"),
+          }), "source-btn"),
         );
         rows.push([...row, ...Array<null>(columns - row.length).fill(null)]);
       }
@@ -356,11 +357,11 @@ export function pulldown(
   value: string,
   options: readonly string[],
   onPick: (v: string) => void,
-  look: Pick<OptionListSpec, "render" | "optionClass" | "listClass" | "place"> & {
+  look: Pick<OptionListSpec, "render" | "optionClass" | "listClass" | "place" | "writes"> & {
     /** The setting the box sets, which leads the name a reader hears and names the sheet a long list opens on. */
     label: string;
-    /** The value a pick writes, which holds the box shut while the embedding page holds it shut. */
-    path?: ParamPath;
+    /** The value a pick writes (or each of several), which holds the box shut while the embedding page holds any of them shut. */
+    path?: ParamPath | readonly ParamPath[];
     open?: () => void;
     columns?: number;
     /** What the list marks as held, where the box prints the value by another name. */
@@ -377,7 +378,7 @@ export function pulldown(
     children: [drawFace(el("span", { class: "pulldown-value", text: value }), value, look.face), el("span", { class: "pulldown-mark" })],
   });
   const { label, path, open, columns, current, face, ...list } = look;
-  if (path !== undefined) writes(node, path);
+  for (const p of typeof path === "string" ? [path] : (path ?? [])) writes(node, p);
   const held = current ?? value;
   // A list the glass cannot hold opens on the sheet the unit opens a long list
   // on. A list that draws its own faces stays on the glass, since the sheet's
@@ -394,7 +395,7 @@ export function pulldown(
       (onSheet
         ? () => {
             expand(true);
-            optionSheet(ctx, label, options, held, onPick, columns, () => expand(false));
+            optionSheet(ctx, label, options, held, onPick, columns, () => expand(false), list.writes);
           }
         : () => {
             expand(true);
@@ -1072,6 +1073,8 @@ interface OptionListSpec {
   place?: (option: string, index: number) => { row: number; column: number };
   /** Runs once the list is down, however it was shut. */
   onClose?: () => void;
+  /** The values picking an option writes, which the option is named as writing. */
+  writes?: (option: string) => readonly ParamPath[];
 }
 
 /** A choice on a list: lit while it is the value held, which a reader hears as the option selected. */
@@ -1097,11 +1100,11 @@ function openOptions(ctx: AppContext, spec: OptionListSpec): void {
   let held: HTMLElement | null = null;
   for (const option of spec.options) {
     const out = spec.disabled?.includes(option) === true;
-    const node = listOption(option, option === spec.value, () => {
+    const node = listOption(option, option === spec.value, writing(spec.writes?.(option) ?? [], () => {
       if (out) return;
       close();
       spec.onPick(option);
-    }, `dropdown-option ${spec.optionClass ?? ""}${out ? " is-disabled" : ""}`.trim());
+    }), `dropdown-option ${spec.optionClass ?? ""}${out ? " is-disabled" : ""}`.trim());
     if (out) node.setAttribute("aria-disabled", "true");
     if (option === spec.value) held = node;
     const at = spec.place?.(option, list.childElementCount);
@@ -1198,8 +1201,8 @@ export function dialog(options: DialogOptions): HTMLElement {
     close();
     options.onOk();
   };
-  const aim = aimOf(options.onOk);
-  const ok = button(options.okLabel ?? "OK", aim ? aimed(answer, aim) : answer);
+  const aims = aimOf(options.onOk);
+  const ok = button(options.okLabel ?? "OK", aims.length ? aimed(answer, aims) : answer);
   modal.cancel = () => {
     close();
     options.onCancel?.();

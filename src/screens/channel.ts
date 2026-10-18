@@ -263,8 +263,7 @@ export function block(
     attrs: { "aria-label": title },
     children: [badge, body],
   });
-  const aim = aimOf(onTap);
-  if (aim) lockable(node, aim);
+  for (const aim of aimOf(onTap)) lockable(node, aim);
   // A block with a value on the knobs takes two touches: the first brings the
   // focus to it and the second opens its screen. The first one does not sink the
   // panel, so it only gains its frame.
@@ -647,7 +646,7 @@ export const channelViewScreen: ScreenDef = {
     const onOff = el("div", {
       class: "cv-onoff",
       children: [
-        toggle("CUE", ctx.store.bool(`${base}.cue`, false), writing(`${base}.cue`, () => toggleCue(ctx, strip)), "btn-switch btn-cue"),
+        toggle("CUE", ctx.store.bool(`${base}.cue`, false), writing(ctx.store.writesOf(() => toggleCue(ctx, strip)), () => toggleCue(ctx, strip)), "btn-switch btn-cue"),
         ...(streaming
           ? []
           : [toggle("ON", ctx.store.bool(`${base}.on`, true), writing(`${base}.on`, () => void ctx.store.set(`${base}.on`, !ctx.store.bool(`${base}.on`, true))), "btn-switch btn-on")]),
@@ -817,8 +816,8 @@ export const chSettingScreen: ScreenDef = {
     }
     if (strip.kind === "monoIn") {
       children.push(
-        field("COMP / EQ", "comp", pulldown(ctx, ctx.store.str(`${base}.compEqOrder`, "COMP->EQ"), COMP_EQ_ORDERS, (v) => setCompEq(ctx, strip, v), { path: `${base}.compEqOrder`, label: "COMP / EQ" })),
-        field("Signal Type", "signal", pulldown(ctx, signalType(ctx, strip), SIGNAL_TYPES, (v) => setSignalType(ctx, strip, v), { path: `${base}.signalType`, label: "Signal Type" })),
+        field("COMP / EQ", "comp", pulldown(ctx, ctx.store.str(`${base}.compEqOrder`, "COMP->EQ"), COMP_EQ_ORDERS, (v) => setCompEq(ctx, strip, v), { path: `${base}.compEqOrder`, label: "COMP / EQ", writes: (v) => ctx.store.writesOf(() => setCompEq(ctx, strip, v)) })),
+        field("Signal Type", "signal", pulldown(ctx, signalType(ctx, strip), SIGNAL_TYPES, (v) => setSignalType(ctx, strip, v), { path: `${base}.signalType`, label: "Signal Type", writes: (v) => ctx.store.writesOf(() => setSignalType(ctx, strip, v)) })),
       );
       // A stereo pair is placed either by one PAN per channel or by the pair's
       // balance, so it offers the choice under the Signal Type.
@@ -849,6 +848,7 @@ export const chSettingScreen: ScreenDef = {
           "bustype",
           pulldown(ctx, busType(ctx, strip), BUS_TYPES, (v) => setBusType(ctx, strip, v), {
             path: `${base}.busType`,
+            writes: (v) => ctx.store.writesOf(() => setBusType(ctx, strip, v)),
             label: "BUS Type",
             listClass: "chs-bustype-list",
           }),
@@ -1776,7 +1776,7 @@ export const eqScreen: ScreenDef = {
                   level,
                   `${base}.eq.oneKnob.on`,
                   pulldown(ctx, ctx.store.str(`${base}.eq.oneKnob.type`, "Intensity"), EQ_ONE_KNOB_TYPES, (v) => setEqOneKnobType(ctx, base, v), {
-                    path: `${base}.eq.oneKnob.type`,
+                    path: [`${base}.eq.oneKnob.type`, `${base}.eq.oneKnob.level`],
                     label: "1-knob type",
                   }),
                   (next) => setEqOneKnob(ctx, base, next),
@@ -2002,12 +2002,13 @@ function lockedPulldown(value: string): HTMLElement {
   });
 }
 
-/** The [1 1-knob] button the COMP and EQ screens carry. */
+/** The [1 1-knob] button the COMP and EQ screens carry, named as writing what switching it writes. */
 export function oneKnobButton(ctx: AppContext, path: string, onTap?: (next: boolean) => void): HTMLElement {
   const on = ctx.store.bool(path, false);
+  const turn = (): void => (onTap ? onTap(!on) : void ctx.store.set(path, !on));
   const node = el("button", {
     class: "oneknob",
-    onTap: writing(path, () => (onTap ? onTap(!on) : void ctx.store.set(path, !on))),
+    onTap: writing(ctx.store.writesOf(turn), turn),
     children: [el("span", { class: "oneknob-mark", text: "1" }), el("span", { text: "1-knob" })],
   });
   setPressed(node, on);

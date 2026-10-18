@@ -1,17 +1,17 @@
 // Controls the page the glass is embedded in holds shut.
 //
 // A page carrying the glass (src/embed.ts) can say that a control is out of use
-// for now, and why. A control names what it does when it is built — the value it
+// for now, and why. A control names what it does when it is built — the values it
 // writes, the screen it opens or the operation it hands the unit (`lockable`,
 // `writes` and `aimed` in src/ui/dom.ts) — and each time the glass is drawn, a
-// control whose target the page holds is drawn shut, with a padlock at its top
+// control any of whose targets the page holds is drawn shut, with a padlock at its top
 // right corner and the page's reason as its tooltip and its description. It
 // answers no touch and no key, and the store, the navigator and `perform` refuse
 // what it would have done, however it is reached.
 
 import type { ParamPath } from "../device/path";
 import type { UnitOp } from "../device/unit";
-import { LOCKED_CLASS, LOCK_KEYS } from "./dom";
+import { LOCKED_CLASS, LOCK_KEYS, lockNames } from "./dom";
 import { Icons } from "./icons";
 import { setSpokenAttr } from "./spoken";
 
@@ -77,10 +77,10 @@ export class Locks {
   /** The reason the control `node` is held shut, from the first of its targets that is held. */
   of(node: HTMLElement | SVGElement): string | undefined {
     for (const kind of ["path", "screen", "op"] as const) {
-      const name = node.dataset[LOCK_KEYS[kind]];
-      if (name === undefined) continue;
-      const reason = this.held.get(keyOf(kind, name));
-      if (reason !== undefined) return reason;
+      for (const name of lockNames(node, kind)) {
+        const reason = this.held.get(keyOf(kind, name));
+        if (reason !== undefined) return reason;
+      }
     }
     return undefined;
   }

@@ -8,7 +8,7 @@
 
 import type { AppContext } from "../app/context";
 import type { DeviceStore, WriteRule } from "../device/store";
-import { clockParts, daysInMonth, setClock, unitNow, type ClockTime } from "../model/clock";
+import { CLOCK_OFFSET, clockParts, daysInMonth, setClock, unitNow, type ClockTime } from "../model/clock";
 import { TIME_ZONE_CITIES, TIME_ZONE_SHIPPED } from "../model/time-zone";
 import { el, writing } from "../ui/dom";
 import { intSpec } from "../ui/param-spec";
@@ -142,7 +142,7 @@ export const dateTimeSetScreen: ScreenDef = {
       main: pickDialog({
         title: "DATE / TIME",
         onCancel: () => ctx.nav.back(),
-        onOk: () => {
+        onOk: writing(CLOCK_OFFSET, () => {
           void setClock(ctx.store, {
             year: draft(ctx, "year"),
             month: draft(ctx, "month"),
@@ -151,7 +151,7 @@ export const dateTimeSetScreen: ScreenDef = {
             minute: draft(ctx, "minute"),
           });
           ctx.nav.back();
-        },
+        }),
         body: [
           el("div", {
             class: "pick-dialog-body",

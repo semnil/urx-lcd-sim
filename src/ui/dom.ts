@@ -96,8 +96,7 @@ export function drawnScale(glass: HTMLElement): number {
 export function makeTappable(node: HTMLElement, handler: (ev: Event) => void): void {
   if (!node.hasAttribute("role") && node.tagName !== "BUTTON") node.setAttribute("role", "button");
   if (!node.hasAttribute("tabindex")) node.tabIndex = 0;
-  const aim = AIMS.get(handler);
-  if (aim) lockable(node, aim);
+  for (const aim of aimOf(handler)) lockable(node, aim);
   const fire = (ev: Event): void => {
     // A control the embedding page holds shut answers no touch and no key.
     if (node.classList.contains(LOCKED_CLASS)) return;
@@ -137,36 +136,48 @@ export function makeTappable(node: HTMLElement, handler: (ev: Event) => void): v
 /** The class a control the embedding page holds shut carries (src/ui/locks.ts). */
 export const LOCKED_CLASS = "is-held-shut";
 
-/** The data attribute, by dataset key, that names each kind of target a control carries. */
+/** The data attribute, by dataset key, that names each kind of target a control carries, as a JSON list of names. */
 export const LOCK_KEYS = { path: "lockPath", screen: "lockScreen", op: "lockOp" } as const;
 
-/** Name `target` as what `node` does, so the page holding `target` shut holds `node` shut. */
+/** The names of the targets of `kind` that `node` carries. */
+export function lockNames(node: HTMLElement | SVGElement, kind: LockTarget["kind"]): string[] {
+  const raw = node.dataset[LOCK_KEYS[kind]];
+  return raw === undefined ? [] : (JSON.parse(raw) as string[]);
+}
+
+/** Name `target` as one thing `node` does, so the page holding `target` shut holds `node` shut. A control names
+ *  each of the targets it does, and the page holding any one of them holds it. */
 export function lockable<T extends HTMLElement | SVGElement>(node: T, target: LockTarget): T {
-  node.dataset[LOCK_KEYS[target.kind]] = target.kind === "path" ? target.path : target.kind === "screen" ? target.id : target.op;
+  const name = target.kind === "path" ? target.path : target.kind === "screen" ? target.id : target.op;
+  const names = lockNames(node, target.kind);
+  if (!names.includes(name)) node.dataset[LOCK_KEYS[target.kind]] = JSON.stringify([...names, name]);
   return node;
 }
 
-/** Name `path` as the value `node` writes. */
+/** Name `path` as a value `node` writes. */
 export function writes<T extends HTMLElement | SVGElement>(node: T, path: ParamPath): T {
   return lockable(node, { kind: "path", path });
 }
 
-const AIMS = new WeakMap<object, LockTarget>();
+const AIMS = new WeakMap<object, readonly LockTarget[]>();
 
-/** `handler`, named as doing `target`: a control made tappable with it is named so as well. */
-export function aimed<F extends (...args: never[]) => unknown>(handler: F, target: LockTarget): F {
-  AIMS.set(handler, target);
+/** `handler`, named as doing `target` (or each of several): a control made tappable with it is named so as well. */
+export function aimed<F extends (...args: never[]) => unknown>(handler: F, target: LockTarget | readonly LockTarget[]): F {
+  AIMS.set(handler, "kind" in target ? [target] : target);
   return handler;
 }
 
-/** What `handler` was named as doing, where it was named. */
-export function aimOf(handler: object): LockTarget | undefined {
-  return AIMS.get(handler);
+/** What `handler` was named as doing, where it was named; nothing where it was not. */
+export function aimOf(handler: object): readonly LockTarget[] {
+  return AIMS.get(handler) ?? [];
 }
 
-/** `handler`, named as writing `path`. */
-export function writing<F extends (...args: never[]) => unknown>(path: ParamPath, handler: F): F {
-  return aimed(handler, { kind: "path", path });
+/** `handler`, named as writing `path` (or each of several). */
+export function writing<F extends (...args: never[]) => unknown>(path: ParamPath | readonly ParamPath[], handler: F): F {
+  return aimed(
+    handler,
+    (typeof path === "string" ? [path] : path).map((p) => ({ kind: "path", path: p }) as const),
+  );
 }
 
 export function clear(node: HTMLElement): void {
