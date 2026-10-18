@@ -94,6 +94,10 @@ browser. What it returns sets the display scale and lets the glass go, closing t
 - A value drag marks the glass's root rather than the page.
 - `shippedValues(model)` lists every path the glass reads and writes, with the value it ships with, for a
   host deciding which of them it answers.
+- `setup.integration.daw` is not among them: a host that reads from the unit whether a compatible DAW
+  holds it answers it (a boolean), and SETUP's [Software Integration] then follows it as the unit's entry
+  does — out of reach with none, opening with one. Left unanswered, the entry opens as it does on the
+  simulator's own page ([known-issues.md](known-issues.md)). A settings file does not carry it.
 
 ### Controls the page holds shut
 

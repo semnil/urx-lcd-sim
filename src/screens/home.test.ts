@@ -6,13 +6,13 @@ import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
 import { CH_COLOR_PALETTE, unitById } from "../model/units";
 import type { Strip } from "../model/types";
-import { bankStrips, findStrip } from "../model/types";
+import { bankStrips, findStrip, INTEGRATION_DAW } from "../model/types";
 import { OSC_TARGETS } from "../model/oscillator";
 import { bankName, channelLabel, stripLane } from "./strip-state";
 import { buildRegistry } from "./index";
 import { meterLevels, setMeterSource, startMeterTicker } from "./meters";
 import { storeScene } from "./scene";
-import { captureSettings } from "../model/settings-file";
+import { captureSettings, inSettingsFile } from "../model/settings-file";
 import { declarations, declarationsOn, px, readStyle } from "../style/css-read";
 import { INTERACTIVE } from "../ui/dom";
 import { SHORT_PROGRESS_MS, dialog } from "../ui/widgets";
@@ -3309,6 +3309,31 @@ describe("the sampling frequency row", () => {
     startPlayback(shell.ctx.store, 0);
     await flush();
     expect(await opens(), "playing").toEqual(reach);
+  });
+
+  // A page that reads from the unit whether a compatible DAW holds it says so, and the entry is then
+  // the unit's: out of reach with none, opening with one, and with no tooltip of the simulator's own.
+  it("follows a DAW state the embedding page gives SETUP's [Software Integration], as the unit's entry does", async () => {
+    const shell = await mount();
+    shell.ctx.nav.openTop({ id: "setup" });
+    await flush();
+    const opens = async (): Promise<[boolean, string | null, string, string]> => {
+      const entry = [...shell.root.querySelectorAll<HTMLElement>(".setup-menu .menu-btn")].find((b) => b.textContent === "Software\nIntegration");
+      const face: [boolean, string | null, string] = [entry?.classList.contains("is-disabled") ?? false, entry?.getAttribute("aria-disabled") ?? null, entry?.title ?? ""];
+      entry?.click();
+      await flush();
+      const at = shell.ctx.nav.current.id;
+      if (at !== "setup") shell.ctx.nav.back();
+      await flush();
+      return [...face, at];
+    };
+    await shell.ctx.store.set(INTEGRATION_DAW, false);
+    await flush();
+    expect(await opens(), "no DAW holds the unit").toEqual([true, "true", "", "setup"]);
+    await shell.ctx.store.set(INTEGRATION_DAW, true);
+    await flush();
+    expect(await opens(), "a DAW holds the unit").toEqual([false, null, "", "setup.integration"]);
+    expect(inSettingsFile(INTEGRATION_DAW), "the DAW follows the unit, not a settings file").toBe(false);
   });
 
   it("keeps the frequency it holds while it follows the USB clock, and takes no other", async () => {

@@ -19,6 +19,7 @@ import { version as APP_VERSION } from "../../package.json";
 import { factoryState } from "../model/defaults";
 import { TIME_ZONE_SHIPPED } from "../model/time-zone";
 import { dropTracksOverRate } from "../model/track-count";
+import { INTEGRATION_DAW } from "../model/types";
 import { dropInsertsOverRate } from "./insert-fx";
 import { holdsFile, recordMode, releaseOnRateChange } from "./recording";
 import { dropSendsOverRate } from "./effect-params";
@@ -32,7 +33,7 @@ const LANGUAGES = [
 
 const SAMPLING_RATES = [44100, 48000, 88200, 96000, 176400, 192000];
 
-/** What [Software Integration] tells a pointer resting on it. */
+/** What [Software Integration] tells a pointer resting on it while nothing says whether a DAW holds the unit. */
 const INTEGRATION_TOOLTIP = "Not available on the unit; left usable here for screenshots.";
 
 /** What a User Defined Knob can be put on, in the order the pulldown lists them. */
@@ -71,11 +72,18 @@ export const setupScreen: ScreenDef = {
     ];
     // The URX22 has no Date/Time menu (user guide note under GENERAL menu); its place stays empty.
     rest.push(ctx.model.hasDateTime ? menuButton("Date/Time", open("setup.datetime")) : el("div"));
-    // The unit offers Software Integration as an entry out of reach. Here it opens
-    // and works, and its tooltip says the unit does not offer it.
-    const integration = menuButton("Software\nIntegration", open("setup.integration"));
-    integration.title = INTEGRATION_TOOLTIP;
-    rest.push(integration);
+    // The unit offers Software Integration only while a compatible DAW holds it, and
+    // otherwise as an entry out of reach. A page that knows whether one does says so
+    // at INTEGRATION_DAW, and the entry follows it as the unit's does. With nothing
+    // saying, it opens and works, and its tooltip says the unit does not offer it.
+    if (ctx.store.has(INTEGRATION_DAW)) {
+      const daw = ctx.store.bool(INTEGRATION_DAW, false);
+      rest.push(markShut(menuButton("Software\nIntegration", daw ? open("setup.integration") : () => undefined), !daw));
+    } else {
+      const integration = menuButton("Software\nIntegration", open("setup.integration"));
+      integration.title = INTEGRATION_TOOLTIP;
+      rest.push(integration);
+    }
 
     const mode = ctx.store.str("setup.operationMode", "Standard");
     const modeBox = markShut(
