@@ -207,6 +207,15 @@ test("holds shut what the page holds, a real touch and drag on it doing nothing,
   await page.locator('.urx-lcd-sim .lcd[data-screen="setup.language"]:not([inert])').waitFor();
 });
 
+test("draws at the scale it is given", async ({ page }) => {
+  await open(page, true);
+  const width = (): Promise<number> =>
+    page.evaluate(() => document.querySelector(".urx-lcd-sim")!.shadowRoot!.querySelector(".lcd")!.getBoundingClientRect().width);
+  const full = await width();
+  await page.evaluate(() => (window as unknown as { sim: { setZoom(p: number): void } }).sim.setZoom(50));
+  expect(await width()).toBeCloseTo(full / 2, 0);
+});
+
 // A value box held shut carries the face of a control out of reach, its band included, and the
 // padlock inside its own corner where the copy mark stood, as every other held control does.
 test("draws a held Date / Time value box with its band darkened and the padlock inside it", async ({ page }) => {
@@ -235,15 +244,6 @@ test("draws a held Date / Time value box with its band darkened and the padlock 
     };
   });
   expect(drawn).toEqual({ inside: true, copy: "hidden", bandMoved: true });
-});
-
-test("draws at the scale it is given", async ({ page }) => {
-  await open(page, true);
-  const width = (): Promise<number> =>
-    page.evaluate(() => document.querySelector(".urx-lcd-sim")!.shadowRoot!.querySelector(".lcd")!.getBoundingClientRect().width);
-  const full = await width();
-  await page.evaluate(() => (window as unknown as { sim: { setZoom(p: number): void } }).sim.setZoom(50));
-  expect(await width()).toBeCloseTo(full / 2, 0);
 });
 
 test("draws the glass's text in the simulator's own font, loaded on the page", async ({ page }) => {
