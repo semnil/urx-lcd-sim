@@ -5830,6 +5830,19 @@ describe("screens laid out from the guide's figures", () => {
     expect([...shell.root.querySelectorAll(".udk-slot")].map((s) => s.querySelectorAll(".udk-dial").length)).toEqual([1, 1, 1, 1]);
   });
 
+  it("lights on LANGUAGE the language the unit is set to, one that cannot be chosen included", async () => {
+    const shell = await mount();
+    await shell.ctx.store.set("setup.language", "Japanese");
+    shell.ctx.nav.push({ id: "setup.language" });
+    await flush();
+    const buttons = [...shell.root.querySelectorAll<HTMLButtonElement>(".lang-btn")];
+    expect(buttons.map((b) => [b.querySelector(".lang-bottom")?.textContent, b.classList.contains("is-on"), b.classList.contains("is-disabled")])).toEqual([
+      ["Japanese", true, true],
+      ["English", false, false],
+      ["Chinese, Simplified", false, true],
+    ]);
+  });
+
   it("opens EQ holding the band picked last on any channel, LOW at first, and names the mid bands L-MID and H-MID", async () => {
     const shell = await mount();
     const eq = async (strip: string): Promise<void> => {

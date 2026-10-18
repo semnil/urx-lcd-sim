@@ -1423,7 +1423,8 @@ USER DEFINED KNOBS の各列の下に、55x54 のつまみの絵を左端 x26 / 
 
 LANGUAGE は英語だけを選べる: シミュレーターのメッセージは英語なので、[Japanese] と [Chinese, Simplified] は
 常に無効で、使えない項目として描く (面 `--surface-disabled`、名前 `--menu-text-disabled`、帯 `--btn-bevel-disabled`)。
-p055-1 はどちらも使える状態で描く。
+p055-1 はどちらも使える状態で描く。本体が設定している言語のボタンは、[English] と同じ点灯の面で描く。そのため、本体が
+日本語のときもどれかのボタンが点灯する。
 
 ## セクションの帯
 

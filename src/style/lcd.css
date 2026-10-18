@@ -2856,6 +2856,13 @@
   pointer-events: none;
 }
 
+/* The language the unit is set to stays lit, one the simulator has no messages for included. */
+.lang-btn.is-disabled.is-on {
+  background: var(--accent-selected);
+  color: var(--ink-on-lit);
+  box-shadow: inset 0 -3px 0 var(--toggle-band-lit);
+}
+
 /* Both names at p055-1's size, a pixel left of the middle. */
 .lang-top,
 .lang-bottom {

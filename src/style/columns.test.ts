@@ -3586,6 +3586,9 @@ describe("the marks on the control holding the focus", () => {
     expect(px(declarations(CSS, ".udk-dial::before")["inset"])).toBe(9);
     const lang = declarations(CSS, ".lang-btn.is-disabled");
     expect([lang["background"], lang["color"], lang["pointer-events"]]).toEqual(["var(--surface-disabled)", "var(--menu-text-disabled)", "none"]);
+    // The one the unit is set to stays lit, on the face a language that can be chosen takes when it is.
+    const lit = (selector: string): string[] => ((d) => [d["background"], d["color"], d["box-shadow"]])(declarations(CSS, selector)) as string[];
+    expect(lit(".lang-btn.is-disabled.is-on")).toEqual(lit(".lang-btn.is-on"));
   });
 
   it("keeps COMP's depth filled while 1-knob is on, and lights [1-knob] green on a panel of its own", () => {
