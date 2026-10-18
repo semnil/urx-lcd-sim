@@ -20,6 +20,8 @@ import { Shell } from "./shell";
 // usable while the store refuses it, so every value a press on a screen writes has to be
 // one its control names. A control that hands the unit an operation is held by the
 // operation, which `perform` refuses whole, so what the operation writes is its own.
+// A list or a sheet a press opens is drawn over the screen, and while it is up the page
+// holds the controls it carries by what they name, not by what the box that opened it names.
 
 const flush = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 
@@ -107,9 +109,9 @@ const CASES: [string, string, Route][] = registry
   .flatMap((id): Route[] => (channelScreen(id) ? STRIPS.map((s) => ({ id, strip: s.id })) : [{ id }]))
   .flatMap((route) => Object.keys(statesFor(route)).map((state) => [route.strip ? `${route.id} on ${route.strip}` : route.id, state, route] as [string, string, Route]));
 
-/** What a press on a control can be: a touch, or a turn of a value by the keys. */
-const PRESSABLE = 'button, [role="button"], [role="switch"], [role="option"], [role="tab"], [role="radio"], [role="checkbox"]';
-const TURNABLE = '[role="slider"], [role="spinbutton"]';
+/** What a press on a control can be: a touch on a button or on an element in one of the touched roles, or a turn of a value by the keys. */
+const PRESSED_ROLES = new Set(["button", "switch", "option", "tab", "radio", "checkbox"]);
+const TURNED_ROLES = new Set(["slider", "spinbutton"]);
 
 /** How many screen states a route is pressed in at most: the one it opens on, and those its own tabs and pages lead to. */
 const STATES_PER_ROUTE = 8;
@@ -176,10 +178,15 @@ const release = (): void => {
   for (const shell of alive.splice(0)) shell.destroy();
 };
 
+const turned = (node: Element): boolean => TURNED_ROLES.has(node.getAttribute("role") ?? "");
+
 /** The controls in reach on the glass, in the order the screen draws them. */
 const controls = (root: HTMLElement): HTMLElement[] =>
-  [...root.querySelectorAll<HTMLElement>(`${PRESSABLE}, ${TURNABLE}`)].filter(
-    (n) => !n.classList.contains("is-disabled") && n.getAttribute("aria-disabled") !== "true",
+  [...root.getElementsByTagName("*")].filter(
+    (n): n is HTMLElement =>
+      (n.tagName === "BUTTON" || PRESSED_ROLES.has(n.getAttribute("role") ?? "") || turned(n)) &&
+      !n.classList.contains("is-disabled") &&
+      n.getAttribute("aria-disabled") !== "true",
   );
 
 /** What a run of controls built alike stands in: their parent, or the parent's own parent where the parent is one of a run of rows built alike. */
@@ -211,18 +218,41 @@ const describeNode = (node: HTMLElement): string =>
 
 const isShown = (path: ParamPath): boolean => path.startsWith("ui.");
 
-interface Sweep {
-  /** Each press that wrote a value its control does not name. */
-  unnamed: string[];
-  /** How many presses the sweep made. */
+/** One piece of a survey's work: drawing a state of the screen, a press on a control it draws, or a press on a control a list or a sheet that press opens carries. */
+type Task =
+  | { kind: "draw"; shown: Edit[] }
+  | { kind: "press"; shown: Edit[]; i: number }
+  | { kind: "pick"; shown: Edit[]; i: number; j: number };
+
+/** What each piece of work weighs against a case's share, roughly in proportion to the time it takes. */
+const COST: Record<Task["kind"], number> = { draw: 1, press: 1, pick: 2 };
+
+/** How much work one case takes on, and how many cases share a route's survey in one state. */
+const SHARE = 35;
+const PARTS = 5;
+
+/** Pressing the controls of a route in one state, one press to a unit, taken a case's share at a time. */
+interface Survey {
+  route: Route;
+  seed: Seed;
+  /** The work still to take, in order. */
+  tasks: Task[];
+  /** The states of the screen reached so far, by the screen's own values that put it there. */
+  seen: Set<string>;
+  /** How many states of the screen the survey has queued. */
+  states: number;
   presses: number;
-  /** How many of them were on a control a list or a sheet opened. */
+  /** How many controls of the lists and sheets the presses open the survey has pressed. */
   picks: number;
+  /** How much work the survey has taken. */
+  spent: number;
+  /** Each press that wrote a value its control does not name, with where in the survey's work it was taken. */
+  unnamed: { at: number; text: string }[];
 }
 
 /** Press `node` the way its kind is pressed. */
 function press(node: HTMLElement): void {
-  if (node.matches(TURNABLE)) {
+  if (turned(node)) {
     for (const key of ["ArrowUp", "ArrowDown", "ArrowRight", "ArrowLeft"])
       node.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
   } else node.click();
@@ -232,84 +262,111 @@ function press(node: HTMLElement): void {
 const layered = (root: HTMLElement, before: ReadonlySet<HTMLElement>): HTMLElement[] =>
   controls(root).filter((n) => !before.has(n) && n.closest("[data-overlay]") !== null);
 
+/** The written values of `written` that `node` does not name, unless it hands the unit an operation. */
+function unnamedBy(node: HTMLElement, written: readonly ParamPath[]): string | null {
+  const names = lockNames(node, "path");
+  const missed = lockNames(node, "op").length ? [] : written.filter((p) => !screenOnly(p) && !names.includes(p));
+  return missed.length ? `${describeNode(node)} names [${names.join(", ")}] and writes ${missed.join(", ")}` : null;
+}
+
+/** Queue the state of the screen `shown` puts it in, where the survey has not reached it and has room for it. */
+function reach(survey: Survey, shown: Edit[]): void {
+  const key = JSON.stringify([...shown].sort(([a], [b]) => a.localeCompare(b)));
+  if (survey.seen.has(key) || survey.states >= STATES_PER_ROUTE) return;
+  survey.seen.add(key);
+  survey.states++;
+  survey.tasks.push({ kind: "draw", shown });
+}
+
 /**
- * Press the controls on `route` in `seed`'s state, one press to a unit, and again in each
- * state of the screen's own values a press leads to — a tab, a page — up to STATES_PER_ROUTE
- * of them. A press that writes nothing and opens a list or a sheet on the same screen has its
- * controls pressed in turn, and what that writes is named by the control pressed or by the one
- * that opened it: the page draws either shut, the one that opened it before the list is up and
- * the one in the list while it is.
+ * Take one piece of `survey`'s work. A press that moves only the screen's own showing leads to
+ * another state of the same screen, which the survey goes on to, and a press that opens a list or
+ * a sheet leads to the controls it carries, whose writes are their own to name: while the list is
+ * up the page draws it, and not the one that opened it, shut.
  */
-async function sweep(route: Route, seed: Seed): Promise<Sweep> {
-  const out: Sweep = { unnamed: [], presses: 0, picks: 0 };
-  const queue: Edit[][] = [[]];
-  const seen = new Set<string>([JSON.stringify([])]);
-  const check = (node: HTMLElement, written: ParamPath[], opener?: HTMLElement): void => {
-    const by = opener ? [opener, node] : [node];
-    const names = by.flatMap((n) => lockNames(n, "path"));
-    const missed = by.some((n) => lockNames(n, "op").length) ? [] : written.filter((p) => !screenOnly(p) && !names.includes(p));
-    const what = opener ? `${describeNode(node)} on what ${describeNode(opener)} opens` : describeNode(node);
-    if (missed.length) out.unnamed.push(`${what} names [${names.join(", ")}] and writes ${missed.join(", ")}`);
-  };
-  for (let s = 0; s < queue.length && s < STATES_PER_ROUTE; s++) {
-    const shown = queue[s] ?? [];
-    const first = await mount(route, seed, shown);
-    const drawn = first.shell.root.dataset["screen"] === route.id ? sampled(controls(first.shell.root)) : [];
-    release();
-    for (const i of drawn) {
-      const at = await mount(route, seed, shown);
-      const before = new Set(controls(at.shell.root));
-      const node = [...before][i];
-      if (!node) continue;
-      press(node);
-      await flush();
-      out.presses++;
-      const written = [...new Set(at.edits.map(([p]) => p))];
-      check(node, written);
-      const sameScreen = at.shell.root.dataset["screen"] === route.id;
-      // A press that moves only the screen's own showing leads to another state of the same screen.
-      if (written.length && written.every(isShown) && written.every((p) => follows(route, p)) && sameScreen) {
-        const next = [...shown.filter(([p]) => !written.includes(p)), ...at.edits.filter(([p]) => isShown(p))];
-        const key = JSON.stringify([...next].sort(([a], [b]) => a.localeCompare(b)));
-        if (!seen.has(key)) {
-          seen.add(key);
-          queue.push(next);
-        }
-      }
-      const opened = sameScreen && written.every(isShown) ? sampled(layered(at.shell.root, before)) : [];
-      release();
-      for (const j of opened) {
-        const again = await mount(route, seed, shown);
-        const prior = new Set(controls(again.shell.root));
-        const opener = [...prior][i];
-        if (!opener) continue;
-        press(opener);
-        await flush();
-        const pick = layered(again.shell.root, prior)[j];
-        if (!pick) continue;
-        again.edits.length = 0;
-        press(pick);
-        await flush();
-        out.presses++;
-        out.picks++;
-        check(pick, [...new Set(again.edits.map(([p]) => p))], opener);
-        release();
-      }
+async function take(survey: Survey, task: Task): Promise<string | null> {
+  const { route, seed } = survey;
+  const at = await mount(route, seed, task.shown);
+  try {
+    const root = at.shell.root;
+    if (task.kind === "draw") {
+      if (root.dataset["screen"] === route.id)
+        for (const i of sampled(controls(root))) survey.tasks.push({ kind: "press", shown: task.shown, i });
+      return null;
     }
+    const before = new Set(controls(root));
+    const node = [...before][task.i];
+    if (!node) throw new Error(`no control ${task.i} on ${route.id}`);
+    press(node);
+    await flush();
+    if (task.kind === "pick") {
+      const pick = layered(root, before)[task.j];
+      if (!pick) throw new Error(`no control ${task.j} on what ${describeNode(node)} opens`);
+      at.edits.length = 0;
+      press(pick);
+      await flush();
+      survey.picks++;
+      const missed = unnamedBy(pick, [...new Set(at.edits.map(([p]) => p))]);
+      return missed && `${missed}, on what ${describeNode(node)} opens`;
+    }
+    survey.presses++;
+    const written = [...new Set(at.edits.map(([p]) => p))];
+    const sameScreen = root.dataset["screen"] === route.id;
+    if (written.length && written.every(isShown) && written.every((p) => follows(route, p)) && sameScreen)
+      reach(survey, [...task.shown.filter(([p]) => !written.includes(p)), ...at.edits.filter(([p]) => isShown(p))]);
+    if (sameScreen && written.every(isShown))
+      for (const j of sampled(layered(root, before))) survey.tasks.push({ kind: "pick", shown: task.shown, i: task.i, j });
+    return unnamedBy(node, written);
+  } finally {
+    release();
   }
-  return out;
+}
+
+/** Take `survey`'s work until it has taken `units` of it or has none left. */
+async function advance(survey: Survey, units: number): Promise<void> {
+  while (survey.spent < units) {
+    const task = survey.tasks.shift();
+    if (!task) return;
+    const at = survey.spent;
+    survey.spent += COST[task.kind];
+    const missed = await take(survey, task);
+    if (missed) survey.unnamed.push({ at, text: missed });
+  }
+}
+
+/** Each route's survey in each state, shared by the cases that take its work. */
+const surveys = new Map<string, Survey>();
+
+function surveyOf(route: Route, state: string): Survey {
+  const key = `${route.id}|${route.strip ?? ""}|${state}`;
+  let found = surveys.get(key);
+  if (!found) {
+    const seed = statesFor(route)[state];
+    if (!seed) throw new Error(`no state ${state} for ${route.id}`);
+    found = { route, seed, tasks: [], seen: new Set(), states: 0, presses: 0, picks: 0, spent: 0, unnamed: [] };
+    reach(found, []);
+    surveys.set(key, found);
+  }
+  return found;
 }
 
 describe("a press on a control", () => {
-  it("reaches the values a pulldown's list writes", async () => {
-    expect((await sweep({ id: "ch.eq", strip: "ch1" }, async () => undefined)).picks).toBeGreaterThan(0);
-  });
+  it.each(CASES.flatMap(([name, state, route]) => Array.from({ length: PARTS }, (_, part) => [name, state, part + 1, route] as const)))(
+    "on %s, the unit %s, or on what it opens, writes only values the control names (part %i)",
+    async (_, state, part, route) => {
+      const survey = surveyOf(route, state);
+      await advance(survey, part * SHARE);
+      expect(survey.unnamed.filter(({ at }) => at >= (part - 1) * SHARE && at < part * SHARE).map(({ text }) => text)).toEqual([]);
+      if (part === PARTS) {
+        expect(survey.tasks, "the survey's work fits in its cases").toEqual([]);
+        expect(survey.presses, "the screen was drawn and pressed").toBeGreaterThan(0);
+      }
+    },
+  );
 
-  it.each(CASES)("on %s, the unit %s, writes only values the control names", async (_, state, route) => {
-    const seed = statesFor(route)[state];
-    if (!seed) throw new Error(`no state ${state} for ${route.id}`);
-    const { unnamed, presses } = await sweep(route, seed);
-    expect(presses, "the screen was drawn and pressed").toBeGreaterThan(0);
-    expect(unnamed).toEqual([]);
+  it("reaches the controls a pulldown's list carries", async () => {
+    const survey = surveyOf({ id: "ch.eq", strip: "ch1" }, "as shipped");
+    await advance(survey, PARTS * SHARE);
+    expect(survey.picks).toBeGreaterThan(0);
   });
 });
