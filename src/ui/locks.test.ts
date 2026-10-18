@@ -9,6 +9,9 @@ import { emulatedActions } from "../device/unit";
 import { factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
 import { buildRegistry } from "../screens";
+import { openTimeZone } from "../screens/date-time";
+import { openTitleEntry } from "../screens/title-entry";
+import { UDK_KNOBS, udkPath } from "../model/udk";
 import { el, markShut, writes } from "./dom";
 import { LOCK_MARK_CLASS, Locks, type SimLock, drawLocks } from "./locks";
 
@@ -591,6 +594,180 @@ describe("a field the page holds shut", () => {
     drawLocks(box, held("ch.ch1.name"));
     drawLocks(box, new Locks());
     expect(field.readOnly).toBe(true);
+  });
+});
+
+describe("a dialog's [OK] the page holds shut", () => {
+  // Each opens its dialog with the value open, then the page holds the value it sets: [OK] stays on the
+  // glass drawn shut and sets nothing, and sets the pick once the page lets the value go.
+  const okOf = (shell: Shell): HTMLElement | undefined =>
+    byText(shell, ".pick-dialog-ok", "OK") ?? byText(shell, ".dialog-overlay .btn", "OK");
+  const pickOther = async (shell: Shell): Promise<void> => {
+    const row = [...shell.root.querySelectorAll<HTMLElement>(".pick-dialog-row")].find((n) => n.getAttribute("aria-pressed") === "false");
+    row?.click();
+    await flush();
+  };
+  const cases: { name: string; path: string; routes: Route[]; open: (shell: Shell) => Promise<void>; read: (shell: Shell) => unknown }[] = [
+    {
+      name: "USER DEFINED KNOBS' assignment",
+      path: udkPath(1, UDK_KNOBS[0]),
+      routes: [{ id: "setup" }, { id: "setup.udk" }],
+      open: async (shell) => {
+        shell.root.querySelector<HTMLElement>(".udk-knob")?.click();
+        await flush();
+        await pickOther(shell);
+      },
+      read: (shell) => shell.ctx.store.str(udkPath(1, UDK_KNOBS[0]), ""),
+    },
+    {
+      name: "TIME ZONE",
+      path: "setup.dateTime.timeZone",
+      routes: [{ id: "setup" }, { id: "setup.datetime" }],
+      open: async (shell) => {
+        openTimeZone(shell.ctx);
+        await flush();
+        await pickOther(shell);
+      },
+      read: (shell) => shell.ctx.store.str("setup.dateTime.timeZone", ""),
+    },
+    {
+      name: "Auto Power Off's warning",
+      path: "setup.power.autoPowerOff",
+      routes: [{ id: "setup" }, { id: "setup.power" }],
+      open: async (shell) => {
+        byText(shell, ".btn-toggle", "Enable")?.click();
+        await flush();
+      },
+      read: (shell) => shell.ctx.store.bool("setup.power.autoPowerOff", true),
+    },
+    {
+      name: "USB Storage Mode's question",
+      path: "sd.usbStorage",
+      routes: [{ id: "microsd" }],
+      open: async (shell) => {
+        shell.root.querySelector<HTMLElement>(".usb-storage")?.click();
+        await flush();
+      },
+      read: (shell) => shell.ctx.store.bool("sd.usbStorage", false),
+    },
+  ];
+
+  it.each(cases)("draws $name's [OK] shut once the page holds its value, and [OK] sets nothing", async ({ path, routes, open, read }) => {
+    const shell = await shellOn(routes);
+    await open(shell);
+    const before = read(shell);
+    drawnOpen(okOf(shell));
+    shell.setLocks([{ target: { kind: "path", path }, reason: REASON }]);
+    await flush();
+    drawnShut(okOf(shell));
+    okOf(shell)?.click();
+    key(okOf(shell), "Enter");
+    await flush();
+    expect(read(shell)).toEqual(before);
+    expect(okOf(shell), "the dialog stays up").toBeTruthy();
+  });
+
+  it.each(cases)("sets $name's pick once the page lets its value go", async ({ path, routes, open, read }) => {
+    const shell = await shellOn(routes);
+    await open(shell);
+    const before = read(shell);
+    shell.setLocks([{ target: { kind: "path", path }, reason: REASON }]);
+    await flush();
+    shell.setLocks([]);
+    await flush();
+    drawnOpen(okOf(shell));
+    okOf(shell)?.click();
+    await flush();
+    expect(read(shell)).not.toEqual(before);
+    expect(okOf(shell), "the dialog closes").toBeUndefined();
+  });
+});
+
+describe("a dialog's [OK] that hands the unit an operation the page holds", () => {
+  const okOf = (shell: Shell): HTMLElement | undefined => byText(shell, ".dialog-overlay .btn", "OK");
+  const cases: { name: string; op: UnitOp["kind"]; routes: Route[]; open: (shell: Shell) => Promise<void> }[] = [
+    {
+      name: "Recall",
+      op: "scene.recall",
+      routes: [{ id: "scene" }, { id: "scene.list" }],
+      open: async (shell) => {
+        byText(shell, ".scene-actions .btn", "Recall")?.click();
+        await flush();
+      },
+    },
+    {
+      name: "inserting the card",
+      op: "card.insert",
+      routes: [{ id: "microsd" }],
+      open: async (shell) => {
+        await shell.ctx.store.set("sd.mounted", false);
+        shell.ctx.repaint();
+        await flush();
+        shell.root.querySelector<HTMLElement>(".sd-no-card")?.click();
+        await flush();
+      },
+    },
+  ];
+
+  it.each(cases)("draws the [OK] asking about $name shut once the page holds it, and [OK] answers nothing", async ({ op, routes, open }) => {
+    const shell = await shellOn(routes);
+    await open(shell);
+    drawnOpen(okOf(shell));
+    shell.setLocks([{ target: { kind: "op", op }, reason: REASON }]);
+    await flush();
+    drawnShut(okOf(shell));
+    okOf(shell)?.click();
+    key(okOf(shell), "Enter");
+    await flush();
+    expect(okOf(shell), "the dialog stays up").toBeTruthy();
+  });
+
+  it.each(cases)("answers the [OK] asking about $name once the page lets it go", async ({ op, routes, open }) => {
+    const shell = await shellOn(routes);
+    await open(shell);
+    shell.setLocks([{ target: { kind: "op", op }, reason: REASON }]);
+    await flush();
+    shell.setLocks([]);
+    await flush();
+    drawnOpen(okOf(shell));
+    okOf(shell)?.click();
+    await flush();
+    expect(okOf(shell), "the dialog closes").toBeUndefined();
+  });
+});
+
+describe("the title entry's [OK] the page holds shut", () => {
+  const PATH = "scene.a.1.title";
+  const okOf = (shell: Shell): HTMLElement | undefined => byText(shell, ".pick-dialog-ok", "OK");
+  const opened = async (): Promise<Shell> => {
+    const shell = await shellOn([{ id: "scene" }]);
+    openTitleEntry(shell.ctx, PATH, "Mine");
+    await flush();
+    return shell;
+  };
+
+  it("draws [OK] shut once the page holds the path it writes, and [OK] writes nothing", async () => {
+    const shell = await opened();
+    const before = shell.ctx.store.str(PATH, "");
+    drawnOpen(okOf(shell));
+    shell.setLocks([{ target: { kind: "path", path: PATH }, reason: REASON }]);
+    await flush();
+    drawnShut(okOf(shell));
+    okOf(shell)?.click();
+    await flush();
+    expect(shell.ctx.store.str(PATH, "")).toBe(before);
+    expect(okOf(shell), "the sheet stays up").toBeTruthy();
+  });
+
+  it("writes what is typed once the page lets the path go", async () => {
+    const shell = await opened();
+    shell.setLocks([{ target: { kind: "path", path: PATH }, reason: REASON }]);
+    await flush();
+    shell.setLocks([]);
+    await flush();
+    okOf(shell)?.click();
+    await flush();
+    expect(shell.ctx.store.str(PATH, "")).toBe("Mine");
   });
 });
 

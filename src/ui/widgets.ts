@@ -10,7 +10,7 @@ import { clamp } from "../device/store";
 import { levelBarShare } from "../model/dynamics";
 import { CLIP_DB } from "../model/levels";
 import type { ParamPath } from "../device/path";
-import { LOCKED_CLASS, OFF_MARK, drawnScale, el, fromInnerControl, makeTappable, setPressed, writes } from "./dom";
+import { LOCKED_CLASS, OFF_MARK, aimOf, aimed, drawnScale, el, fromInnerControl, makeTappable, setPressed, writes } from "./dom";
 import { Icons } from "./icons";
 import type { NumericSpec } from "./param-spec";
 import { KNOB_SIZE, KNOB_START_DEG, KNOB_SWEEP_DEG, formatValue, rangeAttrs, unitOf } from "./param-spec";
@@ -508,6 +508,7 @@ export interface PickDialogSpec {
   /** A second line under the title. */
   sub?: string;
   onCancel: () => void;
+  /** What [OK] does. Named with `aimed` or `writing`, it names [OK] so, and [OK] is held shut with its target. */
   onOk: () => void;
   /** What stands under the title. */
   body: HTMLElement[];
@@ -1024,6 +1025,7 @@ export interface DialogOptions {
   okOnly?: boolean;
   /** Whether the dialog warns: its frame and mark take the warning colour, and the mark is the triangle. */
   caution?: boolean;
+  /** What [OK] does. Named with `aimed` or `writing`, it names [OK] so, and [OK] is held shut with its target. */
   onOk: () => void;
   onCancel?: () => void;
 }
@@ -1192,10 +1194,12 @@ export function dialog(options: DialogOptions): HTMLElement {
     class: "dialog-overlay",
     attrs: { role: "dialog", "aria-modal": "true", "aria-label": options.message },
   });
-  const ok = button(options.okLabel ?? "OK", () => {
+  const answer = (): void => {
     close();
     options.onOk();
-  });
+  };
+  const aim = aimOf(options.onOk);
+  const ok = button(options.okLabel ?? "OK", aim ? aimed(answer, aim) : answer);
   modal.cancel = () => {
     close();
     options.onCancel?.();

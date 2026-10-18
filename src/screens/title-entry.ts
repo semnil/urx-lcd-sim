@@ -1,7 +1,7 @@
 // The title entry sheet: a keyboard that takes the glass over to rename a scene.
 
 import type { AppContext } from "../app/context";
-import { el, setPressed } from "../ui/dom";
+import { el, setPressed, writing } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { button, dialog } from "../ui/widgets";
 import type { ScreenBody, ScreenDef } from "./types";
@@ -195,6 +195,9 @@ export const titleEntryScreen: ScreenDef = {
     const layout: Layout = drafted === "numbers" || drafted === "symbols" ? drafted : "letters";
     const shift = ctx.store.num(`${DRAFT}.shift`, 0) === 1;
     const heading = ctx.store.str(`${DRAFT}.heading`, "");
+    // [OK] names the path it writes what is typed to, where the draft has one.
+    const draftPath = ctx.store.str(`${DRAFT}.path`, "");
+    const writesDraft = (answer: () => void): (() => void) => (draftPath ? writing(draftPath, answer) : answer);
     const max = ctx.store.num(`${DRAFT}.max`, TITLE_MAX);
     const empty = ctx.store.num(`${DRAFT}.empty`, 0) === 1;
     const keys: Keyboard = ctx.store.str(`${DRAFT}.keys`, "title") === "card" ? "card" : "title";
@@ -321,7 +324,7 @@ export const titleEntryScreen: ScreenDef = {
             pendingRefuse = null;
             ctx.nav.back();
           }, "pick-dialog-btn pick-dialog-cancel"),
-          button("OK", () => {
+          button("OK", writesDraft(() => {
             // [OK] does nothing until something is typed, unless the draft goes on empty.
             if (!text && !empty) return;
             const named = `${text}${suffix}`;
@@ -331,13 +334,12 @@ export const titleEntryScreen: ScreenDef = {
               return;
             }
             pendingRefuse = null;
-            const path = ctx.store.str(`${DRAFT}.path`, "");
-            if (path) void ctx.store.set(path, named);
+            if (draftPath) void ctx.store.set(draftPath, named);
             const handOver = pendingOk;
             pendingOk = null;
             ctx.nav.back();
             handOver?.(named);
-          }, "pick-dialog-btn pick-dialog-ok"),
+          }), "pick-dialog-btn pick-dialog-ok"),
           field,
           ...(suffix ? [el("span", { class: "title-suffix", text: suffix })] : []),
           el("div", { class: "title-keys", children: KEYBOARDS[keys][layout].flatMap((row, i) => row.map((k) => keyNode(k, i))) }),

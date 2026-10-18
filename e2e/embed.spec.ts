@@ -207,6 +207,41 @@ test("holds shut what the page holds, a real touch and drag on it doing nothing,
   await page.locator('.urx-lcd-sim .lcd[data-screen="setup.language"]:not([inert])').waitFor();
 });
 
+test("holds a dialog's [OK] shut once the page holds what it sets, a real press on it setting nothing", async ({ page }) => {
+  await open(page, true);
+  const reason = "Held by the page";
+  const read = (): Promise<boolean> =>
+    page.evaluate(() => (window as unknown as { sim: { store: { bool(p: string, f: boolean): boolean } } }).sim.store.bool("setup.power.autoPowerOff", false));
+  const glass = page.locator(".urx-lcd-sim .lcd[data-screen]:not([inert])");
+  await glass.getByRole("button", { name: "SETUP", exact: true }).click();
+  await glass.getByRole("button", { name: "Power Management", exact: true }).click();
+  await page.locator('.urx-lcd-sim .lcd[data-screen="setup.power"]').waitFor();
+  await page.locator(".urx-lcd-sim .lcd").getByRole("button", { name: "Enable", exact: true }).click();
+  const ok = page.locator(".urx-lcd-sim .dialog-overlay").getByRole("button", { name: "OK", exact: true });
+  await expect(ok).toBeVisible();
+
+  // The page holds the value while the dialog is up.
+  await page.evaluate(
+    (r) => (window as unknown as { sim: { setLocks(l: unknown[]): void } }).sim.setLocks([{ target: { kind: "path", path: "setup.power.autoPowerOff" }, reason: r }]),
+    reason,
+  );
+  await expect(ok).toHaveAttribute("title", reason);
+  await expect(ok.locator(".lock-mark svg")).toBeVisible();
+  // Playwright declines to click a control marked out of reach, so the press goes to where it stands.
+  const at = (await ok.boundingBox())!;
+  await page.mouse.click(at.x + at.width / 2, at.y + at.height / 2);
+  await ok.focus();
+  await page.keyboard.press("Enter");
+  await expect(ok, "the dialog stays up").toBeVisible();
+  expect(await read(), "Auto Power Off stays on").toBe(true);
+
+  await page.evaluate(() => (window as unknown as { sim: { setLocks(l: unknown[]): void } }).sim.setLocks([]));
+  await expect(ok).not.toHaveAttribute("title", reason);
+  await ok.click();
+  await expect(page.locator(".urx-lcd-sim .dialog-overlay")).toHaveCount(0);
+  expect(await read(), "Auto Power Off is off").toBe(false);
+});
+
 test("draws at the scale it is given", async ({ page }) => {
   await open(page, true);
   const width = (): Promise<number> =>

@@ -122,8 +122,11 @@ Each lock (`SimLock`) is a target and the reason the page gives for it. A target
   screen (`Navigator.setRefusal()`, the back arrow and the home button aside); `perform()` hands the unit
   no held operation. A value the unit changes itself still reaches the glass.
 - A control names its target where it is built (`lockable`, `writes`, `writing` and `aimed` in
-  `src/ui/dom.ts`): the numeric controls built from a `NumericSpec` name its path themselves, and a
-  pulldown names the `path` it is given. A control that names none is drawn as it is, while the refusals
+  `src/ui/dom.ts`): the numeric controls built from a `NumericSpec` name its path themselves, a
+  pulldown names the `path` it is given, and a dialog's [OK] (`dialog` and `pickDialog` in
+  `src/ui/widgets.ts`) names what its `onOk` was named with, and the title entry's [OK] names the path it
+  writes what is typed to, so a dialog or a sheet already open when the page holds that target has its [OK]
+  drawn shut. A control that names none is drawn as it is, while the refusals
   above still hold for it.
 - The simulator's own page holds nothing, and a page that passes no locks sees the glass as before.
 
