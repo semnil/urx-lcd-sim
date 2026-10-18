@@ -36,3 +36,41 @@ test("scrolls SCENE LIST by the wheel and by the keys, the browser not scrolling
   });
   expect(taken).toBe(false);
 });
+
+// The keys reach the list from whatever inside it holds the focus, as they reach a list the browser
+// scrolls; a key a row has taken to step the focus is the row's, and moves the list no further.
+test("scrolls SCENE LIST by Page Down from a row holding the focus, while an arrow on a row only steps the focus", async ({ page }) => {
+  await reach(page, TOUR.find((s) => s.id === "scene.list")!);
+  const rows = list(page).locator(".list-row");
+  await rows.nth(1).click();
+  await expect(rows.nth(1)).toBeFocused();
+  const selected = await rows.evaluateAll((r) => r.findIndex((n) => n.getAttribute("aria-selected") === "true"));
+  await page.keyboard.press("ArrowDown");
+  await expect(rows.nth(2), "the arrow steps the focus").toBeFocused();
+  expect(await top(page), "and leaves the list where it was").toBe(0);
+  expect(await rows.evaluateAll((r) => r.findIndex((n) => n.getAttribute("aria-selected") === "true")), "and the selection").toBe(selected);
+  await page.keyboard.press("PageDown");
+  await expect.poll(() => top(page), "Page Down from a row moves the list").toBeGreaterThan(0);
+});
+
+test("scrolls TIME ZONE's candidates by an arrow from a candidate holding the focus", async ({ page }) => {
+  await reach(page, TOUR.find((s) => s.id === "setup.datetime.zone")!);
+  const rows = page.locator(".pick-dialog-rows").first();
+  const scrolled = (): Promise<number> => rows.evaluate((n) => n.scrollTop);
+  await rows.evaluate((n) => (n.scrollTop = 0));
+  const candidate = rows.locator(".pick-dialog-row:not(.is-empty)").first();
+  await candidate.focus();
+  await page.keyboard.press("ArrowDown");
+  await expect.poll(scrolled, "one row down").toBeGreaterThan(0);
+});
+
+test("leaves the wheel to a control inside a list that takes it", async ({ page }) => {
+  await reach(page, TOUR.find((s) => s.id === "scene.list")!);
+  const row = list(page).locator(".list-row").nth(1);
+  await row.evaluate((n) => n.addEventListener("wheel", (ev) => ev.preventDefault(), { passive: false }));
+  const box = (await row.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.wheel(0, 120);
+  await page.waitForTimeout(100);
+  expect(await top(page)).toBe(0);
+});
