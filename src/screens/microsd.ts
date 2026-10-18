@@ -1004,7 +1004,7 @@ export function recordSourceSheet(ctx: AppContext, slot: number): HTMLElement {
       };
       return pickerGrid(
         recordSourceRows(ctx).map((row) =>
-          row.map((label) => (label === null ? null : toggle(label, label === current, () => pick(label), "source-btn"))),
+          row.map((label) => (label === null ? null : toggle(label, label === current, writing(key, () => pick(label)), "source-btn"))),
         ),
       );
     },

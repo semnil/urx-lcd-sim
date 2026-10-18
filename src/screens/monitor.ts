@@ -38,11 +38,11 @@ function monitorSourceSheet(ctx: AppContext, bus: number): HTMLElement {
           row.map((label) =>
             label === null
               ? null
-              : toggle(label, label === current, () => {
+              : toggle(label, label === current, writing(path, () => {
                   void ctx.store.set(path, label);
                   close();
                   ctx.repaint();
-                }, "source-btn"),
+                }), "source-btn"),
           ),
         ),
       ),

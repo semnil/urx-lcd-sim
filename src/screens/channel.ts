@@ -693,11 +693,11 @@ function colorSheet(ctx: AppContext, strip: Strip): void {
           class: "btn color-swatch",
           text: name,
           style: { background: face, color: ink },
-          onTap: () => {
+          onTap: writing(path, () => {
             void ctx.store.set(path, hex);
             close();
             ctx.repaint();
-          },
+          }),
         });
       return el("div", {
         class: "color-grid",
