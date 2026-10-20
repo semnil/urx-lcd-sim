@@ -1113,6 +1113,20 @@ describe("BridgeTransport", () => {
     expect([unit.open.size, reads]).toEqual([0, 0]);
   });
 
+  it("leaves no subscription open when closed while it subscribes, after a snapshot read with nothing bound", async () => {
+    const unit = subscribingUnit();
+    const bindings = new BindingTable();
+    const transport = new BridgeTransport(unit, bindings);
+    await transport.snapshot();
+    bindings.bind("ch.ch1.level", { addr: "level-addr", codec: identityCodec });
+
+    const snapshot = transport.snapshot();
+    transport.close();
+
+    await expect(snapshot).rejects.toThrow("transport closed");
+    expect([unit.subscribes(), unit.open.size]).toEqual([1, 0]);
+  });
+
   it("reads no further address and refuses its snapshot when closed while an address is read", async () => {
     const unit = fakeBridge();
     const asked: string[] = [];
