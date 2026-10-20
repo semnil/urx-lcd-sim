@@ -609,6 +609,39 @@ describe("one tab at a time", () => {
     expect([tabA.told(), tabB.told()], "told once, having stopped").toEqual([0, 1]);
   });
 
+  it("keeps on storing where another tab's word of a write comes in after it started on what that write stored", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    // The first tab's browser stores its write at once and hands it the outcome only when the test lets it.
+    let answer = (): void => {};
+    const slow: Keeper = {
+      read: keeper.read,
+      write: async (basis, next) => {
+        const outcome = await keeper.write(basis, next);
+        await new Promise<void>((resolve) => {
+          answer = () => resolve();
+        });
+        return outcome;
+      },
+    };
+    const a = await unit();
+    const tabA = await start(a, MODEL, { keeper: slow, tab: "a" });
+    await a.set("ch.ch1.level", -9);
+    vi.advanceTimersByTime(20);
+    await settle();
+    // The second tab starts on what the first stored, before the first tells of it.
+    const b = await unit();
+    await bring(b);
+    const tabB = await start(b, MODEL, { tab: "b" });
+    expect(b.num("ch.ch1.level", 0), "the second tab started on the first one's write").toBe(-9);
+    answer();
+    await tabA.saving.settle();
+    await settle();
+    await b.set("ch.ch2.level", -5);
+    await tabB.saving.settle();
+    await settle();
+    expect({ told: tabB.told(), stored: [(await stored())?.["ch.ch1.level"], (await stored())?.["ch.ch2.level"]] }).toEqual({ told: 0, stored: [-9, -5] });
+  });
+
   it("settles on whether a change was left unwritten because another tab stored the unit", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const { a, b, tabA, tabB } = await twoTabs();
