@@ -1715,6 +1715,31 @@ describe("the SEND TO destination tabs", () => {
     }
   });
 
+  it("reads the ducker's lamps against the threshold its screen shows where the unit holds none", async () => {
+    // The key the ducker listens to stands at -2 dB; everything else is silent.
+    setMeterSource((id) => (id.startsWith("bus.mix1@") ? [-2] : [-90]));
+    try {
+      const model = unitById("URX44V");
+      const state = factoryState(model);
+      state.delete("ch.ch_5_6.ducker.threshold");
+      const store = new DeviceStore();
+      await store.attach(new SimTransport(state));
+      const shell = new Shell(buildRegistry(), store, model, [{ id: "ch.ducker", strip: "ch_5_6" }]);
+      await store.set("ch.ch_5_6.ducker.on", true);
+      await store.set("ch.ch_5_6.ducker.source", "MIX 1");
+      await flush();
+      const threshold = shell.root.querySelector("[role='spinbutton'][aria-label='Threshold']");
+      expect([store.has("ch.ch_5_6.ducker.threshold"), threshold?.getAttribute("aria-valuenow")], "the unit holds no threshold").toEqual([false, "-40"]);
+
+      shell.ctx.nav.push({ id: "channel-view", strip: "ch_5_6" });
+      await flush();
+      const lamps = [...shell.root.querySelectorAll(".cv-block-ducker .block-lamp")].map((l) => l.className);
+      expect(lamps.some((c) => c.includes("is-shut")), "a key 38 dB over it shuts the channel").toBe(true);
+    } finally {
+      setMeterSource(null);
+    }
+  });
+
   it.each([
     ["ch.ducker", "ch_5_6", "ducker"],
     ["ch.delay", "bus.stream", "delay"],
