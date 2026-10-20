@@ -1,37 +1,38 @@
 # CLAUDE.md — urx-lcd-sim
 
-YAMAHA URX22 / URX44 / URX44V の 4.3 インチ LCD タッチ画面 (480x272) をブラウザで操作する非公式シミュレーター。
-概要・コマンドは README.md、構成と値の流れは docs/ja/architecture.md が正。ここにはそれらに無い作業上の規則だけを置く。
+An unofficial simulator that lets you operate the 4.3-inch LCD touch screen (480x272) of the YAMAHA URX22 / URX44 / URX44V in a browser.
+The overview and the commands are in README.md, and the structure and the flow of values are in docs/en/architecture.md; those are the source of truth. This file holds only the working rules they do not.
 
-## 開発
+## Development
 
-- 開発サーバーは `pnpm dev --port 5188 --strictPort` (`.claude/launch.json` と同じ設定)
-- 合否は `pnpm test` (Vitest + jsdom) と `pnpm typecheck`、それに `pnpm test:e2e` (Playwright + Chromium、`e2e/`。`e2e/clip.spec.ts` だけは WebKit でも走る)。Chromium が `/opt/pw-browsers/chromium` に入っている環境 (Claude Code のクラウド環境) では、落とさずに `PLAYWRIGHT_CHROMIUM_EXECUTABLE=/opt/pw-browsers/chromium pnpm test:e2e` で走らせる。WebKit が入っていない環境では `--project=chromium` を足し、WebKit 側は CI に任せる
-- 単体テストは 1 本 5,000 ms が上限で、全コアに負荷がかかると所要時間が 2 倍近くに延び、たまに落ちるテストになる。画面や値を何十も巡るテストは画面・値ごとの `it.each` に分け、Shell は `new Shell(registry, store, model, [route])` で目的の画面から立ち上げ (HOME を描いて捨てない)、描き直しは `setImmediate` で待つ (`setTimeout(0)` は 1 回約 1 ms 空回りする)
-- jsdom の `.click()` は押した位置の要素もフォーカスの移動も通らない。メニュー・ダイアログ・シートを足したら、開いて答えるまでを実クリックで通す E2E を `e2e/` に 1 本足す。画面を足したら `e2e/tour.ts` にそこへの道を足す (`src/app/e2e-tour.test.ts` が固定)
-- `package.json` の `version` を変えた main への push が Pages 公開と draft Release の作成になる。手順は README.md「Hosting」
-- 変更履歴のファイル (`CHANGES.md` など) は持たない。リリースの変更点は draft Release に生成される PR の一覧が持つ
-- docs は `docs/en/` と `docs/ja/`、README は `README.md` と `README.ja.md`、`CONTRIBUTING.md` と `CONTRIBUTING.ja.md`、`SECURITY.md` と `SECURITY.ja.md`、`CODE_OF_CONDUCT.md` と `CODE_OF_CONDUCT.ja.md` が対。Mermaid 図を含む docs を触ったら描画して確かめる
-- CONTRIBUTING の「描く範囲」「一次資料としてのユーザーガイド」「実機との接続」は、下の「描く範囲」「一次資料」「実機との関係」を外部の協力者向けに写したミラー
-- 作らないと決めたものは `docs/ja/known-issues.md` と `docs/en/known-issues.md` が家。決めた時点で書く
-- 画面の状態はブラウザに残る。出荷時の状態で確かめたいときは画面の外の [Initialize All Memories] (docs/ja/architecture.md「残る値」)
+- The dev server is `pnpm dev --port 5188 --strictPort` (the same settings as `.claude/launch.json`)
+- Pass or fail is decided by `pnpm test` (Vitest + jsdom) and `pnpm typecheck`, plus `pnpm test:e2e` (Playwright + Chromium, `e2e/`; only `e2e/clip.spec.ts` also runs on WebKit). In an environment where Chromium is installed at `/opt/pw-browsers/chromium` (Claude Code's cloud environment), run it with `PLAYWRIGHT_CHROMIUM_EXECUTABLE=/opt/pw-browsers/chromium pnpm test:e2e` rather than letting it fail. In an environment without WebKit, add `--project=chromium` and leave the WebKit side to CI
+- A unit test has a limit of 5,000 ms each, and a load on every core nearly doubles its time, which makes it a test that fails now and then. Split a test that walks dozens of screens or values into an `it.each` per screen or value, start the Shell on the screen it reads with `new Shell(registry, store, model, [route])` (rather than drawing HOME and throwing it away), and wait for a redraw on `setImmediate` (`setTimeout(0)` idles about 1 ms each time)
+- jsdom's `.click()` goes through neither the element at the pressed position nor the move of focus. When you add a menu, a dialog or a sheet, add one E2E test to `e2e/` that goes from opening it to answering it with real clicks. When you add a screen, add the way to it to `e2e/tour.ts` (`src/app/e2e-tour.test.ts` pins this)
+- A push to main that changes `version` in `package.json` publishes Pages and creates a draft Release. The steps are in README.md, "Hosting"
+- The project keeps no change-log file (`CHANGES.md` or the like). A release's changes are carried by the list of PRs generated into its draft Release
+- **Override of the global CLAUDE.md's 「ドキュメント」 language rule**: this file is written entirely in English, and each document is written in English with its Japanese counterpart beside it (the pairs below)
+- The pairs are `docs/en/` and `docs/ja/` for docs, `README.md` and `README.ja.md` for the README, `CONTRIBUTING.md` and `CONTRIBUTING.ja.md`, `SECURITY.md` and `SECURITY.ja.md`, and `CODE_OF_CONDUCT.md` and `CODE_OF_CONDUCT.ja.md`. When you touch a document that holds a Mermaid diagram, render it to check
+- CONTRIBUTING's "What is drawn", "The user guide as a source" and "Device integration" mirror "What is drawn", "Primary source" and "Relationship to the hardware" below, written for outside contributors
+- What has been decided not to build has its home in `docs/en/known-issues.md` and `docs/ja/known-issues.md`. Write it there when the decision is made
+- The screen's state stays in the browser. To check from the factory state, use [Initialize All Memories] outside the screen (docs/en/architecture.md, "What survives a reload")
 
-## 描く範囲
+## What is drawn
 
-- 描くのは画面 (480x272) の内側だけ。筐体・物理ノブ・端子・製品色・製品写真由来の配色を持ち込まない
-- 作らないと決めたコントロールは、実機と同じ位置に使えないボタンの面で描き、押しても何もしないようにする (例は docs/ja/known-issues.md のコントロールの表)
-- 画面内のつまみの絵 (USER DEFINED KNOBS) は描いてよい。チャンネル/バスのアイコン (人物・ギター・ノート PC 等の絵) は描かず、単色の四角で代える (docs/ja/screen-inventory.md「チャンネル画面のツールバー」)
-- 実機がノブで操作する値は画面上のコントロールで届くようにする (`src/app/knob-reach.test.ts` が固定)
+- Only the inside of the screen (480x272) is drawn. Do not bring in the enclosure, the physical knobs, the connectors, the product's colors, or a palette taken from product photos
+- A control decided not to be built is drawn as the face of a button that cannot be used, at the same position as on the unit, and pressing it does nothing (examples are in the controls table of docs/en/known-issues.md)
+- Drawings of knobs on the screen (USER DEFINED KNOBS) may be drawn. Channel/bus icons (drawings of a person, a guitar, a laptop and the like) are not drawn; a single-colored square stands in for them (docs/en/screen-inventory.md, "Channel screen toolbar")
+- A value the unit operates with a knob is made reachable by a control on the screen (`src/app/knob-reach.test.ts` pins this)
 
-## 一次資料 (ユーザーガイドの画面キャプチャ)
+## Primary source (the user guide's screen captures)
 
-- `reference/` はヤマハの著作物で `.gitignore` 済み。コミット・ビルド・公開物に入れない。再生成は README.md「Where the appearance comes from」
-- 公開ドキュメント (docs/・README) に作らない理由を書くときは、権利関係などの直接的な書き方を避ける
-- 図から値を採る方法は docs/ja/design-tokens.md「採取方法」が正。紙面に写る範囲 (`reference/ug-lcd/visible.json`) の外の画素は根拠にしない。docs に書く図番号は `reference/ug-lcd/` の抽出名にする
-- ガイドの図は実機と食い違うことがある。形・寸法・色は図から測ってよい。何が並ぶか・いくつあるか・大小文字は図だけで確定させず、実装した上でその点を操作者に確認する (大小文字は画面ごとに確認し、他の画面から類推しない)
-- 図の無い寸法・形の決着条件に「実機を撮影して測る」を書かない・提案しない (撮影では画素単位で測れない)。操作者の指定か既存画面の形式に合わせる
-- 確定した画面の事実はコードのコメント・docs・テストに書く
+- `reference/` is Yamaha's copyrighted work and is in `.gitignore`. Keep it out of commits, builds and anything published. To regenerate it, see README.md, "Where the appearance comes from"
+- When a public document (docs/, README) gives the reason something is not built, avoid direct wording such as rights matters
+- How values are taken from the figures is defined by docs/en/design-tokens.md, "How the values were sampled". Pixels outside the range printed on the page (`reference/ug-lcd/visible.json`) are not used as evidence. A figure number written in docs is the extracted name in `reference/ug-lcd/`
+- The guide's figures sometimes differ from the unit. Shapes, dimensions and colors may be measured from the figures. What is listed, how many there are and letter case are not settled by a figure alone: implement it, then confirm those points with the operator (confirm letter case screen by screen, rather than inferring it from other screens)
+- For a dimension or a shape no figure shows, do not write or propose "photograph the unit and measure it" as what settles it (a photograph cannot be measured pixel by pixel). Follow the operator's instruction or the form of an existing screen
+- A settled fact about a screen is written in the code's comments, the docs and the tests
 
-## 実機との関係
+## Relationship to the hardware
 
-- 画面は意味のドットパスだけで値を読み書きする。`BindingTable` は空で出荷し、実機で検証していないアドレスを足さない (docs/ja/architecture.md「パラメータのアドレス指定」、`src/device/bridge-transport.test.ts` が固定)
+- The screens read and write values only by semantic dot paths. `BindingTable` ships empty, and no address that has not been verified on hardware is added to it (docs/en/architecture.md, "Addressing parameters"; `src/device/bridge-transport.test.ts` pins this)
