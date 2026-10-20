@@ -502,6 +502,27 @@ describe("the channel-bank list", () => {
     }
   });
 
+  it("stays open under a touch on what is laid over it, as it closes under a touch on the dark around it", async () => {
+    const shell = await mount();
+    await openList(shell);
+    try {
+      shell.ctx.overlay(dialog({ message: "Laid over the list", okOnly: true, onOk: () => undefined }));
+      await flush();
+      shell.root.querySelector(".dialog-overlay")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flush();
+      expect([shell.ctx.nav.current.id, shell.root.querySelector(".dialog-overlay") !== null], "a touch on the dialog").toEqual(["bank-select", true]);
+
+      shell.root.querySelector<HTMLElement>(".dialog-actions .btn")?.click();
+      await flush();
+      shell.root.querySelector(".side")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flush();
+      expect([shell.root.querySelector(".dialog-overlay"), shell.ctx.nav.current.id], "the dialog answered, a touch on the dark").toEqual([null, "home"]);
+    } finally {
+      // The dialog holds the window's keys while it is up.
+      shell.destroy();
+    }
+  });
+
   it("reads the names off the strips, so a model with other banks gets other names", () => {
     // The URX22 is two mono channels short, which packs its banks differently.
     const small = unitById("URX22");
