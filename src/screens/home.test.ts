@@ -3052,6 +3052,39 @@ describe("CH SETTING: what a channel is tapped at and what colour it carries", (
     }
   });
 
+  it("holds a name left in the field for the click of a finger's tap whose press was over before the mouse press that takes the focus", async () => {
+    const shell = await setting("ch1");
+    document.body.appendChild(shell.root);
+    try {
+      const name = (): string => shell.ctx.store.str("ch.ch1.name", "");
+      const before = name();
+      const field = shell.root.querySelector<HTMLInputElement>(".chs-name");
+      const home = shell.root.querySelector<HTMLElement>('.icon-btn[aria-label="HOME"]');
+      const fire = (type: string): void => {
+        home?.dispatchEvent(new MouseEvent(type, { bubbles: true }));
+      };
+      /** A timer of no delay: once it resolves, every timer of no delay set going before it has run. */
+      const timers = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+      expect([field, home].includes(null), "the Name field and the toolbar's HOME").toBe(false);
+      field?.focus();
+      (field as HTMLInputElement).value = "Keys";
+      // The finger goes down and lifts, and the moment of its press has passed when the mouse press follows.
+      fire("pointerdown");
+      fire("pointerup");
+      await timers();
+      fire("mousedown");
+      field?.dispatchEvent(new Event("change", { bubbles: true }));
+      fire("mouseup");
+      for (let i = 0; i < 10; i++) await Promise.resolve();
+      expect([name(), home?.isConnected], "the pressed control is still on the glass for its click").toEqual([before, true]);
+      home?.click();
+      await timers();
+      expect([shell.ctx.nav.current.id, name()], "the press goes home, and the name is kept").toEqual(["home", "Keys"]);
+    } finally {
+      shell.root.remove();
+    }
+  });
+
   it("closes the palette on the way out without changing the colour", async () => {
     const shell = await setting("ch1");
     const before = shell.ctx.store.str("ch.ch1.color", "");
