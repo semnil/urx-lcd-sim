@@ -1,5 +1,7 @@
 # Architecture
 
+> 日本語版は [../ja/architecture.md](../ja/architecture.md) を参照してください.
+
 Reproduces the 4.3-inch LCD touch screen of the YAMAHA URX series (URX22 / URX44 / URX44V) as
 something you operate in a browser. It is for checking, learning and working out the unit's screens
 and operating procedures without touching the unit. The unit's physical controls are not reproduced,

@@ -1,5 +1,7 @@
 # Device integration
 
+> 日本語版は [../ja/device-integration.md](../ja/device-integration.md) を参照してください.
+
 The design and the steps for connecting the simulator's screens to the state of a real, connected URX.
 
 ## One connection point

@@ -1,5 +1,7 @@
 # Screen inventory
 
+> 日本語版は [../ja/screen-inventory.md](../ja/screen-inventory.md) を参照してください.
+
 The LCD screens shown in the URX44V/44/22 user guide (English, revision D0), and their implementation
 status in the simulator. The "Ref." column is the user guide page number. IDs such as `p045-1` and
 `wide/p040-2` in the text are the files of captures extracted from that page; where they are and how

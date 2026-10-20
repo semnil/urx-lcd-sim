@@ -1,5 +1,7 @@
 # 画面インベントリ
 
+> For the English version, see [../en/screen-inventory.md](../en/screen-inventory.md).
+
 URX44V/44/22 ユーザーガイド (英語版 revision D0) が載せている LCD 画面の一覧と、シミュレーターでの
 実装状況。「参照」列はユーザーガイドのページ番号。文中の `p045-1` や `wide/p040-2` はそのページから
 抽出したキャプチャのファイルで、置き場所と命名は [design-tokens.md の「採取方法」](design-tokens.md#採取方法)

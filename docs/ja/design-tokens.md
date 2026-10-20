@@ -1,5 +1,7 @@
 # デザイントークンの出所
 
+> For the English version, see [../en/design-tokens.md](../en/design-tokens.md).
+
 図に写っていないと書いた行を除き、`src/style/tokens.css` の色は、ユーザーガイド (英語版 revision D0) に
 埋め込まれている 480x272 の画面キャプチャからピクセル単位で採取した。目視で近い色を当てたものは無い。
 図に無いシミュレーター自身の値は、その行と「画面の外側」の節にそう書く。

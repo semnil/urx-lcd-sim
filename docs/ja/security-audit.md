@@ -1,5 +1,7 @@
 # セキュリティ監査
 
+> For the English version, see [../en/security-audit.md](../en/security-audit.md).
+
 ## 対象
 
 GitHub Pages の公開構成、CI のワークフロー、依存関係、Git の追跡対象、本番ビルド成果物、脆弱性の報告窓口と画面外の初期化操作。

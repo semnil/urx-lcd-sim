@@ -1,5 +1,7 @@
 # Security audit
 
+> 日本語版は [../ja/security-audit.md](../ja/security-audit.md) を参照してください.
+
 ## Scope
 
 The GitHub Pages publishing configuration, the CI workflow, dependencies, tracked Git files,
