@@ -1,5 +1,7 @@
 # 作っていないもの
 
+> For the English version, see [../en/known-issues.md](../en/known-issues.md).
+
 このシミュレーターは画面遷移と操作手順を確かめるためのもので、実機の機能そのものは持たない。
 ここには、実機にある機能のうちこのシミュレーターの対象から外したものと、実機にも無いために
 このシミュレーターも持たないものを挙げる。画面の一覧と実装状況は [screen-inventory.md](screen-inventory.md) が正。

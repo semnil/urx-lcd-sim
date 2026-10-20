@@ -1,5 +1,7 @@
 # What this simulator does not build
 
+> 日本語版は [../ja/known-issues.md](../ja/known-issues.md) を参照してください.
+
 This simulator exists to walk through the unit's screens and operating procedures; it does not carry
 the unit's functions. What follows is what the unit has and this simulator leaves out of its scope,
 and what the unit itself lacks and so this simulator lacks as well. The list of screens and what

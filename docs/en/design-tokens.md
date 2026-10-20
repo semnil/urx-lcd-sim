@@ -1,5 +1,7 @@
 # Where the design tokens came from
 
+> 日本語版は [../ja/design-tokens.md](../ja/design-tokens.md) を参照してください.
+
 Except where a row says no figure shows it, the colors in `src/style/tokens.css` were sampled pixel by
 pixel from the 480x272 screen captures embedded in the user guide (English, revision D0). None was
 matched by eye. A value of the simulator's own, which no figure shows, says so in its row or in

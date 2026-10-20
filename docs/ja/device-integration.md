@@ -1,5 +1,7 @@
 # 実機連携
 
+> For the English version, see [../en/device-integration.md](../en/device-integration.md).
+
 シミュレーターの画面を、実際に接続した URX の状態に接続するための設計と手順。
 
 ## 接続点は 1 箇所だけ

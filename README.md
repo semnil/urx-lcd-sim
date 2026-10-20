@@ -9,7 +9,7 @@ unit's 4.3-inch LCD touch screen, driven in a browser.
 It exists to walk through the unit's screens and operating procedures without the hardware in
 front of you. It is a standalone project, and it talks to no hardware by itself.
 
-> 日本語: [README.ja.md](README.ja.md)
+> 日本語版は [README.ja.md](README.ja.md) を参照してください.
 
 [Open the simulator](https://urx-lcd-sim.semnil.com/)
 

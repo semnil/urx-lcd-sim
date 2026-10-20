@@ -1,5 +1,7 @@
 # How the screens connect
 
+> 日本語版は [../ja/screen-map.md](../ja/screen-map.md) を参照してください.
+
 A map of which screen leads to which. One screen is one `ScreenDef`, and an arrow is a control that
 opens the screen it points at. What each screen holds is in [screen-inventory.md](screen-inventory.md);
 the stack and the way back are in [architecture.md](architecture.md), "Registering a screen".

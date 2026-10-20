@@ -1,6 +1,5 @@
-# セキュリティ監査
+# Security audit
 
-GitHub Pages の公開構成と配布物を対象とした確認結果:
+The results of the review of the GitHub Pages publishing configuration and of what is distributed:
 
-- [日本語](ja/security-audit.md)
 - [English](en/security-audit.md)

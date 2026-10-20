@@ -9,7 +9,7 @@ YAMAHA URX シリーズ (URX22 / URX44 / URX44V) の 4.3 インチ LCD タッチ
 実機を触らずに画面遷移と操作手順を確認するためのもの。単独で完結したプロジェクトで、
 これ自体は実機と通信しない。
 
-> English: [README.md](README.md)
+> For the English version, see [README.md](README.md).
 
 [シミュレーターを開く](https://urx-lcd-sim.semnil.com/)
 

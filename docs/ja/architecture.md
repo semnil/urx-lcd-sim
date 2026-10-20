@@ -1,5 +1,7 @@
 # アーキテクチャ
 
+> For the English version, see [../en/architecture.md](../en/architecture.md).
+
 YAMAHA URX シリーズ (URX22 / URX44 / URX44V) の 4.3 インチ LCD タッチスクリーンを、ブラウザ上で
 操作できる形に再現する。実機の画面と操作手順を、実機を触らずに確認・学習・検討するためのもの。
 実機の物理コントロールは再現しないので、実機がノブで操作する値も画面上のコントロールで

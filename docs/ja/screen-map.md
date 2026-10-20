@@ -1,5 +1,7 @@
 # 画面のつながり
 
+> For the English version, see [../en/screen-map.md](../en/screen-map.md).
+
 どの画面からどの画面へ行けるかの地図。画面 1 つが `ScreenDef` 1 つで、矢印は「押すと相手の画面が開く
 コントロール」を指す。画面の中身は [screen-inventory.md](screen-inventory.md)、スタックと戻る操作の仕組みは
 [architecture.md](architecture.md)「画面の登録」が持つ。
