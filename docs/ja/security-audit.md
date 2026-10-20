@@ -19,7 +19,8 @@ GitHub Pages の公開構成、CI のワークフロー、依存関係、Git の
 | タグと Release | ビルド成功後、Release 作成ジョブが検査済み SHA にタグとドラフト Release を作成する。競合タグは移動せず失敗し、再実行では既存 Release を保持する。作成失敗時は Pages 配信へ進まない | API 応答を模したテストで版形式・ドラフトとプレリリース指定・生成ノート・既存の軽量タグと注釈付きタグ・部分失敗からの復旧・API 失敗を確認。同じクライアントで workflow 内の作成スクリプトも実行 |
 | Actions | コミット SHA で固定し、チェックアウト後に認証情報を保持しない | 公式リリースのタグをコミットまで解決し、ワークフローと照合 |
 | 依存関係 | Vitest は修正版の 4.1.11 以降を使う | [公式アドバイザリ](https://github.com/vitest-dev/vitest/security/advisories/GHSA-82fw-gwwq-j7x9) と lockfile を照合し、`pnpm audit` が通過 |
-| 依存関係の更新 | Dependabot が npm の開発依存と SHA で固定した Actions の更新プルリクエストを毎週作成する。`@types/node` は `.node-version` の Node 24 のメジャーに留める | `.github/dependabot.yml` を構文解析 |
+| 依存関係の更新 | Dependabot が npm の開発依存と SHA で固定した Actions の更新プルリクエストを毎週作成する。`@types/node` は `.node-version` の Node 24 のメジャーに留める。semver の patch の更新は自動でマージされる (次の行) | `.github/dependabot.yml` を構文解析 |
+| Dependabot の自動マージ | `.github/workflows/dependabot-auto-merge.yml` はすべてのプルリクエストで走り、作成者が `dependabot[bot]` のときだけステップを実行する。プルリクエストのコードは checkout も実行もせず、URL・head SHA・更新種別は環境変数で渡す。semver の patch の更新は、読んだ head SHA に固定して自動マージ (merge commit) を予約し、それ以外の種別では前の予約を解除する。ジョブは必須チェック `auto-merge` で、`GITHUB_TOKEN` に `contents: write` と `pull-requests: write` を付与し、secret は使わない。自動マージによるマージは `GITHUB_TOKEN` によるもので、`main` への push はワークフローを起動せず、配信もしない | `actionlint` を実行。ステップの分岐を patch・minor・major・空・未知の更新種別で実行。`gh` 2.102.0 のマージの実装と GitHub の GraphQL API の `expectedHeadOid` 入力を照合。同じ方法で自動マージを予約する公開リポジトリで、Dependabot の force-push の後も予約が残り、そのマージで push のワークフローが起動しないことを確認 |
 | 脆弱性の報告 | 非公開の脆弱性報告を有効にし、[SECURITY.ja.md](../../SECURITY.ja.md) から報告をそこへ案内する | リポジトリの設定を GitHub API で読み取り |
 | 公開ファイル | 配信対象は `dist/` の HTML・JavaScript・CSS・favicon・リンクのプレビュー画像・フォントとフォントライセンス | `pnpm build` 後のファイルを列挙 |
 | 追跡対象 | `reference/`・`work/`・依存インストール先・ビルド出力を含まない | `git ls-files` と公開前の履歴を確認 |
