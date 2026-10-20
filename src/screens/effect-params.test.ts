@@ -999,6 +999,25 @@ describe("the screen an effect is set on", () => {
     expect(knobLabels(shell)).toEqual(["1-knob Level", "", "", ""]);
   });
 
+  it("leaves the times its own knob is driving out of the Tab order and turning on no key", async () => {
+    const shell = await openParams("bus.stereo", "M.B.Comp");
+    await click(shell, ".efx-page-next");
+    await shell.ctx.store.set("ch.bus.stereo.insFx.oneKnobOn", true);
+    await flush();
+    const boxes = (): HTMLElement[] => [...shell.root.querySelectorAll<HTMLElement>(".dyn-set .value-box")];
+    const times = (): number[] => ["lowAttack", "release"].map((k) => shell.ctx.store.num(`ch.bus.stereo.insFx.${k}`, Number.NaN));
+    const before = { times: times(), knobs: knobLabels(shell) };
+    const tabStops = boxes().map((b) => b.hasAttribute("tabindex"));
+    for (const box of boxes()) box.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true, cancelable: true }));
+    await flush();
+    expect({ count: boxes().length, tabStops, focused: boxes().map((b) => b.classList.contains("is-focused")), times: times(), knobs: knobLabels(shell) }).toEqual({
+      count: 2,
+      tabStops: [false, false],
+      focused: [false, false],
+      ...before,
+    });
+  });
+
   it("leaves CLEAN's Speed and Depth turnable whichever of Cho / OFF / Vib is taken, as the unit does", async () => {
     // Effect Reference Guide, "CLEAN Only": Speed / Depth set the vibrato and are
     // not available with Cho. On the unit that is what they do to the sound: the
