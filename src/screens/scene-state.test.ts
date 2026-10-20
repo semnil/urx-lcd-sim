@@ -708,4 +708,34 @@ describe("the SCENE LIST", () => {
     await flush();
     expect(body()?.scrollTop, "Simple's list from its first row").toBe(0);
   });
+
+  it("stays where it was scrolled for the arrow keys a row takes to step the focus, and scrolls for one the list itself holds", async () => {
+    const shell = await mount();
+    document.body.appendChild(shell.root);
+    try {
+      shell.ctx.nav.push({ id: "scene" });
+      shell.ctx.nav.push({ id: "scene.list" });
+      await flush();
+      const body = shell.root.querySelector<HTMLElement>(".scene-list .list-body");
+      const rows = [...shell.root.querySelectorAll<HTMLElement>(".scene-list .list-row")];
+      /** A key going down where the focus stands: the row holding the focus then, and how far the list is scrolled. */
+      const key = (name: string): (string | number | undefined)[] => {
+        document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key: name, bubbles: true, cancelable: true }));
+        return [name, rows.indexOf(document.activeElement as HTMLElement), body?.scrollTop];
+      };
+      if (body) body.scrollTop = 380;
+      rows[10]?.focus();
+      expect(["ArrowDown", "ArrowDown", "ArrowUp"].map(key)).toEqual([
+        ["ArrowDown", 11, 380],
+        ["ArrowDown", 12, 380],
+        ["ArrowUp", 11, 380],
+      ]);
+      body?.focus();
+      const [, held, scrolled] = key("ArrowDown");
+      expect([held, Number(scrolled) > 380], "the list holding the focus scrolls on").toEqual([-1, true]);
+    } finally {
+      shell.destroy();
+      shell.root.remove();
+    }
+  });
 });

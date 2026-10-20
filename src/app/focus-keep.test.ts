@@ -191,6 +191,33 @@ describe("the focus through a redraw", () => {
     }
   });
 
+  it("keeps a held control down where the redraw moves it on the same screen", async () => {
+    const shell = await mount();
+    const band = document.createElement("style");
+    band.textContent = ".oneknob { box-shadow: inset 0 -3px 0 rgb(0, 0, 0); }";
+    document.head.append(band);
+    try {
+      shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+      shell.ctx.nav.push({ id: "ch.comp", strip: "ch1" });
+      await flush();
+      const button = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".oneknob");
+      button()?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 1, pointerType: "touch" }));
+      const held = button();
+      // 1-knob switched on draws [1-knob] again in the panel at the end of its row.
+      await shell.ctx.store.set("ch.ch1.comp.oneKnob.on", true);
+      await flush();
+      expect({ moved: button() !== held, inPanel: button()?.closest(".oneknob-panel") !== null, sunk: button()?.classList.contains("is-pressed") }).toEqual({
+        moved: true,
+        inPanel: true,
+        sunk: true,
+      });
+      window.dispatchEvent(new PointerEvent("pointerup", { pointerId: 1, pointerType: "touch" }));
+      expect(button()?.classList.contains("is-pressed"), "let go").toBe(false);
+    } finally {
+      band.remove();
+    }
+  });
+
   it("keeps down nothing another channel's screen draws in the place of a held control", async () => {
     const shell = await mount();
     const band = document.createElement("style");

@@ -266,10 +266,35 @@ describe("taking an effect", () => {
     shell.ctx.nav.push({ id: "setup" });
     shell.ctx.nav.push({ id: "setup.rate" });
     await flush();
+    await click(shell, ".follow-usb");
     [...shell.root.querySelectorAll<HTMLElement>(".rate-btn")].find((b) => b.textContent === "96kHz")?.click();
     await flush();
+    expect(shell.ctx.store.num("setup.samplingFrequency", 0), "the frequency moved").toBe(96000);
     expect(shell.ctx.store.str("ch.ch1.insFx.effect", "")).toBe("Compander-H");
     expect(shell.ctx.store.bool("ch.ch1.insFx.on", false)).toBe(true);
+  });
+
+  it("leaves an effect a frequency picked on the SAMPLING FREQUENCY screen still runs, and takes off one it does not", async () => {
+    const shell = await openInsert("ch1");
+    await click(shell, ".insfx-effect");
+    await pick(shell, "Compander-H");
+    // Pitch Fix runs up to 48 kHz.
+    await shell.ctx.store.set("ch.ch3.insFx.effect", "Pitch Fix");
+    await shell.ctx.store.set("ch.ch3.insFx.on", true);
+
+    shell.ctx.nav.home();
+    shell.ctx.nav.push({ id: "setup" });
+    shell.ctx.nav.push({ id: "setup.rate" });
+    await flush();
+    await click(shell, ".follow-usb");
+    [...shell.root.querySelectorAll<HTMLElement>(".rate-btn")].find((b) => b.textContent === "96kHz")?.click();
+    await flush();
+    const insert = (ch: string): [string, boolean] => [shell.ctx.store.str(`ch.${ch}.insFx.effect`, ""), shell.ctx.store.bool(`ch.${ch}.insFx.on`, false)];
+    expect({ rate: shell.ctx.store.num("setup.samplingFrequency", 0), ch1: insert("ch1"), ch3: insert("ch3") }).toEqual({
+      rate: 96000,
+      ch1: ["Compander-H", true],
+      ch3: ["No Effect", false],
+    });
   });
 });
 
@@ -974,6 +999,25 @@ describe("the screen an effect is set on", () => {
     expect(outGain.length).toBe(1);
     expect(outGain[0]!.getAttribute("aria-disabled"), "held by the unit").toBe("true");
     expect(knobLabels(shell)).toEqual(["1-knob Level", "", "", ""]);
+  });
+
+  it("leaves the times its own knob is driving out of the Tab order and turning on no key", async () => {
+    const shell = await openParams("bus.stereo", "M.B.Comp");
+    await click(shell, ".efx-page-next");
+    await shell.ctx.store.set("ch.bus.stereo.insFx.oneKnobOn", true);
+    await flush();
+    const boxes = (): HTMLElement[] => [...shell.root.querySelectorAll<HTMLElement>(".dyn-set .value-box")];
+    const times = (): number[] => ["lowAttack", "release"].map((k) => shell.ctx.store.num(`ch.bus.stereo.insFx.${k}`, Number.NaN));
+    const before = { times: times(), knobs: knobLabels(shell) };
+    const tabStops = boxes().map((b) => b.hasAttribute("tabindex"));
+    for (const box of boxes()) box.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true, cancelable: true }));
+    await flush();
+    expect({ count: boxes().length, tabStops, focused: boxes().map((b) => b.classList.contains("is-focused")), times: times(), knobs: knobLabels(shell) }).toEqual({
+      count: 2,
+      tabStops: [false, false],
+      focused: [false, false],
+      ...before,
+    });
   });
 
   it("leaves CLEAN's Speed and Depth turnable whichever of Cho / OFF / Vib is taken, as the unit does", async () => {

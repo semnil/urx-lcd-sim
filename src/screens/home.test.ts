@@ -502,6 +502,27 @@ describe("the channel-bank list", () => {
     }
   });
 
+  it("stays open under a touch on what is laid over it, as it closes under a touch on the dark around it", async () => {
+    const shell = await mount();
+    await openList(shell);
+    try {
+      shell.ctx.overlay(dialog({ message: "Laid over the list", okOnly: true, onOk: () => undefined }));
+      await flush();
+      shell.root.querySelector(".dialog-overlay")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flush();
+      expect([shell.ctx.nav.current.id, shell.root.querySelector(".dialog-overlay") !== null], "a touch on the dialog").toEqual(["bank-select", true]);
+
+      shell.root.querySelector<HTMLElement>(".dialog-actions .btn")?.click();
+      await flush();
+      shell.root.querySelector(".side")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flush();
+      expect([shell.root.querySelector(".dialog-overlay"), shell.ctx.nav.current.id], "the dialog answered, a touch on the dark").toEqual([null, "home"]);
+    } finally {
+      // The dialog holds the window's keys while it is up.
+      shell.destroy();
+    }
+  });
+
   it("reads the names off the strips, so a model with other banks gets other names", () => {
     // The URX22 is two mono channels short, which packs its banks differently.
     const small = unitById("URX22");
@@ -1689,6 +1710,31 @@ describe("the SEND TO destination tabs", () => {
       await shell.ctx.store.set("ch.ch_5_6.ducker.source", "MIX 1");
       await flush();
       expect(lamps().some((c) => c.includes("is-shut")), "a loud bus key shuts it").toBe(true);
+    } finally {
+      setMeterSource(null);
+    }
+  });
+
+  it("reads the ducker's lamps against the threshold its screen shows where the unit holds none", async () => {
+    // The key the ducker listens to stands at -2 dB; everything else is silent.
+    setMeterSource((id) => (id.startsWith("bus.mix1@") ? [-2] : [-90]));
+    try {
+      const model = unitById("URX44V");
+      const state = factoryState(model);
+      state.delete("ch.ch_5_6.ducker.threshold");
+      const store = new DeviceStore();
+      await store.attach(new SimTransport(state));
+      const shell = new Shell(buildRegistry(), store, model, [{ id: "ch.ducker", strip: "ch_5_6" }]);
+      await store.set("ch.ch_5_6.ducker.on", true);
+      await store.set("ch.ch_5_6.ducker.source", "MIX 1");
+      await flush();
+      const threshold = shell.root.querySelector("[role='spinbutton'][aria-label='Threshold']");
+      expect([store.has("ch.ch_5_6.ducker.threshold"), threshold?.getAttribute("aria-valuenow")], "the unit holds no threshold").toEqual([false, "-40"]);
+
+      shell.ctx.nav.push({ id: "channel-view", strip: "ch_5_6" });
+      await flush();
+      const lamps = [...shell.root.querySelectorAll(".cv-block-ducker .block-lamp")].map((l) => l.className);
+      expect(lamps.some((c) => c.includes("is-shut")), "a key 38 dB over it shuts the channel").toBe(true);
     } finally {
       setMeterSource(null);
     }
@@ -3001,6 +3047,39 @@ describe("CH SETTING: what a channel is tapped at and what colour it carries", (
       (field() as HTMLInputElement).value = "Bass";
       field()?.dispatchEvent(new Event("change", { bubbles: true }));
       expect(name(), "the keys' commit is written at once").toBe("Bass");
+    } finally {
+      shell.root.remove();
+    }
+  });
+
+  it("holds a name left in the field for the click of a finger's tap whose press was over before the mouse press that takes the focus", async () => {
+    const shell = await setting("ch1");
+    document.body.appendChild(shell.root);
+    try {
+      const name = (): string => shell.ctx.store.str("ch.ch1.name", "");
+      const before = name();
+      const field = shell.root.querySelector<HTMLInputElement>(".chs-name");
+      const home = shell.root.querySelector<HTMLElement>('.icon-btn[aria-label="HOME"]');
+      const fire = (type: string): void => {
+        home?.dispatchEvent(new MouseEvent(type, { bubbles: true }));
+      };
+      /** A timer of no delay: once it resolves, every timer of no delay set going before it has run. */
+      const timers = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+      expect([field, home].includes(null), "the Name field and the toolbar's HOME").toBe(false);
+      field?.focus();
+      (field as HTMLInputElement).value = "Keys";
+      // The finger goes down and lifts, and the moment of its press has passed when the mouse press follows.
+      fire("pointerdown");
+      fire("pointerup");
+      await timers();
+      fire("mousedown");
+      field?.dispatchEvent(new Event("change", { bubbles: true }));
+      fire("mouseup");
+      for (let i = 0; i < 10; i++) await Promise.resolve();
+      expect([name(), home?.isConnected], "the pressed control is still on the glass for its click").toEqual([before, true]);
+      home?.click();
+      await timers();
+      expect([shell.ctx.nav.current.id, name()], "the press goes home, and the name is kept").toEqual(["home", "Keys"]);
     } finally {
       shell.root.remove();
     }

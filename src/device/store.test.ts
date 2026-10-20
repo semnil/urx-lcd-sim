@@ -514,6 +514,22 @@ describe("DeviceStore", () => {
     expect(failures).toEqual([[-2, -40]]);
   });
 
+  it("tells no one of a change when a write the device's announcement took off the screen is refused", async () => {
+    const device = heldDevice([["ch.ch1.level", 0]]);
+    const { store, failures } = await storeOn(device);
+    const write = store.set("ch.ch1.level", -1);
+    device.announce("ch.ch1.level", -40);
+    store.flush();
+    const heard: ParamPath[][] = [];
+    store.onChange((paths) => heard.push([...paths]));
+
+    device.writes[0]!.refuse();
+    await write;
+    store.flush();
+
+    expect({ level: store.num("ch.ch1.level"), heard, failures }).toEqual({ level: -40, heard: [], failures: [[-1, -40]] });
+  });
+
   it("drops a path the device never held when its write is refused", async () => {
     const device = heldDevice([]);
     const { store, failures } = await storeOn(device);

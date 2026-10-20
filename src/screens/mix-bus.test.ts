@@ -299,6 +299,22 @@ describe("what a MIX bus locks on the sends into it", () => {
     expect(sendLocks(shell.ctx, stereo), "the stereo bus locks nothing").toEqual({ busFixed: false, panLinked: false });
   });
 
+  it("places no send into a fixed bus by its source while a value put back leaves Pan Link reading on over it", async () => {
+    const { shell, store } = await mount();
+    const mix = shell.ctx.model.outputs.find((o) => o.id === "bus.mix1");
+    if (!mix) throw new Error("model has no MIX 1 bus");
+    await store.set("ch.ch1.send.bus.mix1.balance", 21);
+    await store.set("ch.bus.mix1.busType", "FIXED");
+    // A value put back carries none of the writes an edit carries, so it can stand Pan Link on over FIXED.
+    await store.restore("ch.bus.mix1.panLink", true);
+    await store.set("ch.ch1.pan", -40);
+
+    expect({ locks: sendLocks(shell.ctx, mix), placing: store.num("ch.ch1.send.bus.mix1.balance", Number.NaN) }).toEqual({
+      locks: { busFixed: true, panLinked: false },
+      placing: 21,
+    });
+  });
+
   it("ships both MIX buses taking a variable level with their sends placed by themselves", () => {
     for (const id of ["URX44V", "URX44", "URX22"] as const) {
       const state = factoryState(unitById(id));
