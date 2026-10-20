@@ -266,8 +266,10 @@ describe("taking an effect", () => {
     shell.ctx.nav.push({ id: "setup" });
     shell.ctx.nav.push({ id: "setup.rate" });
     await flush();
+    await click(shell, ".follow-usb");
     [...shell.root.querySelectorAll<HTMLElement>(".rate-btn")].find((b) => b.textContent === "96kHz")?.click();
     await flush();
+    expect(shell.ctx.store.num("setup.samplingFrequency", 0), "the frequency moved").toBe(96000);
     expect(shell.ctx.store.str("ch.ch1.insFx.effect", "")).toBe("Compander-H");
     expect(shell.ctx.store.bool("ch.ch1.insFx.on", false)).toBe(true);
   });
