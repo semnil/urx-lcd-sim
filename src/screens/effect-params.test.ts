@@ -271,6 +271,29 @@ describe("taking an effect", () => {
     expect(shell.ctx.store.str("ch.ch1.insFx.effect", "")).toBe("Compander-H");
     expect(shell.ctx.store.bool("ch.ch1.insFx.on", false)).toBe(true);
   });
+
+  it("leaves an effect a frequency picked on the SAMPLING FREQUENCY screen still runs, and takes off one it does not", async () => {
+    const shell = await openInsert("ch1");
+    await click(shell, ".insfx-effect");
+    await pick(shell, "Compander-H");
+    // Pitch Fix runs up to 48 kHz.
+    await shell.ctx.store.set("ch.ch3.insFx.effect", "Pitch Fix");
+    await shell.ctx.store.set("ch.ch3.insFx.on", true);
+
+    shell.ctx.nav.home();
+    shell.ctx.nav.push({ id: "setup" });
+    shell.ctx.nav.push({ id: "setup.rate" });
+    await flush();
+    await click(shell, ".follow-usb");
+    [...shell.root.querySelectorAll<HTMLElement>(".rate-btn")].find((b) => b.textContent === "96kHz")?.click();
+    await flush();
+    const insert = (ch: string): [string, boolean] => [shell.ctx.store.str(`ch.${ch}.insFx.effect`, ""), shell.ctx.store.bool(`ch.${ch}.insFx.on`, false)];
+    expect({ rate: shell.ctx.store.num("setup.samplingFrequency", 0), ch1: insert("ch1"), ch3: insert("ch3") }).toEqual({
+      rate: 96000,
+      ch1: ["Compander-H", true],
+      ch3: ["No Effect", false],
+    });
+  });
 });
 
 describe("the screen an effect is set on", () => {
