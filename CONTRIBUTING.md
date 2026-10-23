@@ -93,7 +93,8 @@ address that was not verified against a connected unit
   adds a menu, a dialog or a sheet adds an end-to-end test under `e2e/` that opens it and answers it
   by clicks. A new screen adds a way onto it to `e2e/tour.ts`; `pnpm test` fails until it does.
   `e2e/clip.spec.ts` also runs in WebKit, for what WebKit paints differently because it lacks
-  CSS that Chromium has.
+  CSS that Chromium has. `e2e/embed.spec.ts` runs as its own `embed` project on a second dev
+  server, for the glass mounted into another page (`src/embed.ts`).
 - A release is a pull request that changes nothing but `version` in `package.json`; see the
   README ("Hosting").
 
