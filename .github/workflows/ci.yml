@@ -110,12 +110,37 @@ jobs:
           key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
       - name: Install Chromium and WebKit
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm exec playwright install --with-deps chromium webkit
+        run: pnpm exec playwright install chromium webkit
         timeout-minutes: 35
+      - name: Compute apt cache week
+        id: apt-week
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+      - name: Cache WebKit apt packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        timeout-minutes: 2
+        with:
+          path: ~/apt-cache
+          key: ${{ runner.os }}-apt-playwright-${{ steps.apt-week.outputs.week }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-playwright-
       - name: Install Playwright system dependencies
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: pnpm exec playwright install-deps chromium webkit
-        timeout-minutes: 10
+        run: |
+          sudo rm -f /etc/apt/apt.conf.d/docker-clean
+          printf 'APT::Keep-Downloaded-Packages "true";\n' | sudo tee /etc/apt/apt.conf.d/99keep-debs >/dev/null
+          sudo mkdir -p /var/cache/apt/archives
+          if compgen -G "$HOME/apt-cache/*.deb" >/dev/null; then
+            sudo cp "$HOME"/apt-cache/*.deb /var/cache/apt/archives/ \
+              || echo "::warning::restoring cached apt packages failed; apt will re-download them"
+          fi
+          pnpm exec playwright install-deps chromium webkit
+          mkdir -p "$HOME/apt-cache"
+          if compgen -G "/var/cache/apt/archives/*.deb" >/dev/null; then
+            sudo cp /var/cache/apt/archives/*.deb "$HOME/apt-cache/" \
+              || echo "::warning::stashing apt packages into the cache dir failed"
+          fi
+          sudo chown -R "$(id -u):$(id -g)" "$HOME/apt-cache" \
+            || echo "::warning::chown of the apt cache dir failed"
+        timeout-minutes: 35
       - name: End-to-end tests
         run: pnpm test:e2e
       - name: Upload traces of failed tests
