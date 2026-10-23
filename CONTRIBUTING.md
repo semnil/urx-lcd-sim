@@ -82,9 +82,10 @@ address that was not verified against a connected unit
   uploads the coverage report to Codecov, in a second job runs `pnpm test:e2e`, and in a third
   runs `pnpm test` on Windows.
 - A Dependabot pull request whose update is a semver patch or minor, and whose only commit is its
-  head, written by `dependabot[bot]` with a verified signature, merges on its own once the checks
-  above pass: `.github/workflows/dependabot-auto-merge.yml` enables auto-merge for it and reports
-  `auto-merge`, which `main` also requires. Any other update or commit history waits for a person.
+  head, written by `dependabot[bot]`, committed by GitHub (web-flow) and with a verified signature,
+  merges on its own once the checks above pass: `.github/workflows/dependabot-auto-merge.yml`
+  enables auto-merge for it and reports `auto-merge`, which `main` also requires. Any other update
+  or commit history waits for a person.
   `.github/tests/dependabot-auto-merge-test.sh` pins that decision; the Dependabot auto-merge test
   workflow runs it on pull requests that change the workflow or the test.
 - `pnpm test:e2e` drives the built page in Chromium with real clicks and keys, which reach what a
