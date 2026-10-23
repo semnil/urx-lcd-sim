@@ -81,9 +81,12 @@ address that was not verified against a connected unit
   The CI workflow runs `pnpm typecheck` and `pnpm test:coverage` on the same pull requests and
   uploads the coverage report to Codecov, in a second job runs `pnpm test:e2e`, and in a third
   runs `pnpm test` on Windows.
-- A Dependabot pull request whose update is a semver patch or minor merges on its own once the
-  checks above pass: `.github/workflows/dependabot-auto-merge.yml` enables auto-merge for it and
-  reports `auto-merge`, which `main` also requires. Any other update waits for a person.
+- A Dependabot pull request whose update is a semver patch or minor, and whose only commit is its
+  head, written by `dependabot[bot]` with a verified signature, merges on its own once the checks
+  above pass: `.github/workflows/dependabot-auto-merge.yml` enables auto-merge for it and reports
+  `auto-merge`, which `main` also requires. Any other update or commit history waits for a person.
+  `.github/tests/dependabot-auto-merge-test.sh` pins that decision; the Dependabot auto-merge test
+  workflow runs it on pull requests that change the workflow or the test.
 - `pnpm test:e2e` drives the built page in Chromium with real clicks and keys, which reach what a
   click from a unit test skips: where a press lands, and where the focus moves on it. A change that
   adds a menu, a dialog or a sheet adds an end-to-end test under `e2e/` that opens it and answers it
