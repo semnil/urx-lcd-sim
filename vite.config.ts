@@ -19,7 +19,9 @@ function git(dir: string, ...args: string[]): string {
  */
 export function buildCommit(dir: string): string {
   const top = git(dir, "rev-parse", "--show-toplevel");
-  if (realpathSync(top) !== realpathSync(dir)) {
+  // Compared by the native real path, which spells a Windows 8.3 short name (RUNNER~1) out in full
+  // as git does.
+  if (realpathSync.native(top) !== realpathSync.native(dir)) {
     throw new Error(`${dir} is not a git work tree of its own (git answers for ${top}), so its commit cannot be read`);
   }
   return git(dir, "rev-parse", "--short=7", "HEAD");
