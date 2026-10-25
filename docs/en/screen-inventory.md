@@ -1644,8 +1644,8 @@ carries its name in `--ink-on-lit` (p055-1).
 ## VERSION screen
 
 VERSION lists two rows, departing from p053-1 by decision: Total Version, the firmware version of the unit
-the simulator stands for (V1.3.1.0), and APP Version, the simulator's own version read from
-`package.json` behind a lower-case v that sets it apart from the firmware version. They stand where p053-1 sets its left column's first two rows: names from
+the simulator stands for (V1.3.1.0), and APP Version, the shortened commit the simulator was built from
+(`__URX_LCD_SIM_COMMIT__`, which `vite.config.ts` defines). They stand where p053-1 sets its left column's first two rows: names from
 x28, colons at x124 and values from x129, the rows 36px apart with the ink of the Total Version row starting
 at y73. Names and values are the same 13px in the regular weight.
 

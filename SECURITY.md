@@ -21,7 +21,7 @@ Please do not open a public issue for a security problem.
 
 Helpful details:
 
-- The version (shown as APP Version on the simulator's SETUP → Version screen), and the browser
+- The commit (shown as APP Version on the simulator's SETUP → Version screen), and the browser
   and OS
 - What an attacker gains, and the steps to reproduce it
 

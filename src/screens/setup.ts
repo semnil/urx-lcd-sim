@@ -15,7 +15,6 @@ import { button, dialog, menuButton, menuGrid, paramCell, pickColumn, pickDialog
 import type { ScreenBody, ScreenDef } from "./types";
 import { Shell } from "../app/shell";
 import { buildRegistry } from "./index";
-import { version as APP_VERSION } from "../../package.json";
 import { factoryState } from "../model/defaults";
 import { TIME_ZONE_SHIPPED } from "../model/time-zone";
 import { dropTracksOverRate } from "../model/track-count";
@@ -23,6 +22,10 @@ import { INTEGRATION_DAW } from "../model/types";
 import { dropInsertsOverRate } from "./insert-fx";
 import { holdsFile, recordMode, releaseOnRateChange } from "./recording";
 import { dropSendsOverRate } from "./effect-params";
+
+/** The commit the simulator was built from, shortened. The build defines it (vite.config.ts), and so does a
+ *  host that bundles this source; where neither does, APP Version reads "unknown". */
+declare const __URX_LCD_SIM_COMMIT__: string | undefined;
 
 /** The languages the unit offers. The simulator's messages are in English only, so the other two cannot be chosen. */
 const LANGUAGES = [
@@ -119,10 +122,10 @@ export const versionScreen: ScreenDef = {
   title: () => "VERSION",
   build(ctx): ScreenBody {
     // The firmware version of the unit the simulator stands for, and the
-    // simulator's own version behind a lower-case v that sets it apart.
+    // commit the simulator was built from.
     const cells: [string, string][] = [
       ["Total Version", ctx.store.str("device.version.total", "V1.3.1.0")],
-      ["APP Version", `v${APP_VERSION}`],
+      ["APP Version", typeof __URX_LCD_SIM_COMMIT__ === "string" ? __URX_LCD_SIM_COMMIT__ : "unknown"],
     ];
     return {
       main: el("div", {

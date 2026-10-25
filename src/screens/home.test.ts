@@ -19,7 +19,7 @@ import { SHORT_PROGRESS_MS, dialog } from "../ui/widgets";
 import { udkAssignment } from "../model/udk";
 import { openDateTimeSet, openTimeZone } from "./date-time";
 import { pausePlayback, startPlayback, stopPlayback } from "./recording";
-import { version as packageVersion } from "../../package.json";
+import { execFileSync } from "node:child_process";
 import { spoken } from "../ui/spoken";
 
 const flush = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
@@ -6209,7 +6209,11 @@ describe("screens laid out from the guide's figures", () => {
     expect([icon !== null, icon?.style.background !== ""]).toEqual([true, true]);
   });
 
-  it("lists VERSION as the unit's firmware and the simulator's own version, one to a row", async () => {
+  it("lists VERSION as the unit's firmware and the commit the simulator was built from, one to a row", async () => {
+    // Asked of git rather than of the define the screen reads, so a build that defines nothing, or
+    // the wrong commit, is the failure.
+    const commit = execFileSync("git", ["rev-parse", "--short=7", "HEAD"], { encoding: "utf8" }).trim();
+    expect(commit).toMatch(/^[0-9a-f]{7,}$/);
     const shell = await mount();
     shell.ctx.nav.push({ id: "setup.version" });
     await flush();
@@ -6220,7 +6224,7 @@ describe("screens laid out from the guide's figures", () => {
     ]);
     expect(cells).toEqual([
       ["Total Version", "V1.3.1.0", "0"],
-      ["APP Version", `v${packageVersion}`, "1"],
+      ["APP Version", commit, "1"],
     ]);
   });
 

@@ -100,6 +100,9 @@ browser. What it returns sets the display scale and lets the glass go, closing t
   holds it answers it (a boolean), and SETUP's [Software Integration] then follows it as the unit's entry
   does — out of reach with none, opening with one. Left unanswered, the entry opens as it does on the
   simulator's own page ([known-issues.md](known-issues.md)). A settings file does not carry it.
+- A page that bundles the source defines `__URX_LCD_SIM_COMMIT__` (Vite's `define`) as the shortened
+  commit of the checkout it bundles, which SETUP → Version shows as APP Version; left undefined, the row
+  reads `unknown`. The simulator's own build defines it in `vite.config.ts`.
 
 ### Controls the page holds shut
 

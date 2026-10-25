@@ -94,6 +94,9 @@ export interface DeviceLink {
   (真偽値) と、SETUP の [Software Integration] は本体と同じくそれに従う (つながっていなければ使えない面、つながって
   いれば開く)。答えないときは、シミュレーター自身のページと同じく開く ([known-issues.md](known-issues.md))。設定
   ファイルには入らない。
+- ソースをバンドルするページは、バンドルするチェックアウトのコミットを短くしたものを `__URX_LCD_SIM_COMMIT__`
+  (Vite の `define`) に定める。SETUP → Version はこれを APP Version に出し、定めなければその行は `unknown` になる。
+  シミュレーター自身のビルドは `vite.config.ts` でこれを定める。
 
 ### ページが使えなくするコントロール
 
