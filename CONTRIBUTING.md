@@ -73,8 +73,8 @@ address that was not verified against a connected unit
 ## Commits and pull requests
 
 - Commit subjects are English sentences in the imperative, split by semantic unit.
-- Pull request titles take a type prefix — `bug:`, `feature:`, `perf:`, `docs:`, `chore:` or
-  `release:` — and the title and body are in English.
+- Pull request titles take a type prefix — `bug:`, `feature:`, `perf:`, `docs:` or `chore:` —
+  and the title and body are in English.
 - Include before/after crops for changes on screen, taken with the same model, display scale
   and crop.
 - The GitHub Pages workflow runs `pnpm test` and `pnpm build` on every pull request to `main`.
@@ -95,7 +95,5 @@ address that was not verified against a connected unit
   `e2e/clip.spec.ts` also runs in WebKit, for what WebKit paints differently because it lacks
   CSS that Chromium has. `e2e/embed.spec.ts` runs as its own `embed` project on a second dev
   server, for the glass mounted into another page (`src/embed.ts`).
-- A release is a pull request that changes nothing but `version` in `package.json`; see the
-  README ("Hosting").
 
 By contributing, you agree that your work is licensed under the [MIT license](LICENSE).

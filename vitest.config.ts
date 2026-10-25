@@ -1,6 +1,8 @@
 import { defineConfig } from "vitest/config";
+import { buildCommit, root } from "./vite.config";
 
 export default defineConfig({
+  define: { __URX_LCD_SIM_COMMIT__: JSON.stringify(buildCommit(root)) },
   test: {
     environment: "jsdom",
     include: ["src/**/*.test.ts"],
