@@ -1,5 +1,4 @@
 import { execFileSync } from "node:child_process";
-import { releaseDetails } from "./release.mjs";
 
 function git(...args) {
   return execFileSync("git", args, {
@@ -8,33 +7,19 @@ function git(...args) {
   }).trim();
 }
 
-function versionAt(commit) {
-  const { version } = JSON.parse(git("show", `${commit}:package.json`));
-  releaseDetails(version);
-  return version;
-}
-
+// A push to main publishes only while its commit is still main's tip, read in the serialized
+// deployment job: a run that finishes after a newer push leaves that push's site in place, and
+// the newer push's own run publishes it.
 function shouldDeploy() {
   if (process.env.GITHUB_EVENT_NAME !== "push" || process.env.GITHUB_REF !== "refs/heads/main") {
     return false;
   }
-  const before = process.env.BEFORE_SHA;
   const after = process.env.GITHUB_SHA;
-  if (!/^[a-f0-9]{40}$/.test(before ?? "") || !/^[a-f0-9]{40}$/.test(after ?? "")) {
-    throw new Error("Expected the push's before and after commit SHAs");
+  if (!/^[a-f0-9]{40}$/.test(after ?? "")) {
+    throw new Error("Expected the push's commit SHA");
   }
-  // Branch creation has no previous version to compare.
-  if (before === "0".repeat(40)) return false;
-  const version = versionAt(after);
-  if (versionAt(before) === version) return false;
-  if (process.argv.includes("--latest")) {
-    if (git("merge-base", after, "origin/main") !== after) return false;
-    const subsequent = git("rev-list", "--first-parent", `${after}..origin/main`);
-    for (const commit of subsequent.split("\n").filter(Boolean)) {
-      if (versionAt(commit) !== version) return false;
-    }
-  }
-  return true;
+  git("cat-file", "-e", `${after}^{commit}`);
+  return git("rev-parse", "--verify", "refs/remotes/origin/main^{commit}") === after;
 }
 
 console.log(`deploy=${shouldDeploy()}`);

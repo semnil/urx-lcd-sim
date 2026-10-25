@@ -58,30 +58,15 @@ No runtime dependencies. The dev dependencies are the ones `devDependencies` in 
 
 ## Hosting
 
-[GitHub Pages](https://urx-lcd-sim.semnil.com/) serves the released production build.
+[GitHub Pages](https://urx-lcd-sim.semnil.com/) serves the production build of `main`.
 The [GitHub Pages workflow](.github/workflows/pages.yml) runs tests, typechecking and a production
-build for pull requests targeting `main` and pushes to `main`. Deployment follows only when the
-push changes `package.json`'s `version` and those checks pass. Changes to other manifest fields
-and ordinary merges run the checks without publishing.
-
-To release, merge the application changes first, then merge a separate pull request that only
-updates `version` in `package.json`. This is the application's version source, also used by the
-simulator's VERSION screen. The workflow compares the commits before and after that push and
-deploys only `dist/` built from the pushed commit. Deployment jobs queue without replacing a
-pending job and fetch `main` again immediately before publishing. If a later version change has
-landed, the older run skips deployment; ordinary subsequent changes do not prevent the release.
-A failed release can be retried by re-running its original Actions run while it is still the
-latest version update. There is no manual deployment trigger that bypasses these checks.
-After the checks pass, the workflow tags the tested commit as `v<version>` and creates a draft
-GitHub Release with generated release notes. Stable `X.Y.Z` versions and `-alpha`, `-beta`, or
-`-rc` suffixes optionally followed by digits and dots are accepted; the suffixed versions are marked as
-prereleases. Publish the draft manually after reviewing it. Pages deployment waits for the tag
-and draft to exist, but does not wait for the draft to be published.
-
-A retry reuses an existing tag only if it resolves to the same tested commit, and preserves an
-existing Release and its edited notes. If tag creation succeeds but Release creation fails,
-re-running completes the draft. A conflicting tag fails the run without moving it. Superseded
-version updates still receive their tag and draft; the latest-version check controls Pages only.
+build for pull requests targeting `main` and pushes to `main`, and deploys `dist/` built from
+each push to `main` whose checks pass. Deployment jobs queue without replacing a pending job and
+fetch `main` again immediately before publishing; a run whose commit is no longer `main`'s tip
+skips deployment, so a run that finishes after a newer push does not publish over that push's
+site. A failed deployment can be retried by re-running its Actions run while its commit is still
+`main`'s tip. There is no manual deployment trigger that bypasses these checks. The workflow
+creates no tag and no GitHub Release.
 
 The repository's **Settings → Pages** uses **GitHub Actions** as its source, with
 `urx-lcd-sim.semnil.com` as the custom domain and **Enforce HTTPS** enabled. The domain's DNS

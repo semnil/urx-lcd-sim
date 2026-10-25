@@ -10,8 +10,8 @@ the only input the page reads from its URL is `?zoom=`.
 
 ## Supported versions
 
-Only the version published at <https://urx-lcd-sim.semnil.com> is supported. Fixes ship as a
-new release rather than as a backport.
+Only the build published at <https://urx-lcd-sim.semnil.com>, the latest on `main`, is supported.
+Fixes ship to `main` rather than as a backport.
 
 ## Reporting a vulnerability
 
@@ -36,8 +36,8 @@ about a week. You will be credited in the advisory unless you prefer otherwise.
   bind (see [Addressing parameters](docs/en/architecture.md#addressing-parameters))
 - The site at <https://urx-lcd-sim.semnil.com> serving anything other than the build of a tested
   commit on `main`, including through a takeover of its domain
-- The release workflow: tags, draft Releases, and the permissions its jobs receive
-- Secrets exposed in the repository, in CI, or in a release
+- The Pages workflow and the permissions its jobs receive
+- Secrets exposed in the repository or in CI
 
 ## Out of scope
 
