@@ -125,6 +125,9 @@ describe("Pages deployment gate", () => {
     expect(deployment).toMatch(/git fetch --no-tags origin \+refs\/heads\/main:refs\/remotes\/origin\/main\n\s+node scripts\/deployment-gate.mjs >> "\$GITHUB_OUTPUT"/);
     expect(deployment).toMatch(/- name: Deploy site\n\s+if: steps.latest.outputs.deploy == 'true'/);
     expect(deployment.indexOf("deployment-gate.mjs")).toBeLessThan(deployment.indexOf("- name: Deploy site"));
+    // A failed step fails the run: a step that carries on past a failure, or one that runs whatever the
+    // steps before it did, would let a refused or failed deployment end green. The deploy step runs on the
+    // gate's answer alone (.github/workflows/pages.yml:87).
     expect(workflow).not.toMatch(/always\(\)|continue-on-error:\s*true/);
   });
 
