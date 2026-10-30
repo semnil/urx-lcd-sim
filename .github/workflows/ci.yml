@@ -45,6 +45,9 @@ jobs:
       - name: Upload coverage
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         timeout-minutes: 3
+        # fail_ci_if_error reaches only the action's upload step (action.yml:334), not the dependency
+        # check (action.yml:182) or the OIDC token (action.yml:238) steps before it
+        continue-on-error: true # a failure in any of the action's steps leaves the job green
         with:
           fail_ci_if_error: false
           files: ./coverage/lcov.info
