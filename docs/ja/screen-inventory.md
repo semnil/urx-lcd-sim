@@ -223,6 +223,11 @@ Clip Safe が入っている端子の入力がクリップすると、実機は�
 単位の前の空白は図が割れている (p114-1 は `-69 dB`、p099-1 と p104-1 は `-33dB`)。実機は
 空白なしで統一されている。
 
+## ステレオ入力チャンネルの色
+
+URX22 の CH 3/4・CH 5/6・CH 7/8・CH 9/10 は、それぞれ CH SETTING > Color を持つ。
+ステレオ入力の左右はその色を共有し、モノラル入力の CH 1・CH 2 の色とは独立している。
+
 ## ステレオリンク (Signal Type)
 
 CH SETTING の `Signal Type` は 1 チャンネルではなく隣り合うモノラルチャンネルのペア
@@ -845,6 +850,10 @@ Threshold -36 dB・Ratio 2.0:1・Width 24 dB、Compander-S を Threshold -36 dB�
 | サンプリング周波数が上限を超えている | Pitch Fix は 48kHz まで、ギターアンプとコンパンダーと M.B.Comp は 96kHz まで |
 | チャンネルが 1 本のステレオ信号を運んでいる | ギターアンプ 4 種と Pitch Fix |
 | 同じ枠を他のチャンネルが使っている | ギターアンプ 4 種で 1 枠、Pitch Fix で 1 枠、コンパンダー 2 種で 1 枠、出力側は M.B.Comp とコンパンダー 2 種で 1 枠 |
+
+URX22 の 48kHz では、Signal Type が STEREO の CH 1・CH 2 の一覧に Clean・Crunch・Lead・Drive・Pitch Fix が
+薄い表示で残り、Compander-H・Compander-S は通常表示になる。PAN と BAL で同じ表示であり、MONO x 2 では
+これらのエフェクトの項目は通常表示になる。
 
 入力チャンネルのコンパンダーとバスの M.B.Comp は別の枠なので同時に使え、バスの 1 つが M.B.Comp を使っているあいだ
 ほかのバスは何も選べない (URX44V、2026-09-22 操作者確認)。
