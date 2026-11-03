@@ -787,6 +787,7 @@ export const chSettingScreen: ScreenDef = {
       afterPress(() => void ctx.store.set(`${base}.name`, name));
     });
 
+    // A stereo input's two lanes share the color stored on their strip.
     const colorBox = box("color", "copy", [el("span", { class: "chs-color", style: { background: stripColor(ctx, strip) } })]);
     makeTappable(writes(colorBox, `${base}.color`), () => colorSheet(ctx, strip));
     // The box is named by the colour the channel carries, in the words of the palette's buttons.

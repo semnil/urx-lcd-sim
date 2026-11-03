@@ -246,6 +246,11 @@ the channel's input, and the EQ, INS FX, fader and [ON] do not move them ("The s
 The figures disagree on a space before the unit (p114-1 has `-69 dB`, p099-1 and p104-1 have
 `-33dB`). The unit has no space, consistently.
 
+## Stereo input channel colors
+
+On URX22, CH 3/4, CH 5/6, CH 7/8 and CH 9/10 each carry their own CH SETTING > Color.
+The two lanes of a stereo input share that color; it is independent of the mono inputs CH 1 and CH 2.
+
 ## Stereo link (Signal Type)
 
 `Signal Type` in CH SETTING is held not by one channel but by a pair of adjacent mono channels
@@ -974,6 +979,10 @@ drawn on a face that does nothing when touched. Three things put an effect out o
 | The sampling frequency is past its ceiling | Pitch Fix to 48kHz; the guitar amps, the companders and M.B.Comp to 96kHz |
 | The channel is carrying one stereo signal | The four guitar amps and Pitch Fix |
 | Another channel is holding the same one | One holder for the four guitar amps, one for Pitch Fix, one for the two companders, and one shared by M.B.Comp and the two companders across the outputs |
+
+On URX22 at 48kHz, the CH 1 and CH 2 lists keep Clean, Crunch, Lead, Drive and Pitch Fix visible but
+dimmed while Signal Type is STEREO, in PAN and BAL alike; Compander-H and Compander-S keep their normal
+appearance. In MONO x 2, those effect entries have their normal appearance.
 
 An input channel's compander and a bus's M.B.Comp hold different slots, so the two run at once, and while one bus runs
 M.B.Comp the other buses can take nothing (URX44V, the operator, 2026-09-22).

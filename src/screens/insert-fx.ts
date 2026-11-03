@@ -45,6 +45,7 @@ export interface EffectChoice {
 /**
  * The effects a strip is offered, and which of them it can take. An effect that
  * cannot be taken is drawn on the sheet and does nothing when touched.
+ * A stereo pair keeps mono-only entries disabled in PAN and BAL.
  */
 export function insertFxOptions(ctx: AppContext, strip: Strip): EffectChoice[] {
   const rate = ctx.store.num("setup.samplingFrequency", 48000);
