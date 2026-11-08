@@ -11,6 +11,7 @@ import { HANDLE_R, HANDLE_RING, PLOT_H, PLOT_MIN, PLOT_SPAN, PLOT_W } from "./ch
 import { blockReduction, meterLevels, readGrSpec, setMeterSource } from "./meters";
 import { buildRegistry } from "./index";
 import { spoken } from "../ui/spoken";
+import { readBack } from "../style/css-read";
 
 // Taking an effect, setting it, and the states the unit will not let a channel
 // reach: an effect the sampling frequency is too high for, an effect another
@@ -1308,7 +1309,7 @@ describe("a compander", () => {
       const shell = await openParams("bus.mix1", "M.B.Comp");
       const bars = (): string[] => [...shell.root.querySelectorAll<HTMLElement>(".mbc-gr-bars .dyn-gr i")].map((n) => n.style.height);
       // Every band's threshold ships at -20 dB, 14 dB under the level.
-      expect(bars()).toEqual(Array(3).fill(`${grBarShare(14) * 100}%`));
+      expect(bars()).toEqual(Array(3).fill(readBack("height", `${grBarShare(14) * 100}%`)));
     } finally {
       setMeterSource(null);
     }
@@ -1331,7 +1332,7 @@ describe("a compander", () => {
     setMeterSource(() => [-6]);
     try {
       const shell = await openParams("bus.mix1", "M.B.Comp");
-      const held = `${grBarShare(14) * 100}%`;
+      const held = readBack("height", `${grBarShare(14) * 100}%`);
       expect(mbcBars(shell).heights, "on, every band is held 14 dB down").toEqual([held, held, held]);
       await click(shell, ".badge-title");
       expect(shell.ctx.store.bool("ch.bus.mix1.insFx.on", true), "the title switches the INS FX off").toBe(false);
@@ -1345,7 +1346,7 @@ describe("a compander", () => {
     setMeterSource(() => [-6]);
     try {
       const shell = await openParams("bus.mix1", "M.B.Comp");
-      const share = (db: number): string => `${grBarShare(db) * 100}%`;
+      const share = (db: number): string => readBack("height", `${grBarShare(db) * 100}%`);
       await shell.ctx.store.set("ch.bus.mix1.insFx.lowThreshold", -40);
       await flush();
       expect(mbcBars(shell).heights, "Low's threshold 34 dB under the level").toEqual([share(34), share(14), share(14)]);
@@ -1365,7 +1366,7 @@ describe("a compander", () => {
       const shell = await openParams("ch1", "Compander-H");
       const bar = (): string | undefined => shell.root.querySelector<HTMLElement>(".dyn-gr i")?.style.height;
       // 4 dB over the threshold at 3.5:1 is held down 4 x (1 - 1/3.5) dB under the flat of the curve, on the reduction bars' scale.
-      expect(Number.parseFloat(bar() ?? "")).toBeCloseTo(grBarShare(4 * (1 - 1 / 3.5)) * 100, 9);
+      expect(bar()).toBe(readBack("height", `${grBarShare(4 * (1 - 1 / 3.5)) * 100}%`));
       await shell.ctx.store.set("ch.ch1.insFx.threshold", -3);
       await flush();
       expect(bar(), "under the threshold it holds nothing down").toBe("0%");

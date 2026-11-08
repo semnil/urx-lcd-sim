@@ -33,7 +33,7 @@ function clockAngle(node: HTMLElement): number {
   return ((pointerAngle(node) % 360) + 360) % 360;
 }
 
-/** Degrees the mark is turned through from the start of the travel. */
+/** Degrees the mark is turned through from the start of the travel, to the digits its style keeps. */
 function pointerAngle(node: HTMLElement): number {
   const t = node.querySelector<HTMLElement>(".knob-pointer")?.style.transform ?? "";
   const m = /rotate\((-?[\d.]+)deg\)/.exec(t);
@@ -177,7 +177,7 @@ describe("the rotary graphic", () => {
       const node = forLevel(db);
       const { fill, track } = arcLengths(node);
       const turned = (pointerAngle(node) - KNOB_START_DEG) / KNOB_SWEEP_DEG;
-      expect(fill / track).toBeCloseTo(turned, 6);
+      expect(fill / track).toBeCloseTo(turned, 5);
     }
   });
 

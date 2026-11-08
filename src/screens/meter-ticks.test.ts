@@ -11,6 +11,7 @@ import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
 import { blockLampState, blockReduction, meterLevels, setMeterSource, shownLevels, startMeterTicker } from "./meters";
 import { CLIP_DB, PLAYBACK_METER, compSpec, gateSpec } from "./signal-flow";
+import { readBack } from "../style/css-read";
 
 // What a screen shows of a moving signal outside the dynamics screens' own meters:
 // the pair of lamps on a HOME strip, the channel view's GATE and DUCKER lamps and
@@ -123,14 +124,14 @@ describe("views that follow the signal as the meters move", () => {
     const reduction = strip ? blockReduction(shell.ctx.store, compSpec(shell.ctx, strip)) : 0;
     expect(level).toBe("100%");
     expect(reduction).toBeGreaterThan(0);
-    expect(Number.parseFloat(reduce ?? "NaN")).toBeCloseTo(grBarShare(reduction) * 100, 6);
+    expect(reduce).toBe(readBack("width", `${grBarShare(reduction) * 100}%`));
 
     // At -20 dB the level bar reaches where its own scale puts -20 dB, once it
     // has fallen there from 0 dB.
     levels["ch1"] = -20;
     vi.setSystemTime(Date.now() + 1000);
     await open(shell, [{ id: "channel-view", strip: "ch1" }]);
-    expect(widths(shell, ".comp-meters .comp-bar i")[0]).toBe(`${levelBarShare(-20) * 100}%`);
+    expect(widths(shell, ".comp-meters .comp-bar i")[0]).toBe(readBack("width", `${levelBarShare(-20) * 100}%`));
   });
 
   it("moves each M.B.Comp band's reduction bar", async () => {
@@ -226,7 +227,7 @@ describe("a falling bar on a screen drawn again", () => {
         input: unlit(shell, '.cv-gain-row [data-meter-source="ch1@input"] .meter-bar'),
         comp: widths(shell, ".comp-meters .comp-bar:not(.comp-reduce) i"),
       }),
-      (db) => ({ level: [at(db)], input: [at(db)], comp: [`${levelBarShare(db) * 100}%`] }),
+      (db) => ({ level: [at(db)], input: [at(db)], comp: [readBack("width", `${levelBarShare(db) * 100}%`)] }),
     );
   });
 
