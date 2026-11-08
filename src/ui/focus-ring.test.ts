@@ -55,8 +55,8 @@ describe("the ring marking where the keys are", () => {
       "58px",
       "84px",
       "44px",
-      "6px 6px 6px 6px",
-      "inset(0px 0px 0px 0px)",
+      "6px",
+      "inset(0px)",
     ]);
   });
 
@@ -108,7 +108,7 @@ describe("the ring marking where the keys are", () => {
     row.focus();
     await frame();
     // The row runs 10px past the foot of the list: the ring is cut there, not at the box around the row.
-    expect(ringOf(root).style.clipPath).toBe("inset(0px 0px 12px 0px)");
+    expect(ringOf(root).style.clipPath).toBe("inset(0px 0px 12px)");
   });
 
   it("draws nothing where the browser says the focus is not one the keys put there", async () => {

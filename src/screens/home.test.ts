@@ -13,7 +13,7 @@ import { buildRegistry } from "./index";
 import { meterLevels, setMeterSource, startMeterTicker } from "./meters";
 import { storeScene } from "./scene";
 import { captureSettings, inSettingsFile } from "../model/settings-file";
-import { declarations, declarationsOn, px, readStyle } from "../style/css-read";
+import { declarations, declarationsOn, px, readBack, readStyle } from "../style/css-read";
 import { INTERACTIVE } from "../ui/dom";
 import { SHORT_PROGRESS_MS, dialog } from "../ui/widgets";
 import { udkAssignment } from "../model/udk";
@@ -1475,7 +1475,7 @@ describe("what a channel view's blocks draw", () => {
     }
     shell.ctx.nav.push({ id: "ch.gate", strip: "ch1" });
     await flush();
-    expect(shell.root.querySelector<HTMLElement>(".dyn-gr i")?.style.height, "the bar at 56 dB").toBe(`${grBarShare(56) * 100}%`);
+    expect(shell.root.querySelector<HTMLElement>(".dyn-gr i")?.style.height, "the bar at 56 dB").toBe(readBack("height", `${grBarShare(56) * 100}%`));
   });
 
   it("lights the ducker's lamps for its source against the threshold and the range", async () => {
@@ -1540,7 +1540,7 @@ describe("what a channel view's blocks draw", () => {
     await shell.ctx.store.set("ch.ch1.comp.threshold", -4);
     await flush();
     expect(parseFloat(at()), "a higher threshold stands further right").toBeGreaterThan(parseFloat(low));
-    expect(at(), "on the level bar's own scale, where a level of -4 dB would reach").toBe(`${levelBarShare(-4) * 100}%`);
+    expect(at(), "on the level bar's own scale, where a level of -4 dB would reach").toBe(readBack("left", `${levelBarShare(-4) * 100}%`));
     expect(shell.root.querySelectorAll(".comp-bar"), "over the level and the reduction").toHaveLength(2);
   });
 });
@@ -6366,7 +6366,7 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
     await shell.ctx.store.set("ch.ch1.gate.threshold", 0);
     await shell.ctx.store.set("ch.ch1.gate.range", -19);
     await flush();
-    expect(shell.root.querySelector<HTMLElement>(".dyn-gr i")?.style.height, "19 dB on the reduction bars' scale").toBe(`${grBarShare(19) * 100}%`);
+    expect(shell.root.querySelector<HTMLElement>(".dyn-gr i")?.style.height, "19 dB on the reduction bars' scale").toBe(readBack("height", `${grBarShare(19) * 100}%`));
     expect(ioOffset(shell), "OUT reads the range lower").toBeCloseTo(19, 6);
     await shell.ctx.store.set("ch.ch1.gate.threshold", -96);
     await flush();
@@ -6446,11 +6446,11 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
       await flush();
       const bar = (): string | undefined => shell.root.querySelector<HTMLElement>(".dyn-gr i")?.style.height;
       // The key stands 34 dB over, so the ducker is closed to its whole range.
-      expect(bar()).toBe(`${grBarShare(24) * 100}%`);
+      expect(bar()).toBe(readBack("height", `${grBarShare(24) * 100}%`));
 
       await shell.ctx.store.set("ch.ch_9_10.ducker.range", -10);
       await flush();
-      expect(bar(), "and no further than the range it is given").toBe(`${grBarShare(10) * 100}%`);
+      expect(bar(), "and no further than the range it is given").toBe(readBack("height", `${grBarShare(10) * 100}%`));
 
       await shell.ctx.store.set("ch.ch_9_10.ducker.threshold", 0);
       await flush();
@@ -6530,7 +6530,7 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
       // through. The bar draws it on its own scale, 11/21 of the bar at 18 dB.
       const reduction = -6 + 2 - (-20 + 14 / 3 + 2);
       expect(reduction).toBeLessThan(18);
-      expect(bar()).toBe(`${(reduction / 18) * (11 / 21) * 100}%`);
+      expect(bar()).toBe(readBack("height", `${(reduction / 18) * (11 / 21) * 100}%`));
 
       await shell.ctx.store.set("ch.ch1.comp.ratio", 1);
       await flush();

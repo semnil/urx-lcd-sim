@@ -1,4 +1,4 @@
-// Reading the stylesheets from a test.
+// Reading the stylesheets, and the styles a screen writes, from a test.
 //
 // The screens' geometry lives in the CSS, so the guards read the declarations
 // rather than a second copy of the numbers. Shared by every suite that does it:
@@ -122,3 +122,13 @@ export const px = (value: string | undefined): number =>
 
 /** The last length in a `gap` shorthand: `4px 8px` is a row gap and a column gap. */
 export const columnGap = (value: string | undefined): number => px((value ?? "").trim().split(/\s+/).at(-1));
+
+/**
+ * What `property` of an element's own style reads back as once `value` is written to it:
+ * the page keeps a number to fewer digits than the script wrote it with.
+ */
+export function readBack(property: string, value: string): string {
+  const probe = document.createElement("i");
+  probe.style.setProperty(property, value);
+  return probe.style.getPropertyValue(property);
+}
