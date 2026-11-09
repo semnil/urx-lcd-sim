@@ -45,11 +45,13 @@ jobs:
       - name: Upload coverage
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         timeout-minutes: 3
-        # fail_ci_if_error reaches only the action's upload step (action.yml:334), not the dependency
-        # check (action.yml:182) or the OIDC token (action.yml:238) steps before it
-        continue-on-error: true # a failure in any of the action's steps leaves the job green
+        # On a pull request a failure in any of the action's steps fails the job, so a run that lost its
+        # upload is red rather than leaving the required codecov/project unreported; fail_ci_if_error
+        # makes a failed upload one of those failures, and it reaches the action's upload step alone
+        # (action.yml:334). On a push to main the job stays green.
+        continue-on-error: ${{ github.event_name != 'pull_request' }}
         with:
-          fail_ci_if_error: false
+          fail_ci_if_error: true
           files: ./coverage/lcov.info
           flags: unit
           name: unit

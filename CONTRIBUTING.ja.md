@@ -68,6 +68,7 @@ urx-lcd-sim は単独メンテナーのプロジェクトだが、外部から�
 - GitHub Pages のワークフローは、`main` へのすべてのプルリクエストで `pnpm test` と `pnpm build` を実行する。
   CI のワークフローは同じプルリクエストで `pnpm typecheck` と `pnpm test:coverage` を実行し、
   カバレッジレポートを Codecov へ送り、別のジョブで `pnpm test:e2e` を、もう 1 つのジョブで Windows 上の `pnpm test` を実行する。
+  プルリクエストでは送信に失敗するとそのジョブが失敗し、`main` は Codecov の `codecov/project` (送信が届くと Codecov が報告する) を要求する。
 - 更新が semver の patch または minor で、コミットが先端の 1 つだけ (`dependabot[bot]` が書き、
   GitHub (web-flow) がコミットし、署名が検証済み) である
   Dependabot のプルリクエストは、上のチェックが通ると自動でマージされる。

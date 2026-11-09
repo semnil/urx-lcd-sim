@@ -80,7 +80,8 @@ address that was not verified against a connected unit
 - The GitHub Pages workflow runs `pnpm test` and `pnpm build` on every pull request to `main`.
   The CI workflow runs `pnpm typecheck` and `pnpm test:coverage` on the same pull requests and
   uploads the coverage report to Codecov, in a second job runs `pnpm test:e2e`, and in a third
-  runs `pnpm test` on Windows.
+  runs `pnpm test` on Windows. On a pull request a failed upload fails its job, and `main` requires
+  Codecov's `codecov/project`, which Codecov reports once the upload has arrived.
 - A Dependabot pull request whose update is a semver patch or minor, and whose only commit is its
   head, written by `dependabot[bot]`, committed by GitHub (web-flow) and with a verified signature,
   merges on its own once the checks above pass: `.github/workflows/dependabot-auto-merge.yml`
