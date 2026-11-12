@@ -60,8 +60,9 @@ project is published and documented, with what led to them. The rules that hold 
   - Where main already carries the same fix, the branch's diff for it goes in the rebase. The
     commit is made one of docs and tests alone and given a new title.
 - **How it is checked**:
-  - Every file without a conflict equals the tree `git merge-tree --write-tree origin/main <old
-    tip>` gives.
+  - Every file that had no conflict and was not edited for the integration equals the tree
+    `git merge-tree --write-tree origin/main <old tip>` gives. A file edited for it is checked by
+    the lines below.
   - Every commit that touches `src/` is unpacked with `git archive` and put through
     `tsc --noEmit` and the whole suite. A correction is folded into the commit that changed the
     behaviour, and the types are checked again after folding.
