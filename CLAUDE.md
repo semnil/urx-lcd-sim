@@ -47,7 +47,7 @@ The overview and the commands are in README.md, and the structure and the flow o
 - For a dimension or a shape no figure shows, do not write or propose "photograph the unit and measure it" as what settles it (a photograph cannot be measured pixel by pixel). Follow the operator's instruction or the form of an existing screen
 - A settled fact about a screen is written in the code's comments, the docs and the tests
 - Before raising a point with the operator, look it up in the guide's text as well as its figures; the text settles some of what no figure shows
-- Before asking the operator to read a state on the unit, look for a figure of that state in `reference/ug-lcd/` and use it; ask only for what no figure shows
+- Before asking the operator to read a state on the unit as the baseline of a comparison, look for a figure of that state in `reference/ug-lcd/` and use the figure as the baseline. This does not take the place of the confirmations above: what is listed, how many there are, letter case and the conditions of a state are still confirmed on the unit where a figure shows them
 - A sheet or a list no figure shows is not copied from a similar screen: have each one confirmed
 - A figure that shows a state does not say what causes it. Do not widen it to other tabs, rows or modes; have the conditions confirmed one at a time
 - What the guide's text says is confirmed on the unit too, where the panel can do it
