@@ -41,7 +41,7 @@ The overview and the commands are in README.md, and the structure and the flow o
 ## Primary source (the user guide's screen captures)
 
 - `reference/` is Yamaha's copyrighted work and is in `.gitignore`. Keep it out of commits, builds and anything published. To regenerate it, see README.md, "Where the appearance comes from"
-- When a public document (docs/, README) gives the reason something is not built, avoid direct wording such as rights matters
+- When a public document (docs/, README) gives the reason something is not built, word it the way the "Why" column of `docs/en/known-issues.md` does (what is hard to reproduce, what is outside this simulator)
 - How values are taken from the figures is defined by docs/en/design-tokens.md, "How the values were sampled". Pixels outside the range printed on the page (`reference/ug-lcd/visible.json`) are not used as evidence. A figure number written in docs is the extracted name in `reference/ug-lcd/`
 - The guide's figures sometimes differ from the unit. Shapes, dimensions and colors may be measured from the figures. What is listed, how many there are and letter case are not settled by a figure alone: implement it, then confirm those points with the operator (confirm letter case screen by screen, rather than inferring it from other screens)
 - For a dimension or a shape no figure shows, do not write or propose "photograph the unit and measure it" as what settles it (a photograph cannot be measured pixel by pixel). Follow the operator's instruction or the form of an existing screen
