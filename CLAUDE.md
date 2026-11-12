@@ -55,6 +55,7 @@ The overview and the commands are in README.md, and the structure and the flow o
 - An icon is not chosen by pixel difference alone: compare what can be read of its shape (the number of teeth, the depth of a notch) by a measure of its own
 - Where a figure shows the shape of a curve, match the figure before taking the law of the sound
 - Write that a point was confirmed only where the sentence claims no more than the operator saw
+- Where the docs say a point was compared with the unit, they give the result and the model it was compared on, as in `(confirmed on a URX44V)`. The date, who compared it and the way it was compared are not written in the docs, the README or a decision record
 
 ## Relationship to the hardware
 
