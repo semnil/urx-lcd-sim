@@ -171,7 +171,7 @@ one-way remote control. It subscribes before it reads, so `DeviceStore` also tak
 the unit while the values are read, after the values themselves. A string address (a channel name,
 say) is read again with `getStr` on each of its notifies, and the string read is what arrives. A channel
 renamed on the unit's (URX44V) LCD sends one notify for its address carrying the new name, and a read right after
-it gives the new name too (2026-10-08).
+it gives the new name too.
 
 Writes to one address go to `DeviceLink` one at a time, each once the link has answered the one
 before it, so they reach the unit, and come back, in the order they were issued. A write the link
