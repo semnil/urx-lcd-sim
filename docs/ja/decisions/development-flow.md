@@ -1,11 +1,11 @@
-# 変更の進め方の決定
+# Decisions about how changes are made
 
 > For the English version, see [../../en/decisions/development-flow.md](../../en/decisions/development-flow.md).
 
 並行する PR・長いブランチ・レビュー・公開と文書の進め方について閉じた判断と、その経緯。日々の規則は
 `CLAUDE.md` の "Development" にある。
 
-## 並行する PR は、マージの順に依らない形にする
+## Parallel pull requests are made independent of the merge order
 
 - **決定** (2026-10-04): ある PR のテストが、並行して開いている別の PR の挙動の変更とぶつかったら、
   まず、どちらが先にマージされても成り立つ形を探す。2 つを合わせた木で、全体が通ることと、変異に
@@ -35,7 +35,7 @@
   ある欠陥 (満杯のカードへの保存) は #35 から外し、
   [#46](https://github.com/semnil/urx-lcd-sim/pull/46) で直した。
 
-## 長いブランチを main へ載せ直す
+## Carrying a long branch onto main
 
 - **決定**: 進んだ main へブランチを載せ直すときは、衝突する所だけでなく、衝突しない所も合わせる。
   PR に書いたことは、新しい木で測り直す。
@@ -67,7 +67,7 @@
   push して、CI で落ちた。main の仕組みの上に書き直したモジュールに変異を当てると、欠陥が 1 つ出た
   (待っている間の変更を書き落とす保存)。
 
-## レビューが、兄弟の PR で直った欠陥を指したとき
+## A review that points at a defect a sibling fixed
 
 - **決定**: レビューが指した欠陥を、その後マージされた兄弟の PR が直していたら、ブランチを、その
   修正を持つ main へ載せ直して、そこで測る。
@@ -77,7 +77,7 @@
   (2 本目の指で、両方の値が 4.00 dB になる) と、main では起きないこと (片方だけが 3.20 dB になる) を
   示し、2 つの値を同時にドラッグするテストを足して固定した。
 
-## 保存した値の意味を変えるとき
+## A change to what a stored value means
 
 - **決定**: 保存される画面の状態の意味を変えたら、前の版が保存した値から始めて確かめる
   (`CLAUDE.md` の "Checking a change on the screen")。
@@ -85,26 +85,26 @@
   前の版で、Edit を開いたまま一覧を Simple へ切り替えて保存された値 (`scene.bank=Simple`・
   `ui.sceneMenu=Edit`) から新しい版を開き、Standard へ切り替えると、Edit が戻った。
 
-## 変更の記録のファイルを持たない
+## No change-log file
 
 - 2026-10-16 に決めた。消したものと、代わりになるものは、
   [#95](https://github.com/semnil/urx-lcd-sim/pull/95) にある。
 
-## push ごとに Pages を公開し、タグと Release を作らない
+## Pages on every push, no tag and no Release
 
 - 2026-10-25 に決めた。残る流れと、APP Version がビルドしたコミットを出すことは、
   [#133](https://github.com/semnil/urx-lcd-sim/pull/133) にある。
 - **経緯**: v0.3.0 から v1.0.0 までは、`package.json` の `version` だけを変える PR のマージで、タグと
   下書きの Release を作り、その push から Pages を公開していた。`version` は、もう動かさない。
 
-## 英語を基本の言語にする
+## English as the base language
 
 - 2026-10-20 に決めた。訳したものと、付けたリンクは、
   [#112](https://github.com/semnil/urx-lcd-sim/pull/112) にある。
 - **経緯**: マージ済みの PR の本文は、そのままにした。本文にある日本語は、引用 (検索の語、日本語の
   文書の見出し、画面の文字、フォームの選択肢の名前) と、その PR を書いた時点の見出し 1 つ。
 
-## 最も長い 3 つのテストを分けた
+## The three longest tests were split
 
 - 2026-09-27 に決めた。テスト 1 件 5,000 ms の制限は変えず、テストを分けた。分けたものと、分ける前後の
   所要時間は、[#25](https://github.com/semnil/urx-lcd-sim/pull/25) にある。
