@@ -188,7 +188,7 @@ PY
 | `--dialog-sheet` | `#bdbebd` | ダイアログの面 (wide/p040-2) とセクションの帯 (p061-1 の x18..401 / y56..79) |
 | `--peripheral-text` | `#bdbebd` | Peripheral の見出しと注記 (p061-1 の x63..309 / y94..106 と x66..351 / y165..177) |
 | `--dialog-edge` | `#5a9aff` | 同、外周 4px の枠と情報マークのリング |
-| `--dialog-caution` | `#f7f73a` | 警告のダイアログ (TOOLS の Format) の枠と三角の印。図に無く、`--accent-bank-active` と同じ値を操作者が選んだ (2026-09-22) |
+| `--dialog-caution` | `#f7f73a` | 警告のダイアログ (TOOLS の Format) の枠と三角の印。図に無く、`--accent-bank-active` と同じ値を操作者が選んだ |
 | `--dialog-ink` | `#31393a` | 同、面に載る問いの文字 |
 | `--dialog-mark-face` | `#101010` | 情報マークの円 |
 | `--btn-bevel` | `#31393a` | ボタンの既定の下端 3px。メニュー項目・ダイアログのボタン・シーン名の箱 (p066-1 の y118..120) と、面 (74,81,90) のボタン (p081-1 の停止、p084-1 の [Save]、p073-1 の [Recall] など) |
