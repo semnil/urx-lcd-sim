@@ -83,6 +83,7 @@ pnpm dev
 | [screen-map.md](docs/ja/screen-map.md) | どの画面からどの画面へ行けるかの地図 |
 | [known-issues.md](docs/ja/known-issues.md) | 実機にあってここでは作っていないもの |
 | [design-tokens.md](docs/ja/design-tokens.md) | 配色・寸法の採取方法と出所 |
+| [decisions/](docs/ja/decisions/) | 閉じた判断と、却下した案・経緯 |
 
 ## 画面の見た目の根拠
 

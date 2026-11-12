@@ -85,6 +85,7 @@ Under [docs/en/](docs/en/), with the same documents in Japanese under [docs/ja/]
 | [screen-map.md](docs/en/screen-map.md) | Which screen leads to which |
 | [known-issues.md](docs/en/known-issues.md) | What the unit has and this simulator does not build |
 | [design-tokens.md](docs/en/design-tokens.md) | Where the palette and the dimensions came from |
+| [decisions/](docs/en/decisions/) | Closed decisions, what was rejected and what led to them |
 
 ## Where the appearance comes from
 
