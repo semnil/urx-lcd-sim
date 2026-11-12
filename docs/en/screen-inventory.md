@@ -114,34 +114,35 @@ carries none.
 
 What the captures extracted from the user guide do not show. What is listed here is drawn from
 instructions and inference, not from pictures of the unit. Where the drawing was later compared with
-the unit, its row says so with the result and the date.
+the unit, its row says so with the result and the model it was compared on; the date and the way it was
+compared are not written here.
 
 ### Built, with no image at all
 
 | Screen | Screen ID | What the images show |
 | --- | --- | --- |
-| Channel bank list | `bank-select` | Only HOME's bank button (p045-1 and others). No image shows the opened list. The band titles, names, arrangement, and face and name colours match the unit, and HOME showing through darkened around the list follows it (URX44V, 2026-09-22; the operator accepted small differences in position) |
-| Confirmation dialog of USB Storage Mode | (no screen) | Only the button on the microSD top menu (p078-1, wide/p076-1). The guide does not show the dialog itself. The entering dialog's wording, line breaks, mark and [Cancel] / [OK], and the leaving dialog's wording and line breaks (three lines), match the unit (URX44V, 2026-09-22) |
-| Source picker for a recording track | (no screen) | Only RECORDER's Source button (p079-2). The Track Count list is in p079-3. The title, names, arrangement and back button match the unit (URX44V, 2026-09-22) |
-| Parameter settings | `ch.effect` | Nothing. p113-1 is [No Effect], and the middle the controls stand in is black. Rev-X Hall's rows, the readout bar's order, the value framed on opening and the value boxes without units follow the unit (URX44V, 2026-09-22) |
+| Channel bank list | `bank-select` | Only HOME's bank button (p045-1 and others). No image shows the opened list. The band titles, names, arrangement, and face and name colours match the unit, and HOME showing through darkened around the list follows it (confirmed on a URX44V; small differences in position were accepted) |
+| Confirmation dialog of USB Storage Mode | (no screen) | Only the button on the microSD top menu (p078-1, wide/p076-1). The guide does not show the dialog itself. The entering dialog's wording, line breaks, mark and [Cancel] / [OK], and the leaving dialog's wording and line breaks (three lines), match the unit (confirmed on a URX44V) |
+| Source picker for a recording track | (no screen) | Only RECORDER's Source button (p079-2). The Track Count list is in p079-3. The title, names, arrangement and back button match the unit (confirmed on a URX44V) |
+| Parameter settings | `ch.effect` | Nothing. p113-1 is [No Effect], and the middle the controls stand in is black. Rev-X Hall's rows, the readout bar's order, the value framed on opening and the value boxes without units follow the unit (confirmed on a URX44V) |
 | An FX channel's panel and the EFFECT TYPE screen | `ch.effect` | Only the FX strip on HOME (p048-3). The arrangement follows what the unit shows |
-| MONITOR's Source sheet | `monitor.level` | Only the Source button (p068-1). The guide does not show the sheet itself. The title, names, arrangement and back button match the unit (URX44V, 2026-09-22) |
-| The STREAMING input source sheet | (no screen) | Nothing. The sheet lies over STREAMING's INPUT screen. The title, names, arrangement and back button follow the unit (URX44V, 2026-09-22) |
+| MONITOR's Source sheet | `monitor.level` | Only the Source button (p068-1). The guide does not show the sheet itself. The title, names, arrangement and back button match the unit (confirmed on a URX44V) |
+| The STREAMING input source sheet | (no screen) | Nothing. The sheet lies over STREAMING's INPUT screen. The title, names, arrangement and back button follow the unit (confirmed on a URX44V) |
 
 ### The screen exists, but no default state draws it
 
 - microSD card not inserted — the captures (p081-1, p083-1, p084-1, p085-1, p087-1, p088-1) all have
   a card in, showing a file list and the free space. None shows an empty list or "No card mounted.".
   The simulator likewise starts with a card in the slot. The microSD top screen with no card follows
-  the unit (URX44V, the operator, 2026-09-22): it draws no [Recorder], [Save/Load] or [Tools], writes
+  the unit (confirmed on a URX44V): it draws no [Recorder], [Save/Load] or [Tools], writes
   `Not inserted microSD card` in white on the row they stood on, and keeps only the `microSD` title
   and the HOME button on the toolbar. The line is set at 11.5px, a size under the names [Recorder]
   and the rest carry. RECORDER, SAVE/LOAD, TOOLS, and the name entry [Save as] opens on SAVE/LOAD,
   turn into this state of the microSD top when the card goes. The name entry [New folder] and
   [Rename] open, and recording mode, do the same here. How the card goes back in is under "What moves
   but does not do what the unit does" in [known-issues.md](known-issues.md).
-- What TOOLS' Format and Test do once pressed — there is no figure. They follow the unit (URX44V, the
-  operator, 2026-09-22): [Format microSD] opens the keyboard screen under the title `Volume Label`,
+- What TOOLS' Format and Test do once pressed — there is no figure. They follow the unit (confirmed on a
+  URX44V): [Format microSD] opens the keyboard screen under the title `Volume Label`,
   with the card's volume label in the field. A volume label takes up to 11 characters, and [OK] goes on
   with the field empty too; a card formatted so reads as `Untitled` on a Mac, and the unit's field reads
   `Untitled` the next time. That [OK] brings up a warning in a yellow frame with a triangle "!" mark,
@@ -152,34 +153,34 @@ the unit, its row says so with the result and the date.
   without asking, holds up a modal with the turning ring and `Testing in progress...`, and shows the
   result a few seconds later.
 - RECORDER's Play tab stopped or paused — the only figure is p081-1, playing. It follows the unit
-  (URX44V, the operator, 2026-09-22): before a file is started and after [■], neither the counter nor
+  (confirmed on a URX44V): before a file is started and after [■], neither the counter nor
   the frequency shows, the progress bar is grey throughout, and the button left of the bar greys its
   mark. Paused, the counter and the frequency show, the bar is blue as far as the file has played, the
   file keeps the speaker, and that button's mark is white, a touch on it bringing the cursor back to
   the file. [Play/Pause] carries the green triangle in both. The eject button can be used stopped, and
-  paused it takes the face of a button that cannot be used (URX44V, the operator, 2026-10-03).
+  paused it takes the face of a button that cannot be used (confirmed on a URX44V).
   The triangle follows the picture in the guide's description.
 - The channel view of the STEREO bus — the channel view figures are of input channels (p090-1, p098-1
   and others) and of STREAMING (p098-2). None has the STEREO bus open. The channel selector
   (`STEREO L` / `ST`), the blocks (EQ, INS FX, BALANCE, LEVEL, CUE, ON and the meter), the left panel
-  and the four cells along the foot match the unit (URX44V, the operator, 2026-09-22).
+  and the four cells along the foot match the unit (confirmed on a URX44V).
 - HOME with the right-hand channel of a stereo-linked pair selected — p047-1 has the left-hand one
   selected, but no figure has the right-hand one selected. With the right-hand one selected its frame
-  runs round the heart mark on its left side, as on the unit (URX44V, the operator, 2026-09-22).
+  runs round the heart mark on its left side, as on the unit (confirmed on a URX44V).
 - A stereo channel's INPUT screen — p100-1 is a mono channel, and p100-2 and p100-3 are the source
-  sheet laid over it. CH 5/6 fed from `AUX IN`, `MIC/LINE 1/2` and `None` match the unit (URX44V,
-  the operator, 2026-09-22).
+  sheet laid over it. CH 5/6 fed from `AUX IN`, `MIC/LINE 1/2` and `None` match the unit (confirmed on a
+  URX44V).
 - A channel with its polarity inverted — no figure shows a lit Φ, on the channel view, on HOME or on
   INPUT. The lit colour (orange), and a stereo channel's HOME mark lighting for the side it shows,
-  match the unit (URX44V, the operator, 2026-09-22).
+  match the unit (confirmed on a URX44V).
 
 ### Models
 
 HOME's captures have three INPUT bank marks, that is, they are of a model with 10 inputs. None shows
 a URX22 with two marks, and no display specific to the URX44 is confirmed, by an image or on the unit. Of the
 displays specific to the URX22, the connector [HI-Z] stands on, the layout of SETUP's menu, the question
-[All Input] / [All USB DAW] ask and the names in HOME's bank list were checked on the unit (URX22, the operator,
-2026-10-14 and 2026-10-16).
+[All Input] / [All USB DAW] ask and the names in HOME's bank list were checked on the unit (a
+URX22).
 
 ## Head amp in the channel view
 
@@ -189,9 +190,9 @@ a mono channel the connector at its own place in its pair (with CH 1/2 on MIC/LI
 and CH 2 on 4), a stereo channel the connector of the side in view. Two channels on one connector show
 the same values, and turning or switching them on either moves both. The values are kept under the
 mono channel of the connector's number. A.Gain, +48V, HI-Z and Clip Safe were checked on the unit: with
-CH 1 and CH 3 on the same connector, a change on one shows on the other (URX44V; A.Gain and HI-Z on
-2026-09-21, +48V and Clip Safe on 2026-09-22). On a URX22, A.Gain, +48V, Clip Safe and [HI-Z] were checked
-to belong to the connector rather than the channel too (the operator, 2026-10-14).
+CH 1 and CH 3 on the same connector, a change on one shows on the other (confirmed on a
+URX44V). On a URX22, A.Gain, +48V, Clip Safe and [HI-Z] were checked
+to belong to the connector rather than the channel too.
 
 On any other source a channel shows that source's `D.Gain` (-24..+24 dB). The D.Gain belongs to the
 input source, not to a channel. Channels on one source, mono or stereo, show the same D.Gain, and
@@ -211,8 +212,8 @@ The head amp moves in 1 dB steps; the value is rounded to an integer and gets a 
 above 0 (`+14` / `0` / `-8`; the readout bar shows `+14dB`). Faders keep two decimal places.
 
 Dynamics threshold and range are integer dB (`-33dB` / `-20dB`, p099-1 / p103-1), a value holding a fraction
-read with the fraction cut toward zero (-45.5 dB on GATE, COMP or DUCKER reads `-45dB`; URX22 and URX44V, the
-operator, 2026-10-15), and makeup gain
+read with the fraction cut toward zero (-45.5 dB on GATE, COMP or DUCKER reads `-45dB`; confirmed on a URX22 and a
+URX44V), and makeup gain
 has one decimal place (`18.0dB`). A time is spelled differently for the same value: `34.58m` in the
 panel's value box and `34.58ms` on the readout bar (p099-1 / p103-1). A time that can go past one
 second switches to seconds from 1000 ms (`4.8s`, p114-1). No space goes before the unit. Frequency
@@ -223,14 +224,14 @@ HI-Z belongs to the input jack, not to every MIC/LINE connector: MIC/LINE 3 and 
 URX44V, MIC/LINE 2 on the URX22. On a channel that is not on one of those, that cell of the head amp
 status panel is empty, and the INPUT screen shows no button for it. While HI-Z is on, that connector's
 A.Gain runs -8..+40 dB. An A.Gain above +40 dB comes down to +40 dB when HI-Z is switched on, and stays
-at +40 dB when HI-Z is switched off again (checked on a URX44V, 2026-09-22). On a URX22, HI-Z on MIC/LINE 2
-and A.Gain stopping at +40 dB while HI-Z is on were checked (the operator, 2026-10-14). The push-down is
+at +40 dB when HI-Z is switched off again (checked on a URX44V). On a URX22, HI-Z on MIC/LINE 2
+and A.Gain stopping at +40 dB while HI-Z is on were checked. The push-down is
 `hiZWriteRule()` in `src/screens/head-amp.ts`. The knob's direction is in [the "Strip rotary" section
 of design-tokens.md](design-tokens.md#strip-rotary).
 
 When the input of a connector with Clip Safe on clips, the unit takes the input about 23 dB down and
 brings it back after about 5 seconds, and the A.Gain value and knob do not come down (checked on a
-URX44V, 2026-09-22). In the simulator, a reading that finds the input over 0 dB, where the meter's clip mark
+URX44V). In the simulator, a reading that finds the input over 0 dB, where the meter's clip mark
 lights, still shows the clip; after it the input is held 23 dB down, and let back up 5 seconds after the
 last clip. A clip read while it is held down counts again, and one read as soon as it is let back up
 holds it down again at once. While it is engaged, INPUT's [Clip Safe] and the channel view's [SAFE] turn
@@ -275,10 +276,10 @@ write are in one place, `src/screens/stereo-link.ts`.
   [known-issues.md](known-issues.md).
 - On the GATE, COMP, EQ, INS FX and SSMCS screens of a pair, the IN / OUT meters at the bottom right
   are stereo, two bars for IN and two for OUT. The left bar reads the lower-numbered channel and the
-  right bar the other (confirmed by the operator on 2026-09-26; for the sides, a signal sent from USB
+  right bar the other (confirmed on the unit; for the sides, a signal sent from USB
   MAIN to the CH 3 / CH 4 pair showed CH 3 on the left and CH 4 on the right).
 - The INPUT screen's meter, and the side-chain meter on the left of the SSMCS COMP and COMP Side Chain
-  screens, stay one bar on a pair (confirmed by the operator on 2026-09-26).
+  screens, stay one bar on a pair (confirmed on the unit).
 - `PAN` / `BAL` buttons appear under Signal Type in CH SETTING while `STEREO` is chosen, and not
   otherwise (the capture is p093-1). Choosing `BAL` changes `PAN` in the channel view to `BALANCE`,
   and HOME's slider points at the same value. This choice is also written to both of the pair. The
@@ -288,7 +289,7 @@ write are in one place, `src/screens/stereo-link.ts`.
   between `PAN` and `BAL`, and out of `STEREO` — places both channels again. `PAN` puts the
   lower-numbered channel hard left (L63) and the other hard right (R63); `BAL` and unlinking put both
   in the centre (C). What is placed is the channel's own position and the position of each of its
-  sends. The same holds on a URX22's CH 1 and CH 2 (measured over the control link on 2026-10-14).
+  sends. The same holds on a URX22's CH 1 and CH 2 (confirmed on the unit).
 - A linked pair holds one set of values. A write to either channel reaches the other, and linking
   copies the lower-numbered channel's values onto the other. Unlinking puts nothing back. What each
   member keeps its own of is the head amp (A.Gain, Clip Safe, Φ, +48V, Hi-Z), the input source, the
@@ -314,21 +315,21 @@ y209..248). The second row is empty. No other bus and no channel carries either.
   again rather than putting back what was there.
 - A send into a `FIXED` bus loses [PRE], the pan slider and `Bal` from its SEND TO cell, and its knob
   is bound to nothing. What goes keeps its room, so nothing else on the cell moves. On the unit's
-  screen (URX44V, 2026-09-29) its division of the readout bar reads `Level` over `Fixed`, as bright as
+  screen (confirmed on a URX44V) its division of the readout bar reads `Level` over `Fixed`, as bright as
   the division beside it; HOME's [Sends] view reads the strip's level as `Fixed` and stops turning it,
   dark only while the send is switched off; and back on `VARI`, [PRE] shows the tap as it was before.
 - `Pan Link` makes each send into that bus follow the position of its own source channel. While it is
   on the row is named after the source's own position, as the stereo bus's cell names it (`Pan` for a
   channel placed by its PAN, `Bal` otherwise), reads the source's value, and turning it turns the
-  source's own position (URX44V, 2026-09-29: CH 3 at L20 read `Pan` L20, and one step took CH 3's PAN
+  source's own position (confirmed on a URX44V: CH 3 at L20 read `Pan` L20, and one step took CH 3's PAN
   to L21; CH 5/6 at L20 read `Bal` L20, and one step took CH 5/6's BAL to L19). Switching it on moves each send's own placing to its source's position, and while it is on
   a move of the source's position moves the send's with it; switching it off leaves each send where its
-  source was and does not bring back the placing it had before (URX44V, measured over the control link
-  on 2026-09-29; the same on a URX22, 2026-10-14).
+  source was and does not bring back the placing it had before (confirmed on a URX44V and a
+  URX22).
 - `Pan Link` can be switched on only while the bus is `VARI`. Taking `FIXED` switches it off; while the
   bus is `FIXED` the button keeps its place and cannot be taken, and it stays off when the bus goes back
-  to `VARI` (URX44V, 2026-09-29, on the unit's screen and over the control link; the same on a URX22,
-  measured over the control link on 2026-10-14).
+  to `VARI` (confirmed on a URX44V and a
+  URX22).
 
 The decision is in one place, `src/screens/mix-bus.ts`, and `src/screens/mix-bus.test.ts` pins it.
 
@@ -377,8 +378,8 @@ right of and above its panel) or on the bar under the Date format list closes th
 list's value staying as it was; one at the foot of the Volume Label sheet, SCENE LIST's title sheet or
 SAVE/LOAD's [Save as] name sheet, and one on the dark around either of the
 eject dialogs, the bar's place included, leaves it up. As each of these closes, the mode stays on. On an ordinary screen the bar lies over the screen's bottom
-edge, SAVE/LOAD's [Save as] and SCENE LIST's [Store] included (URX44V, confirmed by the operator on
-2026-10-03 and 2026-10-04).
+edge, SAVE/LOAD's [Save as] and SCENE LIST's [Store] included (confirmed on a
+URX44V).
 The simulator draws what shows of the bar dark under a sheet, a list or a dialog, and hides it under the
 knob assignment and the title and name sheets; while one is up the bar's divisions and page steps take no
 touch, drag, wheel, arrow key or Tab. A touch on the bar there is a touch on the bare screen around the
@@ -422,14 +423,14 @@ cell turns nothing. USER DEFINED KNOBS mode is the same: a cell with an assignme
 and a `---` cell turns nothing. 1-knob does not stop USER DEFINED KNOBS mode: on every screen, with 1-knob
 on or off, a cell with an assignment turns that parameter, as on the unit.
 The unit's knob turns EQ's, COMP's and SSMCS's gains 1.0 dB a detent, and turns finer while it is pushed
-in as it turns, 0.1 dB a detent (URX44V, the operator, 2026-10-03: a detent on CH 1's four EQ bands,
+in as it turns, 0.1 dB a detent (confirmed on a URX44V: a detent on CH 1's four EQ bands,
 STEREO's EQ LOW, CH 1's COMP and CH 2's SSMCS SC, Low, Mid, High and Out Gain; pushed in on CH 1's EQ LOW
 and COMP and CH 2's SSMCS Low and Out Gain). A detent of the unit's knob keeps the tenths a gain holds
-(URX44V, the operator, 2026-10-03: CH 1's EQ L-MID from 1.5 dB to 2.5 dB, and CH 2's SSMCS SC, Low, Mid and
+(confirmed on a URX44V: CH 1's EQ L-MID from 1.5 dB to 2.5 dB, and CH 2's SSMCS SC, Low, Mid and
 High Gain, SC from 5.3 dB to 6.3 dB). Here a detent turns EQ's, COMP's and SSMCS's gains 1.0 dB and
 a detent with Shift 0.1 dB, keeping the tenths, from a cell, a value box or COMP's G handle, and a drag,
 an EQ grip's included, stops on the tenths. The knob on the DELAY block of STREAMING's channel view does not
-push in (URX44V, the operator, 2026-10-03), and the channel view's values turn the same detent with Shift as
+push in (confirmed on a URX44V), and the channel view's values turn the same detent with Shift as
 without it.
 
 There are four cells, so when a screen passes five or more parameters they are shown four at a time,
@@ -457,11 +458,11 @@ source is not MIC/LINE, the +48V and HI-Z cells are empty. The text is 13px, the
 captions. A lit mark takes the colour of that item's own button: red for +48V, orange for Φ and cyan
 for HPF and HI-Z. HOME's strip does the same — red for +48V, orange for Φ, cyan for HPF, and its
 button's cyan for the INS FX mark. On a mono channel whose COMP / EQ type is SSMCS, HOME's strip shows `SSMCS` in COMP's
-place, under HPF, and no `EQ`, lit in its switch's cyan while SSMCS is on (URX44V, the operator, 2026-10-04).
+place, under HPF, and no `EQ`, lit in its switch's cyan while SSMCS is on (confirmed on a URX44V).
 
 Φ is drawn as a 10x11 mark rather than a letter, the same drawing on HOME's strip, the channel view and
 INPUT's [Φ] button: a bar 2 wide runs through a ring 7 high and out of it by 2px at each end (p047-1,
-y151..161 in p090-1, y113..123 in p100-1; the operator on a URX44V, 2026-09-22).
+y151..161 in p090-1, y113..123 in p100-1; confirmed on a URX44V).
 
 On any source other than MIC/LINE, a stereo channel's status panel carries the Φ alone, in the right
 cell of the top row, with the left cell and the whole second row empty (x69..79 / y152..161 in p094-7,
@@ -485,7 +486,7 @@ opens that block's screen at the next: GATE, COMP and DUCKER turn their threshol
 depth while 1-knob is on. EQ with 1-knob off and INS FX open the screen at the first touch.
 DELAY's block turns its time as the DELAY screen's ms cell does, 1.00 ms a detent with the hundredths kept
 (45.86 ms goes to 46.86 ms), and the same 1.00 ms with Shift held: the knob of STREAMING's channel view DELAY
-block does not push in, so it turns the time no finer (URX44V, the operator, 2026-10-03).
+block does not push in, so it turns the time no finer (confirmed on a URX44V).
 The touch that only brings the focus does not sink the panel, which gains its frame alone; the touch that opens the
 screen sinks it.
 
@@ -515,13 +516,13 @@ is a panel three rows by eight that opens under the box, with the mono channels 
 the stereo ones along the second, `ST` at that row's far end (column 8), and the mixes on the third.
 The DUCKER lamps light by how far it is ducking (p98): the right one green while it ducks nothing,
 the middle one yellow while it ducks part of RANGE, and the left one red once it ducks all the way to
-RANGE. No lamp lights while DUCKER is off (URX44V, confirmed on the unit on 2026-10-12). How far it ducks
+RANGE. No lamp lights while DUCKER is off (confirmed on a URX44V). How far it ducks
 follows how far the strip chosen as Ducker Source is heard over the threshold: for a steady tone, none
 a dB under it and all of RANGE a dB over it; for a noise-like key, a little from about 5 dB under it, then
 about 6 dB deeper for each dB over it, stopping at RANGE (3 dB over at a RANGE of -6, 8 dB over at -70).
 The values read at RANGEs of -6, -12, -24, -48 and -70 are kept as tables; a RANGE between two of them is
 taken straight between the two, and one shallower than -6 scales the -6 values down by its share
-(URX44V, 2026-10-12).
+(confirmed on a URX44V).
 
 SEND TO's button is 86x38, with face `--surface-btn` and a 3px shadow band at the bottom.
 
@@ -569,16 +570,16 @@ the MIX buses and the stereo bus. Stepped to a channel that does not carry the b
 COMP screen, for one), these screens keep the channel's name in the toolbar, draw no title, and show `This channel has
 no GATE screen` (`COMP`, `EQ`, `DUCKER`, `DELAY` and `SSMCS` in the same form) in the middle, with the knob readout bar
 at the foot, its cells empty, the USER DEFINED KNOBS button at the bottom right, nothing to operate and nothing written
-(URX44V, the operator, 2026-10-02 and 2026-10-04).
+(confirmed on a URX44V).
 
 At 176.4 and 192 kHz the stereo inputs' EQ is out of use: their channel view draws no EQ block, DUCKER keeping its
 place, HOME's strip leaves its `EQ` mark out, and the EQ screen stepped to one of them shows `This channel has no EQ
-screen at this sampling frequency` in the same form (URX44V, the operator, 2026-10-04). The EQ keeps its settings, and
+screen at this sampling frequency` in the same form (confirmed on a URX44V). The EQ keeps its settings, and
 the signal passes it untouched until the rate comes back down. At 96 kHz a stereo input keeps its EQ block and its `EQ`
-mark (URX44V, the operator, 2026-10-04, on CH 5/6). The other strips keep their EQ at 176.4 and 192 kHz: CH 1, CH 3 and
+mark (confirmed on a URX44V, on CH 5/6). The other strips keep their EQ at 176.4 and 192 kHz: CH 1, CH 3 and
 CH 4 keep their `EQ` mark at both rates, and at 192 kHz CH 1, MIX 1 and STEREO keep their EQ block, MIX 1 and STEREO
-their `EQ` mark, and the EQ screens of CH 1, MIX 1 and STEREO draw the graph and the knobs (URX44V, the operator,
-2026-10-04).
+their `EQ` mark, and the EQ screens of CH 1, MIX 1 and STEREO draw the graph and the knobs (confirmed on a
+URX44V).
 
 The screen name does not wrap.
 
@@ -621,8 +622,8 @@ block's own input and output, so OUT reads that far below IN, less what the bloc
 nothing down (DELAY switched off, INS FX on [No Effect]) meters IN and OUT alike. The bar and IN / OUT
 are read again by the ticker that keeps the meters moving without redrawing the screen.
 
-On a stereo-linked pair, what each block's detector hears differs by block (confirmed on the unit on
-2026-09-26).
+On a stereo-linked pair, what each block's detector hears differs by block (confirmed on the
+unit).
 
 - GATE and INS FX (Compander) hear the louder of the pair's two channels, without adding them. Either
   channel's screen reads the same reduction, and both OUT bars come down by it.
@@ -640,7 +641,7 @@ bottom one is level with the foot of the curve panel: DUCKER has one (Threshold)
 Release), GATE three (Attack / Hold / Decay). Value boxes are 52x22, 7px in from the right edge.
 
 The times stop on the unit's own settings, one a detent of its knob, and go no further at either end
-(URX44V, the operator, 2026-10-03): Attack 0.092..80.00 ms over 227 stops, the same on GATE, COMP and
+(confirmed on a URX44V): Attack 0.092..80.00 ms over 227 stops, the same on GATE, COMP and
 DUCKER; GATE's Hold 0.02 ms..1.96 s over 214; GATE's Decay and COMP's Release 9.3..999.0 ms over the
 same 277; and DUCKER's Decay 1.3 ms..5.0 s over 122. A detent of the arrow keys or the wheel moves one
 stop, with Shift held or not, and a drag runs evenly over the stops. A time that a browser save, a settings file
@@ -648,7 +649,7 @@ or a scene holds off these stops comes back on the stop nearest it, and the next
 Each reads to the places the unit prints it to: Attack to three places under 10 ms (`0.097m`) and two from there
 (`10.12m`); GATE's Decay and COMP's Release to one (`9.7m`, `100.1m`); GATE's Hold to two under 10 ms (`9.75m`), one
 below a second and two in seconds from there (`1.96s`); DUCKER's Decay to one, in seconds from a second too (`5.0s`)
-(URX44V, the operator, 2026-10-04).
+(confirmed on a URX44V).
 
 The handles (G / T / R / A / D) are 32px in diameter (face `--handle-face`, a 3px `--handle-ring`
 rim), pulled in from the left and right ends of the panel by their radius. The handle touched takes the focus,
@@ -659,9 +660,9 @@ Each handle is the control for its value and turns by a drag, the wheel and the 
 "COMP screen" and a under "DUCKER screen" in the user guide): GATE's T turns the threshold and R the range, COMP's T the
 threshold, G the gain and R the ratio, and DUCKER's R the range, A the attack and D the decay. A drag runs the way the
 triangles point, and COMP's R raises the ratio the further it is pulled down (a higher ratio takes the curve's right end
-down; URX44V, the operator, 2026-09-22). While COMP's 1-knob is on no handle turns, G, T and R go to half-size rings without letters (a thin pale line
-over a faint magenta face) and the curve turns magenta, the way the EQ draws its own (URX44V, the operator,
-2026-09-23); while Auto Makeup is on G does not turn.
+down; confirmed on a URX44V). While COMP's 1-knob is on no handle turns, G, T and R go to half-size rings without letters (a thin pale line
+over a faint magenta face) and the curve turns magenta, the way the EQ draws its own (confirmed on a
+URX44V); while Auto Makeup is on G does not turn.
 A handle held by a press carries this rim and these triangles alone, without the browser's focus ring (which shows only
 when the keys move the focus there). The triangles are drawn over every handle, so no handle nearby covers them.
 A handle keeps its whole disc on the graph where its value would take it over the top or under the floor, the
@@ -673,8 +674,8 @@ handle on the frame shows no triangle on the frame's far side.
 - COMP: transfer curve. `out = in + Gain`, bent at the threshold and laid down by the ratio. The bend is rounded
   over the Knee width (Soft 52 dB, Medium 16 dB, Hard 0 dB). G and R are at the panel's left and right ends, T stands
   on the rounded curve at the threshold. Ratio takes the stops listed under "The four SSMCS screens", and only the
-  reading differs: from 100:1 up it keeps a decimal place (`100.0:1`, `500.0:1`; URX44V, the operator, 2026-09-23).
-  At the top stop, INF:1, the curve runs flat above the threshold (the operator, the same day).
+  reading differs: from 100:1 up it keeps a decimal place (`100.0:1`, `500.0:1`; confirmed on a URX44V).
+  At the top stop, INF:1, the curve runs flat above the threshold (confirmed on the unit).
 - DUCKER: envelope. A trapezoid that goes down to RANGE while the key sounds and comes back when it
   stops. R is the height of RANGE, A and D the corners going down and up.
 
@@ -686,7 +687,7 @@ vertical rules at A and D.
 The reduction bar grows from the top down. Every block's reduction bar reads on one scale: 11/21 of the
 bar at 18 dB, 11/14 at 36 dB and the full length at 60 dB, straight between them (`grBarShare`). The GATE,
 DUCKER, COMP and SSMCS screens, INS FX's Compander, M.B.Comp's bands and the channel view's COMP block bar
-(lit from the right) share it (2026-09-26: the lengths the operator read on the unit's LCD from these seven
+(lit from the right) share it (the lengths read on the unit's LCD from these seven
 bars are each within 0.9 mm of this scale, the largest gap being the Compander's 0.8 mm at 19 dB). GATE grows by RANGE while the input is at or
 under the threshold. In p103-1, RANGE -20 dB lights y118..174; on this scale it reaches y118..177.
 The channel view's COMP block level bar and its threshold mark stand on the level meters' scale ("Meter
@@ -729,14 +730,14 @@ sides differ — one bar in and two out — because it is fed by one bus and ret
 ## The effect screens
 
 INS FX and an FX channel's effect are chosen with the effect-name button and set on that same screen.
-The INS FX screen is the effect's settings screen, ready to turn the moment it opens (URX44V, the
-operator, 2026-09-23). Steps 3 and 4 of the guide's "Operating the insert from the HOME screen
+The INS FX screen is the effect's settings screen, ready to turn the moment it opens (confirmed on a
+URX44V). Steps 3 and 4 of the guide's "Operating the insert from the HOME screen
 (Overview)" have an effect area that opens the parameter settings screen; the unit takes no such step.
 
 An FX channel has no INS FX screen in between. Its panel on the channel view is three lines — the
 channel's name (FX1 / FX2), a blank one, and the effect it is running — and the name is a label
-rather than a switch, set in white across the middle of the panel (URX44V, the operator,
-2026-09-22). Touching the panel opens the parameter settings screen, whose toolbar carries
+rather than a switch, set in white across the middle of the panel (confirmed on a
+URX44V). Touching the panel opens the parameter settings screen, whose toolbar carries
 the effect-name button (with the popup mark) and the channel's name between the channel arrows and
 the back button. The screen the effect is chosen on is headed `EFFECT TYPE`. The HOME strip does not
 name the effect.
@@ -752,8 +753,8 @@ the middle, with the knob readout bar at the foot, its cells empty, and nothing 
 nothing is written. The name box there carries no colour, its icon square and rail the box's own face, and names the
 channel on its first line alone. The Sends destination sheet leaves FX 2 out, and HOME's [Sends] on FX 2 moves to FX 1
 when the rate goes up and stays on FX 1 when it comes back down. On SEND TO's FX 1-2 tab the FX 2 cell keeps its
-`FX2` and nothing under it: no second line, no [ON], no [PRE], and no Level on the knob (URX44V, the operator,
-2026-10-04). A settings file loaded, or a unit coming back from storage, at 176.4 or 192 kHz with [Sends] on FX 2 puts
+`FX2` and nothing under it: no second line, no [ON], no [PRE], and no Level on the knob (confirmed on a
+URX44V). A settings file loaded, or a unit coming back from storage, at 176.4 or 192 kHz with [Sends] on FX 2 puts
 [Sends] on FX 1 the same way.
 
 The guide carries no figure of either, so **the arrangement is this project's own**. What the guide
@@ -761,7 +762,7 @@ does fix is that the controls stand in the middle of the screen (the middle of p
 [No Effect] leaves empty) and that the input/output meters stand at the right.
 
 The parameter settings screen holds eight controls to a page, four across and two down. The cells are
-as wide as the DELAY screen's, 86, and 82 high, 2px lower than DELAY's 84 (the operator's instruction, 2026-09-24), at
+as wide as the DELAY screen's, 86, and 82 high, 2px lower than DELAY's 84 (the operator's instruction), at
 x12..411 / y53..224 on an 8px row gutter, the second row starting at y143. The columns follow the rule the oscillator's boxes follow: each one stands over the division
 of the knob readout bar that reads it (x12, 116, 222 and 326, each within 0.5px of its division's
 middle). A cell carries a 15px caption over its control, and a value that moves continuously
@@ -773,43 +774,43 @@ page of Rev-X Hall, HPF and LPF), and a page of five to eight puts its first fou
 and the rest in the lower one. The knob readout bar reads a row at a time, the lower row first, then the
 upper one, each value in the division under its own panel: a division under a panel with nothing to turn
 stays empty, and a row with nothing to turn takes no page of the knobs. The divisions follow the panels
-as they do on every other screen (the operator's instruction, the same day). A page frames the first value
-the bar reads as it opens or is stepped to. On Rev-X Hall this matches the unit (URX44V, the operator,
-2026-09-22). M.B.Comp does not use these panels at all: it is drawn in the frame the channel's own COMP
-takes (see "M.B.Comp's four pages"). Clean is laid out as the unit lays it out (the operator,
-the same day): the first page's upper row is Volume / Distortion / Blend / Output and its lower row Treble /
+as they do on every other screen (the operator's instruction). A page frames the first value
+the bar reads as it opens or is stepped to. On Rev-X Hall this matches the unit (confirmed on a
+URX44V). M.B.Comp does not use these panels at all: it is drawn in the frame the channel's own COMP
+takes (see "M.B.Comp's four pages"). Clean is laid out as the unit lays it out (confirmed on the
+unit): the first page's upper row is Volume / Distortion / Blend / Output and its lower row Treble /
 Middle / Bass / Presence, the second page's upper row Cho, Off and Vib / Gate / SP Type and its lower row Speed /
 Depth / Gate Level / Mic Position. Cho, Off and Vib take the upper row's first two places (the two tracks and the
 gap between them, 190px), three buttons side by side with no caption, the one taken lit in the cyan
-`--accent-selected` (the third reads `Vib`; the operator, the same day). They are 59, 60 and 59 wide (the operator's
-instruction, 2026-09-24). Gate has no caption and carries `Gate` on its
-own button, the dark button Cho, Off and Vib use, rounded on its left end as on its right since it is not one of a row, and as wide as a panel, 86px (the operator's instruction, the same day). Cho, Off and Vib, Gate, SP Type and Mic Position stand on the glass with no panel under them, their buttons and
+`--accent-selected` (the third reads `Vib`; confirmed on the unit). They are 59, 60 and 59 wide (the operator's
+instruction). Gate has no caption and carries `Gate` on its
+own button, the dark button Cho, Off and Vib use, rounded on its left end as on its right since it is not one of a row, and as wide as a panel, 86px (the operator's instruction). Cho, Off and Vib, Gate, SP Type and Mic Position stand on the glass with no panel under them, their buttons and
 lists 36px high, nine tenths of the toolbar's 40px effect name. SP Type and Mic Position set their caption in the
 dark grey `--text-muted` 4px apart over the list, stand caption and list at the foot of their place, and run their
 list the width of the readout bar's division under it (x317..419 under the last column). The upper row's SP Type comes
 down until its list ends 8px over the lower row's
 Mic Position caption, and the upper row's Cho, Off and Vib and Gate end where that list begins (the operator's own
-instruction, the same day). Gate lights cyan when on, as Cho, Off and Vib do (the operator, the same day). The 4px
+instruction). Gate lights cyan when on, as Cho, Off and Vib do (confirmed on the unit). The 4px
 between a foot list and its caption and the 4px under a foot list are the simulator's own, there being no figure.
-Crunch, Lead and Drive are laid out as the unit lays them out too (the operator, the same day): the first page's
+Crunch, Lead and Drive are laid out as the unit lays them out too (confirmed on the unit): the first page's
 upper row is Type (Amp Type on Drive) / Gain / Master (empty on Crunch) / Output and its lower row Clean's Treble /
 Middle / Bass / Presence. The second page leaves Clean's Cho, Off and Vib, Speed and Depth empty and stands Gate,
 Gate Level, SP Type and Mic Position where Clean does, drawn as Clean draws them. Type and Amp Type are not lists but
-a value box over a knob, and turning the knob steps from one name to the next (the operator, the same day).
-Mono Delay's layout is the unit's too (the operator, the same day): page one carries HPF / LPF / empty / empty in the
+a value box over a knob, and turning the knob steps from one name to the next (confirmed on the unit).
+Mono Delay's layout is the unit's too (confirmed on the unit): page one carries HPF / LPF / empty / empty in the
 upper row and Delay / FB.Gain / Hi.Ratio / empty in the lower, page two Sync / empty / empty / BPM in the upper row
 and three empty places and Note in the lower. The readout bar reads Delay / FB.Gain / Hi.Ratio / empty on page one
 and HPF / LPF / empty / empty on the page stepped to from there, and three empty divisions and BPM on page two. Sync,
 as Gate does, has no caption and carries `Sync` on its own button. Note is a list with no panel under it, as wide as
 a panel, 86px, its caption and list standing at the foot of its place with the 4px between them and the 4px under
-the list SP Type and Mic Position take (all the operator's own instruction, the same day). Sync stands at the height
-Gate does, and Note's caption is the dark grey SP Type's is (the operator, the same day). Ping Pong takes Mono
-Delay's layout too (the operator, the same day). Rev.R3 stands as the unit stands it as well (URX44V, the operator,
-2026-09-23, read on Hall; the three faces are built the same): page one Density / FB.Gain / E/R Delay / E/R Bal. in the
+the list SP Type and Mic Position take (all the operator's own instruction). Sync stands at the height
+Gate does, and Note's caption is the dark grey SP Type's is (confirmed on the unit). Ping Pong takes Mono
+Delay's layout too (confirmed on the unit). Rev.R3 stands as the unit stands it as well (confirmed on a
+URX44V, read on Hall; the three faces are built the same): page one Density / FB.Gain / E/R Delay / E/R Bal. in the
 upper row and Rev.Time / Ini.Delay / Hi.Ratio / Diffusion in the lower, page two HPF / LPF in the lower row.
 A pulldown with six options or more opens on a sheet rather than under its box. Note opens no sheet: its list opens
-to the left of its box, three rows of five (the operator's instruction, the same day; its place confirmed by the
-operator the same day), over as little as it can:
+to the left of its box, three rows of five (the operator's instruction; its place confirmed on the
+unit), over as little as it can:
 2px clear of the Note box (x326..411) and of the readout bar (y233), at x60..323 / y107..230. The list is 264px wide,
 wider than the room left of the box (x98..325, right of Sync), so its left end lies over the foot of
 Sync (x60..97 / y107..121).
@@ -819,12 +820,12 @@ block's own input and output meters stand at the right (x430..473), in the place
 dynamics screens give them.
 
 A value box and a reading print the number alone, with no unit (Hz, kHz, s, ms, dB, %), and the knob
-readout bar under the screen keeps the unit, both as the unit does (URX44V, the operator, 2026-09-22). FB.Gain
+readout bar under the screen keeps the unit, both as the unit does (confirmed on a URX44V). FB.Gain
 and Pitch Fix's Coarse, Fine and Formant carry no `+` over zero and a `-` below it, in the box and on the bar
-alike (the operator, the same day; the same on a URX22, the operator, 2026-10-15).
+alike (confirmed on the unit; the same on a URX22).
 
-Each effect has its own form of reading (each printed alike on a URX22 and a URX44V, checked on the units on
-2026-10-15 and 2026-10-16). Rev.R3's Rev.Time reads one decimal (`0.3`, `5.0`, `30.0`), and REV-X's Rev.Time
+Each effect has its own form of reading (each printed alike on a URX22 and a
+URX44V). Rev.R3's Rev.Time reads one decimal (`0.3`, `5.0`, `30.0`), and REV-X's Rev.Time
 three figures rounded half up (`0.172`, `10.3`). REV-X's Rev.Time is the product of Rev.Time's share at its place
 and the length at the Room Size's step, and Hall, Room and Plate share one table of steps (Room's Room Size n is
 Hall's n + 11, and Plate's n is Room's n + 4). A guitar amp's Output reads 40·log10(p / 127) dB to one decimal at
@@ -838,7 +839,7 @@ from the channel view's panel (INS FX or an FX channel).
 
 ### Pitch Fix's three pages
 
-Pitch Fix stands on three pages too (URX44V, the operator, 2026-09-23). [Correction] stands in the top
+Pitch Fix stands on three pages too (confirmed on a URX44V). [Correction] stands in the top
 right corner of each (x390..476 / y50..78, where COMP's [1 1-knob] stands). A page that carries a name
 writes it on a strip two panels wide (x12..202 / y106..130, the readout bar's own face and ink), over the
 panels the name covers.
@@ -855,8 +856,8 @@ drawn in [1 1-knob]'s lit face where the correction takes the note and in the fa
 beside it where it does not. Touching a circle turns that note over and takes the Scale to `Custom`.
 Choosing a named scale fills the twelve in, and so does changing the Key while one is named. While the
 Scale reads `Custom`, neither choosing `Custom` again nor changing the Key moves them, and nothing takes
-the Scale back out of `Custom` on its own (URX44V, the operator, 2026-09-23).
-MIDI Control decides the Scale's list and the twelve (URX44V, the operator, 2026-10-08). `Off` lists every scale,
+the Scale back out of `Custom` on its own (confirmed on a URX44V).
+MIDI Control decides the Scale's list and the twelve (confirmed on a URX44V). `Off` lists every scale,
 `Setting` all but `Chromatic`, and `Real Time` only `Custom` and `Single`. Under `Real Time` all twelve are off, and a
 scale or a Key chosen there fills none in. Under `Setting` and `Real Time` a touch on a circle turns nothing over and
 leaves the Scale as it is. Taking it onto `Real Time` turns the twelve off and takes any scale but
@@ -873,7 +874,7 @@ first and Mix in the third division of its second row.
 ### M.B.Comp's four pages
 
 M.B.Comp sets out no panels: like the companders it is drawn in the frame the channel's own COMP takes
-(URX44V, the operator, 2026-09-23). It has four pages, stepped through by the same round
+(confirmed on a URX44V). It has four pages, stepped through by the same round
 arrows the other effects use.
 
 The first page carries the bands themselves. The plot runs frequency across it (20 Hz to 20 kHz,
@@ -889,7 +890,7 @@ fill the band's colour, with T (threshold) and R (ratio) on it. Down the right s
 [Bypass] button and the Attack and Release rows, where Release is the whole effect's. The readout bar reads
 Threshold / Ratio / Attack / Release.
 
-The measures come from the unit's own screens (URX44V, 2026-09-23). The curve's plot stands further left
+The measures come from the unit's own screens (confirmed on a URX44V). The curve's plot stands further left
 than the other dynamics screens put theirs, from x4, and keeps the same 200px width; only the first page's
 graph is wider, at 265px. Three reduction bars, 6px wide and 6px apart, stand with `GR` and `L M H` set
 above them, their feet level with the plot's foot, in the middle of the gap between the plot and whatever
@@ -910,29 +911,29 @@ draws G, T and R the same way while its 1-knob is on. A grip, its rim included, 
 frame.
 
 Clean's Speed and Depth look and turn the same whichever of Cho / Off / Vib is chosen (the "Not available when "Cho"
-is On." of "CLEAN Only" in the Effect Reference Guide is about the sound; URX44V, confirmed by the operator on
-2026-09-22). While Sync is on, Mono Delay and
+is On." of "CLEAN Only" in the Effect Reference Guide is about the sound; confirmed on a
+URX44V). While Sync is on, Mono Delay and
 Ping Pong set Delay (Delay Time on Ping Pong) to the Note's value counted at the BPM (a quarter note is 60000 / BPM ms),
 worked out again when Sync goes on and whenever Note or BPM moves, and stopping at the ends of the delay's range
 (0.1..2700.0 ms on Mono Delay, 1.0..1350.0 ms on Ping Pong) ("Delay Section" in the Effect Reference Guide). The Delay
 row keeps its usual face and still turns under Sync; turning it leaves Sync on, and the next move of Note or BPM takes
 it back to the note's length. Switching Sync off leaves the time where it is. Sync changes nothing about what the
-Note box shows or what its list offers, and at 60 BPM no note value in the Note list is out of reach (URX44V,
-confirmed by the operator on 2026-09-22). With Sync off a move of the Note leaves the time alone (the Note is the
+Note box shows or what its list offers, and at 60 BPM no note value in the Note list is out of reach (confirmed on a
+URX44V). With Sync off a move of the Note leaves the time alone (the Note is the
 value "when tempo sync is enabled"). The Note box and its list draw note values as notes: the list carries 15, row by row from the top left three rows of
 five, `---` at the top left in words and the other 14 as the seven-row pixel glyphs of the note under the Mono Delay
-table in the Effect Reference Guide (URX44V, confirmed by the operator on 2026-09-22). Drawing a glyph pixel as two
+table in the Effect Reference Guide (confirmed on a URX44V). Drawing a glyph pixel as two
 screen pixels, and each of the list's options at the 48x36 of the Ducker Source list's, are the simulator's own sizes,
 there being no figure (`NOTE_PIXELS` in `src/ui/icons.ts`).
 
 Compander-H and Compander-S are the two effects that are not laid out in panels: they take the frame
 the channel's own COMP takes. The curve fills the left, the reduction meter stands beside it, then
 Attack, Release and Ratio, and the block's own input and output meters at the far right. This layout and the
-two pages of the readout bar under it were held against the unit and match (URX44V, the operator, 2026-09-23).
+two pages of the readout bar under it were held against the unit and match (confirmed on a URX44V).
 Threshold reads in whole dB with any fraction cut toward zero, and the knob moves it a dB a detent and keeps the
 fraction (-23.5 dB reads `-23` and goes to -22.5 dB a detent up). Release steps through 160 stops from 5.0 ms to
-42.3 s, one a detent, and reads three figures to no finer than 0.1 ms (`5.0`, `65.4`, `999`, `1.23s`, `42.3s`; the
-stops are the same on a URX44V and a URX22, recorded on the units on 2026-10-16). Those boxes
+42.3 s, one a detent, and reads three figures to no finer than 0.1 ms (`5.0`, `65.4`, `999`, `1.23s`, `42.3s`; the stops are the same on a URX44V and a
+URX22). Those boxes
 are narrow, so they print the millisecond as `m`, as the channel's own COMP does; the readout bar
 keeps `ms`. The values
 go on the readout bar four at a time, over two pages: Threshold, Ratio, Width and Gain on the first,
@@ -940,7 +941,7 @@ Attack and Release on the second.
 
 The curve carries three grips. (T) stands on the threshold's corner and moves it left and right. (W)
 stands at the foot of the band (Threshold − Width) and **widens the band when it is dragged left**,
-since it stands where the value's mirror is (URX44V, the operator, 2026-09-22). (G) stands at the top right of the plot, a ring's width in
+since it stands where the value's mirror is (confirmed on a URX44V). (G) stands at the top right of the plot, a ring's width in
 from the right frame, and moves Gain up and down. Each takes the pink border when it is touched, and
 turns by a drag, the wheel or the arrow keys.
 
@@ -959,10 +960,10 @@ crossing down to (T), Ratio lays the slope down; between (T) and (W) — the ban
 is 1.0:1; and below (W) it falls harder still, at a slope that belongs to the effect: **5:1 for
 Compander-H and 1.5:1 for Compander-S** (measured; neither Width nor Ratio moves it). Where the lift between (T) and
 (W), -Threshold x (1 - 1/Ratio), would pass 18 dB, it stops at 18 dB and the whole curve stands lower by the
-difference, the line right of the crossing under the crossing too (URX44V, the operator, 2026-10-08). The
+difference, the line right of the crossing under the crossing too (confirmed on a URX44V). The
 expansion hears nothing under -62 dB in what the effect puts out ("Blocks"), but the curve below (W) runs on at the same
 slope under -62 dB (Compander-H at Threshold -36 dB, Ratio 2.0:1 and Width 24 dB, and Compander-S at Threshold -36 dB, Ratio
-2.0:1 and Width 6 dB, URX44V, the operator, 2026-10-08).
+2.0:1 and Width 6 dB, confirmed on a URX44V).
 
 ### Choosing an effect
 
@@ -985,7 +986,7 @@ dimmed while Signal Type is STEREO, in PAN and BAL alike; Compander-H and Compan
 appearance. In MONO x 2, those effect entries have their normal appearance.
 
 An input channel's compander and a bus's M.B.Comp hold different slots, so the two run at once, and while one bus runs
-M.B.Comp the other buses can take nothing (URX44V, the operator, 2026-09-22).
+M.B.Comp the other buses can take nothing (confirmed on a URX44V).
 
 Taking an effect switches the block on and fills the effect with the unit's own settings; taking the
 same one again puts them back. While the channel reads [No Effect] the INS FX name is no switch: a touch on
@@ -1015,24 +1016,24 @@ The time runs 1.00..1000.00 ms and is held in hundredths of a ms. The four cells
 frame rate / 1000) in frames, and ms / 1000 × 343.59 in metres and × 1127.26 in feet, and read it to their places, ms and
 frame to two and meter and feet to one, by Math.round on the value × 100 on ms and frame and × 10 on meter and
 feet, that product worked in double precision. At 25 frames a second 1.00 ms (0.025 frame) reads 0.03, and so does
-1.40 ms (0.035 frame), and 508.00 ms (572.65 ft) reads 572.6 ft (URX44V, the operator, 2026-10-03); the products
+1.40 ms (0.035 frame), and 508.00 ms (572.65 ft) reads 572.6 ft (confirmed on a URX44V); the products
 come to 2.5, 3.4999999999999996 and 5726.499999999998. 3.40 ms (0.085 frame) reads 0.09 and 8.20 ms (0.205 frame)
-0.21 at 25 frames a second, and 994.40 ms reads 1120.9 ft (URX44V, the operator, 2026-10-04). A detent (an arrow key, the wheel or a knob under the screen;
+0.21 at 25 frames a second, and 994.40 ms reads 1120.9 ft (confirmed on a URX44V). A detent (an arrow key, the wheel or a knob under the screen;
 a drag turns as many detents as it covers) adds the cell's step to the reading the cell shows, rounds the sum to
 the cell's places and turns that back into a time by the same steps undone. The step is 1.00 ms on ms (45.86 goes
 to 46.86), 0.2 frame on frame, 1.0 m on meter and 5.0 ft on feet: 24.00 ms reads 8.2 m, so a detent up on meter
-goes to 9.2 m (26.78 ms). The ms cell keeps the hundredths, 3.41 ms going to 4.41 ms (URX44V, the operator,
-2026-10-04). The time frame, meter or feet reaches lands on the nearest 0.02 ms, a half going up (0.09 frame at 24
-frames a second, 3.75 ms, goes to 3.76 ms), and a detent past 1.00 ms or 1000.00 ms stops there (URX44V, the
-operator, 2026-10-03; frame at 24, 25, 29.97, 29.97D, 30, 30D, 60 and 120 frames a second). The frame cell's
+goes to 9.2 m (26.78 ms). The ms cell keeps the hundredths, 3.41 ms going to 4.41 ms (confirmed on a
+URX44V). The time frame, meter or feet reaches lands on the nearest 0.02 ms, a half going up (0.09 frame at 24
+frames a second, 3.75 ms, goes to 3.76 ms), and a detent past 1.00 ms or 1000.00 ms stops there (confirmed on a
+URX44V; frame at 24, 25, 29.97, 29.97D, 30, 30D, 60 and 120 frames a second). The frame cell's
 reading stops at the smallest and the largest one on two places whose time lies in 1.00..1000.00 ms, 0.03 frame
-(1.20 ms) and 25.00 at 25 frames a second (URX44V, the operator, 2026-10-03). A detent with Shift held turns a
+(1.20 ms) and 25.00 at 25 frames a second (confirmed on a URX44V). A detent with Shift held turns a
 finer step the same way, as the unit's knob turns finer while it is pushed in as it turns: 0.02 ms on ms, and the
 reading's last place on frame, meter and feet, 0.01 frame, 0.1 m or 0.1 ft. From 24.00 ms it goes to 24.02 ms on
-ms, 24.34 ms on frame (0.73 frame) and 24.16 ms on meter (8.3 m) (URX44V, the operator, 2026-10-03; at 30 frames a
-second). The ms cell keeps the hundredths here too, 3.41 ms going to 3.43 ms (URX44V, the operator, 2026-10-04). At 24 frames a second frame goes from 8.20 ms (0.20 frame) to 0.21 frame, 8.75 ms, which lands on 8.76 ms
-(URX44V, the operator, 2026-10-04). It stops at the same ends as a detent does: at 25 frames a second frame goes down from 1.40 ms to 1.20 ms
-and no further (URX44V, the operator, 2026-10-03). A time that a browser save or a settings file holds off the hundredths
+ms, 24.34 ms on frame (0.73 frame) and 24.16 ms on meter (8.3 m) (confirmed on a URX44V; at 30 frames a
+second). The ms cell keeps the hundredths here too, 3.41 ms going to 3.43 ms (confirmed on a URX44V). At 24 frames a second frame goes from 8.20 ms (0.20 frame) to 0.21 frame, 8.75 ms, which lands on 8.76 ms
+(confirmed on a URX44V). It stops at the same ends as a detent does: at 25 frames a second frame goes down from 1.40 ms to 1.20 ms
+and no further (confirmed on a URX44V). A time that a browser save or a settings file holds off the hundredths
 of a ms comes back on the hundredth nearest it, and the next save holds that time.
 
 ## EQ screen
@@ -1058,7 +1059,7 @@ puts that band on the knobs. Dragging one moves its frequency across the graph a
 band on the knobs too (e under "EQ screen" in the user guide). A handle's name is 13.5px in the regular weight in the middle of its ring (p106-1). The handle of the band on
 the knobs carries a 6x8 triangle on either side, 3px outside its ring and level with its middle (y130..137 in p106-1).
 The triangles fade out and back in over two seconds.
-The knob readout names a band as the band box does (`L-MID Q`, `H-MID Gain` and so on), and carries only what the band's shape reads, each in its own division with the others empty: Q in the second on a Bell alone, Freq. in the third, and Gain in the fourth on every shape but HPF and LPF (URX44V / System 1.3.1.0, the operator on CH 1's EQ screen, 2026-10-18). The rules are 1px on whole rows, and the curve's line is `--eq-line`.
+The knob readout names a band as the band box does (`L-MID Q`, `H-MID Gain` and so on), and carries only what the band's shape reads, each in its own division with the others empty: Q in the second on a Bell alone, Freq. in the third, and Gain in the fourth on every shape but HPF and LPF (confirmed on a URX44V with System 1.3.1.0, on CH 1's EQ screen). The rules are 1px on whole rows, and the curve's line is `--eq-line`.
 
 A press on the band box at the top left switches the band on the knobs on and off (b under "EQ screen" in the user
 guide). The box of a band that is on has the `--accent-band` face; the box of a band that is off has the pale face of a
@@ -1075,8 +1076,8 @@ type, so nothing is swapped.
 
 The two types are separate banks inside the unit and are not kept across a switch. Taking a type
 **loads that bank's factory values whole** — entering SSMCS puts every SSMCS value back and turns the
-SSMCS COMP and EQ switches on, even where they were off before (URX44V, System firmware 1.3.1.0, the operator,
-2026-10-13), and entering COMP -> EQ puts the compressor, the four-band EQ and the EQ 1-knob
+SSMCS COMP and EQ switches on, even where they were off before (confirmed on a URX44V with System firmware
+1.3.1.0), and entering COMP -> EQ puts the compressor, the four-band EQ and the EQ 1-knob
 back. **The bank being left keeps its own** until it is entered again. GATE does not depend on the
 type and does not move. Taking the type it already holds does nothing. The four screens are stepped through by the round arrows that lie over
 the sides of the glass; a press replaces the screen rather than stacking on it, so one back arrow
@@ -1106,7 +1107,7 @@ chain listens to (6x106, x5/y69) and at its right the gain reduction meter. Down
 Knee pulldown (124x37, x292/y46) and the Attack and Release rows (169x36, x248/y94 and x248/y138).
 Two handles, D and R, stand on the curve. D turns Comp Drive and R the ratio: D raises its value the further it is
 pulled left and R the further it is pulled down (more drive takes the corner left, a higher ratio takes the curve's
-right end down; URX44V, the operator, 2026-09-22).
+right end down; confirmed on a URX44V).
 
 COMP Side Chain (measured on p111-1). The same frame, with the [Side Chain] switch at the top right
 (167x40, x249/y0, `--block-fx` over a `--badge-title-band-fx` band when on) over three rows (x248 at
@@ -1125,7 +1126,7 @@ with nothing to turn.
 The ranges: Comp Drive 0.00..10.00 in steps of 0.05, Morphing 0..120, Out Gain ±18.0 dB in 0.1 (1.0 a detent),
 Ratio 1.00:1..INF:1 (sixty stops of 0.05 from 1.00:1 to 4.00:1; from there 4.00..4.90 in 0.1, 5.00..6.80 in 0.2, 7.00..9.50 in 0.5,
 10.0..20.0 in 1 and 22.0..38.0 in 2, then 40.0, 45.0, 50.0, 55.0, 60.0, 65.0, 70.0, 80.0, 90.0, 100, 150, 200, 300,
-500 and INF; every stop URX44V, the operator, 2026-09-22 and 23; read to three figures: two places under 10, one under
+500 and INF; every stop confirmed on a URX44V; read to three figures: two places under 10, one under
 100, whole from 100, and the top carries its `:1` too, `INF:1`), Attack 0.092..80.00 ms over 227 stops (read to three places under 10 ms and two from there), Release
 9.3..999.0 ms over 277 stops (read to one place), both on the stops of the COMP's own Attack and Release, Knee Soft / Medium / Hard, Q
 0.50..16.00, frequency 20 Hz..20 kHz in twelfths of an octave, the stops being numbers of the R40 series of preferred
@@ -1181,8 +1182,8 @@ channel's INPUT screen.
 
 The Input Source box breaks a source's name where the source sheet's button breaks it: `MIC/LINE 1/2`
 over the two lines `MIC/LINE` and `1/2` (p100-1). `AUX IN`, `USB MAIN A`, `USB SUB` and `HDMI` on one
-line and `USB DAW 1/2` and `microSD Playback` over two match the unit too (URX44V, the operator,
-2026-09-22). The name is set in 12.5px, its two lines 16px apart, centred on the face left of the copy mark's
+line and `USB DAW 1/2` and `microSD Playback` over two match the unit too (confirmed on a
+URX44V). The name is set in 12.5px, its two lines 16px apart, centred on the face left of the copy mark's
 column (x154): `MIC/LINE` stands on x127..180 / y59..67 and `3/4` on y75..83 (p100-1).
 
 STREAMING's Input Source box drops not the channel input list but the buses it can be fed from inside
@@ -1223,16 +1224,16 @@ is that reference and carries no tap: [PRE] goes from its cell, keeping its room
 stereo bus has no level and no placing of its own either: no Level goes on the knob, the pan slider and
 its value show the channel's own PAN (BAL), and turning the value box turns the channel's PAN (BAL). On a channel
 placed by its PAN the value is captioned `Pan` (CH 3's PAN at L20 shows `Pan` L20 in the STEREO cell, and
-one step of the box takes CH 3's PAN to L21; confirmed on a URX44V on 2026-09-28), and on a channel
+one step of the box takes CH 3's PAN to L21; confirmed on a URX44V), and on a channel
 placed by its BAL `Bal`: a stereo channel, an FX channel and a pair linked on its balance (CH 5/6, FX1
 and CH 3 of CH 3/4 each show `Bal` C in the STEREO cell, and one step of the box takes the BAL to R1;
-confirmed on a URX44V on 2026-10-04).
+confirmed on a URX44V).
 
 A cell is a column like a HOME strip, 98px wide and 181px high: under a 36px `--surface-raised` band
 naming the destination come [ON], [PRE], the send's own pan slider, and `Bal` with its value (measured
 on p116-1: ON y95, PRE y146, slider y197, value y207..228). The send level is not in the cell; the knob
 and its readout bar hold it. A send into FX 1 or FX 2 is summed to one side, so its cell has no pan slider
-and no `Bal` (URX44V, the operator, 2026-10-04).
+and no `Bal` (confirmed on a URX44V).
 
 Tabs on the rail are 57px high and 3px apart for SEND TO, and 52px high and 7px apart for the menu
 screens (MONITOR, SCENE, OSCILLATOR, Software Integration). The SEND TO tabs and the menu tabs have a
@@ -1257,12 +1258,12 @@ bottom row at y155 holds FX 1 / FX 2 / STEREO L / STEREO R. [Clear All] stands u
 x310 / y225 in the same 90x40. An assigned STEREO box carries the face `--accent-bank-out` over the band
 `--accent-bank-out-bevel`, with its name in white (p071-1). An assigned MIX or FX box takes the colour HOME's [Sends]
 tab takes for that destination (`--accent-sends-mix` for MIX, `--accent-sends-fx` for FX), over the same darker cast
-of its own face as the tab (URX44V, confirmed by the operator on 2026-09-22). The unassigned boxes and [Clear All] take the face,
+of its own face as the tab (confirmed on a URX44V). The unassigned boxes and [Clear All] take the face,
 band and corners of a button standing on the glass (74,81,90). Out of the box only STEREO L and STEREO R
 are assigned. While the sampling frequency is 176.4 or 192 kHz FX 2 cannot be assigned (the NOTE under Assign in
 "Oscillator menu" in the user guide): the FX 2 box leaves the screen and its place stays empty, the other boxes where
-they are. The assignment is kept, and the box comes back as it was once the frequency is 96 kHz or lower (URX44V,
-confirmed by the operator on 2026-09-22).
+they are. The assignment is kept, and the box comes back as it was once the frequency is 96 kHz or lower (confirmed on a
+URX44V).
 
 ## MONITOR's Setting buttons
 
@@ -1284,11 +1285,11 @@ the way out: the panel leaves that corner square, the button turns it in three p
 that went down on the panel stays the panel's wherever it is let go (`pickerSheet`). On the unit the INPUT
 source sheet closed on a touch over the bar and left of, right of and above its panel, and MONITOR's Source,
 OUTPUT PATCH's MAIN OUT, COLOR, EFFECT TYPE, RECORDER's REC Track 1/2 source, the DELAY's Frame rate and
-SSMCS's Sweet Spot Data on a touch left of theirs (URX44V, the operator, 2026-10-04).
+SSMCS's Sweet Spot Data on a touch left of theirs (confirmed on a URX44V).
 
 A picker sheet's button sets a name on two lines 14px apart. In wide/p059-1, [MONITOR 1] has `MONITOR` on
 y169..177 and `1` on y183..191. p100-2 draws its buttons' lines 16px apart, but every sheet sets them 14px apart
-(the operator's choice, 2026-10-12).
+(the operator's choice).
 
 The Sends destination sheet lies over HOME's main area and darkens what it does not cover (toolbar,
 side rail, meters, the USER DEFINED KNOBS bar) with `--scrim`. The [Sends] button that opened the sheet
@@ -1296,24 +1297,24 @@ stays bright (measured on p051-1: the toolbar face (66,73,82) becomes (8,12,16),
 (206,69,41)). It is declared with `dimsBehind` on `ScreenDef`, and the screen marks what stays bright with
 `is-lit`. Nothing under the dark but [Sends] answers a touch, and a touch on the dark closes the sheet
 (`shellExits: false`), as it closes the channel-bank list: on the unit, SETUP's icon and the STEREO meter
-under the dark each took the sheet down and did nothing else (URX44V, the operator, 2026-10-04). A dialog
+under the dark each took the sheet down and did nothing else (confirmed on a URX44V). A dialog
 darkens the glass around it the same way (wide/p040-2: the toolbar beside the dialog reads (8,12,16)).
 A sheet that takes the whole glass (the title and name sheets, the knob assignment, and DATE / TIME's
 [Date/Time] and TIME ZONE) leaves a 4px margin. At the foot of [Date/Time] and TIME ZONE the USER DEFINED
 KNOBS bar under it shows there dark, while the knob assignment and TOOLS's Volume Label sheet leave none of
 the bar in sight. A touch on the margin closes [Date/Time], TIME ZONE and the knob assignment, and leaves the
-Volume Label sheet, SCENE LIST's title sheet and SAVE/LOAD's [Save as] name sheet up (URX44V, confirmed by
-the operator on 2026-10-03 and 2026-10-04). The simulator darkens
+Volume Label sheet, SCENE LIST's title sheet and SAVE/LOAD's [Save as] name sheet up (confirmed on a
+URX44V). The simulator darkens
 that edge of the bar through the same filter around [Date/Time] and TIME ZONE, and hides the bar under the
 knob assignment and the title and name sheets (`coversBar` on `pickDialog`, `covers-bar` on the title
 sheet). A touch on the margin closes the sheet, but for the title and name sheets, which are left through
 their own [Cancel] and [OK] alone (`leavesOnTouchAround: false` on `ScreenDef`), and the bar's knobs take
 nothing (see "Knob readout bar"). A press belongs to where it went down (`attachBackdrop`): on the unit, one
 that went down on [Date/Time]'s sheet and was let go over the bar left the sheet up, and one that went down
-on the bar and was let go over the sheet closed it (URX44V, the operator, 2026-10-04).
+on the bar and was let go over the sheet closed it (confirmed on a URX44V).
 
 A dialog's question stands with the middle of its lines on the middle of the mark beside it (the information
-mark, the warning mark or the loading ring; the operator's choice, 2026-10-12). The mark stands in one place
+mark, the warning mark or the loading ring; the operator's choice). The mark stands in one place
 however many lines the question has, and a question of three lines, taller than the mark, runs past it as far
 above as below. The one-line question in wide/p040-2 stands higher than this: the middle of its ink (y103 on the screen) is
 13px above the middle of the mark's ring (y116).
@@ -1350,9 +1351,9 @@ p060-2).
 
 The simulator has no audio. The meters read a synthetic signal that every input source carries of its
 own, taken through the mixer along the unit's own routing (`src/screens/signal-flow.ts`). The laws and
-the points read in this section were confirmed on a URX44V (System 1.3.1.0) on 2026-09-28. The URX22
+the points read in this section were confirmed on a URX44V (System 1.3.1.0). The URX22
 and URX44 run the same laws, bar the number of channels. That a send into a FIXED MIX bus hears neither the
-send's [PRE] nor its placing was checked on a URX22 too (2026-10-14).
+send's [PRE] nor its placing was checked on a URX22 too.
 
 ### Input sources
 
@@ -1435,7 +1436,7 @@ send's [PRE] nor its placing was checked on a URX22 too (2026-10-14).
   the unit's GR meter does. The flat of the curve is lifted no more than 18 dB, whatever the threshold and the ratio;
   a setting that would lift it further takes the whole curve down by the difference. The expansion hears nothing
   under -62 dB at the detector, and takes a quieter input down as far as it takes -62 dB (both Compander-S and
-  Compander-H, the unit's inputs and outputs, 2026-10-03 and 2026-10-08). M.B.Comp puts out what a table of pink noise and of a tone taken through the unit
+  Compander-H, the unit's inputs and outputs). M.B.Comp puts out what a table of pink noise and of a tone taken through the unit
   at the effect's own values says (`MBC_CURVES`), moved dB for dB by its Out Gain from the +4 dB it ships at,
   as on the unit.
 - An FX channel returns what goes into it at a level set by the effect it runs (the pink noise difference
@@ -1460,11 +1461,11 @@ send's [PRE] nor its placing was checked on a URX22 too (2026-10-14).
 | The COMP Side Chain screen's SC meter | The SSMCS input through the side chain's bell (SC-Q, SC-Freq., SC-Gain) |
 | The MONITOR screen's meter | After the LEVEL |
 | A RECORDER track's meter | A channel at its Rec Point, a bus as it goes out |
-| OUT on RECORDER's Play and Edit tabs | What the file playing puts out (after microSD Playback's D.Gain); silent while stopped or paused (after [■] and paused, URX44V, the operator, 2026-10-03) |
+| OUT on RECORDER's Play and Edit tabs | What the file playing puts out (after microSD Playback's D.Gain); silent while stopped or paused (after [■] and paused, confirmed on a URX44V) |
 
 - The left dot (signal) lights green from about -40 dBFS and stays lit while the right dot (clip) is red.
   The right dot lights while the level is at -3 dBFS or over, and not at -4 dBFS (on a channel, an FX channel,
-  STEREO and a MIX bus alike; URX44V, confirmed on the unit on 2026-10-12).
+  STEREO and a MIX bus alike; confirmed on a URX44V).
 - While the level just ahead of a fader clips, the meter just after the fader reads the clip even with [ON]
   off and the fader down (on MONO IN and FX the LEVEL meter, on a stereo channel the one before DUCKER, on
   MIX and STEREO the one before the INS FX). The two sides read apart: a side that does not clip reads its
@@ -1477,11 +1478,11 @@ send's [PRE] nor its placing was checked on a URX22 too (2026-10-14).
 A level meter's bar lights up to where the reduction bars' scale ("The three dynamics screens (GATE / COMP / DUCKER)") puts the
 level, laid from 0 dB down: the top at 0 dB, 10/21 of the bar at -18 dB, 3/14 at -36 dB, and empty from
 -60 dB (`levelBarShare`). The bars the meter part (`meter`) draws and the channel view's COMP block level
-bar use this scale. On 2026-09-26 the operator read the lengths of HOME's meters, the channel view's
-LEVEL, the GATE screen's IN, the COMP block's level bar and a RECORDER track's meter on the unit's LCD;
-each reading on these five is within 0.9 mm of this scale (the largest gap being the GATE screen's IN,
+bar use this scale. The lengths of HOME's meters, the channel view's
+LEVEL, the GATE screen's IN, the COMP block's level bar and a RECORDER track's meter read on the unit's LCD
+are each within 0.9 mm of this scale (the largest gap being the GATE screen's IN,
 0.9 mm at -48 dB). The clip dot lights while the level is over the top of the bar, 0 dB (over full scale), and not at 0 dB
-itself (URX44V, confirmed on the unit on 2026-10-12).
+itself (confirmed on a URX44V).
 
 ## Meter color zones
 
@@ -1592,14 +1593,14 @@ the mode name is in the regular weight (p041-1).
 The four GENERAL items sit on a tray of their own (x31..448 / y54..107, face `--menu-tray`), as 100x46
 buttons 3px apart. The rest are stacked in three 120px columns (13px apart) from x47, 46px high at
 y112 / y166 / y220. The URX22 has no Date/Time, and leaves its place empty with [Software Integration] at the
-right end of the same row (URX22, the operator, 2026-10-16). A name on two lines leads 18px (the left column of the second row in wide/p052-1, its ink
+right end of the same row (confirmed on a URX22). A name on two lines leads 18px (the left column of the second row in wide/p052-1, its ink
 starting at y120 and y138). A name on one line, in the middle column of the third row, has its ink at
 y236..245 on a face (without the band) of y222..260 (wide/p052-1). Every name stands a pixel below where the
 button centres it (the ink of GENERAL's `Version` at y74..83, wide/p052-1).
 
 While microSD playback holds a file, playing or paused, [Sampling Frequency] and the Operation Mode box take the face of
 a button that cannot be used (face `--surface-disabled`, words `--menu-text-disabled`) and open nothing when pressed
-(URX44V, System firmware 1.3.1.0, playing and paused, the operator, 2026-10-13). They come back once the file is let go,
+(confirmed on a URX44V with System firmware 1.3.1.0, playing and paused). They come back once the file is let go,
 by [■] or at the end of the file. [Sampling Frequency] in recording mode is in the recording mode paragraph of
 "RECORDER".
 
@@ -1618,7 +1619,7 @@ the rest as paragraphs at 12px leading 17px, a line's worth apart. The text star
 simulator's own terms.
 
 Auto Power Off ships on on the URX44V and off on the URX44 and URX22 (the URX44V from the NOTE under the user
-guide's "Turning the power on/off", the URX22 checked on the unit as it left the factory (2026-10-14), and the URX44
+guide's "Turning the power on/off", the URX22 checked on the unit as it left the factory, and the URX44
 as the operator specified). SAMPLING FREQUENCY's [Follow USB] ships on on every model (checked on the URX44V and
 URX22 as they left the factory). While it is on, the row of frequencies cannot be taken.
 
@@ -1682,7 +1683,7 @@ On OUTPUT PATCH the output captions are 13px in `--text` over their buttons, and
 86x40 button at x314..399 / y225..264 with its name 13px at weight 600 (p059-1). [Default] asks first ([Cancel] /
 [OK]), and [OK] takes the outputs on its own tab alone back to the sources they ship on (b under "Output Patch menu"
 in the user guide); [Cancel] changes nothing. The dialog carries the i mark and `Reset to Default?`, the same on
-either tab (URX44V, confirmed by the operator on 2026-09-22). On Peripheral's USB Main
+either tab (confirmed on a URX44V). On Peripheral's USB Main
 the caption stands at x63 / y94..106 and the note at x66 / y165..177, both in `--peripheral-text`, the
 caption 13px at weight 600 (p061-1). On HDMI the HDCP caption stands at x45 / y87..95 over an 86x40
 [Enable] at x18..103 / y101..140, drawn on the plain face `--surface-btn` with the band `--btn-bevel-plain`
@@ -1720,7 +1721,7 @@ Under `prefers-reduced-motion` the slide is not animated.
 
 microSD's [USB Storage Mode] has the same face as other buttons, and turns `--accent-selected` while
 the mode is on (p078-1 shows the mode on). While the mode is on the toolbar's HOME keeps its usual look and goes HOME,
-and the other screens open (URX44V, confirmed by the operator on 2026-09-22; how the user guide differs is under "What
+and the other screens open (confirmed on a URX44V; how the user guide differs is under "What
 the unit itself does not do" in [known-issues.md](known-issues.md)).
 
 ## RECORDER
@@ -1759,12 +1760,12 @@ pressed. Recording mode goes on off the RECORDER screen, and a 14px dot of `--tr
 the microSD icon on the HOME and channel view toolbars (x364..377 / y22..35) and left of the name on the microSD menu's
 [Recorder] (x62..75, 4px from the name). On the microSD menu everything but [Recorder] ([Save/Load], [Tools], [USB Storage Mode] and the eject
 button) takes the face of a button that cannot be used and does nothing when pressed. SETUP's [Sampling Frequency] takes
-that face too, as the unit does, and does not open the SAMPLING FREQUENCY screen (with a take paused too, URX44V, the operator, 2026-10-08).
+that face too, as the unit does, and does not open the SAMPLING FREQUENCY screen (with a take paused too, confirmed on a URX44V).
 
 While playback holds a file, playing or paused, the microSD icon on the HOME and channel view toolbars carries a
 triangle of `--transport-play` pointing right where recording mode puts its dot (d under "Toolbar" in the user guide;
-paused as well as playing, in the same shape and place, URX44V, the operator, 2026-10-03; on a channel view's toolbar, playing and
-paused, 2026-10-08). The triangle stands on the dot's rows and is as tall, 14px
+paused as well as playing, in the same shape and place, and on a channel view's toolbar, playing and
+paused, confirmed on a URX44V). The triangle stands on the dot's rows and is as tall, 14px
 (y22..35), and 10px wide 3px in from the dot's left (x367..376). It goes once the file is let go, by [■] or at the
 end of the file ("What is on the card").
 
@@ -1792,28 +1793,28 @@ is the pause's two white bars (x320..331 / y243..256 in p081-1); while nothing p
 triangle follows the picture in the guide's description, the same image as the Record tab's play button.
 
 The counter and the sampling frequency show over the progress bar only while playback holds a file, playing or
-paused. Their line keeps its height while they do not show, so the bar stays where it is (URX44V, the operator,
-2026-09-22). The button left of the bar (three lines and a ▶) carries a white mark while a file is held, and a touch on
+paused. Their line keeps its height while they do not show, so the bar stays where it is (confirmed on a
+URX44V). The button left of the bar (three lines and a ▶) carries a white mark while a file is held, and a touch on
 it brings the cursor to that file (f under Play in the user guide's "RECORDER menu"). With no file held it stays on
 the plain face with its mark greyed, as [↑] does, and a touch on it does nothing. While a file is held, a touch on a
 folder on the Play tab only brings the cursor to it and does not open it, [↑] on the path field takes the face of a
-button that cannot be used and does nothing when pressed (playing and paused, URX44V, the operator, 2026-10-03), and
+button that cannot be used and does nothing when pressed (playing and paused, confirmed on a URX44V), and
 the Record and Edit tabs take the face of a tab that cannot be used and do nothing when pressed, as the unit does (with a file
-playing, two touches on a folder open nothing, the Edit tab does nothing, and playback goes on, URX44V, the operator, 2026-10-08). [■]
+playing, two touches on a folder open nothing, the Edit tab does nothing, and playback goes on, confirmed on a URX44V). [■]
 lets the file go, as the end of the file does, and they come back.
 
 While playback holds a file, playing or paused, the card-eject button cannot be used (a dimmed face in p081-1, the
-plain face in p083-1; paused on RECORDER's Play tab as well, URX44V, the operator, 2026-10-03). On the microSD top,
+plain face in p083-1; paused on RECORDER's Play tab as well, confirmed on a URX44V). On the microSD top,
 while a file is held, playing or paused, everything but [Recorder] ([Save/Load], [Tools], [USB Storage Mode] and the
 eject button) takes the face of a button that cannot be used and does nothing when pressed, as the unit does
-([Save/Load] and [Tools] URX44V, the operator, 2026-10-03). SETUP's [Sampling Frequency] and Operation Mode box are
+([Save/Load] and [Tools] confirmed on a URX44V). SETUP's [Sampling Frequency] and Operation Mode box are
 out of reach for the same time ("SETUP screen"). The
 Play tab lists folders and the files that play, and leaves a file of four tracks or more off; its marks are a folder,
 a file that plays, and the file playing or paused (a speaker). The Edit tab lists a file of four tracks or more as well, marked
 `4tr` to `16tr` (List icons under Play and Edit in the user guide's "RECORDER menu"). Neither tab lists a file recorded
 at another sampling frequency than the unit is running (the NOTE under Play in the user guide; on a URX44V a 48 kHz
-take was on neither tab at 44.1 kHz and back at 48 kHz, the operator, 2026-09-22). Changing the frequency lets go of
-a paused file too (checked on SETUP's Sampling Frequency the same day). SAVE/LOAD marks a file with a
+take was on neither tab at 44.1 kHz and back at 48 kHz). Changing the frequency lets go of
+a paused file too (checked on SETUP's Sampling Frequency). SAVE/LOAD marks a file with a
 page, its corner folded down, carrying two lines (p084-1).
 
 ## What is on the card
@@ -1837,16 +1838,16 @@ formatted 128 GB card leaves; a take costs its seconds × the sampling frequency
 an older take that carries no frequency) × 3 bytes × its tracks (the guide's
 specifications give the microSD card slot as WAV, 24-bit), and a settings file 28,696 bytes plus 21,972 bytes for each scene stored under
 01 to 63 when it was written (files the unit wrote measured 28,696, 50,668 and 72,640 bytes with none, one and two
-scenes stored; URX44V, 2026-10-12). It is printed over 1024³ to one decimal, as `116.4GB Free` (p083-1, p087-1).
+scenes stored; confirmed on a URX44V). It is printed over 1024³ to one decimal, as `116.4GB Free` (p083-1, p087-1).
 The card's name, the volume label it was formatted under, stands on a line above it, the two lines top right and
-set left from x313 (x313..387 / y58..81). Every card screen puts them in the same place (URX44V, the operator,
-2026-09-22): SAVE/LOAD's p084-1 and TOOLS' p087-1 show both lines, and RECORDER's p081-1 and p083-1 show the name
+set left from x313 (x313..387 / y58..81). Every card screen puts them in the same place (confirmed on a
+URX44V): SAVE/LOAD's p084-1 and TOOLS' p087-1 show both lines, and RECORDER's p081-1 and p083-1 show the name
 line empty. The name's line runs to the main area's right edge (x418), and a name that does not fit ends in `…`.
 With no card none of these screens
 is open: the microSD top takes their place. A touch on the eject button first asks `Eject the microSD card?` under the
-circled i mark, with [Cancel] and [OK], as the unit does (URX44V, the operator, 2026-10-04). Its [OK] brings up the unit's
+circled i mark, with [Cancel] and [OK], as the unit does (confirmed on a URX44V). Its [OK] brings up the unit's
 dialog `Now you may safely remove the microSD card.` with [OK] alone: the text on one line, the circled i
-mark to its left and [OK] at the lower right (URX44V, the operator, 2026-09-22). That [OK] stands for the
+mark to its left and [OK] at the lower right (confirmed on a URX44V). That [OK] stands for the
 card being pulled out (see [known-issues.md](known-issues.md)).
 
 The first touch on a folder brings the cursor to it, and a touch on the folder the cursor stands on
@@ -1858,23 +1859,23 @@ name display"). A new folder and a [Save as] settings file are made in the folde
 On the Edit tab, [Delete] asks `Delete the selected file?` before it takes the entry off, and
 [Rename] and [New folder] open the same sheet SCENE's title opens, on the card's keyboard ("The title
 entry sheet"). [Delete] and [Rename] take a file alone and stand out of reach with a folder under the cursor, as on
-the unit, whose LCD has no way to delete or rename a folder (URX44V, the operator, 2026-10-04). [Rename] onto a name the folder
+the unit, whose LCD has no way to delete or rename a folder (confirmed on a URX44V). [Rename] onto a name the folder
 already carries brings up `File already exists.` with the i mark and [OK] alone, as the unit does,
 and renames nothing: [OK] goes back to the sheet as it was typed (on SAVE/LOAD's and RECORDER's
 Edit tabs alike). Names are compared without regard to case, so a name that differs from another
-entry's in case alone is refused the same way (a file's name on SAVE/LOAD, URX44V, the operator, 2026-10-03; a take's,
-2026-10-04). The name is
+entry's in case alone is refused the same way (a file's name on SAVE/LOAD and a take's,
+confirmed on a URX44V). The name is
 compared as it will stand, its extension on: a settings file renamed `qz` beside the folder `Qz` becomes `qz.urxf`, one
 renamed `take` beside `take.wav` becomes `take.urxf`, and one renamed `Fold` beside the folder `fold.urxf` is refused
-(URX44V, the operator, 2026-10-04). The extension goes on whatever is typed, so `new.urxf` typed becomes `new.urxf.urxf`,
+(confirmed on a URX44V). The extension goes on whatever is typed, so `new.urxf` typed becomes `new.urxf.urxf`,
 and so does `zz.urxf` typed beside the folder `zz.urxf`; a name typed as a file of the folder is named, in any case, is refused as well,
-`mix.urxf` typed beside `mix.urxf` and `CC.urxf` typed beside `cc.urxf` (URX44V, the operator, 2026-10-04). A take renamed with RECORDER's [Rename] takes `.wav` after what is typed and is
-listed under that name (`rn1` typed lists as `rn1.wav`, URX44V, the operator, 2026-10-08). A file renamed onto its own name in other case takes it (a settings
-file, URX44V, the operator, 2026-10-03). [New folder] under a name the folder already carries, a folder's or a file's, spelt the same or
+`mix.urxf` typed beside `mix.urxf` and `CC.urxf` typed beside `cc.urxf` (confirmed on a URX44V). A take renamed with RECORDER's [Rename] takes `.wav` after what is typed and is
+listed under that name (`rn1` typed lists as `rn1.wav`, confirmed on a URX44V). A file renamed onto its own name in other case takes it (a settings
+file, confirmed on a URX44V). [New folder] under a name the folder already carries, a folder's or a file's, spelt the same or
 in other case, brings up `Directory already exists.` with the i mark and [OK] alone and makes nothing, and [OK] goes
-back to the name sheet, as the unit does (a file's name spelt the same and in other case, and a folder's in other case,
-URX44V, the operator, 2026-10-03; a folder's spelt the same, 2026-10-04). The sheet holds the name as it was typed, as it does
-after [Rename], as on the unit (URX44V, the operator, 2026-10-04). TOOLS' [Format] leaves the card
+back to the name sheet, as the unit does (a file's name spelt the same and in other case, and a folder's in other case
+and spelt the same, confirmed on a URX44V). The sheet holds the name as it was typed, as it does
+after [Rename], as on the unit (confirmed on a URX44V). TOOLS' [Format] leaves the card
 with nothing on it. On SAVE/LOAD, [Save] writes the unit's settings over the selected settings file,
 [Save as] writes them under the name that is typed with `.urxf` after it, and [Load] puts a file
 back on the unit. Writing over a file that is already there, or a [Save as] under the name of a folder in the folder
@@ -1882,7 +1883,7 @@ that is open, asks `File already exists. Replace it?` first; loading asks nothin
 the folder as it is and writes nothing, as the unit does. A [Save as] name that differs from a settings file's in the folder
 that is open in case alone asks nothing and writes over that file, which keeps its name as it was spelt, as the unit does; one
 that differs from a folder's in case alone asks nothing and writes nothing. The name is compared with its `.urxf` on: `wk`
-typed beside the folder `Wk` writes `wk.urxf` (URX44V, the operator, 2026-10-08). On a card with no room for one more settings
+typed beside the folder `Wk` writes `wk.urxf` (confirmed on a URX44V). On a card with no room for one more settings
 file, a [Save as] under a new name writes nothing and shows nothing, and writing over a settings file there goes
 through only where the room the file written over takes, handed back, holds the new one (an overwrite that grows by
 more scenes than the card has room for writes nothing, by [Save], by [Save as] under the same name and under the
@@ -1890,26 +1891,26 @@ name in other case alike; what the unit does with a full card is in `known-issue
 cursor. A settings file carries every value but the screen's own state (`ui.` bar the destination HOME's [Sends]
 shows, and the tabs OUTPUT PATCH, PERIPHERAL and SCENE LIST's Standard / Simple stand on), the card itself (`sd.`), the clock
 ("SETUP screen") and what a linked pair's COMP hears (`pair.`, "The three dynamics screens (GATE / COMP / DUCKER)"),
-so a load leaves those tabs where they stand, as on the unit (URX44V, the operator, 2026-10-04). SCENE LIST's
+so a load leaves those tabs where they stand, as on the unit (confirmed on a URX44V). SCENE LIST's
 cursor is in the file, and a load puts it back on the row it stood on when the file was saved, as on
-the unit (URX44V, the operator, 2026-10-04, on Standard's list). Where the tab standing open does not
+the unit (confirmed on a URX44V, on Standard's list). Where the tab standing open does not
 list that row, SCENE LIST opens the tab that does; a row both tabs list leaves the open tab where it
-stands (URX44V, the operator, 2026-10-04, for Simple's P02 and 09 loaded with Standard open, and Standard's 00 loaded with Simple open). The bank USER DEFINED KNOBS
+stands (confirmed on a URX44V, for Simple's P02 and 09 loaded with Standard open, and Standard's 00 loaded with Simple open). The bank USER DEFINED KNOBS
 stands on is in the file, and a load brings back the bank the file was saved on, as on the unit
-(URX44V, the operator, 2026-10-03). A load brings [Sends] back to the destination the file was saved on,
-as on the unit (URX44V, the operator, 2026-10-04, for a file saved on MIX 1 and loaded over FX 1, and one
+(confirmed on a URX44V). A load brings [Sends] back to the destination the file was saved on,
+as on the unit (confirmed on a URX44V, for a file saved on MIX 1 and loaded over FX 1, and one
 saved on ST at 192 kHz and loaded over FX 2 at 48 kHz). A source the file holds no D.Gain for comes back
 to 0 dB when it is loaded, a BALANCE the file holds none for comes back to the centre, [Sends] comes back
 on ST from a file that names no destination, and a scene number the file holds nothing under comes back
-empty (URX44V, the operator, 2026-10-08).
+empty (confirmed on a URX44V).
 
 A playback runs against the take's length, writing the counter and the bar in place once a second.
 At the end of the file playback lets the file go, as [■] does: the triangle leaves the microSD icon, and RECORDER's card-eject
-button and the microSD top's [Save/Load] and [Tools] come back in reach, as the unit does (URX44V, the operator,
-2026-10-03), as do the microSD top's card-eject button and [USB Storage Mode] (2026-10-04). The Play tab shows what it
+button and the microSD top's [Save/Load] and [Tools] come back in reach, as the unit does (confirmed on a
+URX44V), as do the microSD top's card-eject button and [USB Storage Mode]. The Play tab shows what it
 showed before the file played, the counter and the bar gone, and the cursor stays where it stood: on the unit, standing
 on the file that played, it stayed there, after a visit to the microSD top as well, and taken to a folder while the file
-played, it stayed on the folder (2026-10-04).
+played, it stayed on the folder.
 
 ## The SCENE LIST list
 
@@ -1919,12 +1920,12 @@ numbers Standard holds no scene under (Scene list and its NOTE in the user guide
 nothing stored under it has an empty title. The bar's thumb draws no shorter than 15px (y110..124 in both p073-1 and
 p074-1). The HOME box and SCENE LIST's top-left box both name the scene picked on the list by the list's rules (the picked
 02 in p074-1), `00 Initial Data` on a factory unit. While the row picked is not the recalled scene (the row with the ▶),
-the number fades out and back in over two seconds, and the title stays (confirmed by the operator; for the HOME box on
-2026-10-04, picking P01 on the Simple tab blinks the number of `P01 Live Music 0`, and picking the recalled 07 on the
+the number fades out and back in over two seconds, and the title stays (confirmed on the unit; for the HOME
+box, picking P01 on the Simple tab blinks the number of `P01 Live Music 0`, and picking the recalled 07 on the
 Standard tab shows `07 Initial Data` without a blink). Where motion is reduced (`prefers-reduced-motion: reduce`) the
 number holds still, and either box instead puts the list's ▶ ahead of its number while it names the recalled scene. The
 unit's box draws no ▶ (p073-1's box names P01, which carries the ▶ on the list, without one). A preset's number is `--scene-preset` green in either box (for the
-HOME box, P01 picked on the Simple tab in Standard Mode, confirmed by the operator on 2026-10-04). The numbers on the list
+HOME box, P01 picked on the Simple tab in Standard Mode, confirmed on the unit). The numbers on the list
 and in SCENE LIST's top-left box are set at the title's size, on the title's baseline (02 and `01234-56789` both at
 y162..170 in p074-1, and the box's P01 and `Live Music 0` at y18..26 and y17..26 in p073-1).
 
@@ -1939,7 +1940,7 @@ middle of their cells.
 one alike. The sheet's [OK] goes back to the list and asks `Store to "Scene Memory #05"?` (the number is the picked
 scene's) with [Cancel] / [OK]; [OK] stores the typed title and the mixer under the number, makes it the recalled scene, and
 holds a `Scene store is in progress...` modal up for 2 seconds, as long as a RECORDER tab's `Loading...`. On the unit
-the modal stood for about 1 to 3 seconds, a little longer or shorter each time (URX44V, the operator, 2026-10-04), and
+the modal stood for about 1 to 3 seconds, a little longer or shorter each time (confirmed on a URX44V), and
 the simulator holds it the same 2 seconds each time (the operator's choice). [Cancel] on the sheet and on the question
 stores nothing.
 
@@ -1947,7 +1948,7 @@ stores nothing.
 it asks `Recall scene "Band"?` (the title is the picked scene's) with [Cancel] / [OK], and on [OK] puts that scene's mixer
 back and makes it the recalled one. A source the scene holds no D.Gain for comes back to 0 dB, and a BALANCE the scene holds
 none for comes back to the centre. A recall leaves the destination HOME's [Sends] shows where it stands, as on the unit
-(URX44V, the operator, 2026-10-04, for a scene stored on MIX 1 and recalled over FX 1). 00 Initial Data puts the factory
+(confirmed on a URX44V, for a scene stored on MIX 1 and recalled over FX 1). 00 Initial Data puts the factory
 mixer back. P01 to P03 lay settings of their own over the factory mixer. The main ones are below; the whole of what a preset
 changes is in `src/model/scene-presets.ts`. The table's channels go onto the mono and the stereo channels from the lowest
 number up, the mono channels on a HI-Z connector (CH 3-4 in the table) apart from the rest: on a URX22, CH 1 takes the
@@ -1977,10 +1978,10 @@ The Edit tab (p074-1) sets glyph-only buttons [Protect], [Delete] and [Title] al
 - While Operation Mode is Standard Mode, the Simple tab's list can be recalled from only; [Store] and the Edit tab
   cannot be used (the NOTE under Edit in the user guide's "SCENE screen"). Switching from the Standard tab to the Simple
   tab with the Edit tab open moves to the Store/Recall tab. On the Standard tab, the Store/Recall and Edit tabs can be
-  switched between whichever number is picked (confirmed on the unit, 2026-09-27).
+  switched between whichever number is picked (confirmed on the unit).
 - While Operation Mode is Simple Mode, only the Simple tab's list opens and the Standard tab cannot be used. The Edit tab
   can be used. With the Edit tab open on the Simple tab, setting Operation Mode to Standard Mode opens SCENE LIST on the
-  Simple tab's Store/Recall tab, with the Edit tab unusable (confirmed on the unit, 2026-09-27).
+  Simple tab's Store/Recall tab, with the Edit tab unusable (confirmed on the unit).
 
 ## The title entry sheet
 
@@ -2008,7 +2009,7 @@ nothing.
 
 A name on the card ([Save as], [New folder] and [Rename] on SAVE/LOAD, and [Rename] on RECORDER) opens the sheet on
 the card's keyboard. Its letters and row 4 are the title's, and its numbers and symbols run as below (the same on [New folder]
-and on RECORDER's [Rename], URX44V, the operator, 2026-10-08). A row shorter
+and on RECORDER's [Rename], confirmed on a URX44V). A row shorter
 than the title's stands centred between the keys at its ends, as the title's rows do.
 
 | Layout | Row 1 | Row 2 | Row 3 |
@@ -2066,7 +2067,7 @@ The rows of USER DEFINED KNOBS' assignment sheet (wide/p040-1), MONITOR's [Sourc
 button (p079-2) and the panel a dropdown's list stands on (p079-3) round with the same radius-4 cut. The rows and the panel
 carry no band, so no step onto one either. Both Source buttons step onto their band over three rows, the outer two pixels
 in the band's colour and those inside them in `--corner-source-step-*` (p068-1, p079-2). Pitch Fix's keyboard panel has no figure and takes the same cut (the operator's
-instruction, 2026-09-24). The toolbar's channel box turns its top corners and its band's foot with the same cut, and
+instruction). The toolbar's channel box turns its top corners and its band's foot with the same cut, and
 the channel's colour band climbs both sides of the box over three rows. The row just above the band carries the band's
 colour on its outer two pixels and lays a mix of 87% band and 13% black at 45% on the third; the next carries the band's
 colour on its outer pixel and lays 67% band and 33% black at 9% on the second; the one above lays 57% band and 43% black
@@ -2237,7 +2238,7 @@ text sizes.
 
 ## Channel bank layout
 
-Confirmed on the unit's HOME (URX44V, 2026-09-04). The toolbar's INPUT / OUTPUT buttons open the bank
+Confirmed on the unit's HOME (confirmed on a URX44V). The toolbar's INPUT / OUTPUT buttons open the bank
 list, and the bank to show is picked from the list. There is no path by which one tap of the button
 advances one bank. The user guide's p47 names two ways to change the bank, touching the channel bank
 selection button on the toolbar and swiping left or right in the main area, and its NOTE says a swipe
@@ -2251,7 +2252,7 @@ bank. A press let go off the main area, or cancelled, moves none, and leaves not
 press; a second finger pressed while the first is down neither starts a swipe nor ends the first
 finger's. On a URX44V, swipes to the left went from `CH 1 - 4` to `CH 5 - 12` and `FX 1 - 2` and stayed
 on `FX 1 - 2`, swipes to the right came back to `CH 1 - 4` and stayed there, and the output side's one
-bank stayed (confirmed on 2026-10-04).
+bank stayed.
 
 | Side | Bank | Strips |
 | --- | --- | --- |
@@ -2261,7 +2262,7 @@ bank stayed (confirmed on 2026-10-04).
 | OUTPUT | 1 | MIX 1, MIX 2, STEREO, STREAMING |
 
 The bank list names a bank by the range of numbers in it, `CH 1 - 4`, `CH 5 - 12` and `FX 1 - 2` (a URX22's are `CH 1 - 6` and
-`CH 7 - 10` over `FX 1 - 2`; URX22, the operator, 2026-10-16). The output side reads `MIX, ST` over `STREAMING`.
+`CH 7 - 10` over `FX 1 - 2`; confirmed on a URX22). The output side reads `MIX, ST` over `STREAMING`.
 
 The marks inside a bank button are one per bank, and the mark of the bank on display is wider than the
 others (25px against 14px, 6px apart, 15 rows high; on the INPUT side a bank not on display is
@@ -2281,7 +2282,7 @@ and the side rail) shows through darkened, as it does around the [Sends] list, a
 that opened the list stays lit. Nothing under the dark answers a touch, and the list closes on a second
 tap on the bank button, a tap on the item of the bank on display, or a tap on the dark around it
 (`Escape` goes back, as on any screen). How the outside looks and that a tap on the dark closes the
-list were checked on the unit (URX44V, the operator, 2026-09-22).
+list were checked on the unit (a URX44V).
 
 The user guide shows only part of each p48 figure (p048-1 to p048-6): x0..101 / y49..271 of p048-1,
 p048-2, p048-4 and p048-5 (the first strip), and x106..207 / y49..271 of p048-3 and p048-6 (the second
@@ -2297,5 +2298,5 @@ among HOME's strips.
 
 The URX44 has the same input strips as the URX44V and so the same three banks; the URX22 has two fewer
 mono channels and so two banks. The URX22's two banks were checked on the unit by the names in its bank list
-(`CH 1 - 6` and `CH 7 - 10` over `FX 1 - 2`; the operator, 2026-10-16). The URX44's arrangement is derived from
+(`CH 1 - 6` and `CH 7 - 10` over `FX 1 - 2`). The URX44's arrangement is derived from
 the confirmed "four strips per bank".
