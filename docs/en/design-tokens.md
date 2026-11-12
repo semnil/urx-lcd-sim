@@ -194,7 +194,7 @@ PY
 | `--dialog-sheet` | `#bdbebd` | The dialog's face (wide/p040-2), and the section bands (x18..401 / y56..79 in p061-1) |
 | `--peripheral-text` | `#bdbebd` | Peripheral's captions and note (x63..309 / y94..106 and x66..351 / y165..177 in p061-1) |
 | `--dialog-edge` | `#5a9aff` | The same, its 4px outer frame and the ring of the info mark |
-| `--dialog-caution` | `#f7f73a` | The frame and the triangle mark of a dialog that warns (TOOLS' Format). No figure has it; the operator chose the value of `--accent-bank-active` (2026-09-22) |
+| `--dialog-caution` | `#f7f73a` | The frame and the triangle mark of a dialog that warns (TOOLS' Format). No figure has it; the operator chose the value of `--accent-bank-active` |
 | `--dialog-ink` | `#31393a` | The same, the question text on the face |
 | `--dialog-mark-face` | `#101010` | The circle of the info mark |
 | `--btn-bevel` | `#31393a` | A button's bottom 3px by default: menu items, dialog buttons and the scene name box (y118..120 in p066-1), and the buttons with a (74,81,90) face (Stop in p081-1, [Save] in p084-1, [Recall] in p073-1 and more) |

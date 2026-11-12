@@ -33,8 +33,8 @@ is built is in [screen-inventory.md](screen-inventory.md).
   (screen-inventory.md, "Head amp in the channel view"). A take carries a length and a size and no
   sound.
 - **When Clip Safe starts to take the input down.** Clipped by hand claps, the unit started taking the input
-  down 0.5 to 1.5 seconds after the loud sound ended, not after the last clip (URX44V, the input meter recorded
-  on the unit on 2026-09-22 and read again on 2026-10-12). The simulator takes it down as soon as it has read
+  down 0.5 to 1.5 seconds after the loud sound ended, not after the last clip (confirmed on a
+  URX44V). The simulator takes it down as soon as it has read
   the clip.
 - **M.B.Comp's 1-knob only takes the rows.** Switching it on leaves each band's Threshold, Ratio,
   Gain and Attack, the Release, the two Xovers and Out Gain reading but not turning, and takes
@@ -68,30 +68,30 @@ is built is in [screen-inventory.md](screen-inventory.md).
 - **COMP's 1-knob only takes the rows too.** Switching it on, the unit sets Threshold to 0 dB, Ratio to
   1.00:1, Gain to 0 dB, Attack to 24.87 ms, Release to 295.5 ms, Knee to Medium and Level to 0, and while it
   is on it recomputes Threshold, Ratio and Gain from the Level; Knee, Attack and Release do not follow the
-  Level (URX44V, confirmed on the unit on 2026-10-12). What that computation is is not known, so this
+  Level (confirmed on a URX44V). What that computation is is not known, so this
   simulator leaves the other rows out of reach, as the unit does, and moves no value.
 - **A tenth of a dB on 1-knob EQ's Intensity.** The unit multiplies the gains it took when 1-knob went on by Level / 50
   and lands them on a tenth of a dB, but for some pairs of gain and Level it gives a tenth of a dB more (a gain of
   +12.3 dB at Level 1, 14, 27 and 38% reads 0.3 / 3.5 / 6.7 / 9.4 dB, whenever it is read and whichever way the Level
-  moved there; URX44V, confirmed on the unit on 2026-09-22). Which pairs do so is not known, so this simulator gives
+  moved there; confirmed on a URX44V). Which pairs do so is not known, so this simulator gives
   the product as it is.
 - **COMP's Auto Makeup only takes the Gain.** Switching it on leaves the Gain division reading out
   and not turning, and the reading is the one it held before, since what the unit works out is not
   known.
 - **Lead's and Drive's Master only silence the amp at the bottom.** On the unit a Master under where it
   ships takes the output down as well, by an amount that follows the input's level and whether it is a tone
-  or noise (0 to 10 dB at a quarter of its travel; URX44V, measured on 2026-09-28). This simulator leaves the
+  or noise (0 to 10 dB at a quarter of its travel; confirmed on a URX44V). This simulator leaves the
   output where the effect's table puts it for every Master value but the bottom.
 - **A swipe on HOME steps one bank, however hard it is.** On the unit a gentle swipe across about half the
   screen stepped one bank, while a quick one across the whole screen went from CH 1 - 4 to FX 1 - 2 and back
-  (URX44V, read by the operator on 2026-10-04). This simulator steps one bank a swipe, and stops at the INPUT
+  (confirmed on a URX44V). This simulator steps one bank a swipe, and stops at the INPUT
   side's first and last bank as the unit does.
 - **GATE opens and closes at once.** Attack, Hold and Decay are kept as values only: the gate closes to
   RANGE as soon as the input is at or under the threshold and opens as soon as it is over. The middle,
   yellow one of the channel view's GATE lamps, which shows the gate opening or closing, does not light.
 - **SETUP's [Software Integration] opens and works.** On the unit it takes the face of a button that cannot be
-  used, whether or not microSD playback holds a file, and does nothing when pressed (URX44V, System firmware
-  1.3.1.0, the operator, 2026-10-13). This simulator keeps the usable face and opens SOFTWARE INTEGRATION, so
+  used, whether or not microSD playback holds a file, and does nothing when pressed (confirmed on a URX44V with System firmware
+  1.3.1.0). This simulator keeps the usable face and opens SOFTWARE INTEGRATION, so
   the screen can be captured, and a pointer resting on it brings up the tooltip
   `Not available on the unit; left usable here for screenshots.` A page the glass is embedded in that gives
   whether a DAW holds the unit (`setup.integration.daw`) gets the unit's face instead
@@ -101,7 +101,7 @@ is built is in [screen-inventory.md](screen-inventory.md).
   each [Time Zone] city keeps one time ahead of or behind UTC, the same all year and in every year, with no
   summer time (21:15 in Tokyo reads 12:15 in London in September, confirmed on the unit). Samoa reads 13 hours
   ahead of UTC in 2011, when it kept 11 hours behind, as in 2012, and Volgograd 3 hours ahead in 2019, when it
-  kept 4 (URX44V, the operator, 2026-10-03). This simulator gives each city the standard time it keeps in
+  kept 4 (confirmed on a URX44V). This simulator gives each city the standard time it keeps in
   2026, so while summer time is in force it reads an hour off the clock of a computer in a zone that keeps
   summer time. Of those times, Tokyo's, London's, Samoa's and Volgograd's are confirmed on the unit and the
   other cities' are not, so where another city's standard time changed between 2010 and 2026, the unit may
@@ -122,17 +122,17 @@ What the unit lacks, this simulator lacks as well.
 
 - **+48V and HI-Z held apart.** The user guide's description of [+48V] on the INPUT screen says "The
   phantom power supply and HI-Z cannot be turned on at the same time.", but on the unit pressing [HI-Z]
-  with [+48V] on, or [+48V] with [HI-Z] on, leaves [+48V] and [HI-Z] on together (URX44V, confirmed on
-  the unit on 2026-09-22; the same on a URX22, confirmed on the unit on 2026-10-14). The simulator lets the two be on at once as well.
+  with [+48V] on, or [+48V] with [HI-Z] on, leaves [+48V] and [HI-Z] on together (confirmed on a
+  URX44V and a URX22). The simulator lets the two be on at once as well.
 - **Menus held back during USB Storage Mode.** The user guide's NOTE under "USB Storage Mode button" says "You
   cannot access any other menus from this product while USB Storage Mode is on.", but on the unit pressing HOME with
-  the mode on goes to the HOME screen, and SETUP, MONITOR and the channel screens open as well (URX44V, confirmed on
-  the unit on 2026-09-22). The simulator does not hold them back either. [Recorder], [Save/Load] and [Tools] on the
+  the mode on goes to the HOME screen, and SETUP, MONITOR and the channel screens open as well (confirmed on a
+  URX44V). The simulator does not hold them back either. [Recorder], [Save/Load] and [Tools] on the
   microSD screen cannot be used while the mode is on (p078-1).
 - **A stereo LEVEL meter on a stereo-linked channel.** The user guide's description of the LEVEL meter on p97
   says "Stereo channels and channels that are stereo-linked are shown with a stereo meter.", but on the unit a
   channel of a stereo-linked pair shows one LEVEL meter in the channel view's main area, and HOME shows one per
-  channel as well (URX44V, confirmed on the unit on 2026-09-26). The simulator draws one bar there too.
+  channel as well (confirmed on a URX44V). The simulator draws one bar there too.
 
 ## Nothing is written to a unit
 
