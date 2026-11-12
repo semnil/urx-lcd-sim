@@ -1,10 +1,10 @@
-# アクセシビリティの決定
+# Accessibility decisions
 
 > For the English version, see [../../en/decisions/accessibility.md](../../en/decisions/accessibility.md).
 
 画面が、読み上げなどの支援技術に何を伝えるかについて閉じた判断と、その経緯。
 
-## 開いた一覧の下で描き直された箱は、`aria-expanded="false"` と読まれる
+## A box redrawn under its open list reads `aria-expanded="false"`
 
 - **起きること**: 一覧やシートを開く箱は、`aria-expanded="false"` で作られ、開くと `true` になる
   (`src/ui/widgets.ts` の `dropdown()`)。一覧を開いたまま画面が描き直されると、箱は作り直されて

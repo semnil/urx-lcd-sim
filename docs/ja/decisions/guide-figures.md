@@ -1,4 +1,4 @@
-# ガイドの図についての決定
+# Decisions about the guide's figures
 
 > For the English version, see [../../en/decisions/guide-figures.md](../../en/decisions/guide-figures.md).
 
@@ -6,7 +6,7 @@
 `CLAUDE.md` の "Primary source" にある。図からの値の取り方は
 [design-tokens.md](../design-tokens.md) の「採取方法」が正。図の番号は `reference/ug-lcd/` の抽出名。
 
-## 図だけでは決まらないもの
+## What a figure does not settle
 
 - **決定**: 形・寸法・色は図から測ってよい。何が並ぶか・いくつあるか・大文字と小文字は、図だけでは
   決めず、実機で確かめる。
@@ -26,7 +26,7 @@
   いつも出ていて、▶ の行を選んでいる間は何も明滅しない。明滅と点灯は、部品と状態を 1 つずつ分けて
   聞く。
 
-## 根拠に使わない図
+## Figures that are not used as evidence
 
 - **決定**: p036-1 は、HOME の [Sends] の根拠に使わない。この図はボタンを消灯で描く。実機は、送り先の
   色で点灯する (p047-1 と p157-1 のとおり)。
@@ -43,7 +43,7 @@
 - **実害の記録**: [Sends] の点灯と消灯を図で数えたとき、消灯に数えた図のうち 3 枚は、このボタンが
   紙面に出ていない図だった。図を数える前に、紙面で見える範囲を当てる。
 
-## 紙面に出ていない画素
+## Pixels the page does not show
 
 - **決定**: 紙面に出ている範囲の外の画素は、根拠に使わない。範囲は `reference/ug-lcd/visible.json` に
   あり、規則は `CLAUDE.md` の "Primary source" にある。紙面で隠れた部分は、見えている部分を別の図に
@@ -57,7 +57,7 @@
   隠れた画素を根拠に数えたことが 2 回あった。CH SETTING の Color と Icon の印に p093-1 の上半分、
   HOME の [Sends] の消灯の色に p048-5 と p049-1、選択中のストリップの枠に p048-5。
 
-## 状態で変わる色
+## A colour that changes with a state
 
 - **決定**: 点灯や選択のように状態で変わる色は、その状態が写っている図からだけ取る。色を取る前に、
   その部品が点灯して写る図があるかを探す。
@@ -70,7 +70,7 @@
   見つけたのは、その色と完全に同じ画素をどの図でも数える走査で、目で探したときには見落としていた。
   色は [design-tokens.md](../design-tokens.md) にある。
 
-## アイコンは画素の差だけで選ばない
+## An icon is not chosen by pixel difference alone
 
 - **決定**: アイコンの形は、画素の差に加えて、形として読める特徴 (歯の数、切れ込みの深さなど) でも
   比べる (`CLAUDE.md` の "Primary source")。
@@ -78,7 +78,7 @@
   MONITOR の [Setting] タブで同じ誤りを繰り返した。画素の差 (XOR) だけで当てはめると、谷の浅い
   8 歯の歯車が最も良い点になる。
 
-## ガイドの本文が決めること
+## What the guide's text settles
 
 - **決定**: 図で決まらない点は、挙げる前に、ガイドの本文で引く (`CLAUDE.md` の "Primary source")。
 - **実害の記録** (2026-09-20): microSD のカードについて、挙げようとしていた 4 点が、本文で決まった。
@@ -88,7 +88,7 @@
 - **経緯**: 本文も、実機と違う所がある。見つかったものは、[known-issues.md](../known-issues.md) の
   「実機にも無いもの」と、[screen-inventory.md](../screen-inventory.md) のその画面の節にある。
 
-## 同じ部品の図どうしが食い違うとき
+## When two figures of one part disagree
 
 - **決定**: 同じ部品の 2 つの図が食い違うときは、両方の図との画素の差を出して、操作者が選ぶ。
 - **実害の記録** (2026-10-12、[#72](https://github.com/semnil/urx-lcd-sim/pull/72)): ピッカーの
@@ -96,7 +96,7 @@
   逆だった。修正の前後の拡大と差の表を並べて示し、どのシートも 14px と決まった (p100-1 の箱は 16px の
   まま)。結果は [screen-inventory.md](../screen-inventory.md) の「画面に重なるシート」にある。
 
-## 実機に答えのある問いは、実機で答えを出す
+## A question the unit can answer is answered on the unit
 
 - **決定** (2026-10-02): 実機の挙動が確かめられていない点の答えは、「実機を観測して合わせる」に
   する。「実機に合わせる」と「実機を見ずに決める選択肢」を並べた問いは出さず、確かめる側へ回す。
@@ -106,7 +106,7 @@
   15 回続けて選ばれ、その後の点にも同じ答えが指定された。2026-10-03 には、変更の後に出した「DELAY の
   丸めを残すか外すか」の問いに、実機を測ったかを問い返された。
 
-## LCD から読んだ値は、写さずに当てはめる
+## A reading off the LCD is fitted, not copied
 
 - **決定** (2026-09-26): 実機の LCD から読んだ長さは、読んだままでは使わない。すべての読みに合う
   1 つの目盛りを探し、テストに読みと許容差 (0.9 mm) を持たせる (`src/model/dynamics.test.ts`)。
@@ -122,7 +122,7 @@
   応答と同じとは限らない。SSMCS の MID のベルは、p112-1 に合わせた Q × 0.696 で描く
   (`SSMCS_BELL_Q_SCALE`)。4 バンドの EQ のベルは、Q を半分にした形が p106-1 に最もよく合った。
 
-## ガイドの本文の小さなボタンの絵
+## The small button pictures in the guide's text
 
 - **決定**: ガイドの本文の中の小さなボタンの絵も、LCD の画素として使う。キャプチャに無い状態の
   見た目は、この絵の中から探す。絵は 52x31 と 42x31 の埋め込み画像で、色はキャプチャと同じ値
