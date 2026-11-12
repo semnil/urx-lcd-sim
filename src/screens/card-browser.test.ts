@@ -903,6 +903,19 @@ describe("the microSD card browser", () => {
     expect([readCard(store).map((e) => `${e.dir}${e.name}`), store.num("sd.selectedFile", 0)]).toEqual([["/Takes"], -1]);
   });
 
+  it("moves RECORDER's cursor on to the file after the one [Delete] takes off, at the row the card now sorts it to", async () => {
+    const shell = await mount({ id: "microsd.recorder" }, [entry("a.wav", "take", 10), entry("b.wav", "take", 25), entry("c.wav", "take", 40)]);
+    const store = shell.ctx.store;
+    await pickTab(shell, "ui.sdTab", "Edit");
+    rows(shell)[0]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+    shell.root.querySelector<HTMLElement>('.sd-actions [aria-label="Delete"]')?.click();
+    await flush();
+    [...shell.root.querySelectorAll<HTMLElement>(".dialog-actions .btn")].find((b) => b.textContent === "OK")?.click();
+    await flush();
+    expect([readCard(store).map((e) => e.name), readCard(store)[store.num("sd.selectedFile", -1)]?.name]).toEqual([["b.wav", "c.wav"], "b.wav"]);
+  });
+
   it("sizes the bar's thumb by whole rows, three of four in view taking three quarters of its travel, a pixel in from the rim", async () => {
     const shell = await mount({ id: "microsd.saveload" });
     await shell.ctx.store.set("sd.files", "a/\nb\nc\nd");
