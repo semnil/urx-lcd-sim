@@ -401,6 +401,7 @@
   --lamp-on: #42d763; /* a dynamics block's lamp, leaving the signal alone */
   --lamp-hold: #f7f73a; /* a dynamics block's lamp, holding the signal part of the way */
   --lamp-shut: #de5152; /* a dynamics block's lamp, holding the signal down to its range */
+  --cue-lamp: #31eb73; /* MONITOR's Active CUE lamp while its group is in the cue */
   --meter-green: #3aeb73;
   --meter-yellow: #fffb42;
   --meter-red: #de5152;

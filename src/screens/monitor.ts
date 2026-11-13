@@ -11,6 +11,7 @@ import { OSC_TARGETS } from "../model/oscillator";
 import { findStrip } from "../model/types";
 import { fxShutOut } from "./effect-params";
 import { drawnLevels } from "./meters";
+import { CUE_MODES, anyCued, clearCueWrites, clearCues, cueMode, setCueMode } from "./cue";
 import type { ScreenBody, ScreenDef } from "./types";
 
 const OSC_MODES = ["Sine Wave", "Pink Noise", "Burst Noise"] as const;
@@ -49,6 +50,53 @@ function monitorSourceSheet(ctx: AppContext, bus: number): HTMLElement {
   });
 }
 
+/** The side tabs of the Monitor menu: the CUE tab came with System firmware V1.5. */
+const MONITOR_TABS = ["Level", "Setting", "CUE"] as const;
+
+/** One of Active CUE's two lamps with its name: lit while a strip of its group is in the cue. */
+function cueLamp(label: string, lit: boolean): HTMLElement {
+  return el("div", {
+    class: `active-cue-row${lit ? " is-cued" : ""}`,
+    children: [el("span", { class: "active-cue-lamp", attrs: { "aria-hidden": "true" } }), el("span", { text: label })],
+  });
+}
+
+/**
+ * The CUE tab (user guide, "Monitor menu > CUE"): Active CUE shows which group
+ * is in the cue and takes every cue out, and [CUE Mode] picks Mix CUE or Last CUE.
+ */
+function cuePage(ctx: AppContext): HTMLElement {
+  const inputs = anyCued(ctx, "input");
+  const outputs = anyCued(ctx, "output");
+  const mode = cueMode(ctx);
+  return el("div", {
+    class: "mon-cue-page",
+    children: [
+      el("span", { class: "active-cue-title", text: "Active CUE" }),
+      el("div", {
+        class: "active-cue",
+        attrs: { role: "group", "aria-label": "Active CUE" },
+        children: [
+          cueLamp("Input", inputs),
+          cueLamp("Output", outputs),
+          // Lit while anything is in the cue, grey while nothing is.
+          el("button", {
+            class: `btn active-cue-clear${inputs || outputs ? " is-cued" : ""}`,
+            text: "Clear CUE",
+            onTap: writing(clearCueWrites(ctx.model), () => clearCues(ctx)),
+          }),
+        ],
+      }),
+      el("span", { class: "cue-mode-title", text: "CUE Mode" }),
+      el("div", {
+        class: "cue-mode-row",
+        attrs: { role: "group", "aria-label": "CUE Mode" },
+        children: CUE_MODES.map((m) => toggle(m, m === mode, writing(ctx.store.writesOf(() => setCueMode(ctx, m)), () => setCueMode(ctx, m)), "cue-mode-btn")),
+      }),
+    ],
+  });
+}
+
 /** The monitor / phones buses the model carries, numbered as the unit names them. */
 function busNumbers(ctx: AppContext): number[] {
   return Array.from({ length: ctx.model.monitorBuses }, (_, i) => i + 1);
@@ -81,11 +129,18 @@ export const monitorLevelScreen: ScreenDef = {
   knobStrip: false,
   title: () => "MONITOR",
   build(ctx): ScreenBody {
-    const tab = ctx.store.str("ui.monitorTab", "Level");
+    const stored = ctx.store.str("ui.monitorTab", "Level");
+    const tab = (MONITOR_TABS as readonly string[]).includes(stored) ? stored : "Level";
     const buses = busNumbers(ctx);
     const specs = buses.map((n) => faderSpec(`monitor.${n}.level`, `Monitor ${n}`));
-    // The Setting tab carries no level control, so it hands the knobs nothing.
-    if (tab !== "Setting") ctx.setKnobs([specs[0] ?? null, specs[1] ?? null, null, null]);
+    const side = MONITOR_TABS.map((t) =>
+      t === "CUE"
+        ? sideTab(t, t === tab, writing("ui.monitorTab", () => void ctx.store.set("ui.monitorTab", t)), undefined, "mon-cue-tab")
+        : sideTab(t, t === tab, writing("ui.monitorTab", () => void ctx.store.set("ui.monitorTab", t)), t === "Level" ? Icons.fader() : Icons.gearSolid(), "is-name-lifted"),
+    );
+    // Only the Level tab carries a level control; the others hand the knobs nothing.
+    if (tab === "Level") ctx.setKnobs([specs[0] ?? null, specs[1] ?? null, null, null]);
+    if (tab === "CUE") return { main: cuePage(ctx), side };
 
     const strips = buses.map((n) => {
       if (tab === "Setting") {
@@ -127,12 +182,7 @@ export const monitorLevelScreen: ScreenDef = {
       });
     });
 
-    return {
-      main: el("div", { class: "mon-main", children: strips }),
-      side: (["Level", "Setting"] as const).map((t) =>
-        sideTab(t, t === tab, writing("ui.monitorTab", () => void ctx.store.set("ui.monitorTab", t)), t === "Level" ? Icons.fader() : Icons.gearSolid(), "is-name-lifted"),
-      ),
-    };
+    return { main: el("div", { class: "mon-main", children: strips }), side };
   },
 };
 

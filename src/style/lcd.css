@@ -4176,6 +4176,148 @@
   height: 10px;
 }
 
+/* The CUE tab (p071-1). Its name stands alone on the tab, with no glyph over
+ * it, 3px below the middle of the face. */
+.mon-cue-tab {
+  justify-content: center;
+  padding: 3px 0 0;
+}
+
+.mon-cue-tab .side-tab-icon {
+  display: none;
+}
+
+/* The page sets Active CUE out at the left and CUE Mode beside it, from the
+ * main area's own origin: the guide's coordinates less the 2px and 50px the
+ * main area starts at. */
+.mon-cue-page {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Each caption stands centred over what it names. */
+.active-cue-title,
+.cue-mode-title {
+  position: absolute;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--text);
+}
+
+.active-cue-title {
+  left: 41px;
+  width: 96px;
+  top: 24px;
+}
+
+.cue-mode-title {
+  left: 177px;
+  width: 198px;
+  top: 47px;
+}
+
+/* Active CUE: a thin frame in the face colour round the two lamps and [Clear CUE]. */
+.active-cue {
+  position: absolute;
+  left: 42px;
+  top: 41px;
+  width: 96px;
+  height: 91px;
+  border: 1px solid var(--surface);
+  border-radius: var(--radius-md);
+}
+
+.active-cue-row {
+  position: absolute;
+  left: 19px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.active-cue-row:nth-child(1) {
+  top: 5px;
+}
+
+.active-cue-row:nth-child(2) {
+  top: 21px;
+}
+
+/* The lamp: an 8px square in the face colour, green while its group is in the
+ * cue, a pixel above the middle of its name. */
+.active-cue-lamp {
+  position: relative;
+  top: -1px;
+  width: 8px;
+  height: 8px;
+  background: var(--surface);
+}
+
+.active-cue-row.is-cued .active-cue-lamp {
+  background: var(--cue-lamp);
+}
+
+/* [Clear CUE] across the foot of the frame: on the face a chosen option takes
+ * while anything is in the cue, and on the plain face while nothing is. */
+.active-cue-clear {
+  position: absolute;
+  left: 3px;
+  top: 46px;
+  width: 88px;
+  height: 40px;
+  padding: 0 0 3px;
+  background: var(--surface);
+}
+
+.active-cue-clear.is-cued {
+  background: var(--accent-selected);
+  box-shadow: inset 0 -3px 0 var(--toggle-band-lit);
+}
+
+/* Two classes, to outrank the reset that makes a button inherit its font and
+ * its colour. */
+.btn.active-cue-clear,
+.btn.cue-mode-btn {
+  font-size: 13px;
+}
+
+/* The two modes are named a step heavier than [Clear CUE]. */
+.btn.cue-mode-btn {
+  font-weight: 600;
+}
+
+.btn.active-cue-clear.is-cued,
+.btn.cue-mode-btn.is-on {
+  color: var(--ink-on-lit);
+}
+
+/* [Mix CUE] and [Last CUE] join into one row, 2px apart, rounded at its two ends. */
+.cue-mode-row {
+  position: absolute;
+  left: 177px;
+  top: 64px;
+  display: flex;
+  gap: 2px;
+}
+
+.cue-mode-btn {
+  width: 98px;
+  height: 40px;
+  padding: 0 0 3px;
+}
+
+.cue-mode-btn:not(.is-on) {
+  background: var(--surface);
+}
+
+.cue-mode-btn.is-on {
+  background: var(--accent-selected);
+}
+
 /* The screen stands on the same four columns as a HOME bank. */
 /* The unit sets the modes out down the glass with the output beside them. The
  * insets below are the guide's own coordinates, less the 2px the main area
@@ -8467,7 +8609,7 @@
  * band repeats the shape where the face meets the band and where the band meets
  * what the button stands on. The shades depend on the face, the band and that
  * ground, so each set is a group of tokens. */
-:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass, .ch-chip, .pick-dialog-row, .mon-source, .dropdown-list, .pitch-keys, .btn.rec-slot-src) {
+:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .cue-mode-btn, .active-cue-clear, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass, .ch-chip, .pick-dialog-row, .mon-source, .dropdown-list, .pitch-keys, .btn.rec-slot-src) {
   position: relative;
   --px-ground: var(--lcd-bg);
   /* The three pixels at each corner are cut away and the two beside them let the
@@ -8524,6 +8666,8 @@
 .osc-mode,
 .usb-storage:not(.is-on),
 .panbal-btn,
+.cue-mode-btn,
+.active-cue-clear,
 .btn.panlink-btn,
 .scene-bank,
 .patch-btn,
@@ -8562,12 +8706,12 @@
   border-radius: 0;
 }
 
-:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass, .ch-chip, .pick-dialog-row, .mon-source, .dropdown-list, .pitch-keys, .btn.rec-slot-src) {
+:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .cue-mode-btn, .active-cue-clear, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass, .ch-chip, .pick-dialog-row, .mon-source, .dropdown-list, .pitch-keys, .btn.rec-slot-src) {
   mask: var(--px-mask-left), var(--px-mask-right), linear-gradient(#000, #000);
   mask-composite: exclude;
 }
 
-:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass, .pick-dialog-row)::after {
+:where(.menu-btn, .pulldown:not(.eq-screen > .pulldown), .ch-selector .ch-arrow, .scene-box:not(.scene-box-static), .lang-btn, .sd-eject, .toolbar-left .dropdown-box, .chs-box, .insfx-effect, .udk-bank, .udk-knob, .rate-btn, .osc-mode, .usb-storage:not(.is-on), .panbal-btn, .cue-mode-btn, .active-cue-clear, .btn.panlink-btn, .scene-bank, .patch-btn, .btn.patch-default, .sd-up, .btn.osc-target, .btn.osc-clear, .btn.dropdown-option, .power-screen > .btn, .bank-option, .btn.color-swatch, .btn.title-key, .btn.dt-value, .input-source-btn, .mode-card, .btn.btn-toggle.sends-option, .sends-btn, .bank-btn, .peripheral-group .btn, .source-btn, .btn.pick-dialog-btn, .sd-actions .btn, .scene-actions .btn, .tools-screen > .btn, .rec-transport .btn, .mode-box, .efx-button, .pitch-corner, .mbc-bypass, .pick-dialog-row)::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -8612,6 +8756,7 @@
 .rate-btn::after,
 .scene-bank::after,
 .panbal-btn::after,
+.cue-mode-btn::after,
 .osc-mode::after,
 .efx-button::after,
 .peripheral-group .btn-row .btn::after {
@@ -8622,6 +8767,7 @@
 .rate-btn,
 .scene-bank,
 .panbal-btn,
+.cue-mode-btn,
 .osc-mode,
 .efx-button,
 .peripheral-group .btn-row .btn {
@@ -8634,6 +8780,7 @@
 .rate-btn:first-child,
 .scene-bank:first-child,
 .panbal-btn:first-child,
+.cue-mode-btn:first-child,
 .efx-button:first-child {
   mask: var(--px-mask-left), linear-gradient(#000, #000);
   mask-composite: exclude;
@@ -8645,6 +8792,7 @@
 .rate-btn:last-child,
 .scene-bank:last-child,
 .panbal-btn:last-child,
+.cue-mode-btn:last-child,
 .efx-button:last-child {
   mask: var(--px-mask-right), linear-gradient(#000, #000);
   mask-composite: exclude;
@@ -8656,6 +8804,7 @@
 .rate-btn:first-child::after,
 .scene-bank:first-child::after,
 .panbal-btn:first-child::after,
+.cue-mode-btn:first-child::after,
 .efx-button:first-child::after {
   background: var(--px-left);
 }
@@ -8666,6 +8815,7 @@
 .rate-btn:last-child::after,
 .scene-bank:last-child::after,
 .panbal-btn:last-child::after,
+.cue-mode-btn:last-child::after,
 .efx-button:last-child::after {
   background: var(--px-right);
 }

@@ -123,7 +123,7 @@ export interface DeviceLink {
 - コントロールは、作るところで自分の対象を名乗る (`src/ui/dom.ts` の `lockable`・`writes`・`writing`・`aimed`)。
   押したときに書く値は、すべて名乗る。`NumericSpec` から作る数値のコントロールはそのパスを自分で名乗り、
   プルダウンは渡された `path` を名乗る。押したときに書く値がストアの状態で変わるコントロール (反対の
-  グループの CUE を外す [CUE]、1-knob のスイッチ、サンプリング周波数、チャンネルのペアを書き換える選択) は、
+  グループの CUE を外す [CUE] (Last CUE では自分のグループのほかの CUE も外す)、すべての CUE を外す CUE Mode、1-knob のスイッチ、サンプリング周波数、チャンネルのペアを書き換える選択) は、
   画面を描くときに、その編集が書く値を名乗る (`DeviceStore.writesOf()`。編集をミラーに当てて、ミラーを
   元に戻し、何も書かない)。ストアがすでに持っている値も数える。使えなくしたパスは、それも拒否するため。
   一覧やシートの選択肢は、選んだときに書く値を名乗り、それを開く箱は自分が選ぶ値を名乗る。
@@ -226,7 +226,7 @@ sequenceDiagram
 writes a bound one」)。編集は、書き込み規則が連れていく書き込み ([architecture.md](architecture.md) の「1 つの編集が
 連れていく書き込み」) と一緒に実機へ送られ、画面が 1 つの設定とそれに従う値をまとめて書く操作は 1 つとして送られる
 (`DeviceStore.operation()`)。BUS Type、Signal Type、PAN/BAL、COMP / EQ、1-knob EQ、エフェクト、入力ソース、サンプリング
-周波数、Pitch Fix の鍵盤とスケール、もう一方のグループのストリップの CUE と最後の入力の CUE を外すこと、SCENE のバンク、題を付けたシーンの保存、レコーダー、再生、カードの操作がこれに当たる。
+周波数、Pitch Fix の鍵盤とスケール、もう一方のグループのストリップの CUE と最後の入力の CUE を外すこと、Last CUE での CUE、CUE Mode、SCENE のバンク、題を付けたシーンの保存、レコーダー、再生、カードの操作がこれに当たる。
 そのどれかの経路にアドレスが無いと `BridgeTransport.writable()` が答えると、どれも送らず、ミラーを前の値に戻し、その経路ごとの
 拒否を知らせる。束縛していない HI-Z を入れても A.Gain は送られず、束縛していない BUS Type や Signal Type を選んでも、それが
 連れていく送り・定位などの値は何も送られない (同じファイルの「sends none of the writes the Shell's rule carries with an edit

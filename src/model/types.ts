@@ -108,6 +108,10 @@ export function carriesInsert(strip: Pick<Strip, "kind">): boolean {
 /** The destination HOME's [Sends] ships on: the stereo bus. */
 export const SENDS_TARGET_SHIPPED = "ST";
 
+/** Where the unit keeps its CUE Mode (MONITOR > CUE), and the mode it gives the setting by default. */
+export const CUE_MODE = "monitor.cueMode";
+export const CUE_MODE_SHIPPED = "Mix CUE";
+
 /** Whether a compatible DAW holds the unit, as the page the glass is embedded in reads it from the
  *  unit. Absent when nothing says. */
 export const INTEGRATION_DAW = "setup.integration.daw";

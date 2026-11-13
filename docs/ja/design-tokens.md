@@ -157,7 +157,7 @@ PY
 | トークン | 値 | 採取元 |
 | --- | --- | --- |
 | `--accent-on` | `#84e3ff` | [ON] / [CUE] / [PRE] スイッチの点灯 (p046-1 / p095-1 / p125-1 の 3 画面で同値)、点灯した [HPF] / [HI-Z] と、HOME のストリップ・チャンネルビューの HPF・HI-Z の印 (印は操作者の指定) |
-| `--accent-selected` | `#84dfff` | リストの選択行 (p076-1)、選択中の言語ボタン (p056-1)、USB Storage Mode (p083-1) |
+| `--accent-selected` | `#84dfff` | リストの選択行 (p076-1)、選択中の言語ボタン (p056-1)、USB Storage Mode (p083-1)、MONITOR の [Clear CUE] と選んでいる CUE Mode (p071-1 の x90 / y138..174 と x190 / y114..150) |
 | `--list-selected-mark` | `#3a3d3a` | 選択行に載る印。D0 p073-1 の ▶ (x12..19 / y124..131) と工場プリセットの印 (x344..363 / y118..137)、p086-1 のスピーカー、p089-1 のファイル印、p077-1 の保護の錠 |
 | `--scene-preset` | `#4adb5a` | 工場出荷のシーンの番号 (D0 p073-1 のシーン名の箱の P01、x19..34 / y18..26。一覧の P02 / P03、x24..41 / y162..170 と y200..208) |
 | `--scene-protect` | `#32eb73` | 保護中のシーンの Lock 欄 (p077-1 の 01、x329..378 / y112..143 の平均) |
@@ -495,7 +495,7 @@ PY
 | `--mon-toggle-off` | `#cecace` | 消灯している MONITOR の [CUE Interrupt] / [MONO] の面 (p070-1 のバス 2 の MONO、x126..176 / y214..250) |
 | `--mon-toggle-off-band` | `#948e94` | 同、下端 3px (p070-1 の x126..176 / y251..253) |
 | `--mon-toggle-off-ink` | `#3a3d3a` | 同、名前の文字 (p070-1 の x139..175 / y228..236) |
-| `--toggle-band-lit` | `#5a9eb5` | 点灯したトグル (`.btn-toggle`) と言語ボタンの下端 3px (p070-1 の MONITOR バス 1 の MONO、x20..70 / y251..253。p058-1 の x80 / y81..83、p059-1 と p062-1 の x100 / y151..153、p056-1 の x200 / y155..157) |
+| `--toggle-band-lit` | `#5a9eb5` | 点灯したトグル (`.btn-toggle`) と言語ボタンの下端 3px (p070-1 の MONITOR バス 1 の MONO、x20..70 / y251..253。p058-1 の x80 / y81..83、p059-1 と p062-1 の x100 / y151..153、p056-1 の x200 / y155..157)、MONITOR の [Clear CUE] と選んでいる CUE Mode の下端 3px (p071-1 の x90 / y175..177 と x190 / y151..153) |
 | `--toolbar-sep` | `#5a5d6b` | 戻る矢印と HOME の間の 2px の線 (p069-1 の x431..432 / y10..31) |
 | `--chip-mark` | `#848a8c` | チャンネル名の右上の複製マーク (p099-1) |
 | `--toolbar-edge` | `#6b6d7b` | アイコン列の帯の左と下に沿う 2px の罫 (p105-1 の x384..385 / y40..41) |
@@ -535,6 +535,7 @@ PY
 | `--lamp-on` | `#42d763` | GATE / DUCKER のランプ。信号に手を付けていないとき (p099-1 の GATE) |
 | `--lamp-hold` | `#f7f73a` | GATE / DUCKER のランプ。途中まで絞っているとき (D0 p098-1 の DUCKER) |
 | `--lamp-shut` | `#de5152` | GATE / DUCKER のランプ。RANGE まで絞りきったとき (p100 / p103) |
+| `--cue-lamp` | `#31eb73` | MONITOR の Active CUE のランプ。そのグループに CUE があるあいだ (p071-1 の Input、x64..71 / y99..106) |
 | `--meter-green` | `#3aeb73` | メーターの緑帯 |
 | `--meter-yellow` | `#fffb42` | メーターのバーの上半分 |
 | `--meter-red` | `#de5152` | HOME ストリップのクリップランプと、チャンネルビューの COMP ブロックのリダクション表示の点灯 |

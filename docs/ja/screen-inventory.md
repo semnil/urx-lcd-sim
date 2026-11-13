@@ -51,7 +51,7 @@ URX44V/44/22 ユーザーガイド (英語版 revision E0) が載せている LC
 | 画面 | 画面 ID | 参照 | 状態 |
 | --- | --- | --- | --- |
 | MONITOR トップメニュー | `monitor` | p68 | 実装済み |
-| Monitor (Level / Setting) | `monitor.level` | p69-70 | 実装済み |
+| Monitor (Level / Setting / CUE) | `monitor.level` | p69-71 | 実装済み |
 | Phones | `monitor.phones` | p72 | 実装済み |
 | Oscillator (OSC / Assign) | `monitor.osc` | p73-74 | 実装済み |
 
@@ -94,7 +94,6 @@ URX44V/44/22 ユーザーガイド (英語版 revision E0) が載せている LC
 
 | 画面・部分 | 画面 ID | 参照 | 状態 |
 | --- | --- | --- | --- |
-| Monitor メニューの CUE (CUE Mode・Active CUE) | — | p71 | 未実装 |
 | Recall Safe (SCENE) | — | p79-80 | 未実装 |
 | EQ Type と GEQ Limit (STEREO と MIX の CH SETTING)、チャンネルビューの GEQ エリア | — | p97-98, p104 | 未実装 |
 | GEQ | — | p122-123 | 未実装 |
@@ -1121,6 +1120,23 @@ y163..199)、[MONO] はそれより 4px 狭い 86px で同じ中心に立つ (x8
 `--mon-toggle-off` に `--mon-toggle-off-ink` の名前、点灯はシアンの面に `--surface` の名前 (p070-1)。[CUE Interrupt] の
 名前は 14px 間隔の 2 行で、`CUE` が y170..178、`Interrupt` が y184..192 に立つ (p070-1)。
 
+## MONITOR の CUE タブ
+
+System ファームウェア V1.5 で、Monitor メニューのサイドタブに 3 つ目の [CUE] が [Setting] の下に加わった (x422..479 /
+y168..219、p071-1)。名前だけが載り、グリフは無い。名前は面の中央より 3px 下に、ほかのタブの名前と同じ大きさと太さで
+置く。Level と Setting のタブの図には、消灯した [CUE] が描かれている (p069-1、p070-1)。
+
+Active CUE (p071-1) は、見出しの下の `--surface` の 1px の枠 (x44..139 / y91..181、角は `--radius-md`) で、ランプ 2 つと
+[Clear CUE] を囲む。ランプは x64..71 の 8px の正方形で、Input が y99..106、Output が y115..122。そのグループに CUE が
+無いあいだは `--surface`、あるあいだは `--cue-lamp` (Input は p071-1。STEREO を CUE したときに Output が灯り Input が灰色に
+なることは URX44V で確認)。[Clear CUE] (x48..135 / y138..177) は、CUE が 1 つでもあるあいだは選んだ選択肢と同じ面
+(`--accent-selected`、帯は `--toggle-band-lit`) に立ち、1 つも無いあいだは選んでいない CUE Mode と同じ灰色の面に白い名前で
+立つ (URX44V で確認)。HOME の CLEAR CUE と同じくすべての CUE を外す。CUE Mode は
+[Mix CUE] (x179..276) と [Last CUE] (x279..376) を y114..153 に 2px 空けて 1 列につなぎ、両端だけを丸める。選んでいる方は
+[Clear CUE] と同じ面、もう一方は `--surface`。見出しはそれぞれ指すものの上に置き、このページの名前はすべて 13px で、2 つのモードの名前は太さ 600。
+CUE Mode の切り替えは、モードとそれが外すすべての CUE を 1 つの操作として書く (`src/screens/cue.ts` の `setCueMode`)。
+選んでいるモードをもう一度押しても何も変わらず、CUE も外れない (URX44V で確認)。タブの文字は図のとおり (URX44V で確認)。
+
 ## 画面に重なるシート
 
 ピッカーのシート (入力ソース・出力ソース・録音ソース・MONITOR の Source・INS FX・Color) は右と下に影を落とす。
@@ -1162,7 +1178,7 @@ HOME のサイドレールの [Sends] は、表示中の送り先の色で常に
 
 ## サイドレールの上端
 
-レールは画面によって上端が違う。HOME・MONITOR (Level / Setting)・SEND TO・Sends のシートは
+レールは画面によって上端が違う。HOME・MONITOR (Level / Setting / CUE)・SEND TO・Sends のシートは
 ツールバーの直下 (y50) から、それ以外 (OSCILLATOR・SCENE LIST・Output Patch・Peripheral・
 Software Integration・RECORDER・SAVE/LOAD・TOOLS) は 6px 下 (y56) から始まる。規則は
 キャプチャからは導けないので `ScreenDef` の `sideAtTop` で画面ごとに宣言する。
@@ -1174,6 +1190,7 @@ Software Integration・RECORDER・SAVE/LOAD・TOOLS) は 6px 下 (y56) から始
 - RECORDER と TOOLS の 1 つめ (Record・Format) は 44px、RECORDER・SAVE/LOAD・TOOLS の 2 つめ以降は 3px 上の
   41px (p084-2・p086-1・p088-1・p089-1・p090-1・p092-1・p093-1)。
 - SCENE LIST の Edit と MONITOR の Level・Setting は 1px 上の 43px (p076-1・p069-1・p070-1)。
+- MONITOR の CUE はグリフを持たず、名前を 31px に置く。面の中央より 3px 下 (p071-1)。
 - OSCILLATOR の OSC と Assign は 44px で、Assign の字形は 1px 上に置く (p073-1・p074-1)。
 - 2 行の名前は SAVE/LOAD の Save/Load が行送り 16px (インクの下端 y88 と y104、p089-1)、SCENE LIST の
   Store/Recall が行送り 12px (y89 と y101、p076-1)。
@@ -1236,6 +1253,11 @@ URX22 と URX44 も、チャンネル数の違いのほかは同じ法則で動�
   その後にシーンや設定ファイルが入力の CUE を戻しても同じ。
   出力の CUE が外した入力の CUE は戻らない。CLEAR CUE はすべての CUE を外し、何も戻さず、覚えていた出力も忘れる
   (`src/screens/cue.ts`、`src/screens/cue.test.ts` が固定)。
+- ここまでは本体の Mix CUE の動き。もう一つの CUE Mode の Last CUE では、ストリップを CUE に入れると、同じグループのほかの CUE も
+  外れ、1 つのグループに CUE は 1 つしか残らない。2 つのグループが互いに外し合うことと、最初の入力の CUE が外した出力の CUE が
+  最後の入力の CUE を外すと戻ることは変わらない (URX22 と URX44V で確認)。CUE Mode を切り替えると、すべての CUE が外れ、
+  覚えていた出力も忘れる (ガイドの注記。URX44V で確認)。CUE Mode は本体の設定 (`monitor.cueMode`。工場出荷状態のシミュレーターでは Mix CUE) で、
+  設定ファイルには入り、シーンには入らない。シミュレーターがこれを持つ前に保存した設定ファイルを読み込むと、Mix CUE に戻る。
 - MONITOR は、CUE Interrupt が入で何かが CUE に入っているあいだ、ソースの代わりに CUE を出す。MONO は L と R をそれぞれ 3 dB 下げて
   足したものを両側に出す。その後に [ON] と LEVEL が効く。
 

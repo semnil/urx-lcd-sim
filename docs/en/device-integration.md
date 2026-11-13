@@ -129,8 +129,8 @@ Each lock (`SimLock`) is a target and the reason the page gives for it. A target
 - A control names its targets where it is built (`lockable`, `writes`, `writing` and `aimed` in
   `src/ui/dom.ts`), every value a press on it writes among them: the numeric controls built from a
   `NumericSpec` name its path themselves, and a pulldown names the `path` it is given. Where what a
-  press writes depends on what the store holds — [CUE], which takes the other group out, a 1-knob
-  switch, a sampling frequency, a choice that rewrites a pair of channels — the control names what
+  press writes depends on what the store holds — [CUE], which takes the other group out (and under Last CUE
+  the rest of its own), the CUE Mode, which takes every cue out, a 1-knob switch, a sampling frequency, a choice that rewrites a pair of channels — the control names what
   its edit would write as the glass is drawn (`DeviceStore.writesOf()`, which runs the edit against
   the mirror and puts the mirror back, writing nothing), a value the store already holds included,
   since a held path refuses that too. A choice on a list or a sheet names what picking it writes,
@@ -247,7 +247,8 @@ paths alone, puts an edit to an unbound path back and writes a bound one" in
 adds to it ("The writes one edit carries with it" in [architecture.md](architecture.md)), and an operation a
 screen makes of one setting and the values that follow from it goes as one (`DeviceStore.operation()`): BUS
 Type, Signal Type, PAN/BAL, COMP / EQ, 1-knob EQ, an effect, an input source, the sampling frequency, Pitch
-Fix's keys and scale, cueing a strip of the other CUE group or taking the last input cue out, SCENE's bank,
+Fix's keys and scale, cueing a strip of the other CUE group or taking the last input cue out, a cue under
+Last CUE, the CUE Mode, SCENE's bank,
 storing a scene with its title, the recorder, playback and the card. Where
 `BridgeTransport.writable()` says one of their paths has no address, none of them is sent, the mirror goes
 back to what it held before, and the refusal of each such path is reported. Switching on an unbound HI-Z

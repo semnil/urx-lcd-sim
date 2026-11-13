@@ -1081,6 +1081,10 @@ describe("every knob-bound parameter is reachable on the glass", () => {
     await store.set("ui.monitorTab", "Setting");
     await flush();
     expect(bound, "the Setting tab has no level control to reach them with").toEqual([]);
+
+    await store.set("ui.monitorTab", "CUE");
+    await flush();
+    expect(bound, "nor has the CUE tab").toEqual([]);
   });
 
   // One strip of each kind: what a channel screen draws depends on it, so a

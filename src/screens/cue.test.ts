@@ -7,7 +7,7 @@ import { factoryState } from "../model/defaults";
 import { allStrips, findStrip } from "../model/types";
 import { unitById } from "../model/units";
 import { applySettings, captureSettings } from "../model/settings-file";
-import { cueGroup, toggleCue } from "./cue";
+import { CUE_MODE, cueGroup, setCueMode, toggleCue } from "./cue";
 import { buildRegistry } from "./index";
 import { recallScene, storeScene } from "./scene";
 import { setSignalType } from "./stereo-link";
@@ -222,5 +222,168 @@ describe("[CUE] on the screens", () => {
     button.click();
     await flush();
     expect(cued(shell)).toEqual(["bus.stereo"]);
+  });
+});
+
+describe("Last CUE", () => {
+  async function lastCue(): Promise<Shell> {
+    const shell = await mount();
+    setCueMode(shell.ctx, "Last CUE");
+    await flush();
+    return shell;
+  }
+
+  it.each([
+    ["inputs", ["fx1", "ch1", "ch_7_8"]],
+    ["outputs", ["bus.stereo", "bus.mix1", "bus.stream"]],
+  ])("keeps the last of the %s put in the cue and takes the others of its group out", async (_group, ids) => {
+    const shell = await lastCue();
+    for (const id of ids) await press(shell, id);
+    expect(cued(shell)).toEqual([ids[ids.length - 1]]);
+  });
+
+  it("still takes the other group out, and puts back the output the input cues took out once the last is taken out", async () => {
+    const shell = await lastCue();
+    await press(shell, "bus.mix1");
+    await press(shell, "ch1");
+    expect(cued(shell), "CH 1 takes MIX 1 out").toEqual(["ch1"]);
+    await press(shell, "ch2");
+    expect(cued(shell), "CH 2 takes CH 1's place").toEqual(["ch2"]);
+    await press(shell, "ch2");
+    expect(cued(shell), "and taking it out brings MIX 1 back").toEqual(["bus.mix1"]);
+  });
+
+  it("takes an input out for a linked pair and keeps both channels of the pair", async () => {
+    const shell = await lastCue();
+    const ch1 = findStrip(shell.ctx.model, "ch1");
+    if (!ch1) throw new Error("no CH 1");
+    setSignalType(shell.ctx, ch1, "STEREO");
+    await flush();
+    await press(shell, "fx1");
+    await press(shell, "ch2");
+    expect(cued(shell)).toEqual(["ch1", "ch2"]);
+    await press(shell, "ch_7_8");
+    expect(cued(shell)).toEqual(["ch_7_8"]);
+  });
+
+  it("is left by switching back to Mix CUE, after which the cues of a group add up again", async () => {
+    const shell = await lastCue();
+    setCueMode(shell.ctx, "Mix CUE");
+    await flush();
+    for (const id of ["ch1", "ch2"]) await press(shell, id);
+    expect(cued(shell)).toEqual(["ch1", "ch2"]);
+  });
+});
+
+describe("switching the CUE Mode", () => {
+  it.each(["Last CUE", "Mix CUE"] as const)("to %s takes every cue out as one operation", async (mode) => {
+    const shell = await mount();
+    if (mode === "Mix CUE") {
+      setCueMode(shell.ctx, "Last CUE");
+      await flush();
+    }
+    // Both groups in the cue at once, as values put back can leave them.
+    for (const id of ["ch1", "bus.mix1"]) await shell.ctx.store.restore(`ch.${id}.cue`, true);
+    const writes = shell.ctx.store.writesOf(() => setCueMode(shell.ctx, mode));
+    expect(writes.sort()).toEqual([CUE_MODE, "ch.bus.mix1.cue", "ch.ch1.cue", "ui.cueOutputMemory"].sort());
+    setCueMode(shell.ctx, mode);
+    await flush();
+    expect(shell.ctx.store.str(CUE_MODE, "")).toBe(mode);
+    expect(cued(shell)).toEqual([]);
+  });
+
+  it("forgets the outputs the input cues took out", async () => {
+    const shell = await mount();
+    await press(shell, "bus.stereo");
+    await press(shell, "ch1");
+    setCueMode(shell.ctx, "Last CUE");
+    await flush();
+    // Values put back, as a scene or a settings file does, can cue an input without its [CUE].
+    await shell.ctx.store.restore("ch.ch1.cue", true);
+    await press(shell, "ch1");
+    expect(cued(shell), "STEREO stays out").toEqual([]);
+  });
+
+  it("to the mode the unit stands in writes nothing and leaves the cues", async () => {
+    const shell = await mount();
+    await press(shell, "ch1");
+    expect(shell.ctx.store.writesOf(() => setCueMode(shell.ctx, "Mix CUE"))).toEqual([]);
+    setCueMode(shell.ctx, "Mix CUE");
+    await flush();
+    expect(cued(shell)).toEqual(["ch1"]);
+  });
+});
+
+describe("the MONITOR CUE tab", () => {
+  async function cueTab(): Promise<Shell> {
+    const shell = await mount([{ id: "monitor" }, { id: "monitor.level" }]);
+    await shell.ctx.store.set("ui.monitorTab", "CUE");
+    await flush();
+    return shell;
+  }
+  const lamps = (shell: Shell): boolean[] => [...shell.root.querySelectorAll(".active-cue-row")].map((r) => r.classList.contains("is-cued"));
+  const lit = (shell: Shell): string[] =>
+    [...shell.root.querySelectorAll<HTMLElement>(".cue-mode-btn")].filter((b) => b.getAttribute("aria-pressed") === "true").map((b) => b.textContent ?? "");
+
+  it("puts the CUE tab under Level and Setting, its name alone on it", async () => {
+    const shell = await cueTab();
+    const tabs = [...shell.root.querySelectorAll<HTMLElement>(".side-tab")];
+    expect(tabs.map((t) => t.textContent)).toEqual(["Level", "Setting", "CUE"]);
+    expect(tabs[2]?.getAttribute("aria-pressed")).toBe("true");
+    expect(tabs[2]?.querySelector(".side-tab-icon svg"), "no glyph").toBeNull();
+  });
+
+  it("opens on Level when the stored tab is not one the menu has", async () => {
+    const shell = await mount([{ id: "monitor" }, { id: "monitor.level" }]);
+    await shell.ctx.store.set("ui.monitorTab", "Gone");
+    await flush();
+    const lit = [...shell.root.querySelectorAll<HTMLElement>(".side-tab")].filter((t) => t.getAttribute("aria-pressed") === "true");
+    expect(lit.map((t) => t.textContent)).toEqual(["Level"]);
+    expect(shell.root.querySelectorAll(".mon-strip .mon-level").length, "the Level tab's strips").toBe(2);
+  });
+
+  it("lights the Input and Output lamps by the group in the cue", async () => {
+    const shell = await cueTab();
+    expect(lamps(shell), "nothing cued").toEqual([false, false]);
+    await press(shell, "ch1");
+    expect(lamps(shell), "an input").toEqual([true, false]);
+    await press(shell, "bus.stereo");
+    expect(lamps(shell), "an output").toEqual([false, true]);
+    // Both groups in the cue at once, as values put back can leave them.
+    await shell.ctx.store.restore("ch.ch1.cue", true);
+    await flush();
+    expect(lamps(shell), "both").toEqual([true, true]);
+  });
+
+  it("lights [Clear CUE] while anything is in the cue and leaves it grey while nothing is", async () => {
+    const shell = await cueTab();
+    const clear = (): boolean => shell.root.querySelector(".active-cue-clear")?.classList.contains("is-cued") ?? true;
+    expect(clear(), "nothing cued").toBe(false);
+    await press(shell, "ch1");
+    expect(clear(), "an input").toBe(true);
+    await press(shell, "bus.stereo");
+    expect(clear(), "an output").toBe(true);
+    await press(shell, "bus.stereo");
+    expect(clear(), "nothing again").toBe(false);
+  });
+
+  it("takes every cue out with [Clear CUE]", async () => {
+    const shell = await cueTab();
+    for (const id of ["ch1", "ch2"]) await press(shell, id);
+    shell.root.querySelector<HTMLElement>(".active-cue-clear")?.click();
+    await flush();
+    expect(cued(shell)).toEqual([]);
+    expect(lamps(shell)).toEqual([false, false]);
+  });
+
+  it("lights the CUE Mode the unit stands in and switches it, taking the cues out", async () => {
+    const shell = await cueTab();
+    expect(lit(shell), "as the unit ships").toEqual(["Mix CUE"]);
+    await press(shell, "ch1");
+    [...shell.root.querySelectorAll<HTMLElement>(".cue-mode-btn")].find((b) => b.textContent === "Last CUE")?.click();
+    await flush();
+    expect(lit(shell)).toEqual(["Last CUE"]);
+    expect(shell.ctx.store.str(CUE_MODE, "")).toBe("Last CUE");
+    expect(cued(shell)).toEqual([]);
   });
 });
