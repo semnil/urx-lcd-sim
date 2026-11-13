@@ -12,7 +12,7 @@ import { Icons } from "../ui/icons";
 import { dateTimeSetScreen, dateTimeSpans, openDateTimeSet, openTimeZone, timeZoneScreen } from "./date-time";
 import { draftTitle } from "./title-entry";
 import { patchSourceSheet } from "./output-patch";
-import { button, dialog, menuButton, menuGrid, paramCell, pickColumn, pickDialog, pulldown, scrollbar, sideTab, toggle } from "../ui/widgets";
+import { button, dialog, holdsModal, menuButton, menuGrid, paramCell, pickColumn, pickDialog, pulldown, scrollbar, sideTab, toggle } from "../ui/widgets";
 import type { ScreenBody, ScreenDef } from "./types";
 import { Shell } from "../app/shell";
 import { buildRegistry } from "./index";
@@ -141,7 +141,7 @@ export const UNLOCKED_MS = 900;
 export function lockConsole(ctx: AppContext): void {
   const padlock = el("span", { class: "console-locked-padlock", children: [Icons.consoleLock()] });
   const ring = el("span", { class: "console-locked-ring", attrs: { "aria-hidden": "true" } });
-  const node = el("div", {
+  const node = holdsModal(el("div", {
     class: "console-locked",
     attrs: { role: "dialog", "aria-modal": "true", "aria-label": "CONSOLE LOCK", tabindex: "0" },
     children: [
@@ -151,7 +151,7 @@ export function lockConsole(ctx: AppContext): void {
       el("p", { class: "console-locked-note", text: "A password is required if one is set." }),
       padlock,
     ],
-  });
+  }));
   let timer: ReturnType<typeof setTimeout> | undefined;
   let unlocked = false;
   const stop = (): void => {
@@ -202,6 +202,8 @@ export function lockConsole(ctx: AppContext): void {
   node.addEventListener("keyup", (ev) => {
     if (ev.key === "Enter" || ev.key === " ") stop();
   });
+  // A key held down and the focus then taken elsewhere lets go of the hold: its release lands elsewhere.
+  node.addEventListener("blur", stop);
   void ctx.store.set(LOCKED, 1);
   const close = ctx.overlay(node, () => clearTimeout(timer));
   node.focus({ preventScroll: true });
@@ -253,7 +255,7 @@ export const MISMATCH_MS = 2000;
 
 /** A message the unit shows for a moment over the screen, with the information mark and no button. */
 function notice(ctx: AppContext, message: string, ms: number, after: () => void): void {
-  const node = el("div", {
+  const node = holdsModal(el("div", {
     class: "dialog-overlay",
     attrs: { role: "alertdialog", "aria-modal": "true", "aria-label": message },
     children: [
@@ -267,12 +269,12 @@ function notice(ctx: AppContext, message: string, ms: number, after: () => void)
         ],
       }),
     ],
-  });
-  const close = ctx.overlay(node);
-  setTimeout(() => {
+  }));
+  const timer = setTimeout(() => {
     close();
     after();
   }, ms);
+  const close = ctx.overlay(node, () => clearTimeout(timer));
 }
 
 /**

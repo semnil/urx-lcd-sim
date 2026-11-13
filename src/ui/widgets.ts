@@ -439,6 +439,15 @@ export function modalOf(node: HTMLElement): Modal | undefined {
   return MODALS.get(node);
 }
 
+/**
+ * Mark `node` as a modal that nothing but itself takes down: while it is up the glass behind it is
+ * inert, and Escape, which cancels a modal, leaves it alone.
+ */
+export function holdsModal<T extends HTMLElement>(node: T): T {
+  MODALS.set(node, {});
+  return node;
+}
+
 export interface PickerSheetSpec {
   /** The name band across the top of the sheet. */
   title: string;
