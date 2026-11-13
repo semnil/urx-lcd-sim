@@ -117,6 +117,14 @@ node scripts/extract-ug-screens.mjs --pdf <path to the revision D0 PDF> --out re
 python3 scripts/ug-visible-ranges.py --pdf <path to the revision D0 PDF> --out reference/ug-lcd-d0/visible.json
 ```
 
+A checkout that extracted revision D0 into `reference/ug-lcd/` keeps every D0-only file there when E0 is
+extracted over it, since extraction overwrites a file of the same name and removes nothing. Move that
+directory to `reference/ug-lcd-d0/` first, then extract E0 into the empty `reference/ug-lcd/`:
+
+```bash
+mv reference/ug-lcd reference/ug-lcd-d0
+```
+
 ## Relationship to the hardware
 
 The simulator owns no device protocol. Values live behind `DeviceTransport`

@@ -113,6 +113,14 @@ node scripts/extract-ug-screens.mjs --pdf <revision D0 の PDF> --out reference/
 python3 scripts/ug-visible-ranges.py --pdf <revision D0 の PDF> --out reference/ug-lcd-d0/visible.json
 ```
 
+`reference/ug-lcd/` に revision D0 を取り出してあるチェックアウトでは、その上に E0 を取り出すと D0 にだけある
+ファイルが残る (取り出しは同じ名前のファイルを上書きし、何も消さない)。先にそのディレクトリを
+`reference/ug-lcd-d0/` へ移し、空になった `reference/ug-lcd/` へ E0 を取り出す:
+
+```bash
+mv reference/ug-lcd reference/ug-lcd-d0
+```
+
 ## 実機との関係
 
 シミュレーターは実機のプロトコルを持たない。値は `DeviceTransport`
