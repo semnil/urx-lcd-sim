@@ -6750,8 +6750,9 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
     expect(await marked("scene.list", "is-name-raised"), "SCENE LIST raises none by 3px").toEqual([false, false]);
     expect(await marked("scene.list", "is-name-lifted"), "SCENE LIST's Edit").toEqual([false, true]);
     expect(await marked("scene.list", "is-name-close"), "Store/Recall").toEqual([true, false]);
-    expect(await marked("monitor.level", "is-name-raised")).toEqual([false, false]);
-    expect(await marked("monitor.level", "is-name-lifted"), "MONITOR").toEqual([true, true]);
+    expect(await marked("monitor.level", "is-name-raised")).toEqual([false, false, false]);
+    expect(await marked("monitor.level", "is-name-lifted"), "MONITOR's Level and Setting").toEqual([true, true, false]);
+    expect(await marked("monitor.level", "mon-cue-tab"), "and its CUE, its name alone on the tab").toEqual([false, false, true]);
     expect(await marked("monitor.osc", "is-name-lifted"), "OSCILLATOR").toEqual([false, false]);
     expect(await marked("setup.patch", "patch-tab"), "Output Patch").toEqual([true, true]);
     expect(await marked("setup.peripheral", "patch-tab"), "Peripheral").toEqual([false, false]);
@@ -6759,7 +6760,7 @@ describe("channel, monitor and microSD screens laid out from the guide's figures
     await shell.ctx.store.set("ui.oscTab", "Assign");
     expect(await marked("monitor.osc", "osc-tab"), "on the Assign tab too").toEqual([true, true]);
     await shell.ctx.store.set("ui.oscTab", "OSC");
-    expect(await marked("monitor.level", "osc-tab"), "MONITOR's do not").toEqual([false, false]);
+    expect(await marked("monitor.level", "osc-tab"), "MONITOR's do not").toEqual([false, false, false]);
   });
 
   it("draws the readout bar's page step as a glyph", async () => {

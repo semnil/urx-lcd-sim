@@ -313,3 +313,56 @@ describe("switching the CUE Mode", () => {
     expect(cued(shell)).toEqual(["ch1"]);
   });
 });
+
+describe("the MONITOR CUE tab", () => {
+  async function cueTab(): Promise<Shell> {
+    const shell = await mount([{ id: "monitor" }, { id: "monitor.level" }]);
+    await shell.ctx.store.set("ui.monitorTab", "CUE");
+    await flush();
+    return shell;
+  }
+  const lamps = (shell: Shell): boolean[] => [...shell.root.querySelectorAll(".active-cue-row")].map((r) => r.classList.contains("is-lit"));
+  const lit = (shell: Shell): string[] =>
+    [...shell.root.querySelectorAll<HTMLElement>(".cue-mode-btn")].filter((b) => b.getAttribute("aria-pressed") === "true").map((b) => b.textContent ?? "");
+
+  it("puts the CUE tab under Level and Setting, its name alone on it", async () => {
+    const shell = await cueTab();
+    const tabs = [...shell.root.querySelectorAll<HTMLElement>(".side-tab")];
+    expect(tabs.map((t) => t.textContent)).toEqual(["Level", "Setting", "CUE"]);
+    expect(tabs[2]?.getAttribute("aria-pressed")).toBe("true");
+    expect(tabs[2]?.querySelector(".side-tab-icon svg"), "no glyph").toBeNull();
+  });
+
+  it("lights the Input and Output lamps by the group in the cue", async () => {
+    const shell = await cueTab();
+    expect(lamps(shell), "nothing cued").toEqual([false, false]);
+    await press(shell, "ch1");
+    expect(lamps(shell), "an input").toEqual([true, false]);
+    await press(shell, "bus.stereo");
+    expect(lamps(shell), "an output").toEqual([false, true]);
+    // Both groups in the cue at once, as values put back can leave them.
+    await shell.ctx.store.restore("ch.ch1.cue", true);
+    await flush();
+    expect(lamps(shell), "both").toEqual([true, true]);
+  });
+
+  it("takes every cue out with [Clear CUE]", async () => {
+    const shell = await cueTab();
+    for (const id of ["ch1", "ch2"]) await press(shell, id);
+    shell.root.querySelector<HTMLElement>(".active-cue-clear")?.click();
+    await flush();
+    expect(cued(shell)).toEqual([]);
+    expect(lamps(shell)).toEqual([false, false]);
+  });
+
+  it("lights the CUE Mode the unit stands in and switches it, taking the cues out", async () => {
+    const shell = await cueTab();
+    expect(lit(shell), "as the unit ships").toEqual(["Mix CUE"]);
+    await press(shell, "ch1");
+    [...shell.root.querySelectorAll<HTMLElement>(".cue-mode-btn")].find((b) => b.textContent === "Last CUE")?.click();
+    await flush();
+    expect(lit(shell)).toEqual(["Last CUE"]);
+    expect(shell.ctx.store.str(CUE_MODE, "")).toBe("Last CUE");
+    expect(cued(shell)).toEqual([]);
+  });
+});
