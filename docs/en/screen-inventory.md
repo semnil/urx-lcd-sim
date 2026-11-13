@@ -311,8 +311,8 @@ write are in one place, `src/screens/stereo-link.ts`.
   member keeps its own of is the head amp (A.Gain, Clip Safe, Φ, +48V, Hi-Z), the input source, the
   name, the colour, and the position outside `BAL`. Signal Type and `PAN` / `BAL` are the pair's
   and are written to both; the insert and the BALANCE stay held by the lower-numbered channel. A
-  linked pair put back with two CUEs, by a browser save, a scene or a settings file from a version
-  whose channels each held their own, takes the lower-numbered channel's.
+  linked pair put back with two CUEs, by a browser save from a version whose channels each held their
+  own, takes the lower-numbered channel's.
 
 `src/screens/stereo-link.test.ts` pins the behavior, and "the stereo-link mark between two strips" in
 `src/style/columns.test.ts` pins the mark's position.
@@ -1450,7 +1450,7 @@ send's [PRE] nor its placing was checked on a URX22 too.
   cue of the group that was cued out, and taking a cue out leaves the other cues as they stand. The
   outputs the first input cue takes out are remembered, and taking the last input cue out puts each of
   them back in the cue once; an output cued in between leaves nothing to put back, also for an input cue
-  a scene or a settings file puts back afterwards. The inputs an output cue
+  put back afterwards without its [CUE]. The inputs an output cue
   takes out do not come back. CLEAR CUE takes every cue out, puts nothing back and forgets the remembered
   outputs (`src/screens/cue.ts`, pinned by `src/screens/cue.test.ts`).
 - That is the unit's Mix CUE. Under its other CUE Mode, Last CUE, cueing a strip also takes the other cues
@@ -1968,8 +1968,9 @@ more scenes than the card has room for writes nothing, by [Save], by [Save as] u
 name in other case alike; what the unit does with a full card is in `known-issues.md`). [Save] and [Load] stand out of reach until a settings file is under the
 cursor. A settings file carries every value but the screen's own state (`ui.` bar the destination HOME's [Sends]
 shows, and the tabs OUTPUT PATCH, PERIPHERAL and SCENE LIST's Standard / Simple stand on), the card itself (`sd.`), the clock
-("SETUP screen") and what a linked pair's COMP hears (`pair.`, "The three dynamics screens (GATE / COMP / DUCKER)"),
-so a load leaves those tabs where they stand, as on the unit (confirmed on a URX44V). SCENE LIST's
+("SETUP screen"), what a linked pair's COMP hears (`pair.`, "The three dynamics screens (GATE / COMP / DUCKER)")
+and each strip's [CUE], which a file the unit writes carries none of. A load leaves those tabs where they stand, as on the
+unit (confirmed on a URX44V), and the cues as well. SCENE LIST's
 cursor is in the file, and a load puts it back on the row it stood on when the file was saved, as on
 the unit (confirmed on a URX44V, on Standard's list). Where the tab standing open does not
 list that row, SCENE LIST opens the tab that does; a row both tabs list leaves the open tab where it
@@ -2026,7 +2027,10 @@ stores nothing.
 it asks `Recall scene "Band"?` (the title is the picked scene's) with [Cancel] / [OK], and on [OK] puts that scene's mixer
 back and makes it the recalled one. A source the scene holds no D.Gain for comes back to 0 dB, and a BALANCE the scene holds
 none for comes back to the centre. A recall leaves the destination HOME's [Sends] shows where it stands, as on the unit
-(confirmed on a URX44V, for a scene stored on MIX 1 and recalled over FX 1). 00 Initial Data puts the factory
+(confirmed on a URX44V, for a scene stored on MIX 1 and recalled over FX 1). Since System firmware V1.5 a scene
+holds the output patch and the streaming bus as well, but for the streaming bus's DELAY frame rate (confirmed on
+a URX22 and a URX44V), and it holds no [CUE], so a recall leaves the cues where they stand (the guide's list of what
+a scene does not save). 00 Initial Data puts the factory
 mixer back. P01 to P03 lay settings of their own over the factory mixer. The main ones are below; the whole of what a preset
 changes is in `src/model/scene-presets.ts`. The table's channels go onto the mono and the stereo channels from the lowest
 number up, the mono channels on a HI-Z connector (CH 3-4 in the table) apart from the rest: on a URX22, CH 1 takes the
