@@ -2646,6 +2646,318 @@
   gap: 8px 13px;
 }
 
+/* SETUP's [Console Lock] (System firmware V1.5): the Operation Mode box's face and size, left of
+ * HOME at x298..421 / y2..41, a padlock before the name (p126-1). */
+/* Two classes, because the reset that makes a button inherit its font is more specific than one. */
+.toolbar .console-lock-btn {
+  position: absolute;
+  left: 296px;
+  top: 2px;
+  width: 124px;
+  height: 40px;
+  box-sizing: border-box;
+  padding: 0 0 3px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: inset 0 -3px 0 var(--btn-bevel);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: var(--text);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.console-lock-btn .icon-console-lock-small {
+  flex: none;
+  width: 10px;
+  height: 13px;
+}
+
+/* CONSOLE LOCK (p067-1): the button that locks the unit, x113..366 / y62..195, and
+ * [Change Password], x311..406 / y205..252, both with the menu buttons' face and band. */
+.console-lock-screen {
+  position: relative;
+  flex: 1 1 auto;
+}
+
+.console-lock-tile {
+  position: absolute;
+  left: 111px;
+  top: 12px;
+  width: 254px;
+  height: 134px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: inset 0 -3px 0 var(--btn-bevel);
+  cursor: pointer;
+}
+
+.console-lock-tile .icon-console-lock {
+  position: absolute;
+  left: 105px;
+  top: 12px;
+  width: 44px;
+  height: 58px;
+}
+
+.console-lock-caption,
+.console-lock-note {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.console-lock-caption {
+  top: 73px;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.console-lock-note {
+  top: 98px;
+  font-size: 12.5px;
+}
+
+/* Two classes, because the reset that makes a button inherit its font is more specific than one.
+ * The two lines stand a pixel above where the button centres them. */
+.console-lock-screen .console-lock-password {
+  position: absolute;
+  left: 309px;
+  top: 155px;
+  width: 96px;
+  min-height: 0;
+  height: 48px;
+  padding: 0 0 5px;
+  font-size: var(--fs-lg);
+  line-height: 18px;
+}
+
+/* The mark that says the button opens an entry, 5px in from the top right. */
+.console-lock-copy {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+  display: flex;
+  color: var(--field-mark);
+}
+
+.console-lock-copy svg {
+  width: 10px;
+  height: 10px;
+}
+
+/* The lock screen, over the whole glass, toolbar included. No figure shows it: its words were read
+ * off a URX44V, and so was the place of each line. The third line and the
+ * padlock are the CONSOLE LOCK screen's own, at that screen's size. */
+.console-locked {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  overflow: hidden;
+  background: var(--lcd-bg);
+  color: var(--text);
+  outline: none;
+  touch-action: none;
+  user-select: none;
+}
+
+.console-locked-title,
+.console-locked-hold,
+.console-locked-note {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.console-locked-title {
+  top: 21px;
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.console-locked-hold {
+  top: 71px;
+  font-size: 15.5px;
+}
+
+.console-locked-note {
+  top: 107px;
+  font-size: 12.5px;
+}
+
+.console-locked-padlock {
+  position: absolute;
+  left: 218px;
+  top: 144px;
+  display: flex;
+}
+
+.console-locked-padlock .icon-console-lock {
+  width: 44px;
+  height: 58px;
+}
+
+.console-locked-padlock .icon-console-unlocked {
+  width: 54px;
+  height: 58px;
+}
+
+/* The circle a touch puts round the padlock: faint while it is only touched, and grown out of
+ * the padlock over the screen while the touch is held. Its colour is not measured. */
+.console-locked-ring {
+  position: absolute;
+  left: 204px;
+  top: 137px;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: transparent;
+  pointer-events: none;
+}
+
+.console-locked.is-holding .console-locked-ring {
+  animation: console-unlock-hold 1200ms linear forwards;
+}
+
+/* The faint circle stands for a quarter of a second before it grows (UNLOCK_HOLD_MS in setup.ts is
+ * the whole of it), round the padlock's centre at x240 / y173, until it reaches past every corner. */
+@keyframes console-unlock-hold {
+  0%,
+  21% {
+    left: 204px;
+    top: 137px;
+    width: 72px;
+    height: 72px;
+    background: rgb(255 255 255 / 18%);
+  }
+
+  100% {
+    left: -84px;
+    top: -151px;
+    width: 648px;
+    height: 648px;
+    background: rgb(255 255 255 / 45%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .console-locked.is-holding .console-locked-ring {
+    animation: none;
+    left: -84px;
+    top: -151px;
+    width: 648px;
+    height: 648px;
+    background: rgb(255 255 255 / 30%);
+  }
+}
+
+/* Change Password, on the confirmation dialog's sheet, centred on the glass. No figure shows it: the
+ * place of each part was read off a URX44V, with the sheet's own size as the scale. */
+.lcd .main:has(> .console-password) {
+  overflow: visible;
+}
+
+.dialog.console-password {
+  position: absolute;
+  left: 31px;
+  top: -34px;
+  justify-content: flex-end;
+}
+
+.console-password-head {
+  position: absolute;
+  left: 28px;
+  top: 23px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  color: var(--dialog-ink);
+}
+
+.console-password-head .icon-console-lock {
+  width: 22px;
+  height: 29px;
+}
+
+.console-password-title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 400;
+}
+
+.console-password-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 36px;
+  display: flex;
+  align-items: center;
+}
+
+.console-password-row:nth-of-type(2) {
+  top: 75px;
+}
+
+.console-password-row:nth-of-type(3) {
+  top: 120px;
+}
+
+/* Type the password's one row stands between the two of Change Password. */
+.console-password.is-enter .console-password-row {
+  top: 101px;
+}
+
+.console-password-label {
+  width: 177px;
+  padding-right: 14px;
+  box-sizing: border-box;
+  text-align: right;
+  color: var(--dialog-ink);
+  font-size: var(--fs-md);
+}
+
+/* Two classes, because the reset that makes a button inherit its font is more specific than one. */
+.console-password-row .console-password-field {
+  position: relative;
+  width: 137px;
+  height: 36px;
+  padding: 0 8px 3px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: inset 0 -3px 0 var(--btn-bevel);
+  display: flex;
+  align-items: center;
+  font-size: var(--fs-lg);
+  cursor: pointer;
+}
+
+.console-password-mark {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+}
+
+.console-password-mark svg {
+  width: 12px;
+  height: 12px;
+}
+
 .menu-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

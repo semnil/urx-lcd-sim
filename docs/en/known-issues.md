@@ -89,6 +89,9 @@ is built is in [screen-inventory.md](screen-inventory.md).
 - **GATE opens and closes at once.** Attack, Hold and Decay are kept as values only: the gate closes to
   RANGE as soon as the input is at or under the threshold and opens as soon as it is over. The middle,
   yellow one of the channel view's GATE lamps, which shows the gate opening or closing, does not light.
+- **CONSOLE LOCK's password lasts for the session.** This simulator keeps a password only until the page is
+  reloaded, so as to write none to the browser's storage. Whether the unit keeps one across a power cycle was not
+  checked.
 - **SETUP's [Software Integration] opens and works.** On the unit it takes the face of a button that cannot be
   used, whether or not microSD playback holds a file, and does nothing when pressed (confirmed on a URX44V with System firmware
   1.3.1.0). This simulator keeps the usable face and opens SOFTWARE INTEGRATION, so

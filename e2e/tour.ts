@@ -132,6 +132,25 @@ export const TOUR: Stop[] = [
   to("setup.datetime.set", "setup.datetime", "Date / Time"),
   to("setup.datetime.zone", "setup.datetime", "Time Zone"),
   to("setup.integration", "setup", "Software Integration"),
+  to("setup.consoleLock", "setup", "Console Lock", true),
+  to("setup.consoleLock.password", "setup.consoleLock", "Change Password"),
+  {
+    // Type the password stands in front of Change Password once a password is set: set "1" first.
+    id: "setup.consoleLock.enter",
+    from: "setup.consoleLock",
+    go: async (page) => {
+      await tapInto(page, button(page, "Change Password"), "setup.consoleLock.password");
+      for (const name of ["New Password", "Confirm Password"]) {
+        await tapInto(page, button(page, name, true), "scene.title");
+        await lcd(page).locator(".title-field").focus();
+        await page.keyboard.type("1");
+        await tapInto(page, button(page, "OK", true), "setup.consoleLock.password");
+      }
+      await button(page, "OK", true).click();
+      await page.locator('.lcd[data-screen="setup.consoleLock"]:not([inert])').waitFor({ timeout: 5000 });
+      await tapInto(page, button(page, "Change Password"), "setup.consoleLock.enter");
+    },
+  },
 
   to("monitor", undefined, "MONITOR", true),
   to("monitor.level", "monitor", "Monitor", true),

@@ -68,6 +68,9 @@ const IN_FLIGHT = [
   "sd.tested",
   "ui.titleEntry.",
   "ui.dateTimeDraft.",
+  // What CONSOLE LOCK's Change Password holds while it is open, and the password it sets: the
+  // simulator keeps no password in the browser's storage.
+  "ui.consoleLock.",
 ];
 
 /** Where a state written before [SAFE] and [Clip Safe] were one switch keeps [SAFE]. */

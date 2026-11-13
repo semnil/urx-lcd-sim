@@ -10,8 +10,9 @@ import { aimed, el, makeTappable, markShut, setPressed, writing } from "../ui/do
 import { brightnessSpec, intSpec } from "../ui/param-spec";
 import { Icons } from "../ui/icons";
 import { dateTimeSetScreen, dateTimeSpans, openDateTimeSet, openTimeZone, timeZoneScreen } from "./date-time";
+import { draftTitle } from "./title-entry";
 import { patchSourceSheet } from "./output-patch";
-import { button, dialog, menuButton, menuGrid, paramCell, pickColumn, pickDialog, pulldown, scrollbar, sideTab, toggle } from "../ui/widgets";
+import { button, dialog, holdsModal, menuButton, menuGrid, paramCell, pickColumn, pickDialog, pulldown, scrollbar, sideTab, toggle } from "../ui/widgets";
 import type { ScreenBody, ScreenDef } from "./types";
 import { Shell } from "../app/shell";
 import { buildRegistry } from "./index";
@@ -101,15 +102,326 @@ export const setupScreen: ScreenDef = {
       held,
     );
 
+    // Console Lock (System firmware V1.5) stands on the bar, left of HOME, as wide as the
+    // Operation Mode box (p126-1).
+    const consoleLock = el("button", {
+      class: "console-lock-btn",
+      onTap: open("setup.consoleLock"),
+      children: [Icons.consoleLockSmall(), el("span", { text: "Console Lock" })],
+    });
+
     return {
       main: el("div", { class: "setup-main", children: [tray, menuGrid(rest, "setup-menu")] }),
       headerLeft: modeBox,
+      headerRight: consoleLock,
       // The screen names itself over the section the menus below belong to.
       headerCenter: el("div", {
         class: "setup-title",
         children: [
           el("h1", { class: "setup-title-main", text: "SETUP" }),
           el("p", { class: "setup-title-sub", text: "GENERAL" }),
+        ],
+      }),
+    };
+  },
+};
+
+/** How long a touch on the lock screen has to be held before the unit unlocks (read off a URX44V). */
+export const UNLOCK_HOLD_MS = 1200;
+/** How long the opened padlock stays up before HOME comes back (read off a URX44V). */
+export const UNLOCKED_MS = 900;
+
+/**
+ * The lock screen, laid over the whole glass. The unit takes nothing but a touch held on it: a short
+ * touch puts a faint circle round the padlock and lets it go, a hold grows a light circle out of the
+ * padlock over the screen, the padlock opens, and HOME comes back. The lock is kept nowhere, so a
+ * reload starts the simulator unlocked, as the unit starts unlocked after it is switched off and on.
+ * No figure shows it; its words, its layout and its timings were read off a URX44V.
+ */
+export function lockConsole(ctx: AppContext): void {
+  const padlock = el("span", { class: "console-locked-padlock", children: [Icons.consoleLock()] });
+  const ring = el("span", { class: "console-locked-ring", attrs: { "aria-hidden": "true" } });
+  const node = holdsModal(el("div", {
+    class: "console-locked",
+    attrs: { role: "dialog", "aria-modal": "true", "aria-label": "CONSOLE LOCK", tabindex: "0" },
+    children: [
+      ring,
+      el("h1", { class: "console-locked-title", text: "CONSOLE LOCK" }),
+      el("p", { class: "console-locked-hold", text: "Touch and Hold the Screen to Unlock the Console." }),
+      el("p", { class: "console-locked-note", text: "A password is required if one is set." }),
+      padlock,
+    ],
+  }));
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let unlocked = false;
+  const stop = (): void => {
+    if (unlocked) return;
+    clearTimeout(timer);
+    timer = undefined;
+    node.classList.remove("is-holding");
+  };
+  const start = (): void => {
+    if (unlocked || timer !== undefined) return;
+    node.classList.add("is-holding");
+    timer = setTimeout(() => {
+      unlocked = true;
+      node.classList.add("is-unlocked");
+      padlock.replaceChildren(Icons.consoleUnlocked());
+      timer = setTimeout(() => {
+        close();
+        if (!ctx.store.str(CONSOLE_PASSWORD, "")) {
+          void ctx.store.set(LOCKED, 0);
+          ctx.nav.home();
+          return;
+        }
+        // With a password set, the opened padlock gives way to Type the password, and every way off
+        // it but the right password puts the lock screen back.
+        askPassword(ctx, "unlock");
+        const off = ctx.nav.onChange((route) => {
+          if (ctx.store.num(LOCKED, 0) !== 1) return off();
+          if (route.id === ENTER_PASSWORD || route.id === "scene.title") return;
+          off();
+          lockConsole(ctx);
+        });
+      }, UNLOCKED_MS);
+    }, UNLOCK_HOLD_MS);
+  };
+  node.addEventListener("pointerdown", (ev) => {
+    if (ev.button !== 0) return;
+    node.setPointerCapture?.(ev.pointerId);
+    start();
+  });
+  for (const type of ["pointerup", "pointercancel"]) node.addEventListener(type, stop);
+  // A key held down on the screen stands for a touch held on it.
+  node.addEventListener("keydown", (ev) => {
+    if ((ev.key === "Enter" || ev.key === " ") && !ev.repeat) {
+      ev.preventDefault();
+      start();
+    }
+  });
+  node.addEventListener("keyup", (ev) => {
+    if (ev.key === "Enter" || ev.key === " ") stop();
+  });
+  // A key held down and the focus then taken elsewhere lets go of the hold: its release lands elsewhere.
+  node.addEventListener("blur", stop);
+  void ctx.store.set(LOCKED, 1);
+  const close = ctx.overlay(node, () => clearTimeout(timer));
+  node.focus({ preventScroll: true });
+}
+
+/**
+ * CONSOLE LOCK (SETUP > Console Lock, System firmware V1.5; p067-1): the button that locks the
+ * unit, and [Change Password] for the password the unlock asks for.
+ */
+export const consoleLockScreen: ScreenDef = {
+  id: "setup.consoleLock",
+  toolbar: "sub",
+  title: () => "CONSOLE LOCK",
+  build(ctx): ScreenBody {
+    const lock = el("button", {
+      class: "console-lock-tile",
+      onTap: () => lockConsole(ctx),
+      children: [
+        Icons.consoleLock(),
+        el("span", { class: "console-lock-caption", text: "CONSOLE LOCK" }),
+        el("span", { class: "console-lock-note", text: "A password is required if one is set." }),
+      ],
+    });
+    const password = el("button", {
+      class: "menu-btn console-lock-password",
+      onTap: () => {
+        if (ctx.store.str(CONSOLE_PASSWORD, "")) askPassword(ctx, "change");
+        else openChangePassword(ctx, "push");
+      },
+      children: [el("span", { text: "Change\nPassword" }), el("span", { class: "console-lock-copy", children: [Icons.copy()] })],
+    });
+    return { main: el("div", { class: "console-lock-screen", children: [lock, password] }) };
+  },
+};
+
+/** Where Change Password and Type the password hold what is typed while they are open. */
+const PASSWORD_DRAFT = "ui.consoleLock.draft";
+/** Whether the unit is locked; Type the password looks here while it stands in for the lock screen. */
+const LOCKED = "ui.consoleLock.locked";
+/** What Type the password is asked for: "unlock" or "change". */
+const PURPOSE = "ui.consoleLock.purpose";
+const ENTER_PASSWORD = "setup.consoleLock.enter";
+/** The password the unlock asks for. Kept for the session only (persist.ts, IN_FLIGHT). */
+export const CONSOLE_PASSWORD = "ui.consoleLock.password";
+/** The most characters a password takes (user guide, "Console Lock menu"). */
+const PASSWORD_MAX = 8;
+/** How long the unit shows that the two passwords differ before Change Password comes back (read off a URX44V). */
+export const MISMATCH_MS = 2000;
+
+/** A message the unit shows for a moment over the screen, with the information mark and no button. */
+function notice(ctx: AppContext, message: string, ms: number, after: () => void): void {
+  const node = holdsModal(el("div", {
+    class: "dialog-overlay",
+    attrs: { role: "alertdialog", "aria-modal": "true", "aria-label": message },
+    children: [
+      el("div", {
+        class: "dialog",
+        children: [
+          el("div", {
+            class: "dialog-ask",
+            children: [el("span", { class: "dialog-mark", children: [Icons.info()] }), el("p", { class: "dialog-text", text: message })],
+          }),
+        ],
+      }),
+    ],
+  }));
+  const timer = setTimeout(() => {
+    close();
+    after();
+  }, ms);
+  const close = ctx.overlay(node, () => clearTimeout(timer));
+}
+
+/**
+ * Change Password (CONSOLE LOCK, System firmware V1.5): a sheet over the screen with a field for the
+ * new password and one to confirm it. Each field opens the title keyboard, which shows an asterisk for
+ * each character. [OK] with the two the same sets the password; with them different, the unit says so
+ * for two seconds and gives the sheet back as it was. No figure shows it; its words were read off a
+ * URX44V and so was its layout, on the confirmation dialog's sheet.
+ */
+export const consolePasswordScreen: ScreenDef = {
+  id: "setup.consoleLock.password",
+  toolbar: "sub",
+  shellExits: false,
+  leavesOnTouchAround: false,
+  dimsBehind: true,
+  build(ctx): ScreenBody {
+    const field = (key: "new" | "confirm", label: string): HTMLElement => {
+      const typed = ctx.store.str(`${PASSWORD_DRAFT}.${key}`, "");
+      return el("div", {
+        class: "console-password-row",
+        children: [
+          el("span", { class: "console-password-label", text: label }),
+          el("button", {
+            class: "console-password-field",
+            attrs: { "aria-label": label.replace(/:$/, "") },
+            onTap: () => {
+              draftTitle(ctx, {
+                path: "",
+                title: typed,
+                max: PASSWORD_MAX,
+                empty: true,
+                masked: true,
+                onOk: (text) => void ctx.store.set(`${PASSWORD_DRAFT}.${key}`, text),
+              });
+              ctx.nav.push({ id: "scene.title" });
+            },
+            children: [
+              el("span", { class: "console-password-stars", text: "*".repeat(typed.length) }),
+              el("span", { class: "console-password-mark", children: [Icons.rename()] }),
+            ],
+          }),
+        ],
+      });
+    };
+    const ok = (): void => {
+      const typed = ctx.store.str(`${PASSWORD_DRAFT}.new`, "");
+      if (typed !== ctx.store.str(`${PASSWORD_DRAFT}.confirm`, "")) {
+        notice(ctx, "Entered Password do not match, please re-enter.", MISMATCH_MS, () => undefined);
+        return;
+      }
+      // Both left empty, the password goes; the unit says the same either way.
+      void ctx.store.set(CONSOLE_PASSWORD, typed);
+      notice(ctx, "Password Changed.", MISMATCH_MS, () => ctx.nav.back());
+    };
+    return {
+      main: el("div", {
+        class: "dialog console-password",
+        children: [
+          el("div", {
+            class: "console-password-head",
+            children: [Icons.consoleLock(), el("h1", { class: "console-password-title", text: "Change Password" })],
+          }),
+          field("new", "New Password:"),
+          field("confirm", "Confirm Password:"),
+          el("div", { class: "dialog-actions", children: [button("Cancel", () => ctx.nav.back()), button("OK", ok)] }),
+        ],
+      }),
+    };
+  },
+};
+
+/** Open Change Password with both fields empty, on top of CONSOLE LOCK or in place of Type the password. */
+function openChangePassword(ctx: AppContext, how: "push" | "replace"): void {
+  void ctx.store.set(`${PASSWORD_DRAFT}.new`, "");
+  void ctx.store.set(`${PASSWORD_DRAFT}.confirm`, "");
+  if (how === "push") ctx.nav.push({ id: "setup.consoleLock.password" });
+  else ctx.nav.replace({ id: "setup.consoleLock.password" });
+}
+
+/** Ask for the password, to unlock or before Change Password. */
+function askPassword(ctx: AppContext, purpose: "unlock" | "change"): void {
+  void ctx.store.set(PURPOSE, purpose);
+  void ctx.store.set(`${PASSWORD_DRAFT}.enter`, "");
+  ctx.nav.push({ id: "setup.consoleLock.enter" });
+}
+
+/**
+ * Type the password (System firmware V1.5): what the unit asks before it unlocks with a password set,
+ * once the held touch has opened the padlock, and before Change Password. The wrong password is
+ * refused for two seconds and the sheet comes back with what was typed. [Cancel] puts an unlock back on
+ * the lock screen. No figure shows it; its words were read off a URX44V and so was its layout, on
+ * Change Password's sheet.
+ */
+export const consoleEnterScreen: ScreenDef = {
+  id: ENTER_PASSWORD,
+  toolbar: "sub",
+  shellExits: false,
+  leavesOnTouchAround: false,
+  dimsBehind: true,
+  build(ctx): ScreenBody {
+    const typed = ctx.store.str(`${PASSWORD_DRAFT}.enter`, "");
+    const ok = (): void => {
+      if (ctx.store.str(`${PASSWORD_DRAFT}.enter`, "") !== ctx.store.str(CONSOLE_PASSWORD, "")) {
+        notice(ctx, "Incorrect password entered.", MISMATCH_MS, () => undefined);
+        return;
+      }
+      if (ctx.store.str(PURPOSE, "") === "change") {
+        openChangePassword(ctx, "replace");
+        return;
+      }
+      void ctx.store.set(LOCKED, 0);
+      ctx.nav.home();
+    };
+    return {
+      main: el("div", {
+        class: "dialog console-password is-enter",
+        children: [
+          el("div", {
+            class: "console-password-head",
+            children: [Icons.consoleLock(), el("h1", { class: "console-password-title", text: "Type the password" })],
+          }),
+          el("div", {
+            class: "console-password-row",
+            children: [
+              el("span", { class: "console-password-label", text: "Password:" }),
+              el("button", {
+                class: "console-password-field",
+                attrs: { "aria-label": "Password" },
+                onTap: () => {
+                  draftTitle(ctx, {
+                    path: "",
+                    title: typed,
+                    max: PASSWORD_MAX,
+                    empty: true,
+                    masked: true,
+                    onOk: (text) => void ctx.store.set(`${PASSWORD_DRAFT}.enter`, text),
+                  });
+                  ctx.nav.push({ id: "scene.title" });
+                },
+                children: [
+                  el("span", { class: "console-password-stars", text: "*".repeat(typed.length) }),
+                  el("span", { class: "console-password-mark", children: [Icons.rename()] }),
+                ],
+              }),
+            ],
+          }),
+          el("div", { class: "dialog-actions", children: [button("Cancel", () => ctx.nav.back()), button("OK", ok)] }),
         ],
       }),
     };
@@ -700,5 +1012,8 @@ export const setupScreens: ScreenDef[] = [
   dateTimeSetScreen,
   timeZoneScreen,
   integrationScreen,
+  consoleLockScreen,
+  consolePasswordScreen,
+  consoleEnterScreen,
   operationModeScreen,
 ];

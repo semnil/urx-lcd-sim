@@ -306,6 +306,42 @@ export const Icons = {
       ], true),
       "icon-lock",
     ),
+  /**
+   * CONSOLE LOCK's own padlock, on the button that locks the unit (p067-1): a shackle 6px thick
+   * over a body with 6px walls and a round keyhole, drawn at its own size.
+   */
+  consoleLock: (): SVGSVGElement =>
+    sized(
+      svg("0 0 44 58", [
+        "M8 20V14A14 14 0 0 1 36 14V20H30V14A8 8 0 0 0 14 14V20Z",
+        "M3 20H41A3 3 0 0 1 44 23V55A3 3 0 0 1 41 58H3A3 3 0 0 1 0 55V23A3 3 0 0 1 3 20Z M6 26V52H38V26Z",
+        "M16 38.5A5.5 5.5 0 1 0 27 38.5A5.5 5.5 0 1 0 16 38.5Z",
+      ], true),
+      "icon-console-lock",
+    ),
+  /**
+   * The same padlock opened, as the lock screen shows it once a hold has unlocked the unit: the body
+   * where it was, the shackle swung to the right with its free leg short of the body.
+   */
+  consoleUnlocked: (): SVGSVGElement =>
+    sized(
+      svg("0 0 54 58", [
+        "M24 20V14A14 14 0 0 1 52 14V16H46V14A8 8 0 0 0 30 14V20Z",
+        "M3 20H41A3 3 0 0 1 44 23V55A3 3 0 0 1 41 58H3A3 3 0 0 1 0 55V23A3 3 0 0 1 3 20Z M6 26V52H38V26Z",
+        "M16 38.5A5.5 5.5 0 1 0 27 38.5A5.5 5.5 0 1 0 16 38.5Z",
+      ], true),
+      "icon-console-unlocked",
+    ),
+  /** The padlock in front of the name on SETUP's [Console Lock] (p126-1), drawn at its own size. */
+  consoleLockSmall: (): SVGSVGElement =>
+    sized(
+      svg("0 0 10 13", [
+        "M2 5V3.5A3 3 0 0 1 8 3.5V5H6V3.5A1 1 0 0 0 4 3.5V5Z",
+        "M0 5H10V13H0Z M2 7V11H8V7Z",
+        "M4 8H6V10H4Z",
+      ], true),
+      "icon-console-lock-small",
+    ),
   /** The mark beside the last recalled scene in the scene list: a small triangle pointing right. */
   recalled: (): SVGSVGElement => sized(svg("0 0 8 9", ["M0 0.3L7.8 4.5L0 8.7Z"], true), "icon-recalled"),
   // The card browser's rows and its edit buttons.

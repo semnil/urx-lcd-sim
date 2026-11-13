@@ -220,3 +220,65 @@ test.describe("a sheet hung off the glass", () => {
     await expect(sheet).toHaveCount(0);
   });
 });
+
+test.describe("CONSOLE LOCK", () => {
+  const locked = (page: Page) => lcd(page).getByRole("dialog", { name: "CONSOLE LOCK" });
+
+  test("locks, stays locked through a short touch, and unlocks to HOME on a held one", async ({ page }) => {
+    await go(page, "setup.consoleLock");
+    await lcd(page).locator(".console-lock-tile").click();
+    await expect(locked(page)).toBeVisible();
+    await locked(page).click();
+    await expect(locked(page)).toBeVisible();
+    const box = (await locked(page).boundingBox())!;
+    await page.mouse.move(box.x + box.width * 0.8, box.y + box.height * 0.8);
+    await page.mouse.down();
+    await expect(locked(page).locator(".icon-console-unlocked")).toBeVisible({ timeout: 3000 });
+    await page.mouse.up();
+    await expect(locked(page)).toHaveCount(0, { timeout: 3000 });
+    await expect(lcd(page)).toHaveAttribute("data-screen", "home");
+  });
+
+  test("keeps Tab and Enter off the glass behind the lock screen", async ({ page }) => {
+    await go(page, "setup.consoleLock");
+    await lcd(page).locator(".console-lock-tile").click();
+    await expect(locked(page)).toBeFocused();
+    for (let i = 0; i < 6; i++) {
+      await page.keyboard.press("Tab");
+      await page.keyboard.press("Enter");
+    }
+    await expect(locked(page)).toBeVisible();
+    await expect(locked(page).locator(".icon-console-unlocked")).toHaveCount(0);
+    await expect(lcd(page)).toHaveAttribute("data-screen", "setup.consoleLock");
+  });
+
+  test("Change Password says two different passwords do not match and keeps what was typed", async ({ page }) => {
+    await go(page, "setup.consoleLock.password");
+    await button(page, "New Password", true).click();
+    await lcd(page).locator(".title-field").focus();
+    await page.keyboard.type("ab");
+    await button(page, "OK", true).click();
+    await expect(lcd(page).locator(".console-password-stars").first()).toHaveText("**");
+    await button(page, "OK", true).click();
+    const message = lcd(page).getByRole("alertdialog", { name: "Entered Password do not match, please re-enter." });
+    await expect(message).toBeVisible();
+    await expect(message).toHaveCount(0, { timeout: 4000 });
+    await expect(lcd(page)).toHaveAttribute("data-screen", "setup.consoleLock.password");
+    await expect(lcd(page).locator(".console-password-stars").first()).toHaveText("**");
+    await button(page, "Cancel", true).click();
+    await expect(lcd(page)).toHaveAttribute("data-screen", "setup.consoleLock");
+  });
+
+  test("with a password set, asks for it before Change Password and refuses the wrong one", async ({ page }) => {
+    await go(page, "setup.consoleLock.enter");
+    await button(page, "Password", true).click();
+    await lcd(page).locator(".title-field").focus();
+    await page.keyboard.type("2");
+    await button(page, "OK", true).click();
+    await button(page, "OK", true).click();
+    const message = lcd(page).getByRole("alertdialog", { name: "Incorrect password entered." });
+    await expect(message).toBeVisible();
+    await expect(message).toHaveCount(0, { timeout: 4000 });
+    await expect(lcd(page)).toHaveAttribute("data-screen", "setup.consoleLock.enter");
+  });
+});

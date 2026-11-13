@@ -77,6 +77,10 @@ flowchart LR
   SETUP --> SLANG["Language<br>(setup.language)"]
   SETUP --> SVER["Version<br>(setup.version)"]
   SETUP --> SLIC["License<br>(setup.license)"]
+  SETUP --> SLOCK["Console Lock<br>(setup.consoleLock)"]
+  SLOCK --> SLOCKP["Change Password<br>(setup.consoleLock.password)"]
+  SLOCK --> SLOCKE["Type the password<br>(setup.consoleLock.enter)"]
+  SLOCKE --> SLOCKP
 
   SD[["microSD top menu<br>(microsd)"]]:::ref
   SD --> SDREC["RECORDER<br>(microsd.recorder)"]

@@ -43,6 +43,9 @@ Which screen leads to which is drawn in [screen-map.md](screen-map.md).
 | Power Management | `setup.power` | p64 | Built |
 | Date/Time | `setup.datetime` | p65 | Built (popups for the date and time and for the time zone; the guide has no figure of them) |
 | Software Integration | `setup.integration` | p66 | Built |
+| Console Lock | `setup.consoleLock` | p67 | Built (System firmware V1.5). The lock screen it lays over the glass is not a screen of its own; the guide has no figure of it |
+| Change Password | `setup.consoleLock.password` | p67 | Built. The guide has no figure of it |
+| Type the password | `setup.consoleLock.enter` | p67 | Built. The guide has no figure of it |
 
 ### MONITOR
 
@@ -92,7 +95,6 @@ were before V1.5.
 
 | Screen or part | Screen ID | Ref. | Status |
 | --- | --- | --- | --- |
-| Console Lock (SETUP) | — | p67 | Not built |
 | CUE in the Monitor menu (CUE Mode, Active CUE) | — | p71 | Not built |
 | Recall Safe (SCENE) | — | p79-80 | Not built |
 | EQ Type and GEQ Limit (CH SETTING of STEREO and MIX), and the channel view's GEQ area | — | p97-98, p104 | Not built |
@@ -1665,6 +1667,40 @@ SOFTWARE INTEGRATION sets `Post Fader Send for FX` at 13px in the middle of the 
 
 LANGUAGE sets a button's name as two 13px lines, 日本語 over Japanese, and the chosen language's button
 carries its name in `--ink-on-lit` (p056-1).
+
+## CONSOLE LOCK
+
+System firmware V1.5. SETUP carries [Console Lock] on its bar, left of HOME (x298..421 / y2..41, p126-1): the
+Operation Mode box's face and size, a padlock 10x13 and the name at 12.5px, 5px apart.
+
+CONSOLE LOCK (p067-1) holds the button that locks the unit (x113..366 / y62..195, face `--surface`, corners of
+`--radius-lg`, the 3px band) and [Change Password] (x311..406 / y205..252, a menu button with the copy mark in
+`--field-mark` 5px in from its top right). The button carries a padlock 44x58 (x218..261 / y74..131, a 6px shackle
+over a body with 6px walls and a round keyhole), `CONSOLE LOCK` at 13.5px and weight 500, and `A password is
+required if one is set.` at 12.5px. The words of both screens are as the figures have them (confirmed on a URX44V).
+
+The lock screen covers the whole glass, toolbar included, and has no figure; its words, its layout and its
+timings were read off a URX44V. On black it sets `CONSOLE LOCK` at 22px and weight 500 (its ink centred on
+y35), `Touch and Hold the Screen to Unlock the Console.` at 15.5px (y80) and `A password is required if one is
+set.` at 12.5px (y116), with CONSOLE LOCK's own padlock at x218..261 / y144..201. A touch on it puts a faint
+circle round the padlock; held for 1.2 s, the circle grows out of the padlock over the screen, the padlock opens
+(its shackle swung to the right), and HOME comes back 0.9 s later. A shorter touch leaves the unit locked, and so
+does Escape. Enter or Space held stands for a held touch. The colour of the circle is not measured. Nothing keeps
+the lock, so a reload starts the simulator unlocked, as the unit starts unlocked after it is switched off and on.
+
+[Change Password] opens a sheet on the confirmation dialog's frame: a padlock and `Change Password` at its top
+left, `New Password:` and `Confirm Password:` beside a field each (137x36, the rename mark at its top right), and
+[Cancel] / [OK]. A field opens the title keyboard, which shows an asterisk for each character and takes up to
+eight (user guide, "Console Lock menu"). [OK] with the two the same sets the password, and both left empty take it
+away; either way `Password Changed.` stands for 2 s and CONSOLE LOCK comes back. With the two different, `Entered
+Password do not match, please re-enter.` stands for 2 s and the sheet comes back as it was. The messages carry the
+information mark and no button.
+
+With a password set, the unlock asks for it once the padlock has opened: `Type the password` on the same sheet,
+with a `Password:` field. The wrong password brings `Incorrect password entered.` for 2 s and the sheet back with
+what was typed; [Cancel], or any other way off it, leaves the unit locked on the lock screen; the right one goes to
+HOME. [Change Password] asks for it in the same way before its own sheet. These are as a URX44V does them
+(confirmed on a URX44V). The simulator keeps the password for the session only.
 
 ## VERSION screen
 
