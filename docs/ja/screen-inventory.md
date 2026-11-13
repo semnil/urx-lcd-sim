@@ -42,6 +42,9 @@ URX44V/44/22 ユーザーガイド (英語版 revision E0) が載せている LC
 | Power Management | `setup.power` | p64 | 実装済み |
 | Date/Time | `setup.datetime` | p65 | 実装済み (日時と時刻帯のポップアップ。図版はガイドに無い) |
 | Software Integration | `setup.integration` | p66 | 実装済み |
+| Console Lock | `setup.consoleLock` | p67 | 実装済み (System ファームウェア V1.5)。ガラス全体に重ねるロック画面は画面として登録しない。ガイドに図は無い |
+| Change Password | `setup.consoleLock.password` | p67 | 実装済み。ガイドに図は無い |
+| Type the password | `setup.consoleLock.enter` | p67 | 実装済み。ガイドに図は無い |
 
 ### MONITOR
 
@@ -91,7 +94,6 @@ URX44V/44/22 ユーザーガイド (英語版 revision E0) が載せている LC
 
 | 画面・部分 | 画面 ID | 参照 | 状態 |
 | --- | --- | --- | --- |
-| Console Lock (SETUP) | — | p67 | 未実装 |
 | Monitor メニューの CUE (CUE Mode・Active CUE) | — | p71 | 未実装 |
 | Recall Safe (SCENE) | — | p79-80 | 未実装 |
 | EQ Type と GEQ Limit (STEREO と MIX の CH SETTING)、チャンネルビューの GEQ エリア | — | p97-98, p104 | 未実装 |
@@ -1433,6 +1435,38 @@ SOFTWARE INTEGRATION は `Post Fader Send for FX` を帯と同じ幅 (x18..401) 
 x136 から左揃えに 12.5px で、どちらも `--peripheral-text` で置き、ツールバーの題は 12.5px にする (p066-1)。
 
 LANGUAGE のボタンの名前は 13px の 2 行 (上が 日本語、下が Japanese) で、選んだ言語のボタンの字は `--ink-on-lit` (p056-1)。
+
+## CONSOLE LOCK
+
+System ファームウェア V1.5。SETUP はツールバーの HOME の左に [Console Lock] を置く (x298..421 / y2..41、p126-1)。
+Operation Mode の箱と同じ面と大きさで、10x13 の錠と 12.5px の名前を 5px あけて並べる。
+
+CONSOLE LOCK (p067-1) は、本体をロックするボタン (x113..366 / y62..195、面は `--surface`、角は `--radius-lg`、
+3px の帯) と [Change Password] (x311..406 / y205..252、右上から 5px 内側に `--field-mark` のコピーの印を付けた
+メニューボタン) を持つ。ボタンには 44x58 の錠 (x218..261 / y74..131。6px の掛け金の下に、6px の壁と丸い鍵穴の
+本体)、13.5px・太さ 500 の `CONSOLE LOCK`、12.5px の `A password is required if one is set.` を置く。2 つの画面の
+文字は図のとおり (URX44V で実機確認)。
+
+ロック画面はツールバーを含むガラス全体を覆い、図は無い。文字・配置・時間は URX44V で読んだ。黒の上に、22px・
+太さ 500 の `CONSOLE LOCK` (インクの中心が y35)、15.5px の `Touch and Hold the Screen to Unlock the Console.`
+(y80)、12.5px の `A password is required if one is set.` (y116) を置き、CONSOLE LOCK と同じ錠を x218..261 /
+y144..201 に置く。触れると錠の周りに薄い丸が出る。1.2 秒押し続けると、丸が錠から画面いっぱいに広がり、錠が開き
+(掛け金が右へ開く)、その 0.9 秒後に HOME へ戻る。それより短いタッチではロックは外れず、Escape でも外れない。
+Enter か Space を押し続けると、押し続けたタッチの代わりになる。丸の色は測っていない。ロックはどこにも残さない
+ので、読み込み直すとロックされていない状態で始まる。本体も電源を入れ直すとロックが外れた状態で始まる。
+
+[Change Password] は、確認ダイアログの枠のシートを開く。左上に錠と `Change Password`、`New Password:` と
+`Confirm Password:` の横にそれぞれ欄 (137x36、右上に名前を変える印)、[Cancel] / [OK]。欄はシーンの名前の
+キーボードを開き、入れた文字は 1 文字ずつ `*` で見え、8 文字まで入る (ユーザーガイド「Console Lock menu」)。
+[OK] で 2 つが同じならパスワードを設定し、両方空ならパスワードを消す。どちらも `Password Changed.` が 2 秒出て
+CONSOLE LOCK へ戻る。2 つが違うと `Entered Password do not match, please re-enter.` が 2 秒出て、シートが入れた
+ままの形で戻る。メッセージは情報の印を持ち、ボタンは無い。
+
+パスワードが設定されていると、解除は錠が開いたあとにパスワードを聞く。同じシートの `Type the password` で、
+`Password:` の欄が 1 つ。違うパスワードでは `Incorrect password entered.` が 2 秒出て、入れたままのシートが戻る。
+[Cancel] やほかの離れ方ではロックは外れず、ロック画面に戻る。正しいパスワードで HOME へ戻る。[Change Password] も、
+自分のシートより先に同じように聞く。これらは URX44V の動きのとおり (URX44V で実機確認)。シミュレーターは
+パスワードをその回の間だけ持つ。
 
 ## VERSION 画面
 
