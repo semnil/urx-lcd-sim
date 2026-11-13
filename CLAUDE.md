@@ -20,7 +20,7 @@ The overview and the commands are in README.md, and the structure and the flow o
 - The main checkout is the operator's. Ask before each fast-forward of it; without that permission, check a merged commit in a detached worktree of `origin/main`
 - Merge when the operator says so and the checks are complete, with `gh pr merge --merge --match-head-commit <sha>`. The remote branch goes with the merge; what is left to clear is the worktree, the local branch and the main checkout's pull
 - To see that a merge was published, compare the `assets/index-*.js` name that the site's `index.html` points to with the one in `dist/index.html` built from the same commit (the bundle carries the commit it was built from)
-- Hand an image to the operator by the URL the running Vite serves it at (`work/` is served too), not by a relative path. For two images or more, or for candidates to choose between, make `work/<name>.html` with the enlarged images, headings and the figures in a table, and write only its URL
+- Hand an image to the operator by the URL the running Vite serves it at (`work/` is served too), not by a relative path and not as an artifact. For two images or more, or for candidates to choose between, make `work/<name>.html` with the enlarged images, headings and the figures in a table, and write only its URL
 - `public/og-image.png` is a still capture with no tool in the repository to make it again: cut `.panel` out at 1280x800 and a device pixel ratio of 1, and paste it on the centre of 1200x630 of `#14161a`. Take it again when the look of the screen changes a great deal
 - Do not set a word of the running text of a document in bold to stress it
 
