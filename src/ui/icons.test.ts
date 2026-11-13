@@ -26,7 +26,7 @@ describe("the copy mark", () => {
     expect(Icons.copy().getAttribute("shape-rendering")).toBe("crispEdges");
   });
 
-  it("draws RECORDER's softened mark a pixel at a time, in shares of the mark's colour (p079-2)", () => {
+  it("draws RECORDER's softened mark a pixel at a time, in shares of the mark's colour (p084-2)", () => {
     const icon = Icons.copySoft();
     expect(icon.getAttribute("shape-rendering")).toBe("crispEdges");
     expect(icon.querySelectorAll("path")).toHaveLength(0);

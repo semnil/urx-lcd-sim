@@ -472,7 +472,7 @@ describe("the compressor the strip runs", () => {
     expect([await press("Attack", "ArrowUp", 0), await press("Release", "ArrowUp", 0)]).toEqual(["4.122ms", "92.0ms"]);
   });
 
-  it("reads Attack on the unit's stops, rising to 80 ms, p110-1's 2.197 among them", async () => {
+  it("reads Attack on the unit's stops, rising to 80 ms, p037-1's 2.197 among them", async () => {
     const { press, walk } = await timeCells();
     const attack = await walk("Attack", 227);
     expect(await press("Attack", "ArrowUp"), "Attack's top").toBe("80.00ms");
@@ -486,10 +486,10 @@ describe("the compressor the strip runs", () => {
     };
     for (const [i, text] of Object.entries(attackAt)) expect(attack[Number(i)], `Attack stop ${i}`).toBe(`${text}ms`);
     expect(rises(attack), "Attack rises, a value a stop").toBe(true);
-    expect(attack, "p110-1's Attack").toContain("2.197ms");
+    expect(attack, "p037-1's Attack").toContain("2.197ms");
   });
 
-  it("reads Release on the unit's stops, rising to 999 ms, p110-1's 110.8 among them", async () => {
+  it("reads Release on the unit's stops, rising to 999 ms, p037-1's 110.8 among them", async () => {
     const { press, walk } = await timeCells();
     const release = await walk("Release", 277);
     expect(await press("Release", "ArrowUp"), "Release's top").toBe("999.0ms");
@@ -503,7 +503,7 @@ describe("the compressor the strip runs", () => {
     };
     for (const [i, text] of Object.entries(releaseAt)) expect(release[Number(i)], `Release stop ${i}`).toBe(`${text}ms`);
     expect(rises(release), "Release rises, a value a stop").toBe(true);
-    expect(release, "p110-1's Release").toContain("110.8ms");
+    expect(release, "p037-1's Release").toContain("110.8ms");
   });
 
   it("ships every value the strip turns on a stop of its own, so a press up and one down come back to it", async () => {
@@ -793,7 +793,7 @@ describe("where the strip puts its boxes", () => {
     return [px(d["left"]), px(d["top"]), px(d["width"]), px(d["height"])];
   };
 
-  it("stands the two blocks and their parts where p108-1 has them", () => {
+  it("stands the two blocks and their parts where p115-1 has them", () => {
     // Read off the figure with the main area's own origin, the glass at 2,50.
     expect(box(".ssmcs-block-comp").slice(0, 2)).toEqual([0, 0]);
     expect(px(declarations(CSS, ".ssmcs-block")["height"])).toBe(90);
@@ -804,7 +804,7 @@ describe("where the strip puts its boxes", () => {
     expect(box(".ssmcs-block .ssmcs-gr")).toEqual([155, 14, 4, 56]);
   });
 
-  it("stands the two knob panels and the Sweet Spot Data where p108-1 has them", () => {
+  it("stands the two knob panels and the Sweet Spot Data where p115-1 has them", () => {
     const panel = declarations(CSS, ".ssmcs-knob-panel");
     expect([px(panel["top"]), px(panel["height"])]).toEqual([94, 84]);
     expect([px(declarations(CSS, ".ssmcs-drive")["left"]), px(declarations(CSS, ".ssmcs-drive")["width"])]).toEqual([10, 86]);
@@ -814,7 +814,7 @@ describe("where the strip puts its boxes", () => {
     expect(px(declarations(CSS, ".ssmcs-caption")["width"])).toBe(86);
     expect(declarations(CSS, ".ssmcs-caption")["text-align"]).toBe("center");
     expect(box(".lcd .ssmcs-knob-panel .value-box")).toEqual([17, 19, 52, 22]);
-    // 37 rows of face over a 3px band, y167..206 in p108-1.
+    // 37 rows of face over a 3px band, y167..206 in p115-1.
     expect(box(".lcd .ssmcs-data")).toEqual([84, 23, 202, 40]);
     expect(declarations(CSS, ".lcd .ssmcs-data")["box-shadow"]).toBe("inset 0 -3px 0 var(--btn-bevel-sunk)");
     expect(declarations(CSS, ".lcd .ssmcs-data")["padding"], "the name centres on the face above the band").toBe("0 0 3px");
@@ -824,7 +824,7 @@ describe("where the strip puts its boxes", () => {
     expect(declarations(readStyle("tokens.css"), ":root")["--ssmcs-data-mark"]).toBe("#8c9694");
   });
 
-  it("stands the compressor's plot and the side chain's switch where p110-1 and p111-1 have them", () => {
+  it("stands the compressor's plot and the side chain's switch where p037-1 and p118-1 have them", () => {
     // A 1px frame around the 198x130 the figure reads inside it.
     expect(box(".ssmcs-dyn .dyn-plot")).toEqual([19, 40, 200, 132]);
     // The key meter is the same bar an IN / OUT column carries: x7..12 /
@@ -840,7 +840,7 @@ describe("where the strip puts its boxes", () => {
     expect(px(declarations(CSS, ".ssmcs-dyn .ssmcs-sets")["bottom"])).toBe(9);
   });
 
-  it("stands the EQ band button where p112-1 has it, on the graph the EQ screen uses", () => {
+  it("stands the EQ band button where p119-1 has it, on the graph the EQ screen uses", () => {
     expect(box(".lcd .ssmcs-band")).toEqual([105, -1, 93, 38]);
     expect(box(".lcd .ssmcs-block-switch.badge-title")).toEqual([0, -1, 93, 38]);
     // The three carry their names smaller than a title box's own size.
@@ -900,7 +900,7 @@ describe("where the strip puts its boxes", () => {
   });
 
   it("lights the two block switches in shades of their own, both names in white", () => {
-    // p112-1's [EQ] is a darker green than the EQ block's, and both switches
+    // p119-1's [EQ] is a darker green than the EQ block's, and both switches
     // carry a darker band than the title badges they borrow their shape from.
     const eq = declarations(CSS, ".lcd .badge.badge-title.ssmcs-block-switch.badge-eq.is-on");
     expect([eq["background"], eq["color"], eq["--pt-band"]]).toEqual([

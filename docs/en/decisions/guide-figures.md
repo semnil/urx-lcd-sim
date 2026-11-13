@@ -5,7 +5,8 @@
 Closed decisions about what the user guide's screen captures are taken to settle and what they are
 not, with what led to them. The rules themselves are in `AGENTS.md`, "Primary source"; how values
 are taken from the figures is in [design-tokens.md](../design-tokens.md), "How the values were
-sampled". A figure number is the extracted name in `reference/ug-lcd/`.
+sampled". A figure number is the extracted name in `reference/ug-lcd/`, or, written `D0 p<page>-<n>`, in
+`reference/ug-lcd-d0/`.
 
 ## What a figure does not settle
 
@@ -26,27 +27,27 @@ sampled". A figure number is the extracted name in `reference/ug-lcd/`.
   `CH 7 - 10, FX 1 - 2` on one line in a button wider than the others.
   [#93](https://github.com/semnil/urx-lcd-sim/pull/93) set it on two lines at the same width
   (2026-10-16).
-- **What happened** (a faint element): in p074-1 the selected `02` of SCENE LIST's box is faint,
+- **What happened** (a faint element): in p077-1 the selected `02` of SCENE LIST's box is faint,
   (80,80,88), and the title is white. A faint element in a figure may be caught in the middle of a
   blink. On the unit the number alone blinks, the title stays, and nothing blinks while the row
   with the ▶ is the one selected. What blinks or lights is asked one part and one state at a time.
 
 ## Figures that are not used as evidence
 
-- **Decision**: p036-1 is not used for HOME's [Sends]. It shows the button unlit; the unit lights
-  it in the colour of where the sends go, as p047-1 and p157-1 show.
-- **Decision** (2026-09-18): the title plate of p114-1 is not used for the plate's place or
+- **Decision**: D0 p036-1 is not used for HOME's [Sends]. It shows the button unlit; the unit lights
+  it in the colour of where the sends go, as p048-1 and p166-1 show.
+- **Decision** (2026-09-18): the title plate of D0 p114-1 is not used for the plate's place or
   width (the look of the screen as a whole and the shape of the corners may be consulted). The
   unit keeps the gap the EQ screen has between the plate and the parts on its right. The figures
   can be told apart: the parts on the right of the toolbar start at x384 in every figure, and the
-  plate's right edge is at x379, 4px away, in the figures where the plate is 126 wide (p113-1,
-  p114-1, p115-1), and at x369, 14px away, where it is 116 wide (p103-1, p099-1, p106-1). The unit
+  plate's right edge is at x379, 4px away, in the figures where the plate is 126 wide (D0 p113-1,
+  D0 p114-1, D0 p115-1), and at x369, 14px away, where it is 116 wide (p109-1, p105-1, p113-1). The unit
   has the 14px.
-- **Decision** (2026-09-18): `Brightness` in p056-1 and `Peripheral` in p061-1, set in mixed case,
-  are not used for those titles: the unit shows them in capitals, as p055-1 in the same chapter
-  shows `LANGUAGE`. Operation Mode in p042-1 is in mixed case on the unit as well, and its title
+- **Decision** (2026-09-18): `Brightness` in p057-1 and `Peripheral` in p062-1, set in mixed case,
+  are not used for those titles: the unit shows them in capitals, as p056-1 in the same chapter
+  shows `LANGUAGE`. Operation Mode in p043-1 is in mixed case on the unit as well, and its title
   and the heading of its box in SETUP stay as the figure has them. BRIGHTNESS opens with the
-  Screen value framed in magenta, having one place to enter a value, as p056-1 shows.
+  Screen value framed in magenta, having one place to enter a value, as p057-1 shows.
 - **What happened**: when figures were counted for and against a lit [Sends], three of those
   counted as unlit did not have the button on the printed page at all. The range the page shows
   is applied before figures are counted.
@@ -54,18 +55,18 @@ sampled". A figure number is the extracted name in `reference/ug-lcd/`.
 ## Pixels the page does not show
 
 - **Decision**: pixels outside the range printed on the page are not used as evidence. The ranges
-  are in `reference/ug-lcd/visible.json`, and the rule is in `AGENTS.md`, "Primary source". What a
+  are in `reference/ug-lcd/visible.json` (`reference/ug-lcd-d0/visible.json` for a D0 capture), and the rule is in `AGENTS.md`, "Primary source". What a
   page hides is restored by laying the part that shows over another figure.
 - **Reason**: of the 117 places the guide sets a screen capture, 29 show only a part of it through
   a clip, between 3 and 22% of the image. Extraction takes the whole image as it was before the
   clip, so the rest of it holds what the page does not print: the toolbar of p038-4 carries four
-  square icons the unit does not have, and p048-5 has a STREAMING strip at a place that is not
+  square icons the unit does not have, and p049-5 has a STREAMING strip at a place that is not
   seen. No capture is retouched by another image laid over a part of it (the 235 drawings of an
   image in the PDF were checked against the list of its images).
 - **What happened** (2026-09-14 and 15): a comparison that rested on a part the page hides was
   sent back, and on the next day hidden pixels were counted as grounds twice more: the upper half
-  of p093-1 for the Color and Icon marks of CH SETTING, p048-5 and p049-1 for the unlit colour of
-  HOME's [Sends], and p048-5 for the frame of the selected strip.
+  of p098-1 for the Color and Icon marks of CH SETTING, p049-5 and p050-1 for the unlit colour of
+  HOME's [Sends], and p049-5 for the frame of the selected strip.
 
 ## A colour that changes with a state
 
@@ -74,10 +75,10 @@ sampled". A figure number is the extracted name in `reference/ug-lcd/`.
   that shows the part lit.
 - **Decision** (2026-09-20): the marks on a HOME strip take the colour of their button: INS FX,
   HI-Z and HPF cyan, Φ orange and +48V red.
-- **What happened**: the INS FX mark was drawn in the pale grey of p090-1 (`#d6ced6`), a figure
+- **What happened**: the INS FX mark was drawn in the pale grey of p095-1 (`#d6ced6`), a figure
   that shows the mark unlit only; the grey may have been the unlit side.
 - **What happened** (2026-09-21): the docs said no image shows +48V lit and gave it another red of
-  the palette, while CH 4 in p047-1 shows it lit (its core is (206,69,41), `#ce4529`). It was
+  the palette, while CH 4 in p048-1 shows it lit (its core is (206,69,41), `#ce4529`). It was
   found by a scan that counts the pixels of exactly that colour in every figure, after a search by
   eye had missed it. The colour is in [design-tokens.md](../design-tokens.md).
 
@@ -107,10 +108,10 @@ sampled". A figure number is the extracted name in `reference/ug-lcd/`.
 - **Decision**: where two figures of one part disagree, the pixel difference is taken against
   both, and the operator chooses.
 - **What happened** (2026-10-12, [#72](https://github.com/semnil/urx-lcd-sim/pull/72)): the two
-  lines of a name on a picker sheet are 14px apart in wide/p059-1 and 16px in p100-2, and which
+  lines of a name on a picker sheet are 14px apart in wide/p060-1 and 16px in p106-2, and which
   did better by pixel difference was the other way round from one sheet to the next. Both were
   set out with enlargements of before and after and a table of the differences, and 14px was
-  chosen for every sheet (a box on p100-1 stays at 16px). The result is in
+  chosen for every sheet (a box on p106-1 stays at 16px). The result is in
   [screen-inventory.md](../screen-inventory.md), "Sheets over the screen".
 
 ## A question the unit can answer is answered on the unit
@@ -141,10 +142,10 @@ sampled". A figure number is the extracted name in `reference/ug-lcd/`.
   343.6 to 343.589 to 343.59. The first range was worked out without the stops at both ends, and
   the second fit assumed the simulator's own nudge of a midpoint upward.
 - **History**: a change of scale moves the defaults that were set from the lit rows of a figure
-  (RECORDER's OUT at -15.6 and -13.5 dB, rows 54 and 60 of p081-1), and they are worked out from
+  (RECORDER's OUT at -15.6 and -13.5 dB, rows 54 and 60 of p086-1), and they are worked out from
   the rows again. And what the screen draws need not be the response of the sound: the bell of
-  SSMCS's MID is drawn with its Q times 0.696, fitted to p112-1 (`SSMCS_BELL_Q_SCALE`), while the
-  four-band EQ's bell at half its Q fits p106-1 best.
+  SSMCS's MID is drawn with its Q times 0.696, fitted to D0 p112-1 (`SSMCS_BELL_Q_SCALE`), while the
+  four-band EQ's bell at half its Q fits D0 p106-1 best.
 
 ## The small button pictures in the guide's text
 
@@ -158,3 +159,20 @@ sampled". A figure number is the extracted name in `reference/ug-lcd/`.
   screen its text is about. That is said where one is used.
 - **History** (2026-09-14): the mark RECORDER's [Play/Pause] carries while stopped was settled
   from one.
+
+## The figures are revision E0, and D0 stays where E0 does not show a fact
+
+- **Decision** (2026-11-14): the captures are taken from user guide revision E0 (System firmware V1.5) into
+  `reference/ug-lcd/`, and the docs cite E0's names. A fact E0's capture does not support keeps its revision D0
+  capture, cited as `D0 p<page>-<n>` and extracted into `reference/ug-lcd-d0/`: E0 shows that screen in another
+  state, does not print that part, or draws it differently since V1.5 while the simulator still draws it as
+  D0 does. A screen the simulator redraws for V1.5 moves its citations to E0 then.
+- **Rejected**: keeping D0 as the reference and adding E0 beside it only for the screens V1.5 added, which
+  leaves the same screen under two numberings; and E0 alone, which needs every fact E0 does not support
+  measured again or rewritten, and each difference a figure cannot attribute to a state or to V1.5 confirmed
+  on the unit, before the switch.
+- **Reason**: of E0's 133 captures in `reference/ug-lcd/`, 102 are pixel for pixel D0 captures at
+  other page numbers. A cited D0 capture was renamed to E0's where E0 has the same image printed over the same
+  range. For the 26 that have none, each citation was checked against E0's capture of the same screen: 842
+  hold there, and 276 do not (239 differ, 35 fall outside the part E0 prints, 2 could not be decided). The
+  page numbers in screen-inventory.md's Ref. column moved with the guide's bookmarks.

@@ -128,8 +128,8 @@ What the unit lacks, this simulator lacks as well.
   cannot access any other menus from this product while USB Storage Mode is on.", but on the unit pressing HOME with
   the mode on goes to the HOME screen, and SETUP, MONITOR and the channel screens open as well (confirmed on a
   URX44V). The simulator does not hold them back either. [Recorder], [Save/Load] and [Tools] on the
-  microSD screen cannot be used while the mode is on (p078-1).
-- **A stereo LEVEL meter on a stereo-linked channel.** The user guide's description of the LEVEL meter on p97
+  microSD screen cannot be used while the mode is on (p083-1).
+- **A stereo LEVEL meter on a stereo-linked channel.** The user guide's description of the LEVEL meter on p102
   says "Stereo channels and channels that are stereo-linked are shown with a stereo meter.", but on the unit a
   channel of a stereo-linked pair shows one LEVEL meter in the channel view's main area, and HOME shows one per
   channel as well (confirmed on a URX44V). The simulator draws one bar there too.

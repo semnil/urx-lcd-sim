@@ -271,7 +271,7 @@ describe("the PAN / BAL choice a stereo pair carries", () => {
 
     await pickSignalType(shell, "STEREO");
     expect(panBal(shell).map((b) => b.textContent)).toEqual(["PAN", "BAL"]);
-    // The pair comes up on its balance (p093-1).
+    // The pair comes up on its balance (p098-1).
     expect(panBal(shell).map((b) => b.getAttribute("aria-pressed"))).toEqual(["false", "true"]);
 
     // It reads as the Signal Type's own choice, so it follows it directly.

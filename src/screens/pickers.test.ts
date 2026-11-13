@@ -267,7 +267,7 @@ describe("the INS FX effect button", () => {
 });
 
 describe("the DATE / TIME popup buttons", () => {
-  // The computer's clock stands at 00:00 UTC on the first of January 2020: 9:00 in Tokyo, the moment p064-1 shows.
+  // The computer's clock stands at 00:00 UTC on the first of January 2020: 9:00 in Tokyo, the moment p065-1 shows.
   const NOW = Date.UTC(2020, 0, 1, 0, 0, 0);
   const open = (): Promise<Shell> => {
     vi.useFakeTimers({ toFake: ["Date"] });

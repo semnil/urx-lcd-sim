@@ -7,7 +7,7 @@
 // colour or a length can be measured off the real screen instead of guessed.
 // The PDF itself is not in this repo; point --pdf at your own copy.
 //
-//   node scripts/extract-ug-screens.mjs --pdf <path to user guide PDF>
+//   node scripts/extract-ug-screens.mjs --pdf <path to user guide PDF> [--out <directory>]
 //
 // Requires poppler (`brew install poppler`) for pdfimages.
 
@@ -17,7 +17,12 @@ import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const OUT = join(ROOT, "reference", "ug-lcd");
+/** Where the captures go: reference/ug-lcd/ by default, or the directory given with --out (the
+ *  previous revision's captures, which the docs still cite as `D0 p<page>-<n>`, are kept in
+ *  reference/ug-lcd-d0/). */
+const outAt = process.argv.indexOf("--out");
+const OUT =
+  outAt >= 0 && process.argv[outAt + 1] ? resolve(process.argv[outAt + 1]) : join(ROOT, "reference", "ug-lcd");
 const WIDE_OUT = join(OUT, "wide");
 
 /** The unit's screen is 480x272. The guide also embeds the same captures on a

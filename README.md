@@ -90,8 +90,10 @@ Under [docs/en/](docs/en/), with the same documents in Japanese under [docs/ja/]
 ## Where the appearance comes from
 
 The palette and the dimensions were sampled pixel by pixel from the 480x272 screen captures
-embedded in the user guide (English, revision D0). The factory channel values are a URX44V's and a URX22's own
-settings after a factory reset. Details are in [design-tokens.md](docs/en/design-tokens.md).
+embedded in the user guide (English, revision E0, for System firmware V1.5). Where E0's capture does not show what
+is cited, the capture of the previous revision (D0) is cited instead, written `D0 p<page>-<n>`. The factory channel
+values are a URX44V's and a URX22's own settings after a factory reset. Details are in
+[design-tokens.md](docs/en/design-tokens.md).
 
 `reference/` holds those extracted captures. They are Yamaha's copyright, so the directory is
 gitignored and appears in neither the repository nor a build. To regenerate it locally (needs
@@ -106,6 +108,21 @@ Some captures are shown only in part on the guide's pages. The part the pages sh
 
 ```bash
 python3 scripts/ug-visible-ranges.py --pdf <path to the user guide PDF>
+```
+
+The D0 captures go to `reference/ug-lcd-d0/`, from the revision D0 PDF:
+
+```bash
+node scripts/extract-ug-screens.mjs --pdf <path to the revision D0 PDF> --out reference/ug-lcd-d0
+python3 scripts/ug-visible-ranges.py --pdf <path to the revision D0 PDF> --out reference/ug-lcd-d0/visible.json
+```
+
+A checkout that extracted revision D0 into `reference/ug-lcd/` keeps every D0-only file there when E0 is
+extracted over it, since extraction overwrites a file of the same name and removes nothing. Move that
+directory to `reference/ug-lcd-d0/` first, then extract E0 into the empty `reference/ug-lcd/`:
+
+```bash
+mv reference/ug-lcd reference/ug-lcd-d0
 ```
 
 ## Relationship to the hardware
