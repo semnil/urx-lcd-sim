@@ -3,7 +3,7 @@
 > For the English version, see [../../en/decisions/guide-figures.md](../../en/decisions/guide-figures.md).
 
 ユーザーガイドの画面キャプチャが何を決め、何を決めないかについて閉じた判断と、その経緯。規則の本文は
-`CLAUDE.md` の "Primary source" にある。図からの値の取り方は
+`AGENTS.md` の "Primary source" にある。図からの値の取り方は
 [design-tokens.md](../design-tokens.md) の「採取方法」が正。図の番号は `reference/ug-lcd/` の抽出名。
 
 ## What a figure does not settle
@@ -46,7 +46,7 @@
 ## Pixels the page does not show
 
 - **決定**: 紙面に出ている範囲の外の画素は、根拠に使わない。範囲は `reference/ug-lcd/visible.json` に
-  あり、規則は `CLAUDE.md` の "Primary source" にある。紙面で隠れた部分は、見えている部分を別の図に
+  あり、規則は `AGENTS.md` の "Primary source" にある。紙面で隠れた部分は、見えている部分を別の図に
   重ねて復元する。
 - **理由**: ガイドが画面キャプチャを置く 117 か所のうち、29 か所は、クリップで画像の一部 (3〜22%)
   だけを見せている。抽出は、クリップの前の画像の全体を取るので、残りの部分には紙面に出ない内容が
@@ -73,14 +73,14 @@
 ## An icon is not chosen by pixel difference alone
 
 - **決定**: アイコンの形は、画素の差に加えて、形として読める特徴 (歯の数、切れ込みの深さなど) でも
-  比べる (`CLAUDE.md` の "Primary source")。
+  比べる (`AGENTS.md` の "Primary source")。
 - **実害の記録**: SETUP の歯車を 8 歯で描いていた。実機は 6 歯 (`src/ui/icons.ts`)。2026-09-13 に、
   MONITOR の [Setting] タブで同じ誤りを繰り返した。画素の差 (XOR) だけで当てはめると、谷の浅い
   8 歯の歯車が最も良い点になる。
 
 ## What the guide's text settles
 
-- **決定**: 図で決まらない点は、挙げる前に、ガイドの本文で引く (`CLAUDE.md` の "Primary source")。
+- **決定**: 図で決まらない点は、挙げる前に、ガイドの本文で引く (`AGENTS.md` の "Primary source")。
 - **実害の記録** (2026-09-20): microSD のカードについて、挙げようとしていた 4 点が、本文で決まった。
   仕様の表の microSD Card Slot が WAV 24-bit であること (録音の大きさの計算に使う)、File list が
   「選んでいるフォルダーとその 1 階層下」を出すこと、[↑] が 1 階層上へ移ること、Folder name display が

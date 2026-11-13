@@ -2,7 +2,7 @@
 
 > For the English version, see [../../en/decisions/layout-and-type.md](../../en/decisions/layout-and-type.md).
 
-部品の配置と、字の大きさ・位置について閉じた判断と、その経緯。規則の本文は `CLAUDE.md` の
+部品の配置と、字の大きさ・位置について閉じた判断と、その経緯。規則の本文は `AGENTS.md` の
 "Checking a change on the screen" にある。画面ごとの今の姿は
 [screen-inventory.md](../screen-inventory.md) と [design-tokens.md](../design-tokens.md) が正。
 
@@ -39,7 +39,7 @@
 
 - **決定**: スクロールする箱は、ブラウザ自身のスクロールバーを隠す。隠す規則から漏れた箱があると、
   `src/style/columns.test.ts` の "the browser's own scroll bars" が落ちる。新しい箱の確かめ方は
-  `CLAUDE.md` の "Checking a change on the screen" にある。
+  `AGENTS.md` の "Checking a change on the screen" にある。
 - **実害の記録** (2026-09-13): TIME ZONE のダイアログを、スクロールバーを隠した撮影で確かめて、
   完了と報告した。スクロールバーを出すブラウザでは、描いたバーの内側にブラウザ自身のバーがあって
   二重になり、横にもスクロールした。SAVE/LOAD のファイルの一覧にも同じ欠陥があった。
@@ -47,7 +47,7 @@
 ## A text size is chosen by the pixel difference from the figure
 
 - **決定** (2026-09-14): 字の大きさは、候補を描いて、図との画素の差が最も小さいものを選ぶ。位置は
-  大きさと分けて、インクの行と列のずれを測って決める。手順は `CLAUDE.md` の
+  大きさと分けて、インクの行と列のずれを測って決める。手順は `AGENTS.md` の
   "Checking a change on the screen" にある。
 - **理由**: 書体が実機と違うので、高さが合う大きさでも、幅と位置は合わない。字の行がずれたまま、
   画面全体の差で大きさを選ぶと、インクの少ない小さい字ほど差が小さく出る。位置の誤りを、大きさが

@@ -3,7 +3,7 @@
 > For the English version, see [../../en/decisions/development-flow.md](../../en/decisions/development-flow.md).
 
 並行する PR・長いブランチ・レビュー・公開と文書の進め方について閉じた判断と、その経緯。日々の規則は
-`CLAUDE.md` の "Development" にある。
+`AGENTS.md` の "Development" にある。
 
 ## Parallel pull requests are made independent of the merge order
 
@@ -80,7 +80,7 @@
 ## A change to what a stored value means
 
 - **決定**: 保存される画面の状態の意味を変えたら、前の版が保存した値から始めて確かめる
-  (`CLAUDE.md` の "Checking a change on the screen")。
+  (`AGENTS.md` の "Checking a change on the screen")。
 - **実害の記録** (2026-09-27、[#22](https://github.com/semnil/urx-lcd-sim/pull/22) のレビュー):
   前の版で、Edit を開いたまま一覧を Simple へ切り替えて保存された値 (`scene.bank=Simple`・
   `ui.sceneMenu=Edit`) から新しい版を開き、Standard へ切り替えると、Edit が戻った。

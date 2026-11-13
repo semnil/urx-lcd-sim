@@ -4,7 +4,7 @@
 
 Closed decisions about pull requests that run side by side, long branches, reviews, and how the
 project is published and documented, with what led to them. The rules that hold day to day are in
-`CLAUDE.md`, "Development".
+`AGENTS.md`, "Development".
 
 ## Parallel pull requests are made independent of the merge order
 
@@ -93,7 +93,7 @@ project is published and documented, with what led to them. The rules that hold 
 ## A change to what a stored value means
 
 - **Decision**: when what a stored state of the screen means is changed, the change is checked
-  starting from a value the version before saved (`CLAUDE.md`, "Checking a change on the screen").
+  starting from a value the version before saved (`AGENTS.md`, "Checking a change on the screen").
 - **What happened** (2026-09-27, the review of
   [#22](https://github.com/semnil/urx-lcd-sim/pull/22)): a value the version before had saved
   with Edit open and the list switched to Simple (`scene.bank=Simple`, `ui.sceneMenu=Edit`)
