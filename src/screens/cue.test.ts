@@ -333,6 +333,15 @@ describe("the MONITOR CUE tab", () => {
     expect(tabs[2]?.querySelector(".side-tab-icon svg"), "no glyph").toBeNull();
   });
 
+  it("opens on Level when the stored tab is not one the menu has", async () => {
+    const shell = await mount([{ id: "monitor" }, { id: "monitor.level" }]);
+    await shell.ctx.store.set("ui.monitorTab", "Gone");
+    await flush();
+    const lit = [...shell.root.querySelectorAll<HTMLElement>(".side-tab")].filter((t) => t.getAttribute("aria-pressed") === "true");
+    expect(lit.map((t) => t.textContent)).toEqual(["Level"]);
+    expect(shell.root.querySelectorAll(".mon-strip .mon-level").length, "the Level tab's strips").toBe(2);
+  });
+
   it("lights the Input and Output lamps by the group in the cue", async () => {
     const shell = await cueTab();
     expect(lamps(shell), "nothing cued").toEqual([false, false]);
