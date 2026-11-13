@@ -110,7 +110,8 @@ IndexedDB を使う前の版が `localStorage` の `urx-lcd-sim.state` と `urx-
 読み、記録に本体を書いたときに消す。
 
 戻さないのは**そのときやっていたこと**で、録音・再生の走行 (`sd.rec` ほか) と入力中の下書き
-(`ui.titleEntry.` / `ui.dateTimeDraft.`) は電源を入れ直した実機と同じく止まった状態で開く。TOOLS の Test の結果
+(`ui.titleEntry.` / `ui.dateTimeDraft.`) は電源を入れ直した実機と同じく止まった状態で開く。コンソールのロック
+(`ui.consoleLock.`) は電源を入れ直した実機と同じく外れた状態で開き、そのパスワードも消える (known-issues.md)。TOOLS の Test の結果
 (`sd.tested`) も、電源を入れ直した実機と同じく戻さない。
 画面外の Device メニューにある [Initialize All Memories] と [Initialize Current Memories] は、先に確認を出してから工場出荷状態で起動し直し、それをすぐ
 保存に上書きする。[Initialize Current Memories] はシーンメモリーの題・ミキサー・保護を戻すが、現在のシーン選択は初期化する。

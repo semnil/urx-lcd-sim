@@ -125,7 +125,8 @@ and `urx-lcd-sim.model`, is read while the record holds nothing, and let go once
 
 What is left out is **what the unit was doing** at that moment: a take or a playback running
 (`sd.rec` and the rest) and a name half typed (`ui.titleEntry.`, `ui.dateTimeDraft.`) come back
-stopped, as they do on a unit that has been switched off. The result of TOOLS' card test (`sd.tested`)
+stopped, as they do on a unit that has been switched off. The console lock (`ui.consoleLock.`) is gone, as it is on a
+unit switched off and on, and so is its password (known-issues.md). The result of TOOLS' card test (`sd.tested`)
 is left out too, as a unit switched off no longer shows it. [Initialize All Memories] and [Initialize Current Memories],
 in the Device menu outside the screen, ask first, then start again from the unit as it ships and store it at once over what was stored.
 [Initialize Current Memories] puts back each scene memory's title, mixer and protection, but resets the current
