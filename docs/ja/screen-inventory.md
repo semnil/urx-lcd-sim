@@ -1133,7 +1133,7 @@ Active CUE (p071-1) は、見出しの下の `--surface` の 1px の枠 (x44..13
 (`--accent-selected`、帯は `--toggle-band-lit`) に立ち、1 つも無いあいだは選んでいない CUE Mode と同じ灰色の面に白い名前で
 立つ (URX44V で確認)。HOME の CLEAR CUE と同じくすべての CUE を外す。CUE Mode は
 [Mix CUE] (x179..276) と [Last CUE] (x279..376) を y114..153 に 2px 空けて 1 列につなぎ、両端だけを丸める。選んでいる方は
-[Clear CUE] と同じ面、もう一方は `--surface`。見出しはそれぞれ指すものの上に置き、このページの名前はすべて 13px。
+[Clear CUE] と同じ面、もう一方は `--surface`。見出しはそれぞれ指すものの上に置き、このページの名前はすべて 13px で、2 つのモードの名前は太さ 600。
 CUE Mode の切り替えは、モードとそれが外すすべての CUE を 1 つの操作として書く (`src/screens/cue.ts` の `setCueMode`)。
 選んでいるモードをもう一度押しても何も変わらず、CUE も外れない (URX44V で確認)。タブの文字は図のとおり (URX44V で確認)。
 

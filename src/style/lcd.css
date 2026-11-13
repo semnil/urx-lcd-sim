@@ -4285,6 +4285,11 @@
   font-size: 13px;
 }
 
+/* The two modes are named a step heavier than [Clear CUE]. */
+.btn.cue-mode-btn {
+  font-weight: 600;
+}
+
 .btn.active-cue-clear.is-cued,
 .btn.cue-mode-btn.is-on {
   color: var(--ink-on-lit);

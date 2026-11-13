@@ -1305,7 +1305,7 @@ Output's on y115..122, `--surface` while their group has nothing in the cue and 
 while nothing is (confirmed on a URX44V); it takes every cue out as HOME's CLEAR CUE does. CUE Mode sets [Mix CUE] (x179..276)
 and [Last CUE] (x279..376) on y114..153 as one row 2px apart, rounded at its two ends only, the chosen one on
 the same face as [Clear CUE] and the other on `--surface`. Each caption stands over what it names, and
-every name on the page is 13px. Switching the CUE Mode is one operation: the mode and every cue it takes
+every name on the page is 13px, the two modes' at weight 600. Switching the CUE Mode is one operation: the mode and every cue it takes
 out (`setCueMode` in `src/screens/cue.ts`). A press on the mode already chosen changes nothing and leaves the
 cues in (confirmed on a URX44V). The words of the tab are as the figure has them (confirmed on a URX44V).
 
