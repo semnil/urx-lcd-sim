@@ -239,6 +239,19 @@ test.describe("CONSOLE LOCK", () => {
     await expect(lcd(page)).toHaveAttribute("data-screen", "home");
   });
 
+  test("keeps Tab and Enter off the glass behind the lock screen", async ({ page }) => {
+    await go(page, "setup.consoleLock");
+    await lcd(page).locator(".console-lock-tile").click();
+    await expect(locked(page)).toBeFocused();
+    for (let i = 0; i < 6; i++) {
+      await page.keyboard.press("Tab");
+      await page.keyboard.press("Enter");
+    }
+    await expect(locked(page)).toBeVisible();
+    await expect(locked(page).locator(".icon-console-unlocked")).toHaveCount(0);
+    await expect(lcd(page)).toHaveAttribute("data-screen", "setup.consoleLock");
+  });
+
   test("Change Password says two different passwords do not match and keeps what was typed", async ({ page }) => {
     await go(page, "setup.consoleLock.password");
     await button(page, "New Password", true).click();
