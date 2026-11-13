@@ -10,6 +10,7 @@ import { aimed, el, makeTappable, markShut, setPressed, writing } from "../ui/do
 import { brightnessSpec, intSpec } from "../ui/param-spec";
 import { Icons } from "../ui/icons";
 import { dateTimeSetScreen, dateTimeSpans, openDateTimeSet, openTimeZone, timeZoneScreen } from "./date-time";
+import { draftTitle } from "./title-entry";
 import { patchSourceSheet } from "./output-patch";
 import { button, dialog, menuButton, menuGrid, paramCell, pickColumn, pickDialog, pulldown, scrollbar, sideTab, toggle } from "../ui/widgets";
 import type { ScreenBody, ScreenDef } from "./types";
@@ -212,10 +213,115 @@ export const consoleLockScreen: ScreenDef = {
     });
     const password = el("button", {
       class: "menu-btn console-lock-password",
-      onTap: () => undefined,
+      onTap: () => {
+        void ctx.store.set(`${PASSWORD_DRAFT}.new`, "");
+        void ctx.store.set(`${PASSWORD_DRAFT}.confirm`, "");
+        ctx.nav.push({ id: "setup.consoleLock.password" });
+      },
       children: [el("span", { text: "Change\nPassword" }), el("span", { class: "console-lock-copy", children: [Icons.copy()] })],
     });
     return { main: el("div", { class: "console-lock-screen", children: [lock, password] }) };
+  },
+};
+
+/** Where Change Password holds what is typed into its two fields while it is open. */
+const PASSWORD_DRAFT = "ui.consoleLock.draft";
+/** The password the unlock asks for. Kept for the session only (persist.ts, IN_FLIGHT). */
+export const CONSOLE_PASSWORD = "ui.consoleLock.password";
+/** The most characters a password takes (user guide, "Console Lock menu"). */
+const PASSWORD_MAX = 8;
+/** How long the unit shows that the two passwords differ before Change Password comes back (read off a URX44V). */
+export const MISMATCH_MS = 2000;
+
+/** A message the unit shows for a moment over the screen, with the information mark and no button. */
+function notice(ctx: AppContext, message: string, ms: number, after: () => void): void {
+  const node = el("div", {
+    class: "dialog-overlay",
+    attrs: { role: "alertdialog", "aria-modal": "true", "aria-label": message },
+    children: [
+      el("div", {
+        class: "dialog",
+        children: [
+          el("div", {
+            class: "dialog-ask",
+            children: [el("span", { class: "dialog-mark", children: [Icons.info()] }), el("p", { class: "dialog-text", text: message })],
+          }),
+        ],
+      }),
+    ],
+  });
+  const close = ctx.overlay(node);
+  setTimeout(() => {
+    close();
+    after();
+  }, ms);
+}
+
+/**
+ * Change Password (CONSOLE LOCK, System firmware V1.5): a sheet over the screen with a field for the
+ * new password and one to confirm it. Each field opens the title keyboard, which shows an asterisk for
+ * each character. [OK] with the two the same sets the password; with them different, the unit says so
+ * for two seconds and gives the sheet back as it was. No figure shows it; its words were read off a
+ * URX44V and its layout follows a recording of one, on the confirmation dialog's sheet.
+ */
+export const consolePasswordScreen: ScreenDef = {
+  id: "setup.consoleLock.password",
+  toolbar: "sub",
+  shellExits: false,
+  leavesOnTouchAround: false,
+  dimsBehind: true,
+  build(ctx): ScreenBody {
+    const field = (key: "new" | "confirm", label: string): HTMLElement => {
+      const typed = ctx.store.str(`${PASSWORD_DRAFT}.${key}`, "");
+      return el("div", {
+        class: "console-password-row",
+        children: [
+          el("span", { class: "console-password-label", text: label }),
+          el("button", {
+            class: "console-password-field",
+            attrs: { "aria-label": label.replace(/:$/, "") },
+            onTap: () => {
+              draftTitle(ctx, {
+                path: "",
+                title: typed,
+                max: PASSWORD_MAX,
+                empty: true,
+                masked: true,
+                onOk: (text) => void ctx.store.set(`${PASSWORD_DRAFT}.${key}`, text),
+              });
+              ctx.nav.push({ id: "scene.title" });
+            },
+            children: [
+              el("span", { class: "console-password-stars", text: "*".repeat(typed.length) }),
+              el("span", { class: "console-password-mark", children: [Icons.rename()] }),
+            ],
+          }),
+        ],
+      });
+    };
+    const ok = (): void => {
+      const typed = ctx.store.str(`${PASSWORD_DRAFT}.new`, "");
+      if (typed !== ctx.store.str(`${PASSWORD_DRAFT}.confirm`, "")) {
+        notice(ctx, "Entered Password do not match, please re-enter.", MISMATCH_MS, () => undefined);
+        return;
+      }
+      void ctx.store.set(CONSOLE_PASSWORD, typed);
+      ctx.nav.back();
+    };
+    return {
+      main: el("div", {
+        class: "dialog console-password",
+        children: [
+          el("div", {
+            class: "console-password-head",
+            children: [Icons.consoleLock(), el("h1", { class: "console-password-title", text: "Change Password" })],
+          }),
+          field("new", "New Password:"),
+          field("confirm", "Confirm Password:"),
+          el("div", { class: "dialog-actions", children: [button("Cancel", () => ctx.nav.back()), button("OK", ok)] }),
+        ],
+      }),
+    };
   },
 };
 
@@ -804,5 +910,6 @@ export const setupScreens: ScreenDef[] = [
   timeZoneScreen,
   integrationScreen,
   consoleLockScreen,
+  consolePasswordScreen,
   operationModeScreen,
 ];

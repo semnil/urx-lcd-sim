@@ -147,6 +147,8 @@ export interface TitleDraft {
    * [OK] goes on.
    */
   refuse?: (text: string) => string | undefined;
+  /** Whether the field shows an asterisk for each character typed, as a password's does. */
+  masked?: boolean;
 }
 
 /** Put a title in the sheet, with the letters up and Shift off. */
@@ -159,6 +161,7 @@ export function draftTitle(ctx: AppContext, draft: TitleDraft): void {
   void ctx.store.set(`${DRAFT}.empty`, draft.empty === true ? 1 : 0);
   void ctx.store.set(`${DRAFT}.keys`, draft.keys ?? "title");
   void ctx.store.set(`${DRAFT}.suffix`, draft.suffix ?? "");
+  void ctx.store.set(`${DRAFT}.masked`, draft.masked === true ? 1 : 0);
   void ctx.store.set(`${DRAFT}.path`, path);
   void ctx.store.set(`${DRAFT}.text`, title);
   void ctx.store.set(`${DRAFT}.cursor`, title.length);
@@ -202,6 +205,7 @@ export const titleEntryScreen: ScreenDef = {
     const empty = ctx.store.num(`${DRAFT}.empty`, 0) === 1;
     const keys: Keyboard = ctx.store.str(`${DRAFT}.keys`, "title") === "card" ? "card" : "title";
     const suffix = ctx.store.str(`${DRAFT}.suffix`, "");
+    const masked = ctx.store.num(`${DRAFT}.masked`, 0) === 1;
 
     const edit = (next: string, at: number): void => {
       void ctx.store.set(`${DRAFT}.text`, next);
@@ -270,7 +274,9 @@ export const titleEntryScreen: ScreenDef = {
     const caret = el("span", { class: "title-caret", attrs: { "aria-hidden": "true" } });
     const view = el("span", {
       class: "title-text",
-      children: [document.createTextNode(text.slice(0, cursor)), caret, document.createTextNode(text.slice(cursor))],
+      children: masked
+        ? [document.createTextNode("*".repeat(cursor)), caret, document.createTextNode("*".repeat(text.length - cursor))]
+        : [document.createTextNode(text.slice(0, cursor)), caret, document.createTextNode(text.slice(cursor))],
     });
     // A title wider than the field shows its end, and a caret moved back past the
     // start of what shows takes the field's left edge.
@@ -285,7 +291,7 @@ export const titleEntryScreen: ScreenDef = {
       class: "title-field",
       attrs: head
         ? { role: "textbox", "aria-labelledby": head.id }
-        : { role: "textbox", "aria-label": route.id === "microsd.name" ? "Name" : "Title" },
+        : { role: "textbox", "aria-label": masked ? "Password" : route.id === "microsd.name" ? "Name" : "Title" },
       children: [
         view,
         holdFocus(

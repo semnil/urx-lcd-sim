@@ -5,7 +5,7 @@ import { factoryState } from "../model/defaults";
 import { unitById } from "../model/units";
 import { Shell } from "../app/shell";
 import { buildRegistry } from ".";
-import { UNLOCKED_MS, UNLOCK_HOLD_MS } from "./setup";
+import { CONSOLE_PASSWORD, MISMATCH_MS, UNLOCKED_MS, UNLOCK_HOLD_MS } from "./setup";
 
 // SETUP > Console Lock (System firmware V1.5). The lock screen takes nothing but a touch held on
 // it, read off a URX44V: a short touch leaves the unit locked, a hold opens the padlock and HOME
@@ -110,5 +110,69 @@ describe("Console Lock", () => {
     await flush();
     expect(shell.ctx.nav.current.id).toBe("home");
     expect(screen.isConnected).toBe(false);
+  });
+
+  describe("Change Password", () => {
+    /** Open Change Password from CONSOLE LOCK. */
+    async function open(shell: Shell): Promise<void> {
+      shell.ctx.nav.openTop({ id: "setup" });
+      shell.ctx.nav.push({ id: "setup.consoleLock" });
+      await flush();
+      shell.root.querySelector<HTMLElement>(".console-lock-password")?.click();
+      await flush();
+      expect(shell.ctx.nav.current.id).toBe("setup.consoleLock.password");
+    }
+    /** Type `text` into the field named `name` through the keyboard it opens, and take it with [OK]. */
+    async function type(shell: Shell, name: string, text: string): Promise<void> {
+      shell.root.querySelector<HTMLElement>(`[aria-label="${name}"]`)?.click();
+      await flush();
+      expect(shell.ctx.nav.current.id, "the field opens the keyboard").toBe("scene.title");
+      // Each key redraws the sheet, so the field is found again for the next one.
+      for (const key of text) {
+        shell.root.querySelector<HTMLElement>(".title-field")?.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+        await flush();
+      }
+      expect(shell.root.querySelector(".title-text")?.textContent, "the keyboard shows an asterisk a character").toBe("*".repeat(text.length));
+      button(shell, "OK")?.click();
+      await flush();
+    }
+    const stars = (shell: Shell): string[] => [...shell.root.querySelectorAll(".console-password-stars")].map((n) => n.textContent ?? "");
+
+    it("says for two seconds that two different passwords do not match, and gives the sheet back as it was", async () => {
+      const shell = await mount();
+      await open(shell);
+      await type(shell, "New Password", "ab");
+      expect(stars(shell)).toEqual(["**", ""]);
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      button(shell, "OK")?.click();
+      const message = (): string | null => shell.root.querySelector(".dialog-overlay .dialog-text")?.textContent ?? null;
+      expect(message()).toBe("Entered Password do not match, please re-enter.");
+      vi.advanceTimersByTime(MISMATCH_MS - 1);
+      expect(message(), "still up").not.toBeNull();
+      vi.advanceTimersByTime(1);
+      vi.useRealTimers();
+      await flush();
+      expect(message(), "gone").toBeNull();
+      expect(shell.ctx.nav.current.id).toBe("setup.consoleLock.password");
+      expect(stars(shell)).toEqual(["**", ""]);
+      expect(shell.ctx.store.str(CONSOLE_PASSWORD, ""), "nothing set").toBe("");
+    });
+
+    it("sets the password when the two are the same, and [Cancel] sets nothing", async () => {
+      const shell = await mount();
+      await open(shell);
+      await type(shell, "New Password", "ab");
+      button(shell, "Cancel")?.click();
+      await flush();
+      expect([shell.ctx.nav.current.id, shell.ctx.store.str(CONSOLE_PASSWORD, "")]).toEqual(["setup.consoleLock", ""]);
+      button(shell, "Change Password")?.click();
+      await flush();
+      expect(stars(shell), "the sheet opens empty").toEqual(["", ""]);
+      await type(shell, "New Password", "ab");
+      await type(shell, "Confirm Password", "ab");
+      button(shell, "OK")?.click();
+      await flush();
+      expect([shell.ctx.nav.current.id, shell.ctx.store.str(CONSOLE_PASSWORD, "")]).toEqual(["setup.consoleLock", "ab"]);
+    });
   });
 });
