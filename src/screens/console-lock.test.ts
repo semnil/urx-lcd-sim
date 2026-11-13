@@ -99,6 +99,27 @@ describe("Console Lock", () => {
     expect(shell.ctx.nav.current.id).toBe("home");
   });
 
+  it("shuts the glass behind the lock screen, so nothing under it can be pressed", async () => {
+    const shell = await mount();
+    await lock(shell);
+    const behind = [".toolbar", ".main", ".side", ".knob-strip"].map((sel) => shell.root.querySelector(sel)?.hasAttribute("inert"));
+    expect(behind).toEqual([true, true, true, true]);
+  });
+
+  it("does not unlock on a key held and let go after the focus has moved off the lock screen", async () => {
+    const shell = await mount();
+    const screen = await lock(shell);
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    screen.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+    vi.advanceTimersByTime(100);
+    screen.blur();
+    vi.advanceTimersByTime(UNLOCK_HOLD_MS + UNLOCKED_MS);
+    vi.useRealTimers();
+    await flush();
+    expect(screen.isConnected, "still locked").toBe(true);
+    expect(screen.querySelector(".icon-console-unlocked")).toBeNull();
+  });
+
   it("takes Enter held on the lock screen as a held touch", async () => {
     const shell = await mount();
     const screen = await lock(shell);
@@ -147,6 +168,7 @@ describe("Console Lock", () => {
       button(shell, "OK")?.click();
       const message = (): string | null => shell.root.querySelector(".dialog-overlay .dialog-text")?.textContent ?? null;
       expect(message()).toBe("Entered Password do not match, please re-enter.");
+      expect(shell.root.querySelector(".main")?.hasAttribute("inert"), "the sheet under the message takes no press").toBe(true);
       vi.advanceTimersByTime(MISMATCH_MS - 1);
       expect(message(), "still up").not.toBeNull();
       vi.advanceTimersByTime(1);
