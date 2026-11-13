@@ -1300,7 +1300,8 @@ Active CUE (p071-1) is a 1px frame in `--surface` (x44..139 / y91..181, corners 
 caption, holding two lamps and [Clear CUE]. The lamps are 8px squares at x64..71, Input's on y99..106 and
 Output's on y115..122, `--surface` while their group has nothing in the cue and `--cue-lamp` while it has.
 [Clear CUE] (x48..135 / y138..177) stands on the face a chosen option takes (`--accent-selected`, its band
-`--toggle-band-lit`), and takes every cue out as HOME's CLEAR CUE does. CUE Mode sets [Mix CUE] (x179..276)
+`--toggle-band-lit`) while anything is in the cue, and on the grey of the unchosen CUE Mode with a white name
+while nothing is (confirmed on a URX44V); it takes every cue out as HOME's CLEAR CUE does. CUE Mode sets [Mix CUE] (x179..276)
 and [Last CUE] (x279..376) on y114..153 as one row 2px apart, rounded at its two ends only, the chosen one on
 the same face as [Clear CUE] and the other on `--surface`. Each caption stands over what it names, and
 every name on the page is 13px. Switching the CUE Mode is one operation: the mode and every cue it takes
