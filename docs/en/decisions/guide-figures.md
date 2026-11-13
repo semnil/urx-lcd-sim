@@ -3,7 +3,7 @@
 > 日本語版は [../../ja/decisions/guide-figures.md](../../ja/decisions/guide-figures.md) を参照してください.
 
 Closed decisions about what the user guide's screen captures are taken to settle and what they are
-not, with what led to them. The rules themselves are in `CLAUDE.md`, "Primary source"; how values
+not, with what led to them. The rules themselves are in `AGENTS.md`, "Primary source"; how values
 are taken from the figures is in [design-tokens.md](../design-tokens.md), "How the values were
 sampled". A figure number is the extracted name in `reference/ug-lcd/`.
 
@@ -54,7 +54,7 @@ sampled". A figure number is the extracted name in `reference/ug-lcd/`.
 ## Pixels the page does not show
 
 - **Decision**: pixels outside the range printed on the page are not used as evidence. The ranges
-  are in `reference/ug-lcd/visible.json`, and the rule is in `CLAUDE.md`, "Primary source". What a
+  are in `reference/ug-lcd/visible.json`, and the rule is in `AGENTS.md`, "Primary source". What a
   page hides is restored by laying the part that shows over another figure.
 - **Reason**: of the 117 places the guide sets a screen capture, 29 show only a part of it through
   a clip, between 3 and 22% of the image. Extraction takes the whole image as it was before the
@@ -84,7 +84,7 @@ sampled". A figure number is the extracted name in `reference/ug-lcd/`.
 ## An icon is not chosen by pixel difference alone
 
 - **Decision**: an icon's shape is compared by what can be read of it, such as the number of
-  teeth and the depth of a notch, as well as by pixel difference (`CLAUDE.md`, "Primary source").
+  teeth and the depth of a notch, as well as by pixel difference (`AGENTS.md`, "Primary source").
 - **What happened**: SETUP's gear was drawn with eight teeth, and the unit's has six
   (`src/ui/icons.ts`). On 2026-09-13 the same mistake came back on MONITOR's [Setting] tab: fitted
   by pixel difference (XOR) alone, a gear of eight teeth with shallow valleys scores best.
@@ -92,7 +92,7 @@ sampled". A figure number is the extracted name in `reference/ug-lcd/`.
 ## What the guide's text settles
 
 - **Decision**: a point no figure settles is looked up in the guide's text before it is raised
-  (`CLAUDE.md`, "Primary source").
+  (`AGENTS.md`, "Primary source").
 - **What happened** (2026-09-20): four points about the microSD card that were about to be raised
   were settled by the text: the specification table gives the microSD Card Slot as WAV 24-bit
   (which the size of a recording is computed from), File list shows "the selected folder and one

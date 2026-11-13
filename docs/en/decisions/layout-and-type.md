@@ -3,7 +3,7 @@
 > 日本語版は [../../ja/decisions/layout-and-type.md](../../ja/decisions/layout-and-type.md) を参照してください.
 
 Closed decisions about how parts are laid out and how text is sized and placed, with what led to
-them. The rules themselves are in `CLAUDE.md`, "Checking a change on the screen"; what each screen
+them. The rules themselves are in `AGENTS.md`, "Checking a change on the screen"; what each screen
 looks like now is in [screen-inventory.md](../screen-inventory.md) and
 [design-tokens.md](../design-tokens.md).
 
@@ -47,7 +47,7 @@ looks like now is in [screen-inventory.md](../screen-inventory.md) and
 
 - **Decision**: a box that scrolls hides the browser's own scroll bar, and
   `src/style/columns.test.ts`, "the browser's own scroll bars", fails when a box is left out of
-  the rules that hide it. How to check a new box is in `CLAUDE.md`, "Checking a change on the
+  the rules that hide it. How to check a new box is in `AGENTS.md`, "Checking a change on the
   screen".
 - **What happened** (2026-09-13): the TIME ZONE dialog was checked on a capture taken with scroll
   bars hidden and reported as done. In a browser that shows them it had two scroll bars, the
@@ -58,7 +58,7 @@ looks like now is in [screen-inventory.md](../screen-inventory.md) and
 
 - **Decision** (2026-09-14): a text size is chosen by drawing the candidates and taking the least
   pixel difference from the figure, and its place is settled apart from its size, by measuring how
-  far the rows and columns of the ink are off. The steps are in `CLAUDE.md`, "Checking a change on
+  far the rows and columns of the ink are off. The steps are in `AGENTS.md`, "Checking a change on
   the screen".
 - **Reason**: the typeface is not the unit's, so a size whose height matches does not match in
   width or in place. And while a line of text is off its rows, choosing its size by the
