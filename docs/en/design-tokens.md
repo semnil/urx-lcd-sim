@@ -134,7 +134,7 @@ PY
 | `--surface-knob` | `#4a4952` | The face of the knob toggle button in the bottom right corner (x432..477 / y238..269 in p046-1) |
 | `--scroll-thumb-dim` | `#cecace` | The thumb on a list's scroll bar (x395..402 / y110..124 in p076-1) |
 | `--surface-sunken` | `#31313a` | The tray a dropdown list sits on (p084-3), the bands of the bank list |
-| `--menu-tray` | `#848284` | The tray SETUP puts the four GENERAL items on (p042-1) |
+| `--menu-tray` | `#848284` | The tray SETUP puts the four GENERAL items on (wide/p042-1) |
 | `--readout` | `#42454a` | The face of the multifunction knob readout bar (y235..254 in p073-1) |
 | `--readout-edge` | `#c5c6ce` | That bar's frame and dividers, and the band the labels sit on (y233..234 / y255..271 in the same) |
 | `--readout-label` | `#3a3d42` | The label text on that band (x2..421 / y255..271 in p073-1) |
@@ -143,7 +143,7 @@ PY
 | `--text-muted` | `#6b6d7b` | Labels in the off state |
 | `--tab-ink` | `#adaead` | The name and glyph on an unlit side-rail tab (Level, x422..479 / y50..101 in p070-1) |
 | `--tab-name-lit` | `#31313a` | The name on a lit side-rail tab (Analog in p060-1, Format in p092-1). p069-1, p070-1 and p076-1 draw the name in the glyph's `#3a3d42` as well; every screen follows the majority of the figures |
-| `--caption-pale` | `#cecace` | The caption of the Operation Mode box (x38..88 / y8..15 in p042-1) |
+| `--caption-pale` | `#cecace` | The caption of the Operation Mode box (x38..88 / y8..15 in wide/p042-1) |
 | `--drop-mark` | `#dedbde` | The down mark on a button that drops a list (the bank button's x205..213 / y9..14 and [Sends]'s x468..476 / y65..70 in p048-1) |
 | `--field-mark` | `#848a8c` | The copy marks in CH SETTING's fields (x124..133 / y58..67 in p098-2); the rename mark takes `--text-muted` |
 | `--ssmcs-data-mark` | `#8c9694` | The copy mark on SSMCS's Sweet Spot Data button (x387..396 / y172..181 in p115-1) |
@@ -249,10 +249,10 @@ PY
 | `--corner-path-a` | `#3a454a` | A shade of the path field's right corners: the third pixel of the edge row from the outside (x283 / y53 in p089-1) |
 | `--corner-path-b` | `#424952` | The same, the pixel inside the turn (x284 / y54 in p089-1) |
 | `--corner-path-c` | `#293131` | The same, the third pixel of the side from the outside (x285 / y55 in p089-1) |
-| `--corner-tray-a` | `#313131` | A shade of SETUP's GENERAL tray corners: the fourth pixel from the outside on the edge row and the side (x34 / y54 of the tray at x31..448 / y54..107 in p042-1) |
-| `--corner-tray-b` | `#636163` | The same, the fifth pixel from the outside (x35 / y54 in p042-1) |
-| `--corner-tray-c` | `#080808` | The same, the second pixel from the outside on the second row (x32 / y55 in p042-1) |
-| `--corner-tray-d` | `#6b696b` | The same, the two pixels inside the turn (x33 / y55 and x32 / y56 in p042-1) |
+| `--corner-tray-a` | `#313131` | A shade of SETUP's GENERAL tray corners: the fourth pixel from the outside on the edge row and the side (x34 / y54 of the tray at x31..448 / y54..107 in wide/p042-1) |
+| `--corner-tray-b` | `#636163` | The same, the fifth pixel from the outside (x35 / y54 in wide/p042-1) |
+| `--corner-tray-c` | `#080808` | The same, the second pixel from the outside on the second row (x32 / y55 in wide/p042-1) |
+| `--corner-tray-d` | `#6b696b` | The same, the two pixels inside the turn (x33 / y55 and x32 / y56 in wide/p042-1) |
 | `--corner-block-well` | `#293131` | A value box's or a well's corner shade: a value on a channel view block's face (a block's value in p095-1) |
 | `--corner-level-well` | `#31393a` | A value box's or a well's corner shade: the level readout on a HOME strip (the level readout in p048-1) |
 | `--corner-focus-on-sunk` | `#b51073` | A focused value box's corner: the frame's outer shade on a sunk cell (ms at x27 / y163 in p124-1) |

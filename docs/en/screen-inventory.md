@@ -1575,7 +1575,7 @@ row, it returns it as `headerRight` in `ScreenBody` (microSD's card eject button
 The BRIGHTNESS and PERIPHERAL titles are upper case throughout. p057-1 and p062-1 draw them as `Brightness` and
 `Peripheral`, but the unit shows upper case for both, and those two figures are treated as wrong (p056-1, in the same
 chapter, draws `LANGUAGE` in upper case). Operation Mode's title and the SETUP box caption are mixed case as p043-1
-and p042-1 draw them, matching the unit.
+and wide/p042-1 draw them, matching the unit.
 
 ## Toolbar back arrow
 
@@ -1599,11 +1599,11 @@ p040-1, p106-1). `Escape` goes back on every screen.
 
 ## SETUP screen
 
-Measured on p042-1. `SETUP` sits at the center of the toolbar with the section name `GENERAL` below it,
+Measured on wide/p042-1. `SETUP` sits at the center of the toolbar with the section name `GENERAL` below it,
 14px in the regular weight and a pixel left of the screen's center, their tops at y13 and y38. At the left end is the
 Operation Mode box (x7..130 / y2..41, face `--surface`, a 3px shadow at the bottom, the `Operation Mode`
 line and the mode name line centered). The `Operation Mode` caption is 9px at weight 500 in `--caption-pale`, and
-the mode name is in the regular weight (p042-1).
+the mode name is in the regular weight (wide/p042-1).
 
 The four GENERAL items sit on a tray of their own (x31..448 / y54..107, face `--menu-tray`), as 100x46
 buttons 3px apart. The rest are stacked in three 120px columns (13px apart) from x47, 46px high at
@@ -1708,7 +1708,7 @@ while off, and Input Audio Channels stands at x63 / y157..169 over its pair at x
 
 A button's bottom 3px is a shadow band, and its name is centered on the face excluding that band. This
 holds for menu items, language and Operation Mode options, dropdowns and plain buttons (measured on
-p042-1 / p083-1).
+wide/p042-1 / p083-1).
 
 The band's colour follows the face. Under a (74,81,90) face it is `--btn-bevel`, (49,57,58). A button that cannot be
 used takes `--btn-bevel-disabled`, a source button on the sunk face `--btn-bevel-sunk`, and [Follow USB] and a USER
@@ -2111,7 +2111,7 @@ A box's corners are drawn the same way, in a shape set by the kind of box.
   over the frame (p113-1, p105-1, p121-1).
 - The card's path field (SAVE/LOAD, RECORDER's Play and Edit) rounds its two right corners over three pixels and marks its two left
   corners with one shade where it meets the well beside it (p089-1, p086-1, p088-1). SETUP's GENERAL tray rounds each corner over
-  five pixels in the ground and four shades (p042-1).
+  five pixels in the ground and four shades (wide/p042-1).
 - The knob toggle's top left corner and the knob readout bar's two top corners draw their 2px edge thickening round the turn
   (p046-1, p057-1, p038-4).
 - A sheet's way out draws its bottom left corner in the `--sheet-back-corner-*` shades and its top right corner in the
