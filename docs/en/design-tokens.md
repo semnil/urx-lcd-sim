@@ -55,7 +55,7 @@ heading and so on) match, and add it to this table.
 
 The guide shows some captures clipped by the PDF. `pdfimages` extracts each image whole, before the
 clip, so those files carry pixels the pages do not show. `scripts/ug-visible-ranges.py` walks the PDF's
-drawing commands and writes to `reference/ug-lcd/visible.json`, for each capture, the part the pages
+drawing commands and writes to `reference/ug-lcd/visible.json` (`reference/ug-lcd-d0/visible.json` for the D0 captures), for each capture, the part the pages
 show (a rectangle in the capture's own pixel coordinates) and the share of its area that part covers.
 Pixels outside that part are not used as the basis for any value. The script needs python3 with pypdf
 and cryptography (the PDF is AES-encrypted).

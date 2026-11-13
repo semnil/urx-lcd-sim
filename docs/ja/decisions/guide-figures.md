@@ -46,8 +46,8 @@
 
 ## Pixels the page does not show
 
-- **決定**: 紙面に出ている範囲の外の画素は、根拠に使わない。範囲は `reference/ug-lcd/visible.json` に
-  あり、規則は `AGENTS.md` の "Primary source" にある。紙面で隠れた部分は、見えている部分を別の図に
+- **決定**: 紙面に出ている範囲の外の画素は、根拠に使わない。範囲は `reference/ug-lcd/visible.json` (D0 の
+  キャプチャは `reference/ug-lcd-d0/visible.json`) にあり、規則は `AGENTS.md` の "Primary source" にある。紙面で隠れた部分は、見えている部分を別の図に
   重ねて復元する。
 - **理由**: ガイドが画面キャプチャを置く 117 か所のうち、29 か所は、クリップで画像の一部 (3〜22%)
   だけを見せている。抽出は、クリップの前の画像の全体を取るので、残りの部分には紙面に出ない内容が

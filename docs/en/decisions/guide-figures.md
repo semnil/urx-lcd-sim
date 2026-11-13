@@ -55,7 +55,7 @@ sampled". A figure number is the extracted name in `reference/ug-lcd/`, or, writ
 ## Pixels the page does not show
 
 - **Decision**: pixels outside the range printed on the page are not used as evidence. The ranges
-  are in `reference/ug-lcd/visible.json`, and the rule is in `AGENTS.md`, "Primary source". What a
+  are in `reference/ug-lcd/visible.json` (`reference/ug-lcd-d0/visible.json` for a D0 capture), and the rule is in `AGENTS.md`, "Primary source". What a
   page hides is restored by laying the part that shows over another figure.
 - **Reason**: of the 117 places the guide sets a screen capture, 29 show only a part of it through
   a clip, between 3 and 22% of the image. Extraction takes the whole image as it was before the
