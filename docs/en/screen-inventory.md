@@ -2031,7 +2031,7 @@ none for comes back to the centre. A recall leaves the destination HOME's [Sends
 holds the output patch and the streaming bus as well, but for the streaming bus's DELAY frame rate (confirmed on
 a URX22 and a URX44V), and it holds no [CUE], so a recall leaves the cues where they stand (the guide's list of what
 a scene does not save). 00 Initial Data puts the factory
-mixer back. P01 to P03 lay settings of their own over the factory mixer. The main ones are below; the whole of what a preset
+mixer back, and the factory output patch with it (confirmed on a URX44V, for USB SUB). P01 to P03 lay settings of their own over the factory mixer. The main ones are below; the whole of what a preset
 changes is in `src/model/scene-presets.ts`. The table's channels go onto the mono and the stereo channels from the lowest
 number up, the mono channels on a HI-Z connector (CH 3-4 in the table) apart from the rest: on a URX22, CH 1 takes the
 table's CH 1, CH 2 on its HI-Z connector takes the table's CH 3, and CH 3/4 to 9/10 take its four stereo channels.

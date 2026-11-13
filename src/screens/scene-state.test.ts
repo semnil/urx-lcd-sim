@@ -209,6 +209,15 @@ describe("storing and recalling a scene", () => {
     expect(shell.ctx.store.num("scene.current", -1)).toBe(0);
   });
 
+  it("brings the factory's output patch back from scene 00", async () => {
+    // On a URX44V: USB SUB set to MIX 1 came back on STEREO when 00 Initial Data was recalled.
+    const shell = await mount();
+    const s = shell.ctx.store;
+    await s.set("setup.outputPatch.usbSub", "MIX 1");
+    await recallScene(shell.ctx, 0);
+    expect(s.str("setup.outputPatch.usbSub", "")).toBe("STEREO");
+  });
+
   it("brings an FX channel's and an output bus's BALANCE back from scene 00, and from a scene stored before it moved", async () => {
     const shell = await mount();
     const s = shell.ctx.store;
