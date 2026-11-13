@@ -1458,7 +1458,8 @@ send's [PRE] nor its placing was checked on a URX22 too.
   the output the first input cue took out still comes back once the last input cue is taken out (confirmed
   on a URX22 and a URX44V). Switching the CUE Mode takes every cue out and forgets the remembered outputs
   (the guide's note, and confirmed on a URX44V). The CUE Mode is a setting of the unit (`monitor.cueMode`,
-  on Mix CUE in a simulator fresh from the factory): a settings file carries it and a scene does not.
+  on Mix CUE in a simulator fresh from the factory): a settings file carries it and a scene does not, and a
+  settings file saved before the simulator kept it brings Mix CUE back.
 - While CUE Interrupt is on and something is cued, MONITOR puts out the cue in place of its source. MONO
   puts the two sides, each 3 dB down and summed, on both sides. [ON] and LEVEL act after that.
 

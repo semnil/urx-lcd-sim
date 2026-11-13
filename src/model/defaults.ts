@@ -15,7 +15,7 @@ import { FX_EFFECT_DEFAULT, effectParams } from "./effects";
 import { OSC_TARGETS } from "./oscillator";
 import { SOURCES_SHIPPED_DOWN, digitalGainPath, digitalGainShipped } from "./source-gain";
 import type { Strip, UnitModel } from "./types";
-import { SENDS_TARGET_SHIPPED, allStrips, carriesInsert, channelPairs, findStrip, sendsTo } from "./types";
+import { CUE_MODE, CUE_MODE_SHIPPED, SENDS_TARGET_SHIPPED, allStrips, carriesInsert, channelPairs, findStrip, sendsTo } from "./types";
 import { UDK_BANKS, UDK_KNOBS, UDK_SHIPPED, UDK_UNASSIGNED, udkPath } from "./udk";
 
 /**
@@ -364,8 +364,7 @@ export function factoryState(model: UnitModel): Map<ParamPath, ParamValue> {
     out.set(path("monitor", n, "mono"), false);
     out.set(path("phones", n, "level"), 2);
   }
-  // Mix CUE, the default the unit gives the CUE Mode.
-  out.set(path("monitor", "cueMode"), "Mix CUE");
+  out.set(CUE_MODE, CUE_MODE_SHIPPED);
   out.set(path("osc", "on"), false);
   out.set(path("osc", "mode"), "Sine Wave");
   out.set(path("osc", "frequency"), 1000);

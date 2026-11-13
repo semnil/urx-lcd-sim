@@ -401,6 +401,33 @@ describe("storing and recalling a scene", () => {
     expect(s.str("ui.sendsTarget", "")).toBe("ST");
   });
 
+  it("brings the unit back on Mix CUE for a settings file saved before the CUE Mode was kept, and puts back one it names", async () => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    await s.set("monitor.cueMode", "Last CUE");
+    const file = captureSettings(s);
+    expect(file["monitor.cueMode"], "a file saved now names it").toBe("Last CUE");
+    await s.set("monitor.cueMode", "Mix CUE");
+    await applySettings(s, file);
+    expect(s.str("monitor.cueMode", ""), "the mode a file names").toBe("Last CUE");
+    delete file["monitor.cueMode"];
+    await applySettings(s, file);
+    expect(s.str("monitor.cueMode", ""), "an older file").toBe("Mix CUE");
+  });
+
+  it("leaves the CUE Mode where it stands on a recall", async () => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    await s.set("ch.ch1.level", -10);
+    await s.set("scene.Standard.1.title", "CUE MODE");
+    await storeScene(shell.ctx, "Standard", 1);
+    await s.set("monitor.cueMode", "Last CUE");
+    await s.set("ch.ch1.level", 0);
+    await recallScene(shell.ctx, 1);
+    expect(s.num("ch.ch1.level", 0), "the scene is recalled").toBe(-10);
+    expect(s.str("monitor.cueMode", "")).toBe("Last CUE");
+  });
+
   it("leaves HOME's [Sends] where it stands on a recall", async () => {
     // As on the unit: a scene stored on MIX 1 and recalled over FX 1 leaves FX 1 (URX44V, 2026-10-04).
     const shell = await mount();

@@ -17,7 +17,9 @@
 
 import type { AppContext } from "../app/context";
 import type { Strip, StripKind, StripSide } from "../model/types";
-import { allStrips } from "../model/types";
+import { CUE_MODE, CUE_MODE_SHIPPED, allStrips } from "../model/types";
+
+export { CUE_MODE };
 
 type CueCtx = Pick<AppContext, "store" | "model">;
 
@@ -30,9 +32,6 @@ const CUE_GROUP: Record<StripKind, StripSide> = {
   mix: "output",
   streaming: "output",
 };
-
-/** The unit's CUE Mode (MONITOR > CUE). */
-export const CUE_MODE = "monitor.cueMode";
 
 /** The two CUE Modes, as the unit names them: every cue of a group together, or the last one alone. */
 export const CUE_MODES = ["Mix CUE", "Last CUE"] as const;
@@ -49,7 +48,7 @@ const cuePath = (strip: Strip): string => `ch.${strip.id}.cue`;
 
 /** The CUE Mode the unit stands in. */
 export function cueMode(ctx: CueCtx): CueMode {
-  return ctx.store.str(CUE_MODE, "Mix CUE") === "Last CUE" ? "Last CUE" : "Mix CUE";
+  return ctx.store.str(CUE_MODE, CUE_MODE_SHIPPED) === "Last CUE" ? "Last CUE" : "Mix CUE";
 }
 
 /** Whether any strip of the group is in the cue: the Active CUE lamps. */

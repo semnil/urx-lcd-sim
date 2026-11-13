@@ -10,7 +10,7 @@ import type { ParamPath, ParamValue } from "../device/path";
 import type { DeviceStore } from "../device/store";
 import { isClockPath } from "./clock";
 import { asPutBack, withEverySceneCleared } from "./scene-state";
-import { INTEGRATION_DAW, SENDS_TARGET_SHIPPED } from "./types";
+import { CUE_MODE, CUE_MODE_SHIPPED, INTEGRATION_DAW, SENDS_TARGET_SHIPPED } from "./types";
 
 /** What stays behind when a settings file is written. */
 const NOT_SAVED = ["ui.", "sd.", "pair."];
@@ -44,11 +44,15 @@ export function captureSettings(store: DeviceStore): Record<string, ParamValue> 
  * Put a settings file back on the unit, one value after another, announcing what
  * changed once it is all back. A source whose digital gain the file does not name
  * comes back at 0 dB, a BALANCE it does not name at the centre, a scene number
- * it does not name comes back empty, and HOME's [Sends], where the file does not
- * name its destination and the store holds one, comes back on the stereo bus.
+ * it does not name comes back empty, HOME's [Sends], where the file does not
+ * name its destination and the store holds one, comes back on the stereo bus,
+ * and the CUE Mode, where the file was saved before it was kept and the store
+ * holds one, comes back on Mix CUE.
  */
 export async function applySettings(store: DeviceStore, state: Record<string, ParamValue>): Promise<void> {
-  const named = SENDS_TARGET in state || !store.has(SENDS_TARGET) ? state : { ...state, [SENDS_TARGET]: SENDS_TARGET_SHIPPED };
+  const named = { ...state };
+  if (!(SENDS_TARGET in state) && store.has(SENDS_TARGET)) named[SENDS_TARGET] = SENDS_TARGET_SHIPPED;
+  if (!(CUE_MODE in state) && store.has(CUE_MODE)) named[CUE_MODE] = CUE_MODE_SHIPPED;
   await store.batch(async () => {
     for (const [path, value] of Object.entries(withEverySceneCleared(store, asPutBack(store, named)))) {
       if (!inSettingsFile(path)) continue;
