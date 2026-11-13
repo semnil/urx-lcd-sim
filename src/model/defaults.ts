@@ -364,6 +364,8 @@ export function factoryState(model: UnitModel): Map<ParamPath, ParamValue> {
     out.set(path("monitor", n, "mono"), false);
     out.set(path("phones", n, "level"), 2);
   }
+  // Mix CUE, the default the unit gives the CUE Mode.
+  out.set(path("monitor", "cueMode"), "Mix CUE");
   out.set(path("osc", "on"), false);
   out.set(path("osc", "mode"), "Sine Wave");
   out.set(path("osc", "frequency"), 1000);
