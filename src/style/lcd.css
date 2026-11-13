@@ -2646,6 +2646,113 @@
   gap: 8px 13px;
 }
 
+/* SETUP's [Console Lock] (System firmware V1.5): the Operation Mode box's face and size, left of
+ * HOME at x298..421 / y2..41, a padlock before the name (p126-1). */
+/* Two classes, because the reset that makes a button inherit its font is more specific than one. */
+.toolbar .console-lock-btn {
+  position: absolute;
+  left: 296px;
+  top: 2px;
+  width: 124px;
+  height: 40px;
+  box-sizing: border-box;
+  padding: 0 0 3px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: inset 0 -3px 0 var(--btn-bevel);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: var(--text);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.console-lock-btn .icon-console-lock-small {
+  flex: none;
+  width: 10px;
+  height: 13px;
+}
+
+/* CONSOLE LOCK (p067-1): the button that locks the unit, x113..366 / y62..195, and
+ * [Change Password], x311..406 / y205..252, both with the menu buttons' face and band. */
+.console-lock-screen {
+  position: relative;
+  flex: 1 1 auto;
+}
+
+.console-lock-tile {
+  position: absolute;
+  left: 111px;
+  top: 12px;
+  width: 254px;
+  height: 134px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: inset 0 -3px 0 var(--btn-bevel);
+  cursor: pointer;
+}
+
+.console-lock-tile .icon-console-lock {
+  position: absolute;
+  left: 105px;
+  top: 12px;
+  width: 44px;
+  height: 58px;
+}
+
+.console-lock-caption,
+.console-lock-note {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.console-lock-caption {
+  top: 73px;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.console-lock-note {
+  top: 98px;
+  font-size: 12.5px;
+}
+
+/* Two classes, because the reset that makes a button inherit its font is more specific than one.
+ * The two lines stand a pixel above where the button centres them. */
+.console-lock-screen .console-lock-password {
+  position: absolute;
+  left: 309px;
+  top: 155px;
+  width: 96px;
+  min-height: 0;
+  height: 48px;
+  padding: 0 0 5px;
+  font-size: var(--fs-lg);
+  line-height: 18px;
+}
+
+/* The mark that says the button opens an entry, 5px in from the top right. */
+.console-lock-copy {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+  display: flex;
+  color: var(--field-mark);
+}
+
+.console-lock-copy svg {
+  width: 10px;
+  height: 10px;
+}
+
 .menu-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

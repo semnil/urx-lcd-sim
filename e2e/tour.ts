@@ -132,6 +132,7 @@ export const TOUR: Stop[] = [
   to("setup.datetime.set", "setup.datetime", "Date / Time"),
   to("setup.datetime.zone", "setup.datetime", "Time Zone"),
   to("setup.integration", "setup", "Software Integration"),
+  to("setup.consoleLock", "setup", "Console Lock", true),
 
   to("monitor", undefined, "MONITOR", true),
   to("monitor.level", "monitor", "Monitor", true),

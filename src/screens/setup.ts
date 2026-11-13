@@ -101,9 +101,18 @@ export const setupScreen: ScreenDef = {
       held,
     );
 
+    // Console Lock (System firmware V1.5) stands on the bar, left of HOME, as wide as the
+    // Operation Mode box (p126-1).
+    const consoleLock = el("button", {
+      class: "console-lock-btn",
+      onTap: open("setup.consoleLock"),
+      children: [Icons.consoleLockSmall(), el("span", { text: "Console Lock" })],
+    });
+
     return {
       main: el("div", { class: "setup-main", children: [tray, menuGrid(rest, "setup-menu")] }),
       headerLeft: modeBox,
+      headerRight: consoleLock,
       // The screen names itself over the section the menus below belong to.
       headerCenter: el("div", {
         class: "setup-title",
@@ -113,6 +122,33 @@ export const setupScreen: ScreenDef = {
         ],
       }),
     };
+  },
+};
+
+/**
+ * CONSOLE LOCK (SETUP > Console Lock, System firmware V1.5; p067-1): the button that locks the
+ * unit, and [Change Password] for the password the unlock asks for.
+ */
+export const consoleLockScreen: ScreenDef = {
+  id: "setup.consoleLock",
+  toolbar: "sub",
+  title: () => "CONSOLE LOCK",
+  build(): ScreenBody {
+    const lock = el("button", {
+      class: "console-lock-tile",
+      onTap: () => undefined,
+      children: [
+        Icons.consoleLock(),
+        el("span", { class: "console-lock-caption", text: "CONSOLE LOCK" }),
+        el("span", { class: "console-lock-note", text: "A password is required if one is set." }),
+      ],
+    });
+    const password = el("button", {
+      class: "menu-btn console-lock-password",
+      onTap: () => undefined,
+      children: [el("span", { text: "Change\nPassword" }), el("span", { class: "console-lock-copy", children: [Icons.copy()] })],
+    });
+    return { main: el("div", { class: "console-lock-screen", children: [lock, password] }) };
   },
 };
 
@@ -700,5 +736,6 @@ export const setupScreens: ScreenDef[] = [
   dateTimeSetScreen,
   timeZoneScreen,
   integrationScreen,
+  consoleLockScreen,
   operationModeScreen,
 ];
