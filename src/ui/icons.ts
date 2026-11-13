@@ -319,6 +319,19 @@ export const Icons = {
       ], true),
       "icon-console-lock",
     ),
+  /**
+   * The same padlock opened, as the lock screen shows it once a hold has unlocked the unit: the body
+   * where it was, the shackle swung to the right with its free leg short of the body.
+   */
+  consoleUnlocked: (): SVGSVGElement =>
+    sized(
+      svg("0 0 54 58", [
+        "M24 20V14A14 14 0 0 1 52 14V16H46V14A8 8 0 0 0 30 14V20Z",
+        "M3 20H41A3 3 0 0 1 44 23V55A3 3 0 0 1 41 58H3A3 3 0 0 1 0 55V23A3 3 0 0 1 3 20Z M6 26V52H38V26Z",
+        "M16 38.5A5.5 5.5 0 1 0 27 38.5A5.5 5.5 0 1 0 16 38.5Z",
+      ], true),
+      "icon-console-unlocked",
+    ),
   /** The padlock in front of the name on SETUP's [Console Lock] (p126-1), drawn at its own size. */
   consoleLockSmall: (): SVGSVGElement =>
     sized(

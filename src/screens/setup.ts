@@ -125,6 +125,73 @@ export const setupScreen: ScreenDef = {
   },
 };
 
+/** How long a touch on the lock screen has to be held before the unit unlocks (read off a URX44V). */
+export const UNLOCK_HOLD_MS = 1200;
+/** How long the opened padlock stays up before HOME comes back (read off a URX44V). */
+export const UNLOCKED_MS = 900;
+
+/**
+ * The lock screen, laid over the whole glass. The unit takes nothing but a touch held on it: a short
+ * touch puts a faint circle round the padlock and lets it go, a hold grows a light circle out of the
+ * padlock over the screen, the padlock opens, and HOME comes back. The lock is kept nowhere, so a
+ * reload starts the simulator unlocked, as the unit starts unlocked after it is switched off and on.
+ * No figure shows it; its words were read off a URX44V and its layout follows a recording of one.
+ */
+export function lockConsole(ctx: AppContext): void {
+  const padlock = el("span", { class: "console-locked-padlock", children: [Icons.consoleLock()] });
+  const ring = el("span", { class: "console-locked-ring", attrs: { "aria-hidden": "true" } });
+  const node = el("div", {
+    class: "console-locked",
+    attrs: { role: "dialog", "aria-modal": "true", "aria-label": "CONSOLE LOCK", tabindex: "0" },
+    children: [
+      ring,
+      el("h1", { class: "console-locked-title", text: "CONSOLE LOCK" }),
+      el("p", { class: "console-locked-hold", text: "Touch and Hold the Screen to Unlock the Console." }),
+      el("p", { class: "console-locked-note", text: "A password is required if one is set." }),
+      padlock,
+    ],
+  });
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let unlocked = false;
+  const stop = (): void => {
+    if (unlocked) return;
+    clearTimeout(timer);
+    timer = undefined;
+    node.classList.remove("is-holding");
+  };
+  const start = (): void => {
+    if (unlocked || timer !== undefined) return;
+    node.classList.add("is-holding");
+    timer = setTimeout(() => {
+      unlocked = true;
+      node.classList.add("is-unlocked");
+      padlock.replaceChildren(Icons.consoleUnlocked());
+      timer = setTimeout(() => {
+        close();
+        ctx.nav.home();
+      }, UNLOCKED_MS);
+    }, UNLOCK_HOLD_MS);
+  };
+  node.addEventListener("pointerdown", (ev) => {
+    if (ev.button !== 0) return;
+    node.setPointerCapture?.(ev.pointerId);
+    start();
+  });
+  for (const type of ["pointerup", "pointercancel"]) node.addEventListener(type, stop);
+  // A key held down on the screen stands for a touch held on it.
+  node.addEventListener("keydown", (ev) => {
+    if ((ev.key === "Enter" || ev.key === " ") && !ev.repeat) {
+      ev.preventDefault();
+      start();
+    }
+  });
+  node.addEventListener("keyup", (ev) => {
+    if (ev.key === "Enter" || ev.key === " ") stop();
+  });
+  const close = ctx.overlay(node, () => clearTimeout(timer));
+  node.focus({ preventScroll: true });
+}
+
 /**
  * CONSOLE LOCK (SETUP > Console Lock, System firmware V1.5; p067-1): the button that locks the
  * unit, and [Change Password] for the password the unlock asks for.
@@ -133,10 +200,10 @@ export const consoleLockScreen: ScreenDef = {
   id: "setup.consoleLock",
   toolbar: "sub",
   title: () => "CONSOLE LOCK",
-  build(): ScreenBody {
+  build(ctx): ScreenBody {
     const lock = el("button", {
       class: "console-lock-tile",
-      onTap: () => undefined,
+      onTap: () => lockConsole(ctx),
       children: [
         Icons.consoleLock(),
         el("span", { class: "console-lock-caption", text: "CONSOLE LOCK" }),

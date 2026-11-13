@@ -2753,6 +2753,114 @@
   height: 10px;
 }
 
+/* The lock screen, over the whole glass, toolbar included. No figure shows it: its words were read
+ * off a URX44V, and the place of each line follows a recording of one. The third line and the
+ * padlock are the CONSOLE LOCK screen's own, at that screen's size. */
+.console-locked {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  overflow: hidden;
+  background: var(--lcd-bg);
+  color: var(--text);
+  outline: none;
+  touch-action: none;
+  user-select: none;
+}
+
+.console-locked-title,
+.console-locked-hold,
+.console-locked-note {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.console-locked-title {
+  top: 21px;
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.console-locked-hold {
+  top: 71px;
+  font-size: 15.5px;
+}
+
+.console-locked-note {
+  top: 107px;
+  font-size: 12.5px;
+}
+
+.console-locked-padlock {
+  position: absolute;
+  left: 218px;
+  top: 144px;
+  display: flex;
+}
+
+.console-locked-padlock .icon-console-lock {
+  width: 44px;
+  height: 58px;
+}
+
+.console-locked-padlock .icon-console-unlocked {
+  width: 54px;
+  height: 58px;
+}
+
+/* The circle a touch puts round the padlock: faint while it is only touched, and grown out of
+ * the padlock over the screen while the touch is held. Its colour is not measured. */
+.console-locked-ring {
+  position: absolute;
+  left: 204px;
+  top: 137px;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: transparent;
+  pointer-events: none;
+}
+
+.console-locked.is-holding .console-locked-ring {
+  animation: console-unlock-hold 1200ms linear forwards;
+}
+
+/* The faint circle stands for a quarter of a second before it grows (UNLOCK_HOLD_MS in setup.ts is
+ * the whole of it), round the padlock's centre at x240 / y173, until it reaches past every corner. */
+@keyframes console-unlock-hold {
+  0%,
+  21% {
+    left: 204px;
+    top: 137px;
+    width: 72px;
+    height: 72px;
+    background: rgb(255 255 255 / 18%);
+  }
+
+  100% {
+    left: -84px;
+    top: -151px;
+    width: 648px;
+    height: 648px;
+    background: rgb(255 255 255 / 45%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .console-locked.is-holding .console-locked-ring {
+    animation: none;
+    left: -84px;
+    top: -151px;
+    width: 648px;
+    height: 648px;
+    background: rgb(255 255 255 / 30%);
+  }
+}
+
 .menu-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
