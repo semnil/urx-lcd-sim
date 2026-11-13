@@ -1,4 +1,4 @@
-# CLAUDE.md — urx-lcd-sim
+# AGENTS.md — urx-lcd-sim
 
 An unofficial simulator that lets you operate the 4.3-inch LCD touch screen (480x272) of the YAMAHA URX22 / URX44 / URX44V in a browser.
 The overview and the commands are in README.md, and the structure and the flow of values are in docs/en/architecture.md; those are the source of truth. This file holds only the working rules they do not.
