@@ -52,7 +52,7 @@ Which screen leads to which is drawn in [screen-map.md](screen-map.md).
 | Screen | Screen ID | Ref. | Status |
 | --- | --- | --- | --- |
 | MONITOR top menu | `monitor` | p68 | Built |
-| Monitor (Level / Setting) | `monitor.level` | p69-70 | Built |
+| Monitor (Level / Setting / CUE) | `monitor.level` | p69-71 | Built |
 | Phones | `monitor.phones` | p72 | Built |
 | Oscillator (OSC / Assign) | `monitor.osc` | p73-74 | Built |
 
@@ -95,7 +95,6 @@ were before V1.5.
 
 | Screen or part | Screen ID | Ref. | Status |
 | --- | --- | --- | --- |
-| CUE in the Monitor menu (CUE Mode, Active CUE) | — | p71 | Not built |
 | Recall Safe (SCENE) | — | p79-80 | Not built |
 | EQ Type and GEQ Limit (CH SETTING of STEREO and MIX), and the channel view's GEQ area | — | p97-98, p104 | Not built |
 | GEQ | — | p122-123 | Not built |
@@ -1290,6 +1289,23 @@ x114..199, y214..250). Off, they take the pale face `--mon-toggle-off` with the 
 `--mon-toggle-off-ink`; lit, the cyan face with the name in `--surface` (p070-1). The name of [CUE Interrupt]
 takes two lines 14px apart, `CUE` on y170..178 and `Interrupt` on y184..192 (p070-1).
 
+## MONITOR's CUE tab
+
+System firmware V1.5 adds a third side tab to the Monitor menu, [CUE], under [Setting] (x422..479 /
+y168..219, p071-1). Its name stands alone on it, with no glyph, 3px below the middle of its face, at the size
+and weight of the other tabs' names. The figures of the Level and Setting tabs draw it unlit (p069-1,
+p070-1).
+
+Active CUE (p071-1) is a 1px frame in `--surface` (x44..139 / y91..181, corners of `--radius-md`) under its
+caption, holding two lamps and [Clear CUE]. The lamps are 8px squares at x64..71, Input's on y99..106 and
+Output's on y115..122, `--surface` while their group has nothing in the cue and `--cue-lamp` while it has.
+[Clear CUE] (x48..135 / y138..177) stands on the face a chosen option takes (`--accent-selected`, its band
+`--toggle-band-lit`), and takes every cue out as HOME's CLEAR CUE does. CUE Mode sets [Mix CUE] (x179..276)
+and [Last CUE] (x279..376) on y114..153 as one row 2px apart, rounded at its two ends only, the chosen one on
+the same face as [Clear CUE] and the other on `--surface`. Each caption stands over what it names, and
+every name on the page is 13px. Switching the CUE Mode is one operation: the mode and every cue it takes
+out (`setCueMode` in `src/screens/cue.ts`).
+
 ## Sheets over the screen
 
 A picker sheet (input source, output source, recording source, MONITOR's Source, INS FX, Color) drops a
@@ -1433,6 +1449,12 @@ send's [PRE] nor its placing was checked on a URX22 too.
   a scene or a settings file puts back afterwards. The inputs an output cue
   takes out do not come back. CLEAR CUE takes every cue out, puts nothing back and forgets the remembered
   outputs (`src/screens/cue.ts`, pinned by `src/screens/cue.test.ts`).
+- That is the unit's Mix CUE. Under its other CUE Mode, Last CUE, cueing a strip also takes the other cues
+  of its own group out, so a group holds one cue at a time; the two groups still take each other out, and
+  the output the first input cue took out still comes back once the last input cue is taken out (confirmed
+  on a URX22 and a URX44V). Switching the CUE Mode takes every cue out and forgets the remembered outputs
+  (the guide's note, and confirmed on a URX44V). The CUE Mode is a setting of the unit (`monitor.cueMode`,
+  on Mix CUE in a simulator fresh from the factory): a settings file carries it and a scene does not.
 - While CUE Interrupt is on and something is cued, MONITOR puts out the cue in place of its source. MONO
   puts the two sides, each 3 dB down and summed, on both sides. [ON] and LEVEL act after that.
 

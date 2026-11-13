@@ -162,7 +162,7 @@ PY
 | Token | Value | Sampled from |
 | --- | --- | --- |
 | `--accent-on` | `#84e3ff` | [ON] / [CUE] / [PRE] switches lit (the same value on the three screens p046-1 / p095-1 / p125-1), [HPF] and [HI-Z] lit, and the HPF and HI-Z marks on HOME's strip and in the channel view (the marks are the operator's own) |
-| `--accent-selected` | `#84dfff` | The selected list row (p076-1), the selected language button (p056-1), USB Storage Mode (p083-1) |
+| `--accent-selected` | `#84dfff` | The selected list row (p076-1), the selected language button (p056-1), USB Storage Mode (p083-1), MONITOR's [Clear CUE] and the chosen CUE Mode (x90 / y138..174 and x190 / y114..150 in p071-1) |
 | `--list-selected-mark` | `#3a3d3a` | A mark in a selected row: the ▶ (x12..19 / y124..131) and the factory preset's mark (x344..363 / y118..137) in D0 p073-1, the speaker in p086-1, the file mark in p089-1, the protection padlock in p077-1 |
 | `--scene-preset` | `#4adb5a` | The number of a scene the unit ships with (P01 in the scene name box at x19..34 / y18..26, P02 / P03 in the list at x24..41 / y162..170 and y200..208 in D0 p073-1) |
 | `--scene-protect` | `#32eb73` | A protected scene's Lock cell (the mean over x329..378 / y112..143 of 01's in p077-1) |
@@ -500,7 +500,7 @@ PY
 | `--mon-toggle-off` | `#cecace` | MONITOR's [CUE Interrupt] / [MONO] while off: the face (MONO of bus 2, x126..176 / y214..250 in p070-1) |
 | `--mon-toggle-off-band` | `#948e94` | The same, its bottom 3px (x126..176 / y251..253 in p070-1) |
 | `--mon-toggle-off-ink` | `#3a3d3a` | The same, its name (x139..175 / y228..236 in p070-1) |
-| `--toggle-band-lit` | `#5a9eb5` | The bottom 3px of a lit toggle (`.btn-toggle`) and of a lit language button (MONO of MONITOR bus 1, x20..70 / y251..253 in p070-1; x80 / y81..83 in p058-1, x100 / y151..153 in p059-1 and p062-1, x200 / y155..157 in p056-1) |
+| `--toggle-band-lit` | `#5a9eb5` | The bottom 3px of a lit toggle (`.btn-toggle`) and of a lit language button (MONO of MONITOR bus 1, x20..70 / y251..253 in p070-1; x80 / y81..83 in p058-1, x100 / y151..153 in p059-1 and p062-1, x200 / y155..157 in p056-1), and of MONITOR's [Clear CUE] and the chosen CUE Mode (x90 / y175..177 and x190 / y151..153 in p071-1) |
 | `--toolbar-sep` | `#5a5d6b` | The 2px line between the back arrow and HOME (x431..432 / y10..31 in p069-1) |
 | `--chip-mark` | `#848a8c` | The copy mark at the top right of a channel name (p099-1) |
 | `--toolbar-edge` | `#6b6d7b` | The 2px rule along the left and bottom of the icon row's band (x384..385 / y40..41 in p105-1) |
@@ -540,6 +540,7 @@ PY
 | `--lamp-on` | `#42d763` | The GATE / DUCKER lamp while the block leaves the signal alone (GATE in p099-1) |
 | `--lamp-hold` | `#f7f73a` | The GATE / DUCKER lamp while the block holds the signal part of the way (DUCKER in D0 p098-1) |
 | `--lamp-shut` | `#de5152` | The GATE / DUCKER lamp once the block holds the signal all the way down to RANGE (p100 / p103) |
+| `--cue-lamp` | `#31eb73` | MONITOR's Active CUE lamp while its group has something in the cue (Input, x64..71 / y99..106 in p071-1) |
 | `--meter-green` | `#3aeb73` | The meter's green zone |
 | `--meter-yellow` | `#fffb42` | The upper half of a meter's bar |
 | `--meter-red` | `#de5152` | The HOME strip's lit clip lamp and the reduction readout in the channel view's COMP block |
