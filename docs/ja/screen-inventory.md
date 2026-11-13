@@ -1178,7 +1178,7 @@ HOME のサイドレールの [Sends] は、表示中の送り先の色で常に
 
 ## サイドレールの上端
 
-レールは画面によって上端が違う。HOME・MONITOR (Level / Setting)・SEND TO・Sends のシートは
+レールは画面によって上端が違う。HOME・MONITOR (Level / Setting / CUE)・SEND TO・Sends のシートは
 ツールバーの直下 (y50) から、それ以外 (OSCILLATOR・SCENE LIST・Output Patch・Peripheral・
 Software Integration・RECORDER・SAVE/LOAD・TOOLS) は 6px 下 (y56) から始まる。規則は
 キャプチャからは導けないので `ScreenDef` の `sideAtTop` で画面ごとに宣言する。
@@ -1190,6 +1190,7 @@ Software Integration・RECORDER・SAVE/LOAD・TOOLS) は 6px 下 (y56) から始
 - RECORDER と TOOLS の 1 つめ (Record・Format) は 44px、RECORDER・SAVE/LOAD・TOOLS の 2 つめ以降は 3px 上の
   41px (p084-2・p086-1・p088-1・p089-1・p090-1・p092-1・p093-1)。
 - SCENE LIST の Edit と MONITOR の Level・Setting は 1px 上の 43px (p076-1・p069-1・p070-1)。
+- MONITOR の CUE はグリフを持たず、名前を 31px に置く。面の中央より 3px 下 (p071-1)。
 - OSCILLATOR の OSC と Assign は 44px で、Assign の字形は 1px 上に置く (p073-1・p074-1)。
 - 2 行の名前は SAVE/LOAD の Save/Load が行送り 16px (インクの下端 y88 と y104、p089-1)、SCENE LIST の
   Store/Recall が行送り 12px (y89 と y101、p076-1)。

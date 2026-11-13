@@ -1360,7 +1360,7 @@ p166-1), the same as the unit shows. D0 p036-1 draws it unlit, and that figure i
 
 ## Top of the side rail
 
-The rail starts at a different height depending on the screen. On HOME, MONITOR (Level / Setting),
+The rail starts at a different height depending on the screen. On HOME, MONITOR (Level / Setting / CUE),
 SEND TO and the Sends sheet it starts right below the toolbar (y50); on the others (OSCILLATOR, SCENE
 LIST, Output Patch, Peripheral, Software Integration, RECORDER, SAVE/LOAD, TOOLS) it starts 6px lower
 (y56). The rule cannot be derived from the captures, so each screen declares it with `sideAtTop` on
@@ -1376,6 +1376,7 @@ of its name's ink, leaving out the tails of y and g.
   RECORDER, SAVE/LOAD and TOOLS are 3px higher at 41px (p084-2, p086-1, p088-1, p089-1, p090-1, p092-1,
   p093-1).
 - SCENE LIST's Edit and MONITOR's Level and Setting are a pixel higher at 43px (p076-1, p069-1, p070-1).
+- MONITOR's CUE carries no glyph and sets its name at 31px, 3px below the middle of its face (p071-1).
 - OSCILLATOR's OSC and Assign are 44px, with Assign's glyph a pixel higher (p073-1, p074-1).
 - Of the names on two lines, SAVE/LOAD's Save/Load leads 16px (ink ending at y88 and y104, p089-1) and
   SCENE LIST's Store/Recall 12px (y89 and y101, p076-1).
