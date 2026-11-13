@@ -1128,7 +1128,8 @@ y168..219、p071-1)。名前だけが載り、グリフは無い。名前は面�
 
 Active CUE (p071-1) は、見出しの下の `--surface` の 1px の枠 (x44..139 / y91..181、角は `--radius-md`) で、ランプ 2 つと
 [Clear CUE] を囲む。ランプは x64..71 の 8px の正方形で、Input が y99..106、Output が y115..122。そのグループに CUE が
-無いあいだは `--surface`、あるあいだは `--cue-lamp`。[Clear CUE] (x48..135 / y138..177) は、CUE が 1 つでもあるあいだは選んだ選択肢と同じ面
+無いあいだは `--surface`、あるあいだは `--cue-lamp` (Input は p071-1。STEREO を CUE したときに Output が灯り Input が灰色に
+なることは URX44V で確認)。[Clear CUE] (x48..135 / y138..177) は、CUE が 1 つでもあるあいだは選んだ選択肢と同じ面
 (`--accent-selected`、帯は `--toggle-band-lit`) に立ち、1 つも無いあいだは選んでいない CUE Mode と同じ灰色の面に白い名前で
 立つ (URX44V で確認)。HOME の CLEAR CUE と同じくすべての CUE を外す。CUE Mode は
 [Mix CUE] (x179..276) と [Last CUE] (x279..376) を y114..153 に 2px 空けて 1 列につなぎ、両端だけを丸める。選んでいる方は
