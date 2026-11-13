@@ -5,10 +5,13 @@ import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
 import { levelBarShare } from "../model/dynamics";
+import { applySettings, captureSettings } from "../model/settings-file";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
 import { meterLevels, setMeterSource, startMeterTicker } from "./meters";
+import { recallScene, storeScene } from "./scene";
 import { CUE_METER } from "./signal-flow";
+import { followRecall, pairStates, setSignalType } from "./stereo-link";
 import { spoken } from "../ui/spoken";
 
 // Signal Type is a setting of a channel PAIR. Both channels have to agree about
@@ -666,6 +669,33 @@ describe("a linked pair's CUE put back from before the pair held one", () => {
   it("through a reload, leaves a pair that is not linked a CUE each", async () => {
     const { shell, store } = await putBack(await held([true, false], "MONO x 2"));
     expect([store.bool("ch.ch1.cue", false), store.bool("ch.ch2.cue", true)]).toEqual([true, false]);
+    shell.destroy();
+  });
+});
+
+describe("a recall or a load that links a pair", () => {
+  it.each(["a scene recall", "a settings file load"] as const)("puts the pair on CH 1's CUE through %s, which carries none", async (route) => {
+    const { shell, store } = await mount();
+    const ch1 = shell.ctx.model.inputs.find((s) => s.id === "ch1");
+    if (!ch1) throw new Error("no CH 1");
+    setSignalType(shell.ctx, ch1, "STEREO");
+    await flush();
+    await store.set("scene.Standard.1.title", "linked");
+    await storeScene(shell.ctx, "Standard", 1);
+    const file = captureSettings(store);
+    setSignalType(shell.ctx, ch1, "MONO x 2");
+    await flush();
+    await store.set("ch.ch1.cue", true);
+    await store.set("ch.ch2.cue", false);
+    if (route === "a scene recall") await recallScene(shell.ctx, 1);
+    else {
+      // As the page loads one: the values, then each pair followed.
+      const before = pairStates(shell.ctx);
+      await applySettings(store, file);
+      followRecall(shell.ctx, before);
+    }
+    await flush();
+    expect([store.str("ch.ch1.signalType", ""), store.bool("ch.ch1.cue", false), store.bool("ch.ch2.cue", false)]).toEqual(["STEREO", true, true]);
     shell.destroy();
   });
 });
