@@ -151,15 +151,15 @@
   --corner-badge-fx-e: #52829c; /* a lit DELAY or INS FX switch: bottom corner over the band, shade e */
   --corner-badge-fx-f: #5a9abd; /* a lit DELAY or INS FX switch: bottom corner over the band, shade f */
   --badge-band-fx: #63a2c5; /* a lit DELAY or INS FX switch: its band */
-  /* OSCILLATOR's assigned destination: its corners over the glass (p071-1). */
+  /* OSCILLATOR's assigned destination: its corners over the glass (p074-1). */
 
-  /* An EQ band's box: its corners over the glass, and its band (p106-1). */
+  /* An EQ band's box: its corners over the glass, and its band (D0 p106-1). */
   --corner-eq-band-a: #213131;
   --corner-eq-band-b: #8cbace;
   --corner-eq-band-d: #192021;
   --corner-eq-band-e: #638294;
   --band-eq-band: #7ba2b5;
-  /* [1-knob] while it is off: its top corner over the glass (p099-1). */
+  /* [1-knob] while it is off: its top corner over the glass (p105-1). */
   --corner-oneknob-a: #080c10;
   --corner-oneknob-b: #31353a;
   --corner-oneknob-c: #4a4d52;
@@ -169,7 +169,7 @@
   --corner-oneknob-lit-c: #42a231; /* the same, the shade nearest the face */
   --corner-oneknob-lit-in: #42a631; /* the same, the pixel inside the turn */
 
-  /* INPUT's flags: their corners on the tray, and their band (p100-1). */
+  /* INPUT's flags: their corners on the tray, and their band (p106-1). */
   --corner-flag-a: #4a4d52;
   --corner-flag-b: #9c9ea5;
   --corner-flag-c: #cec6ce;
@@ -178,11 +178,11 @@
   --corner-flag-f: #949694;
   --band-wizard: #a6a6a6; /* the band under the mode wizard's buttons */
 
-  /* HOME's bank button on the input side: its corners over the glass (p036-1). */
-  /* HOME's [Sends] tab: its corners over the glass, and its band (p045-1). */
-  /* The same tab's colour on the [Sends] sheet, where the ground is the sheet (p051-1). */
+  /* HOME's bank button on the input side: its corners over the glass (p047-1). */
+  /* HOME's [Sends] tab: its corners over the glass, and its band (p046-1). */
+  /* The same tab's colour on the [Sends] sheet, where the ground is the sheet (p052-1). */
 
-  /* The channel view's [SEND TO]: its corners over the glass (p090-1). */
+  /* The channel view's [SEND TO]: its corners over the glass (p095-1). */
   --corner-sendto-a: #080c10;
   --corner-sendto-b: #31393a;
   --corner-sendto-c: #4a5152;
@@ -190,7 +190,7 @@
   --corner-sendto-e: #212829;
   --corner-sendto-f: #31353a;
 
-  /* The channel screen's title badge, unlit: its corners over the glass (p113-1). */
+  /* The channel screen's title badge, unlit: its corners over the glass (D0 p113-1). */
   --corner-title-off-a1: #212421;
   --corner-title-off-a2: #848284;
   --corner-title-off-a3: #bdbabd;
@@ -200,7 +200,7 @@
   --corner-title-off-d3: #636563;
   --badge-title-band-off: #6b696b;
 
-  /* The channel screen's title badge, a lit GATE or DUCKER: its corners over the glass (p114-1). */
+  /* The channel screen's title badge, a lit GATE or DUCKER: its corners over the glass (D0 p114-1). */
   --corner-title-gate-a1: #291800;
   --corner-title-gate-a2: #a55519;
   --corner-title-gate-a3: #ef7921;
@@ -210,7 +210,7 @@
   --corner-title-gate-d3: #7b4110;
   --badge-title-band-gate: #844519;
 
-  /* The channel screen's title badge, a lit COMP: its corners over the glass (p099-1). */
+  /* The channel screen's title badge, a lit COMP: its corners over the glass (D0 p099-1). */
   --corner-title-comp-a1: #3a1408;
   --corner-title-comp-a2: #8c3121;
   --corner-title-comp-a3: #c54529;
@@ -224,7 +224,7 @@
   --corner-title-comp-e3: #632419;
   --badge-title-band-comp: #6b2821;
 
-  /* The channel screen's title badge, a lit EQ: its corners over the glass (p106-1). */
+  /* The channel screen's title badge, a lit EQ: its corners over the glass (D0 p106-1). */
   --corner-title-eq-a1: #000400;
   --corner-title-eq-a2: #106d3a;
   --corner-title-eq-a3: #21b663;
@@ -236,7 +236,7 @@
   --corner-title-eq-b3: #21aa5a;
   --badge-title-band-eq: #317529;
 
-  /* The channel screen's title badge, a lit DELAY or INS FX: its corners over the glass (p115-1). */
+  /* The channel screen's title badge, a lit DELAY or INS FX: its corners over the glass (D0 p115-1). */
   --corner-title-fx-a1: #192429;
   --corner-title-fx-a2: #528aa5;
   --corner-title-fx-a3: #7bc6ef;
@@ -528,7 +528,7 @@
   --corner-switch-lit-glass-foot-a: #101c21;
   --corner-switch-lit-glass-foot-b: #42717b;
   --corner-switch-lit-glass-foot-c: #639eb5;
-  /* The same on OSCILLATOR's sunk panel: lit from p070-1; unlit carried over from the unlit shades on --surface by how much of each pixel the face covers. */
+  /* The same on OSCILLATOR's sunk panel: lit from p073-1; unlit carried over from the unlit shades on --surface by how much of each pixel the face covers. */
   --corner-switch-sunk-a: #606366;
   --corner-switch-sunk-b: #b0acb2;
   --corner-switch-sunk-c: #cfc8d0;

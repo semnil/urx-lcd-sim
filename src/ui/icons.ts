@@ -5,7 +5,7 @@ const NS = "http://www.w3.org/2000/svg";
 
 /**
  * The share of the mark's colour each pixel of a RECORDER slot's copy mark shows
- * (p079-2). The top right pixel lies on the button's corner cut, and its share is
+ * (p084-2). The top right pixel lies on the button's corner cut, and its share is
  * the one that gives the figure's colour over the cut.
  */
 const COPY_SOFT: readonly (readonly number[])[] = [

@@ -281,7 +281,7 @@
   overflow-clip-margin: 2px;
 }
 
-/* The 1-knob panel reaches a row further up, over the toolbar's foot (p104-2). */
+/* The 1-knob panel reaches a row further up, over the toolbar's foot (p111-2). */
 .main:has(.oneknob-panel) {
   overflow-clip-margin: 3px;
 }
@@ -2863,7 +2863,7 @@
   box-shadow: inset 0 -3px 0 var(--toggle-band-lit);
 }
 
-/* Both names at p055-1's size, a pixel left of the middle. */
+/* Both names at p056-1's size, a pixel left of the middle. */
 .lang-top,
 .lang-bottom {
   font-size: 13px;
@@ -3300,14 +3300,14 @@
 }
 
 /* The time zone's name in the middle of its box, which stands a pixel right of
- * the date's (p064-1). */
+ * the date's (p065-1). */
 .dt-screen .dt-value.dt-value-single {
   justify-content: center;
   padding: 0;
   margin-left: 1px;
 }
 
-/* The values at p064-1's size and place. */
+/* The values at p065-1's size and place. */
 .dt-screen .dt-value > span:not(.dt-copy) {
   font-size: 12px;
   translate: 0px -2px;
@@ -3915,7 +3915,7 @@
 }
 
 /* Two columns, one over each of the first two divisions of the readout strip:
- * a box is centred over the division that turns it (p070-2). */
+ * a box is centred over the division that turns it (p073-2). */
 .osc-params {
   position: absolute;
   left: 10px;
@@ -3995,7 +3995,7 @@
 
 /* The eight destinations stand in two rows of four, 90x40 with an 8px gutter,
  * the second row 58px under the first. [Clear All] stands under the last column,
- * 30px under the second row (p071-1). */
+ * 30px under the second row (p074-1). */
 .osc-assign {
   position: absolute;
   left: 14px;
@@ -4376,7 +4376,7 @@
   height: 10px;
 }
 
-/* The source button draws it closer in than a channel chip does, and paler (p100-1). */
+/* The source button draws it closer in than a channel chip does, and paler (p106-1). */
 .input-source-btn .ch-chip-copy {
   right: 3px;
   top: 3px;
@@ -4880,7 +4880,7 @@
   color: var(--text);
 }
 
-/* The name at p090-1's place beside its mark. */
+/* The name at D0 p090-1's place beside its mark. */
 .cv-sendto > span:not(.cv-sendto-icon) {
   translate: 2px 1px;
 }
@@ -6288,7 +6288,7 @@
 }
 
 /* Each side carries the colour of its bank button, and the bank in view takes
- * the lit mark's yellow. The names are white, as on HOME's bank button (p047-1),
+ * the lit mark's yellow. The names are white, as on HOME's bank button (p048-1),
  * and the bank in view takes a lit switch's dark name. */
 .bank-option {
   min-width: 84px;
@@ -6684,7 +6684,7 @@
   width: 414px;
   height: 240px;
   /* The two corners on the ground turn a pixel wider than the two on the toolbar
-   * (p100-2, wide/p059-1, p060-2). The way out draws the top right corner itself, so
+   * (p106-2, wide/p060-1, p061-2). The way out draws the top right corner itself, so
    * the panel does not round it away under it. */
   border-radius: 5px 5px 6px 6px;
   overflow: visible;
@@ -8364,7 +8364,7 @@
 }
 
 /* MONITOR's Source and a RECORDER slot's source button step from the face onto
- * the band up three rows in shades of their own (p068-1, p079-2). */
+ * the band up three rows in shades of their own (p070-1, p084-2). */
 .mon-source::after,
 .btn.rec-slot-src::after {
   content: "";
@@ -8385,7 +8385,7 @@
 }
 
 /* The channel's colour band turns up each side of the chip over three rows, in
- * shares of the band's colour and of black over the face (p090-1, p093-2). */
+ * shares of the band's colour and of black over the face (p095-1, p098-2). */
 .ch-chip::after {
   content: "";
   position: absolute;
@@ -8507,14 +8507,14 @@
     linear-gradient(var(--pc-b), var(--pc-b)) right 0px bottom 4px / 1px 1px no-repeat;
 }
 
-/* The panel 1-knob stands its row on turns in shades of its own face (p104-2). */
+/* The panel 1-knob stands its row on turns in shades of its own face (p111-2). */
 .lcd .oneknob-panel::after {
   --pc-a: var(--corner-oneknob-panel-a);
   --pc-b: var(--corner-oneknob-panel-b);
   --pc-c: var(--corner-oneknob-panel-c);
 }
 
-/* EQ's panel runs square into the screen's right edge, so only its left end turns (p106-2). */
+/* EQ's panel runs square into the screen's right edge, so only its left end turns (p113-2). */
 .lcd .eq-screen > .oneknob-panel::after {
   background:
     linear-gradient(var(--pc-g), var(--pc-g)) left 0px top 0px / 3px 1px no-repeat,
@@ -9122,7 +9122,7 @@
 }
 
 /* A block's name and the head amp's pair stand on the block's face, unlit in the
- * pale grey (p090-1, p094-1). */
+ * pale grey (p095-1, p099-1). */
 .lcd .badge.badge-switch,
 .lcd .cv-gain-buttons .btn {
   --pb-ground: var(--surface);
@@ -9150,7 +9150,7 @@
 
 
 /* An EQ band's box turns over three pixels: two shades and then its own face
- * (p106-1). Switched off it takes the pale face and shades of a block switch. */
+ * (D0 p106-1). Switched off it takes the pale face and shades of a block switch. */
 .lcd .eq-screen > .eq-band {
   --pb-ground: var(--lcd-bg);
   --pb-a: var(--corner-eq-band-a);
@@ -9167,8 +9167,8 @@
 }
 
 /* [1-knob] turns its head like the switches and keeps its band square at the
- * foot, as the figure has it (p099-1). Lit, it stands on the 1-knob panel and
- * turns the same pixels in shades of its own over it (p104-2). */
+ * foot, as the figure has it (p105-1). Lit, it stands on the 1-knob panel and
+ * turns the same pixels in shades of its own over it (p111-2). */
 .lcd .oneknob {
   --pb-ground: var(--lcd-bg);
   --pb-a: var(--corner-oneknob-a);
@@ -9194,7 +9194,7 @@
 }
 
 /* INPUT's flags stand on the tray a dropdown sits on, in a block switch's pale
- * grey (p100-1). Lit, each one takes the shades of the switch nearest its face. */
+ * grey (p106-1). Lit, each one takes the shades of the switch nearest its face. */
 .lcd .eq-screen > .eq-band.is-off,
 .lcd .btn.wizard-btn,
 .lcd .btn.input-flag {
@@ -9865,7 +9865,7 @@
 }
 
 /* The button turns its top corners over five pixels on the Morphing panel, its band's
- * foot over four, and steps from the face onto the band up five rows (p108-1). */
+ * foot over four, and steps from the face onto the band up five rows (p115-1). */
 .lcd .ssmcs-data::after {
   content: "";
   position: absolute;

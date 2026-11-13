@@ -87,9 +87,10 @@ pnpm dev
 
 ## 画面の見た目の根拠
 
-配色と寸法は、ユーザーガイド (英語版 revision D0) に埋め込まれた 480x272 の画面キャプチャ
-からピクセル単位で採取した。工場出荷時のチャンネル値は、リセット直後の URX44V と URX22 が
-保持している値。詳細は [design-tokens.md](docs/ja/design-tokens.md) を参照。
+配色と寸法は、ユーザーガイド (英語版 revision E0。System ファームウェア V1.5 のもの) に埋め込まれた
+480x272 の画面キャプチャからピクセル単位で採取した。E0 のキャプチャが引用する事実を写していないところは、
+前の版 (D0) のキャプチャを `D0 p<ページ>-<連番>` の形で引く。工場出荷時のチャンネル値は、リセット直後の
+URX44V と URX22 が保持している値。詳細は [design-tokens.md](docs/ja/design-tokens.md) を参照。
 
 `reference/` にはそのキャプチャを取り出したものが入るが、Yamaha の著作物のため git 管理外で、
 リポジトリにもビルド成果物にも含まれない。手元で再生成する場合 (poppler の `pdfimages` が要る):
@@ -103,6 +104,13 @@ node scripts/extract-ug-screens.mjs --pdf <ユーザーガイドの PDF>
 
 ```bash
 python3 scripts/ug-visible-ranges.py --pdf <ユーザーガイドの PDF>
+```
+
+D0 のキャプチャは、revision D0 の PDF から `reference/ug-lcd-d0/` へ取り出す:
+
+```bash
+node scripts/extract-ug-screens.mjs --pdf <revision D0 の PDF> --out reference/ug-lcd-d0
+python3 scripts/ug-visible-ranges.py --pdf <revision D0 の PDF> --out reference/ug-lcd-d0/visible.json
 ```
 
 ## 実機との関係

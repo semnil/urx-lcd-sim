@@ -106,8 +106,8 @@
 - **USB Storage Mode 中のメニューの制限。** ユーザーガイドは「USB Storage Mode button」の NOTE で「You cannot access any
   other menus from this product while USB Storage Mode is on.」とするが、実機はモードを入れたまま HOME を押すと HOME 画面へ
   移り、SETUP・MONITOR・チャンネルの画面も開く (URX44V で実機確認)。このシミュレーターも移動を制限しない。
-  microSD 画面の [Recorder]・[Save/Load]・[Tools] はモードのあいだ使えない (p078-1)。
-- **ステレオリンクしたチャンネルのステレオの LEVEL メーター。** ユーザーガイドは p97 の LEVEL meter の説明で「Stereo
+  microSD 画面の [Recorder]・[Save/Load]・[Tools] はモードのあいだ使えない (p083-1)。
+- **ステレオリンクしたチャンネルのステレオの LEVEL メーター。** ユーザーガイドは p102 の LEVEL meter の説明で「Stereo
   channels and channels that are stereo-linked are shown with a stereo meter.」とするが、実機はステレオリンクした
   ペアのチャンネルを選んでも、チャンネルビューのメインエリアの LEVEL メーターは 1 本で、HOME もチャンネルごとに 1 本
   (URX44V で実機確認)。このシミュレーターもそこは 1 本で描く。

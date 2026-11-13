@@ -84,7 +84,7 @@ describe("the HOME send-destination tab", () => {
   it("names a numbered bus as the unit prints it, with the space", async () => {
     const shell = await mount();
     const target = (): string | undefined => shell.root.querySelector(".sends-target")?.textContent ?? undefined;
-    // p047-1 has the stereo bus short and p157-1 a numbered one with the space.
+    // p048-1 has the stereo bus short and p166-1 a numbered one with the space.
     expect(target()).toBe("ST");
     for (const [id, label] of [
       ["MIX1", "MIX 1"],

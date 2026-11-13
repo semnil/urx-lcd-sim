@@ -38,8 +38,8 @@ looks like now is in [screen-inventory.md](../screen-inventory.md) and
     became 0 high, and the progress bar rose. The row keeps its height (`min-height: 1lh`), and
     the rectangles of the three states agree.
   - The card screens set the free space as one line centred in its place, 7px higher than the
-    figure. The one line of p083-1 stands where the second of two lines stands when the name line
-    is empty (y73..81), at the same height as in p084-1 and p087-1, which carry a name. Where
+    figure. The one line of p088-1 stands where the second of two lines stands when the name line
+    is empty (y73..81), at the same height as in p089-1 and p092-1, which carry a name. Where
     figures differ in how many rows they show, first measure which row of the other figures the
     fewer rows stand on.
 
@@ -84,8 +84,8 @@ looks like now is in [screen-inventory.md](../screen-inventory.md) and
 - **Decision**: text that stands on one row is settled by setting the top and bottom rows of its
   ink beside the figure's, not by the difference in area.
 - **What happened** (2026-09-27): SCENE LIST's number, chosen by difference, stood at 11px and 1px
-  up, and read as out of line with the title. In p073-1 and p074-1 the number and the title are
-  one size and share a baseline (in p074-1, `02` and `01234-56789` both take y162..170); the
+  up, and read as out of line with the title. In p076-1 and p077-1 the number and the title are
+  one size and share a baseline (in p077-1, `02` and `01234-56789` both take y162..170); the
   drawing had the number two rows up. [#21](https://github.com/semnil/urx-lcd-sim/pull/21) set it
   to 13px with no shift.
 - **What happened** (the same fix): `translate` moves what is seen and adds no width, so a title
@@ -111,7 +111,7 @@ looks like now is in [screen-inventory.md](../screen-inventory.md) and
   figure again by its ink rows. A test that checks centring by where a box stands asserts the
   box's height as well.
 - **What happened** (2026-09-20): the card screens' path field went from a flex row with
-  `align-items: center` to `line-height`, and its ink moved from y67..75 to y66..74 (p084-1 has
+  `align-items: center` to `line-height`, and its ink moved from y67..75 to y66..74 (p089-1 has
   67..75). `line-height: 38px` on the 36px box put it back, and the capture differed from the one
   before the change by 0 pixels. The change was made because a flex item wider than its box is
   always cut at its end; to keep the end in view the box is `direction: rtl` with
@@ -171,7 +171,7 @@ looks like now is in [screen-inventory.md](../screen-inventory.md) and
     or a field, which was misreported as a declared black for the scene name box and for CH
     SETTING's Name.
 - **What happened** (2026-10-12): MONITOR's [CUE Interrupt] set its two lines 17px apart where
-  p068-1 has 14px. `font: inherit` hands down `line-height` as well, so a one-class
+  p070-1 has 14px. `font: inherit` hands down `line-height` as well, so a one-class
   `line-height` is not painted; it was written with two classes
   ([#71](https://github.com/semnil/urx-lcd-sim/pull/71), which also made the test read
   `line-height` and the side tabs' pages, and removed three declarations it found). To compare
@@ -189,7 +189,7 @@ looks like now is in [screen-inventory.md](../screen-inventory.md) and
 - **Decision**: a coordinate taken from a figure of 289 rows is checked by laying the whole
   drawing over the figure and measuring how far it is off vertically. How the padded figures are
   read is in [design-tokens.md](../design-tokens.md), "How the values were sampled".
-- **What happened** (2026-09-24): the place of the Track Count list (p079-3, 480x289), y54..233,
+- **What happened** (2026-09-24): the place of the Track Count list (p084-3, 480x289), y54..233,
   had been written into the docs and the CSS in the canvas's coordinates; on the screen it is
   y46..225, and the list opened 8 rows low. The six other figures of 480x289 that stand for a
   screen matched the drawing with the 8 rows taken off, so this was the one value off.
@@ -197,7 +197,7 @@ looks like now is in [screen-inventory.md](../screen-inventory.md) and
 ## Names on the bank list are white
 
 - **Decision** (2026-09-21): the names on the opened channel bank list are white, as on HOME's
-  bank button (p047-1). `src/style/columns.test.ts` and the docs hold it. The colour of a screen
+  bank button (p048-1). `src/style/columns.test.ts` and the docs hold it. The colour of a screen
   no figure shows is the operator's to decide, and an audit of contrast does not overturn it.
 - **History**: no figure shows the opened list. Two candidates were set side by side: the rule of
   the COLOR screen, the one of black and white that contrasts more (black on both the green and

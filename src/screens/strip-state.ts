@@ -199,7 +199,7 @@ const SENDS_DESTINATIONS: Record<string, string> = {
 
 /**
  * The destination in view, named as the [Sends] tab names it: the stereo bus
- * short (p047-1) and a numbered bus with the space (p157-1).
+ * short (p048-1) and a numbered bus with the space (p166-1).
  */
 const SENDS_TAB_LABELS: Record<string, string> = {
   ST: "ST",
