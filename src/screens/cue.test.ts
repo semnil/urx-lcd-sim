@@ -321,7 +321,7 @@ describe("the MONITOR CUE tab", () => {
     await flush();
     return shell;
   }
-  const lamps = (shell: Shell): boolean[] => [...shell.root.querySelectorAll(".active-cue-row")].map((r) => r.classList.contains("is-lit"));
+  const lamps = (shell: Shell): boolean[] => [...shell.root.querySelectorAll(".active-cue-row")].map((r) => r.classList.contains("is-cued"));
   const lit = (shell: Shell): string[] =>
     [...shell.root.querySelectorAll<HTMLElement>(".cue-mode-btn")].filter((b) => b.getAttribute("aria-pressed") === "true").map((b) => b.textContent ?? "");
 
@@ -344,6 +344,18 @@ describe("the MONITOR CUE tab", () => {
     await shell.ctx.store.restore("ch.ch1.cue", true);
     await flush();
     expect(lamps(shell), "both").toEqual([true, true]);
+  });
+
+  it("lights [Clear CUE] while anything is in the cue and leaves it grey while nothing is", async () => {
+    const shell = await cueTab();
+    const clear = (): boolean => shell.root.querySelector(".active-cue-clear")?.classList.contains("is-cued") ?? true;
+    expect(clear(), "nothing cued").toBe(false);
+    await press(shell, "ch1");
+    expect(clear(), "an input").toBe(true);
+    await press(shell, "bus.stereo");
+    expect(clear(), "an output").toBe(true);
+    await press(shell, "bus.stereo");
+    expect(clear(), "nothing again").toBe(false);
   });
 
   it("takes every cue out with [Clear CUE]", async () => {

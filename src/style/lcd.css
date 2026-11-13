@@ -4257,11 +4257,12 @@
   background: var(--surface);
 }
 
-.active-cue-row.is-lit .active-cue-lamp {
+.active-cue-row.is-cued .active-cue-lamp {
   background: var(--cue-lamp);
 }
 
-/* [Clear CUE] across the foot of the frame, on the face a chosen option takes. */
+/* [Clear CUE] across the foot of the frame: on the face a chosen option takes
+ * while anything is in the cue, and on the plain face while nothing is. */
 .active-cue-clear {
   position: absolute;
   left: 3px;
@@ -4269,6 +4270,10 @@
   width: 88px;
   height: 40px;
   padding: 0 0 3px;
+  background: var(--surface);
+}
+
+.active-cue-clear.is-cued {
   background: var(--accent-selected);
   box-shadow: inset 0 -3px 0 var(--toggle-band-lit);
 }
@@ -4280,7 +4285,7 @@
   font-size: 13px;
 }
 
-.btn.active-cue-clear,
+.btn.active-cue-clear.is-cued,
 .btn.cue-mode-btn.is-on {
   color: var(--ink-on-lit);
 }

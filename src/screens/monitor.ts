@@ -56,7 +56,7 @@ const MONITOR_TABS = ["Level", "Setting", "CUE"] as const;
 /** One of Active CUE's two lamps with its name: lit while a strip of its group is in the cue. */
 function cueLamp(label: string, lit: boolean): HTMLElement {
   return el("div", {
-    class: `active-cue-row${lit ? " is-lit" : ""}`,
+    class: `active-cue-row${lit ? " is-cued" : ""}`,
     children: [el("span", { class: "active-cue-lamp", attrs: { "aria-hidden": "true" } }), el("span", { text: label })],
   });
 }
@@ -79,7 +79,12 @@ function cuePage(ctx: AppContext): HTMLElement {
         children: [
           cueLamp("Input", inputs),
           cueLamp("Output", outputs),
-          el("button", { class: "btn active-cue-clear", text: "Clear CUE", onTap: writing(clearCueWrites(ctx.model), () => clearCues(ctx)) }),
+          // Lit while anything is in the cue, grey while nothing is.
+          el("button", {
+            class: `btn active-cue-clear${inputs || outputs ? " is-cued" : ""}`,
+            text: "Clear CUE",
+            onTap: writing(clearCueWrites(ctx.model), () => clearCues(ctx)),
+          }),
         ],
       }),
       el("span", { class: "cue-mode-title", text: "CUE Mode" }),

@@ -19,7 +19,7 @@ test("Last CUE leaves the last [CUE] alone in the cue, the lamp shows it, and [C
   await go(page, "monitor.level");
   await button(page, "CUE", true).click();
   await expect(button(page, "Mix CUE", true)).toHaveAttribute("aria-pressed", "true");
-  await expect(lamp(page, "Input")).not.toHaveClass(/is-lit/);
+  await expect(lamp(page, "Input")).not.toHaveClass(/is-cued/);
   await button(page, "Last CUE", true).click();
   await expect(button(page, "Last CUE", true)).toHaveAttribute("aria-pressed", "true");
   await expect(button(page, "Mix CUE", true)).toHaveAttribute("aria-pressed", "false");
@@ -32,8 +32,10 @@ test("Last CUE leaves the last [CUE] alone in the cue, the lamp shows it, and [C
 
   await backToMonitor(page);
   await expect(button(page, "Last CUE", true)).toHaveAttribute("aria-pressed", "true");
-  await expect(lamp(page, "Input")).toHaveClass(/is-lit/);
-  await expect(lamp(page, "Output")).not.toHaveClass(/is-lit/);
+  await expect(lamp(page, "Input")).toHaveClass(/is-cued/);
+  await expect(lamp(page, "Output")).not.toHaveClass(/is-cued/);
+  await expect(button(page, "Clear CUE", true)).toHaveClass(/is-cued/);
   await button(page, "Clear CUE", true).click();
-  await expect(lamp(page, "Input")).not.toHaveClass(/is-lit/);
+  await expect(lamp(page, "Input")).not.toHaveClass(/is-cued/);
+  await expect(button(page, "Clear CUE", true)).not.toHaveClass(/is-cued/);
 });
