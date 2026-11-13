@@ -2754,7 +2754,7 @@
 }
 
 /* The lock screen, over the whole glass, toolbar included. No figure shows it: its words were read
- * off a URX44V, and the place of each line follows a recording of one. The third line and the
+ * off a URX44V, and so was the place of each line. The third line and the
  * padlock are the CONSOLE LOCK screen's own, at that screen's size. */
 .console-locked {
   position: absolute;
@@ -2862,7 +2862,7 @@
 }
 
 /* Change Password, on the confirmation dialog's sheet, centred on the glass. No figure shows it: the
- * place of each part follows a recording of a URX44V, with the sheet's own size as the scale. */
+ * place of each part was read off a URX44V, with the sheet's own size as the scale. */
 .lcd .main:has(> .console-password) {
   overflow: visible;
 }
@@ -2912,9 +2912,14 @@
   top: 120px;
 }
 
+/* Type the password's one row stands between the two of Change Password. */
+.console-password.is-enter .console-password-row {
+  top: 101px;
+}
+
 .console-password-label {
-  width: 163px;
-  padding-right: 13px;
+  width: 177px;
+  padding-right: 14px;
   box-sizing: border-box;
   text-align: right;
   color: var(--dialog-ink);

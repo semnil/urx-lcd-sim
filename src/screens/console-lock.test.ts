@@ -170,9 +170,97 @@ describe("Console Lock", () => {
       expect(stars(shell), "the sheet opens empty").toEqual(["", ""]);
       await type(shell, "New Password", "ab");
       await type(shell, "Confirm Password", "ab");
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
       button(shell, "OK")?.click();
+      expect(shell.root.querySelector(".dialog-overlay .dialog-text")?.textContent).toBe("Password Changed.");
+      vi.advanceTimersByTime(MISMATCH_MS);
+      vi.useRealTimers();
       await flush();
       expect([shell.ctx.nav.current.id, shell.ctx.store.str(CONSOLE_PASSWORD, "")]).toEqual(["setup.consoleLock", "ab"]);
+    });
+  });
+
+  describe("with a password set", () => {
+    /** Type `text` into the open sheet's field named `name` through the keyboard. */
+    async function enter(shell: Shell, name: string, text: string): Promise<void> {
+      shell.root.querySelector<HTMLElement>(`[aria-label="${name}"]`)?.click();
+      await flush();
+      for (const key of text) {
+        shell.root.querySelector<HTMLElement>(".title-field")?.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+        await flush();
+      }
+      button(shell, "OK")?.click();
+      await flush();
+    }
+    /** Hold the lock screen until the padlock has opened and given way. */
+    async function hold(shell: Shell): Promise<void> {
+      const screen = shell.root.querySelector<HTMLElement>(".console-locked")!;
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      screen.dispatchEvent(pointer("pointerdown"));
+      vi.advanceTimersByTime(UNLOCK_HOLD_MS + UNLOCKED_MS);
+      vi.useRealTimers();
+      await flush();
+    }
+
+    it("asks for it once the padlock has opened, refuses the wrong one, and goes back to the lock on [Cancel] and on Escape", async () => {
+      const shell = await mount();
+      await shell.ctx.store.set(CONSOLE_PASSWORD, "1");
+      await lock(shell);
+      await hold(shell);
+      expect(shell.ctx.nav.current.id, "Type the password").toBe("setup.consoleLock.enter");
+      expect(shell.root.querySelector(".console-locked"), "the lock screen has given way").toBeNull();
+      await enter(shell, "Password", "2");
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      button(shell, "OK")?.click();
+      expect(shell.root.querySelector(".dialog-overlay .dialog-text")?.textContent).toBe("Incorrect password entered.");
+      vi.advanceTimersByTime(MISMATCH_MS);
+      vi.useRealTimers();
+      await flush();
+      expect(shell.ctx.nav.current.id).toBe("setup.consoleLock.enter");
+      expect(shell.root.querySelector(".console-password-stars")?.textContent, "what was typed stays").toBe("*");
+      button(shell, "Cancel")?.click();
+      await flush();
+      expect(shell.root.querySelector(".console-locked"), "[Cancel] puts the lock back").not.toBeNull();
+      await hold(shell);
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+      await flush();
+      expect(shell.root.querySelector(".console-locked"), "so does Escape").not.toBeNull();
+    });
+
+    it("unlocks to HOME with the right one", async () => {
+      const shell = await mount();
+      await shell.ctx.store.set(CONSOLE_PASSWORD, "1");
+      await lock(shell);
+      await hold(shell);
+      await enter(shell, "Password", "1");
+      button(shell, "OK")?.click();
+      await flush();
+      expect(shell.ctx.nav.current.id).toBe("home");
+      shell.ctx.nav.openTop({ id: "setup" });
+      await flush();
+      expect(shell.root.querySelector(".console-locked"), "and stays unlocked").toBeNull();
+    });
+
+    it("asks for it before Change Password, and both fields left empty take it away", async () => {
+      const shell = await mount();
+      await shell.ctx.store.set(CONSOLE_PASSWORD, "1");
+      shell.ctx.nav.openTop({ id: "setup" });
+      shell.ctx.nav.push({ id: "setup.consoleLock" });
+      await flush();
+      button(shell, "Change Password")?.click();
+      await flush();
+      expect(shell.ctx.nav.current.id).toBe("setup.consoleLock.enter");
+      await enter(shell, "Password", "1");
+      button(shell, "OK")?.click();
+      await flush();
+      expect(shell.ctx.nav.current.id, "the right password opens Change Password").toBe("setup.consoleLock.password");
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      button(shell, "OK")?.click();
+      expect(shell.root.querySelector(".dialog-overlay .dialog-text")?.textContent).toBe("Password Changed.");
+      vi.advanceTimersByTime(MISMATCH_MS);
+      vi.useRealTimers();
+      await flush();
+      expect([shell.ctx.nav.current.id, shell.ctx.store.str(CONSOLE_PASSWORD, "")]).toEqual(["setup.consoleLock", ""]);
     });
   });
 });

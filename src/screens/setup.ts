@@ -136,7 +136,7 @@ export const UNLOCKED_MS = 900;
  * touch puts a faint circle round the padlock and lets it go, a hold grows a light circle out of the
  * padlock over the screen, the padlock opens, and HOME comes back. The lock is kept nowhere, so a
  * reload starts the simulator unlocked, as the unit starts unlocked after it is switched off and on.
- * No figure shows it; its words were read off a URX44V and its layout follows a recording of one.
+ * No figure shows it; its words, its layout and its timings were read off a URX44V.
  */
 export function lockConsole(ctx: AppContext): void {
   const padlock = el("span", { class: "console-locked-padlock", children: [Icons.consoleLock()] });
@@ -169,7 +169,20 @@ export function lockConsole(ctx: AppContext): void {
       padlock.replaceChildren(Icons.consoleUnlocked());
       timer = setTimeout(() => {
         close();
-        ctx.nav.home();
+        if (!ctx.store.str(CONSOLE_PASSWORD, "")) {
+          void ctx.store.set(LOCKED, 0);
+          ctx.nav.home();
+          return;
+        }
+        // With a password set, the opened padlock gives way to Type the password, and every way off
+        // it but the right password puts the lock screen back.
+        askPassword(ctx, "unlock");
+        const off = ctx.nav.onChange((route) => {
+          if (ctx.store.num(LOCKED, 0) !== 1) return off();
+          if (route.id === ENTER_PASSWORD || route.id === "scene.title") return;
+          off();
+          lockConsole(ctx);
+        });
       }, UNLOCKED_MS);
     }, UNLOCK_HOLD_MS);
   };
@@ -189,6 +202,7 @@ export function lockConsole(ctx: AppContext): void {
   node.addEventListener("keyup", (ev) => {
     if (ev.key === "Enter" || ev.key === " ") stop();
   });
+  void ctx.store.set(LOCKED, 1);
   const close = ctx.overlay(node, () => clearTimeout(timer));
   node.focus({ preventScroll: true });
 }
@@ -214,9 +228,8 @@ export const consoleLockScreen: ScreenDef = {
     const password = el("button", {
       class: "menu-btn console-lock-password",
       onTap: () => {
-        void ctx.store.set(`${PASSWORD_DRAFT}.new`, "");
-        void ctx.store.set(`${PASSWORD_DRAFT}.confirm`, "");
-        ctx.nav.push({ id: "setup.consoleLock.password" });
+        if (ctx.store.str(CONSOLE_PASSWORD, "")) askPassword(ctx, "change");
+        else openChangePassword(ctx, "push");
       },
       children: [el("span", { text: "Change\nPassword" }), el("span", { class: "console-lock-copy", children: [Icons.copy()] })],
     });
@@ -224,8 +237,13 @@ export const consoleLockScreen: ScreenDef = {
   },
 };
 
-/** Where Change Password holds what is typed into its two fields while it is open. */
+/** Where Change Password and Type the password hold what is typed while they are open. */
 const PASSWORD_DRAFT = "ui.consoleLock.draft";
+/** Whether the unit is locked; Type the password looks here while it stands in for the lock screen. */
+const LOCKED = "ui.consoleLock.locked";
+/** What Type the password is asked for: "unlock" or "change". */
+const PURPOSE = "ui.consoleLock.purpose";
+const ENTER_PASSWORD = "setup.consoleLock.enter";
 /** The password the unlock asks for. Kept for the session only (persist.ts, IN_FLIGHT). */
 export const CONSOLE_PASSWORD = "ui.consoleLock.password";
 /** The most characters a password takes (user guide, "Console Lock menu"). */
@@ -262,7 +280,7 @@ function notice(ctx: AppContext, message: string, ms: number, after: () => void)
  * new password and one to confirm it. Each field opens the title keyboard, which shows an asterisk for
  * each character. [OK] with the two the same sets the password; with them different, the unit says so
  * for two seconds and gives the sheet back as it was. No figure shows it; its words were read off a
- * URX44V and its layout follows a recording of one, on the confirmation dialog's sheet.
+ * URX44V and so was its layout, on the confirmation dialog's sheet.
  */
 export const consolePasswordScreen: ScreenDef = {
   id: "setup.consoleLock.password",
@@ -305,8 +323,9 @@ export const consolePasswordScreen: ScreenDef = {
         notice(ctx, "Entered Password do not match, please re-enter.", MISMATCH_MS, () => undefined);
         return;
       }
+      // Both left empty, the password goes; the unit says the same either way.
       void ctx.store.set(CONSOLE_PASSWORD, typed);
-      ctx.nav.back();
+      notice(ctx, "Password Changed.", MISMATCH_MS, () => ctx.nav.back());
     };
     return {
       main: el("div", {
@@ -318,6 +337,88 @@ export const consolePasswordScreen: ScreenDef = {
           }),
           field("new", "New Password:"),
           field("confirm", "Confirm Password:"),
+          el("div", { class: "dialog-actions", children: [button("Cancel", () => ctx.nav.back()), button("OK", ok)] }),
+        ],
+      }),
+    };
+  },
+};
+
+/** Open Change Password with both fields empty, on top of CONSOLE LOCK or in place of Type the password. */
+function openChangePassword(ctx: AppContext, how: "push" | "replace"): void {
+  void ctx.store.set(`${PASSWORD_DRAFT}.new`, "");
+  void ctx.store.set(`${PASSWORD_DRAFT}.confirm`, "");
+  if (how === "push") ctx.nav.push({ id: "setup.consoleLock.password" });
+  else ctx.nav.replace({ id: "setup.consoleLock.password" });
+}
+
+/** Ask for the password, to unlock or before Change Password. */
+function askPassword(ctx: AppContext, purpose: "unlock" | "change"): void {
+  void ctx.store.set(PURPOSE, purpose);
+  void ctx.store.set(`${PASSWORD_DRAFT}.enter`, "");
+  ctx.nav.push({ id: "setup.consoleLock.enter" });
+}
+
+/**
+ * Type the password (System firmware V1.5): what the unit asks before it unlocks with a password set,
+ * once the held touch has opened the padlock, and before Change Password. The wrong password is
+ * refused for two seconds and the sheet comes back with what was typed. [Cancel] puts an unlock back on
+ * the lock screen. No figure shows it; its words were read off a URX44V and so was its layout, on
+ * Change Password's sheet.
+ */
+export const consoleEnterScreen: ScreenDef = {
+  id: ENTER_PASSWORD,
+  toolbar: "sub",
+  shellExits: false,
+  leavesOnTouchAround: false,
+  dimsBehind: true,
+  build(ctx): ScreenBody {
+    const typed = ctx.store.str(`${PASSWORD_DRAFT}.enter`, "");
+    const ok = (): void => {
+      if (ctx.store.str(`${PASSWORD_DRAFT}.enter`, "") !== ctx.store.str(CONSOLE_PASSWORD, "")) {
+        notice(ctx, "Incorrect password entered.", MISMATCH_MS, () => undefined);
+        return;
+      }
+      if (ctx.store.str(PURPOSE, "") === "change") {
+        openChangePassword(ctx, "replace");
+        return;
+      }
+      void ctx.store.set(LOCKED, 0);
+      ctx.nav.home();
+    };
+    return {
+      main: el("div", {
+        class: "dialog console-password is-enter",
+        children: [
+          el("div", {
+            class: "console-password-head",
+            children: [Icons.consoleLock(), el("h1", { class: "console-password-title", text: "Type the password" })],
+          }),
+          el("div", {
+            class: "console-password-row",
+            children: [
+              el("span", { class: "console-password-label", text: "Password:" }),
+              el("button", {
+                class: "console-password-field",
+                attrs: { "aria-label": "Password" },
+                onTap: () => {
+                  draftTitle(ctx, {
+                    path: "",
+                    title: typed,
+                    max: PASSWORD_MAX,
+                    empty: true,
+                    masked: true,
+                    onOk: (text) => void ctx.store.set(`${PASSWORD_DRAFT}.enter`, text),
+                  });
+                  ctx.nav.push({ id: "scene.title" });
+                },
+                children: [
+                  el("span", { class: "console-password-stars", text: "*".repeat(typed.length) }),
+                  el("span", { class: "console-password-mark", children: [Icons.rename()] }),
+                ],
+              }),
+            ],
+          }),
           el("div", { class: "dialog-actions", children: [button("Cancel", () => ctx.nav.back()), button("OK", ok)] }),
         ],
       }),
@@ -911,5 +1012,6 @@ export const setupScreens: ScreenDef[] = [
   integrationScreen,
   consoleLockScreen,
   consolePasswordScreen,
+  consoleEnterScreen,
   operationModeScreen,
 ];
