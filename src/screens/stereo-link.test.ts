@@ -5,14 +5,10 @@ import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
 import { levelBarShare } from "../model/dynamics";
-import { applySettings, captureSettings } from "../model/settings-file";
-import { captureScene } from "../model/scene-state";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
 import { meterLevels, setMeterSource, startMeterTicker } from "./meters";
-import { recallScene } from "./scene";
 import { CUE_METER } from "./signal-flow";
-import { followRecall, pairStates } from "./stereo-link";
 import { spoken } from "../ui/spoken";
 
 // Signal Type is a setting of a channel PAIR. Both channels have to agree about
@@ -637,35 +633,22 @@ describe("a linked pair's CUE put back from before the pair held one", () => {
     return store;
   }
 
-  /** Put `old` back on a fresh unit by `route`, as the page does. */
-  async function putBack(route: string, old: DeviceStore): Promise<Mounted> {
+  /**
+   * Put `old` back on a fresh unit through a reload, as the page does. A scene
+   * and a settings file carry no [CUE], so a reload is the way an earlier
+   * version's CUEs come back.
+   */
+  async function putBack(old: DeviceStore): Promise<Mounted> {
     const model = unitById("URX44V");
     const store = new DeviceStore();
     await store.attach(new SimTransport(factoryState(model)));
-    if (route === "reload") await restore(store, model.id, { token: null, model: model.id, unit: JSON.stringify({ version: 1, model: model.id, values: snapshot(old) }) });
+    await restore(store, model.id, { token: null, model: model.id, unit: JSON.stringify({ version: 1, model: model.id, values: snapshot(old) }) });
     const shell = new Shell(buildRegistry(), store, model, [{ id: "home" }]);
-    if (route === "scene") {
-      await store.set("scene.Standard.1.title", "old");
-      await store.set("scene.Standard.1.state", JSON.stringify(captureScene(old)));
-      await recallScene(shell.ctx, 1);
-    }
-    if (route === "settings") {
-      const before = pairStates(shell.ctx);
-      await applySettings(store, captureSettings(old));
-      followRecall(shell.ctx, before);
-    }
     return { shell, store };
   }
 
-  it.each([
-    ["reload", true],
-    ["reload", false],
-    ["scene", true],
-    ["scene", false],
-    ["settings", true],
-    ["settings", false],
-  ] as const)("through %s, holds CH 1's CUE on both channels (CH 1 %s)", async (route, first) => {
-    const { shell, store } = await putBack(route, await held([first, !first]));
+  it.each([true, false])("through a reload, holds CH 1's CUE on both channels (CH 1 %s)", async (first) => {
+    const { shell, store } = await putBack(await held([first, !first]));
     expect([store.str("ch.ch1.signalType", ""), store.bool("ch.ch1.cue", !first), store.bool("ch.ch2.cue", first)]).toEqual(["STEREO", first, first]);
 
     // The cue bus and the monitor follow: CH 2 alone carries a signal.
@@ -680,8 +663,8 @@ describe("a linked pair's CUE put back from before the pair held one", () => {
     shell.destroy();
   });
 
-  it.each(["reload", "scene", "settings"])("through %s, leaves a pair that is not linked a CUE each", async (route) => {
-    const { shell, store } = await putBack(route, await held([true, false], "MONO x 2"));
+  it("through a reload, leaves a pair that is not linked a CUE each", async () => {
+    const { shell, store } = await putBack(await held([true, false], "MONO x 2"));
     expect([store.bool("ch.ch1.cue", false), store.bool("ch.ch2.cue", true)]).toEqual([true, false]);
     shell.destroy();
   });

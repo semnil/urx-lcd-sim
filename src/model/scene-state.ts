@@ -2,25 +2,32 @@
 //
 // A scene holds the whole mixer: every bus assign, send, tap, fader, pan, EQ,
 // dynamics, name and colour, the head amp's gain and its +48V among them, and
-// the digital gain of each input source. It
-// leaves out the monitor and phones buses, the oscillator, the streaming bus,
-// the output patch, the recorder and the unit's own settings — those follow the
-// unit rather than the scene.
+// the digital gain of each input source. Since System firmware V1.5 it holds
+// the output patch and the streaming bus too, but for the streaming bus's
+// delay frame rate (confirmed on a URX22 and a URX44V). It leaves out each
+// strip's [CUE] (the guide's list of what a scene does not save), the monitor
+// and phones buses, the oscillator, the recorder and the unit's own settings —
+// those follow the unit rather than the scene.
 
 import type { DeviceStore } from "../device/store";
 import type { ParamPath, ParamValue } from "../device/path";
 import { fromJson } from "../device/value-json";
 import { withEverySourceGain } from "./source-gain";
 
-/** The subtrees a scene is taken from. */
-const MIXER = ["ch", "source"];
+/** The subtrees a scene is taken from: the mixer and the output patch. */
+const MIXER = ["ch", "source", "setup.outputPatch"];
 
-/** What stands inside that subtree and still follows the unit. */
-const NOT_IN_A_SCENE = ["ch.bus.stream."];
+/** What stands inside those subtrees and still follows the unit: the tab OUTPUT PATCH stands on, and the streaming bus's frame rate. */
+const NOT_IN_A_SCENE = new Set<ParamPath>(["setup.outputPatch.tab", "ch.bus.stream.delay.frameRate"]);
+
+/** Whether the value at this path is a strip's [CUE]. */
+export function isCue(path: ParamPath): boolean {
+  return path.startsWith("ch.") && path.endsWith(".cue");
+}
 
 /** Whether a scene carries the value at this path. */
 export function inScene(path: ParamPath): boolean {
-  return MIXER.some((m) => path === m || path.startsWith(`${m}.`)) && !NOT_IN_A_SCENE.some((p) => path.startsWith(p));
+  return MIXER.some((m) => path === m || path.startsWith(`${m}.`)) && !NOT_IN_A_SCENE.has(path) && !isCue(path);
 }
 
 /** The mixer as it stands, ready to be stored under a scene number. */

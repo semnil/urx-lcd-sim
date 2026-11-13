@@ -3,13 +3,14 @@
 // It holds the unit as it stands — the mixer, the monitor and phones buses, the
 // oscillator, the scene memories, the unit's own settings and the destination
 // HOME's [Sends] shows — and leaves out the rest of the screen's own state, the
-// card, the clock and what a linked pair's compressors hear, which follow the
-// unit rather than the file.
+// card, the clock, what a linked pair's compressors hear and each strip's [CUE]
+// (a file the unit writes carries none), which follow the unit rather than the
+// file.
 
 import type { ParamPath, ParamValue } from "../device/path";
 import type { DeviceStore } from "../device/store";
 import { isClockPath } from "./clock";
-import { asPutBack, withEverySceneCleared } from "./scene-state";
+import { asPutBack, isCue, withEverySceneCleared } from "./scene-state";
 import { CUE_MODE, CUE_MODE_SHIPPED, INTEGRATION_DAW, SENDS_TARGET_SHIPPED } from "./types";
 
 /** What stays behind when a settings file is written. */
@@ -30,7 +31,7 @@ const UNIT_STATE = new Set<ParamPath>([INTEGRATION_DAW]);
 
 /** Whether a settings file carries the value at this path. */
 export function inSettingsFile(path: ParamPath): boolean {
-  return path === SENDS_TARGET || (!NOT_SAVED.some((p) => path.startsWith(p)) && !SCREEN_STATE.has(path) && !UNIT_STATE.has(path) && !isClockPath(path));
+  return path === SENDS_TARGET || (!NOT_SAVED.some((p) => path.startsWith(p)) && !SCREEN_STATE.has(path) && !UNIT_STATE.has(path) && !isClockPath(path) && !isCue(path));
 }
 
 /** The unit as it stands, ready to be written to the card. */

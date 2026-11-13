@@ -39,11 +39,12 @@ const pitchRead = (str: (p: string) => string, on: (p: string) => boolean): stri
 const PITCH_PUT_BACK = ["Custom:", "Custom:", "Single:", "Custom:0,4,7"];
 
 describe("what a scene carries", () => {
-  it("takes the mixer and leaves the unit's own settings where they are", () => {
-    // Measured from a unit's own settings file: a scene holds the routing, the
-    // sends, the faders, the processing, the names and the colours, and leaves
-    // out the monitor and phones buses, the oscillator, the streaming bus, the
-    // output patch, the recorder and the unit's settings.
+  it("takes the mixer and the output patch, and leaves the unit's own settings where they are", () => {
+    // A scene holds the routing, the sends, the faders, the processing, the
+    // names and the colours, and since System firmware V1.5 the output patch
+    // and the streaming bus but its frame rate. It leaves out each strip's
+    // [CUE], the monitor and phones buses, the oscillator, the recorder and the
+    // unit's settings.
     for (const path of [
       "ch.ch1.level",
       "ch.ch1.send.bus.mix1.on",
@@ -55,13 +56,22 @@ describe("what a scene carries", () => {
       "ch.ch1.source",
       "ch.bus.stereo.level",
       "source.usb-daw-1-2.digitalGain",
+      "ch.bus.stream.delay.on",
+      "ch.bus.stream.delay.ms",
+      "ch.bus.stream.color",
+      "ch.bus.stream.source",
+      "setup.outputPatch.mainOut",
+      "setup.outputPatch.lineOut",
+      "setup.outputPatch.usbMainA",
+      "setup.outputPatch.usbSub",
     ]) {
       expect(inScene(path), path).toBe(true);
     }
     for (const path of [
-      "ch.bus.stream.delay.ms",
-      "ch.bus.stream.color",
-      "ch.bus.stream.source",
+      "ch.bus.stream.delay.frameRate",
+      "ch.ch1.cue",
+      "ch.bus.stream.cue",
+      "ch.bus.stereo.cue",
       "monitor.1.level",
       "phones.1.level",
       "osc.on",
@@ -108,17 +118,36 @@ describe("storing and recalling a scene", () => {
     expect(shell.ctx.store.num("ch.ch1.ssmcs.comp.ratio", 0)).toBe(Number.POSITIVE_INFINITY);
   });
 
-  it("leaves the streaming bus where the unit keeps it", async () => {
+  it("puts the output patch and the streaming bus back, and leaves the streaming bus's frame rate where it stands", async () => {
     const shell = await mount();
-    await shell.ctx.store.set("ch.bus.stream.delay.ms", 4);
+    const s = shell.ctx.store;
+    await s.set("ch.bus.stream.delay.ms", 4);
+    await s.set("ch.bus.stream.delay.frameRate", "25");
+    await s.set("setup.outputPatch.mainOut", "MIX 1");
+    await s.set("scene.Standard.1.title", "take one");
     await storeScene(shell.ctx, "Standard", 1);
-    await shell.ctx.store.set("scene.Standard.1.title", "take one");
-    await shell.ctx.store.set("ch.bus.stream.delay.ms", 18);
+    await s.set("ch.bus.stream.delay.ms", 18);
+    await s.set("ch.bus.stream.delay.frameRate", "30");
+    await s.set("setup.outputPatch.mainOut", "STEREO");
     await recallScene(shell.ctx, 1);
-    expect(shell.ctx.store.num("ch.bus.stream.delay.ms", 99)).toBe(18);
-    const stored = Object.keys(JSON.parse(shell.ctx.store.str("scene.Standard.1.state", "{}")) as object);
-    expect(stored.filter((p) => p.startsWith("ch.bus.stream")), "and the stored copy holds none of it").toEqual([]);
-    expect(stored, "which is not how it holds the stereo bus").toContain("ch.bus.stereo.level");
+    expect([s.num("ch.bus.stream.delay.ms", 99), s.str("setup.outputPatch.mainOut", ""), s.str("ch.bus.stream.delay.frameRate", "")]).toEqual([4, "MIX 1", "30"]);
+    const stored = Object.keys(JSON.parse(s.str("scene.Standard.1.state", "{}")) as object);
+    expect(stored.filter((p) => p.endsWith(".frameRate") || p.endsWith(".cue") || p === "setup.outputPatch.tab"), "and the stored copy holds none of what it leaves").toEqual([]);
+  });
+
+  it.each(["a scene recall", "a settings file load"] as const)("leaves every [CUE] where it stands on %s", async (route) => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    await s.set("ch.ch1.cue", true);
+    await s.set("scene.Standard.1.title", "CH 1 cued");
+    await storeScene(shell.ctx, "Standard", 1);
+    const file = captureSettings(s);
+    expect(Object.keys(file).filter((p) => p.endsWith(".cue")), "a settings file holds no [CUE]").toEqual([]);
+    await s.set("ch.ch1.cue", false);
+    await s.set("ch.ch2.cue", true);
+    if (route === "a scene recall") await recallScene(shell.ctx, 1);
+    else await applySettings(s, { ...file, "ch.ch1.cue": true, "ch.ch2.cue": false });
+    expect([s.bool("ch.ch1.cue", true), s.bool("ch.ch2.cue", false)]).toEqual([false, true]);
   });
 
   it("puts the sends into a bus on Pan Link where their sources are, whatever the stored scene holds", async () => {
