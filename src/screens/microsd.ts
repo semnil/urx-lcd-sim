@@ -357,7 +357,7 @@ function iconAction(label: string, icon: SVGSVGElement, usable: boolean, onTap: 
   return markShut(node, !usable);
 }
 
-/** Put a changed card back, the cursor and the file playback holds going with their entries, and draw it as it now stands. */
+/** Put a changed card back, the cursor going with its entry, and draw it as it now stands. */
 function updateCard(ctx: AppContext, entries: readonly (CardEntry | undefined)[]): void {
   void changeCard(ctx.store, entries);
   ctx.repaint();
@@ -1042,7 +1042,7 @@ export function emulateCardOp(ctx: AppContext, op: Exclude<UnitOp, { kind: `scen
       const row = rowOf(ctx, op.file);
       const entry = entries[row];
       if (!entry) return false;
-      // The file, the cursor and playback go in one operation of the store.
+      // The file and the cursor go in one operation of the store.
       store.operation(() => {
         void store.set(filePath(entry), "");
         // The cursor goes on to the next entry of the same folder, else back to

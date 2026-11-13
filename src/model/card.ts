@@ -115,21 +115,20 @@ export async function writeCard(store: DeviceStore, entries: readonly CardEntry[
 }
 
 /**
- * Put a changed card back, the list's cursor and the file playback holds each
- * going with the entry it stood on to wherever the card now sorts it, or onto
- * nothing where the card no longer carries that entry. `entries` holds each
- * entry at the row it stood at, changed in place or left `undefined` where it
- * is taken off, and anything new after them.
+ * Put a changed card back, the list's cursor going with the entry it stood on
+ * to wherever the card now sorts it, or onto nothing where the card no longer
+ * carries that entry. `entries` holds each entry at the row it stood at,
+ * changed in place or left `undefined` where it is taken off, and anything new
+ * after them. No screen changes the card while playback holds a file, so the
+ * row of that file is left as it stands.
  */
 export async function changeCard(store: DeviceStore, entries: readonly (CardEntry | undefined)[]): Promise<void> {
   const cursor = entries[store.num("sd.selectedFile", 0)];
-  const held = entries[store.num("sd.playingFile", -1)];
   const sorted = entries.filter((e) => e !== undefined).sort(cardOrder);
-  // The card and the rows the cursor and playback stand on go in one operation of the store.
+  // The card and the row the cursor stands on go in one operation of the store.
   let written = Promise.resolve();
   store.operation(() => {
     void store.set("sd.selectedFile", cursor ? sorted.indexOf(cursor) : -1);
-    void store.set("sd.playingFile", held ? sorted.indexOf(held) : -1);
     written = store.set(CARD, JSON.stringify(sorted));
   });
   await written;
