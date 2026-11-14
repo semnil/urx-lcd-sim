@@ -33,6 +33,8 @@ import { toggleCue } from "./cue";
 import { COMP_EQ_SSMCS, channelLabel, eqShut, phasePath, runsSsmcs, selectStrip, selectedStripId, sendsTarget, stepChannel, stripColor, stripLane, stripLanes } from "./strip-state";
 import type { ScreenBody, ScreenDef } from "./types";
 import { setSpokenAttr } from "../ui/spoken";
+import { EQ_TYPES, GEQ_BANDS, GEQ_LIMITS, carriesGeq, geqBandPath, geqLimitPath, geqOnPath, geqOverRate, type EqType } from "../model/geq";
+import { eqTypeOf, geqLimitOf, geqSide, runsGeq, setEqType, setGeqLimit } from "./geq";
 
 /** What a channel screen shows when the route names no channel. */
 export function noChannel(): ScreenBody {
@@ -285,6 +287,37 @@ export function block(
  * it at 100 Hz, 1 kHz and 10 kHz and one across the middle, with the curve the
  * EQ screen draws. A band switched off adds nothing.
  */
+/**
+ * The GEQ area's summary of one side (p104-1): a slot for each of the 31 bands,
+ * 2px apart, with a 2px mark at the band's gain — 0 dB on the middle row, and
+ * 18px for 15 dB either way, held to the slot's ends.
+ */
+function geqThumb(ctx: AppContext, strip: Strip): SVGSVGElement {
+  const W = 80;
+  const H = 44;
+  const ZERO = 21;
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("class", "geq-thumb");
+  svg.setAttribute("aria-hidden", "true");
+  const side = geqSide(ctx, strip);
+  GEQ_BANDS.forEach((_, band) => {
+    const x = 9 + 2 * band;
+    const slot = document.createElementNS(ns, "rect");
+    for (const [k, v] of [["x", x], ["y", 3], ["width", 1], ["height", 38]] as const) slot.setAttribute(k, String(v));
+    slot.setAttribute("class", "geq-slot");
+    svg.appendChild(slot);
+    const db = ctx.store.num(geqBandPath(`ch.${strip.id}`, side, band), 0);
+    const mark = document.createElementNS(ns, "rect");
+    const y = Math.min(39, Math.max(3, Math.round(ZERO - db * 1.2)));
+    for (const [k, v] of [["x", x], ["y", y], ["width", 2], ["height", 1]] as const) mark.setAttribute(k, String(v));
+    mark.setAttribute("class", "geq-mark");
+    svg.appendChild(mark);
+  });
+  return svg;
+}
+
 function eqThumb(ctx: AppContext, stripId: string): HTMLElement {
   const W = 78;
   const H = 42;
@@ -615,7 +648,14 @@ export const channelViewScreen: ScreenDef = {
         }),
       );
     } else if (strip.kind === "mix" || strip.kind === "stereo") {
-      blocks.push(eqBlock(), insFxBlock());
+      // A bus on Flex12GEQ shows its GEQ area where the EQ area stands. The
+      // switch is the side's own [GEQ]; touching the area opens nothing yet.
+      blocks.push(
+        runsGeq(ctx, strip)
+          ? block(ctx, "GEQ", "geq", geqOnPath(base, geqSide(ctx, strip)), true, el("div", { class: "cv-geq", children: [geqThumb(ctx, strip)] }), () => undefined)
+          : eqBlock(),
+        insFxBlock(),
+      );
     } else if (strip.kind === "fx") {
       blocks.push(fxBlock());
     }
@@ -832,17 +872,25 @@ export const chSettingScreen: ScreenDef = {
         );
       }
     }
+    // The stereo bus and the MIX buses pick their EQ Type where a mono channel
+    // picks COMP / EQ. Over 48 kHz the unit drops the item, since Flex12GEQ cannot
+    // run there.
+    if (carriesGeq(strip) && !geqOverRate(ctx.store.num("setup.samplingFrequency", 48000))) {
+      children.push(
+        field(
+          "EQ Type",
+          "eqtype",
+          pulldown(ctx, eqTypeOf(ctx, strip), EQ_TYPES, (v) => setEqType(ctx, strip, v as EqType), {
+            path: `${base}.eqType`,
+            writes: (v) => ctx.store.writesOf(() => setEqType(ctx, strip, v as EqType)),
+            label: "EQ Type",
+          }),
+        ),
+      );
+    }
     // A MIX bus carries what its sends are given: the type they are taken at,
     // and whether they are placed by their source channel.
     if (strip.kind === "mix") {
-      const fixed = busType(ctx, strip) === "FIXED";
-      const linked = panLinkOn(ctx, strip);
-      const panLink = writes(toggle("Pan Link", linked, () => {
-        if (!fixed) setPanLink(ctx, strip, !linked);
-      }, "panlink-btn"), `${base}.panLink`);
-      // Pan Link works on a bus taking variable send levels, so a FIXED bus
-      // keeps the button in place and out of reach.
-      if (fixed) panLink.setAttribute("aria-disabled", "true");
       children.push(
         field(
           "BUS Type",
@@ -854,8 +902,33 @@ export const chSettingScreen: ScreenDef = {
             listClass: "chs-bustype-list",
           }),
         ),
-        el("div", { class: `chs-panlink${fixed ? " is-locked" : ""}`, children: [panLink] }),
       );
+    }
+    // GEQ Limit is the side's in view, and stands only while the bus runs Flex12GEQ.
+    if (runsGeq(ctx, strip)) {
+      const side = geqSide(ctx, strip);
+      children.push(
+        field(
+          "GEQ Limit",
+          "geqlimit",
+          pulldown(ctx, geqLimitOf(ctx, strip, side), GEQ_LIMITS, (v) => setGeqLimit(ctx, strip, side, v), {
+            path: geqLimitPath(base, side),
+            writes: (v) => ctx.store.writesOf(() => setGeqLimit(ctx, strip, side, v)),
+            label: "GEQ Limit",
+          }),
+        ),
+      );
+    }
+    if (strip.kind === "mix") {
+      const fixed = busType(ctx, strip) === "FIXED";
+      const linked = panLinkOn(ctx, strip);
+      const panLink = writes(toggle("Pan Link", linked, () => {
+        if (!fixed) setPanLink(ctx, strip, !linked);
+      }, "panlink-btn"), `${base}.panLink`);
+      // Pan Link works on a bus taking variable send levels, so a FIXED bus
+      // keeps the button in place and out of reach.
+      if (fixed) panLink.setAttribute("aria-disabled", "true");
+      children.push(el("div", { class: `chs-panlink${fixed ? " is-locked" : ""}`, children: [panLink] }));
     }
     return {
       main: el("div", { class: "chs-main", children }),

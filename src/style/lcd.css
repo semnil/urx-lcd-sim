@@ -1842,7 +1842,9 @@
   color: var(--text);
 }
 
-.badge.badge-switch.badge-eq.is-on {
+/* GEQ lights in the EQ's green (p104-1). */
+.badge.badge-switch.badge-eq.is-on,
+.badge.badge-switch.badge-geq.is-on {
   background: var(--block-eq);
 }
 
@@ -5235,6 +5237,26 @@
   stroke: var(--eq-line);
 }
 
+/* The GEQ area's summary stands a pixel further out than the EQ curve on every
+ * side: x301..380 / y84..127 against the EQ's x302..379 / y85..126 (p104-1,
+ * p095-1). */
+.geq-thumb {
+  display: block;
+  margin: 1px -1px -1px;
+  width: 80px;
+  height: 44px;
+  background: var(--graph-bg);
+  border-radius: var(--radius-md);
+}
+
+.geq-slot {
+  fill: var(--geq-slot);
+}
+
+.geq-mark {
+  fill: var(--geq-mark);
+}
+
 .eq-thumb-core {
   stroke: currentColor;
 }
@@ -5472,13 +5494,19 @@
 }
 
 .chs-rec-field,
-.chs-comp-field {
+.chs-comp-field,
+.chs-eqtype-field {
   top: 55px;
 }
 
 .chs-bustype-field,
 .chs-signal-field {
   top: 107px;
+}
+
+/* GEQ Limit stands under BUS Type, on the row Pan Link stands on (p098-2). */
+.chs-geqlimit-field {
+  top: 159px;
 }
 
 .chs-color-field {
@@ -5504,12 +5532,14 @@
 }
 
 .chs-bustype-field,
-.chs-rec-field {
+.chs-rec-field,
+.chs-geqlimit-field {
   width: 211px;
 }
 
 .chs-comp-field,
-.chs-signal-field {
+.chs-signal-field,
+.chs-eqtype-field {
   width: 451px;
 }
 
@@ -9730,7 +9760,8 @@
   --pb-band: var(--badge-band-comp);
 }
 
-.lcd .badge.badge-switch.badge-eq.is-on {
+.lcd .badge.badge-switch.badge-eq.is-on,
+.lcd .badge.badge-switch.badge-geq.is-on {
   --pb-a: var(--corner-badge-eq-a);
   --pb-b: var(--corner-badge-eq-b);
   --pb-c: var(--corner-badge-eq-c);
