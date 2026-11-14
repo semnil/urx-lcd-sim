@@ -23,6 +23,7 @@ import { INTEGRATION_DAW } from "../model/types";
 import { dropInsertsOverRate } from "./insert-fx";
 import { holdsFile, recordMode, releaseOnRateChange } from "./recording";
 import { dropSendsOverRate } from "./effect-params";
+import { dropGeqOverRate } from "./geq";
 
 /** The commit the simulator was built from, shortened. The build defines it (vite.config.ts), and so does a
  *  host that bundles this source; where neither does, APP Version reads "unknown". */
@@ -537,13 +538,14 @@ export const samplingRateScreen: ScreenDef = {
     // and keeps showing it lit; the row simply cannot be used until the switch
     // is turned off again.
     const rates = SAMPLING_RATES.map((hz) => {
-      // The frequency and what it takes off the inserts, the recorder, playback and HOME's [Sends] are one operation
+      // The frequency and what it takes off the inserts, Flex12GEQ, the recorder, playback and HOME's [Sends] are one operation
       // of the store.
       const pick = (): void => {
         if (followUsb) return;
         ctx.store.operation(() => {
           void ctx.store.set("setup.samplingFrequency", hz);
           dropInsertsOverRate(ctx, hz);
+          dropGeqOverRate(ctx, hz);
           dropTracksOverRate(ctx.store, hz);
           releaseOnRateChange(ctx.store, current, hz);
           dropSendsOverRate(ctx.store, ctx.model, hz);

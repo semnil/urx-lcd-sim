@@ -39,6 +39,7 @@ import { URX22, URX44V, monoStripId } from "../model/units";
 import { LEVEL_MIN_DB } from "../ui/param-spec";
 import { jackParam, micLineJack } from "./head-amp";
 import { compDetectorShared, linkedPair, stripPosition, usesBalance } from "./stereo-link";
+import { runsGeq } from "./geq";
 
 /** What the flow needs of a screen's context: the values and the unit's shape. */
 export type FlowCtx = { store: DeviceStore; model: UnitModel };
@@ -823,7 +824,10 @@ function busesOut(f: FlowBuilder, base: Sums, ducking: Ducking): void {
   for (const s of buses) {
     const b = `ch.${s.id}`;
     const sum = f.put(s.id, "sum", sums.total(s.id, 2));
-    const pre = f.put(s.id, "preFader", sum.map((lane) => through(lane, eqOf(store, b))));
+    // A bus on Flex12GEQ runs it in place of its 4-band EQ. The signal does not
+    // model the GEQ's bands yet, so the bus passes it flat.
+    const eq = runsGeq(fc, s) ? FLAT : eqOf(store, b);
+    const pre = f.put(s.id, "preFader", sum.map((lane) => through(lane, eq)));
     const [l, r] = panLawDb(store.num(`${b}.balance`, 0));
     const into = f.put(s.id, "preIns", f.on(s) ? pre.map((lane, i) => gain(lane, f.fader(s) + (i === 0 ? l : r))) : [[], []]);
     f.carryOver(s.id, pre, "preIns");

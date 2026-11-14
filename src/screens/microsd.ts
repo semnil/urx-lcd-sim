@@ -37,6 +37,7 @@ import type { TitleDraft } from "./title-entry";
 import { draftTitle, titleEntryScreen } from "./title-entry";
 import type { ScreenBody, ScreenDef } from "./types";
 import { fromJson, toJson } from "../device/value-json";
+import { dropGeqOverRate } from "./geq";
 
 
 /** The microSD top's menu, which the line saying there is no card stands in when the slot is empty. */
@@ -493,6 +494,7 @@ function putBackSettings(ctx: AppContext, held: string): void {
     settlePanLink(ctx);
     const rate = ctx.store.num("setup.samplingFrequency", 48000);
     dropInsertsOverRate(ctx, rate);
+    dropGeqOverRate(ctx, rate);
     dropTracksOverRate(ctx.store, rate);
     dropSendsOverRate(ctx.store, ctx.model, rate);
     followSceneCursor(ctx);
