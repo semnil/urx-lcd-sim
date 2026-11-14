@@ -15,6 +15,7 @@ import { findStrip } from "../model/types";
 import { CH_COLOR_NONE, CH_COLOR_OFF, CH_COLOR_PALETTE } from "../model/units";
 import { aimOf, aimed, el, lockable, makeTappable, setPressed, writes, writing } from "../ui/dom";
 import { inkOn } from "../ui/color";
+import type { LockTarget } from "../ui/locks";
 import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
 import { compRatioSpec, faderSpec, fineGainSpec, freqSpec, intSpec, logFreqSpec, msSpec, panSpec, stoppedMsSpec, wholeDbSpec } from "../ui/param-spec";
@@ -29,9 +30,9 @@ import { inputSourceSheet, sourceBoxLabel } from "./input-source";
 import { NO_EFFECT, insertBase } from "./insert-fx";
 import { effectSettingsScreen, fxShutOut, insFxScreen, openEffectParams } from "./effect-params";
 import { ssmcsArea } from "./ssmcs";
-import { hasSend, openSend } from "./send";
+import { hasSend, openSend, sendScreenOf } from "./send";
 import { toggleCue } from "./cue";
-import { COMP_EQ_SSMCS, channelLabel, eqShut, phasePath, runsSsmcs, selectStrip, selectedStripId, sendsTarget, stepChannel, stripColor, stripLane, stripLanes } from "./strip-state";
+import { COMP_EQ_SSMCS, channelLabel, eqShut, phasePath, runsSsmcs, selectStrip, selectedStripId, sendsTarget, stepChannel, steppedChannel, stripColor, stripLane, stripLanes } from "./strip-state";
 import type { ScreenBody, ScreenDef } from "./types";
 import { setSpokenAttr } from "../ui/spoken";
 import { EQ_TYPES, GEQ_BANDS, GEQ_LIMITS, carriesGeq, geqBandPath, geqLimitPath, geqOnPath, geqOverRate, type EqType } from "../model/geq";
@@ -167,11 +168,22 @@ export function titleBox(label: string, extraClass = ""): HTMLElement {
   return el("div", { class: `badge badge-title badge-plain ${extraClass}`.trim(), text: label });
 }
 
-/** The "‹ CH 1 ›" selector every channel screen carries in its toolbar. */
-export function channelSelector(ctx: AppContext, strip: Strip, route: Route, narrow = false): HTMLElement {
-  const move = (delta: number): void => {
-    const next = stepChannel(ctx, delta, strip);
-    ctx.nav.stepStrip(next.id);
+/**
+ * The "‹ CH 1 ›" selector every channel screen carries in its toolbar. Where an
+ * arrow lands on another screen than this one, `landsOn` names it, so a page
+ * holding that screen shut holds the arrow shut.
+ */
+export function channelSelector(
+  ctx: AppContext,
+  strip: Strip,
+  route: Route,
+  narrow = false,
+  landsOn?: (next: Strip) => LockTarget | undefined,
+): HTMLElement {
+  const move = (delta: -1 | 1): (() => void) => {
+    const step = (): void => ctx.nav.stepStrip(stepChannel(ctx, delta, strip).id);
+    const aim = landsOn?.(steppedChannel(ctx, delta, strip));
+    return aim === undefined ? step : aimed(step, aim);
   };
   // The name opens the screen that sets it on the screen a channel opens on,
   // the one that carries the copy mark. On the screens under it and on CH
@@ -185,7 +197,7 @@ export function channelSelector(ctx: AppContext, strip: Strip, route: Route, nar
   return el("div", {
     class: "ch-selector",
     children: [
-      el("button", { class: "ch-arrow", children: [Icons.chevronLeft()], onTap: () => move(-1), attrs: { "aria-label": "Previous channel" } }),
+      el("button", { class: "ch-arrow", children: [Icons.chevronLeft()], onTap: move(-1), attrs: { "aria-label": "Previous channel" } }),
       el("button", {
         class: `ch-chip${narrow ? " is-narrow" : ""}`,
         style: { "--rail": colour },
@@ -205,7 +217,7 @@ export function channelSelector(ctx: AppContext, strip: Strip, route: Route, nar
           opens ? el("span", { class: "ch-chip-copy", children: [Icons.copy()] }) : null,
         ],
       }),
-      el("button", { class: "ch-arrow", children: [Icons.chevronRight()], onTap: () => move(1), attrs: { "aria-label": "Next channel" } }),
+      el("button", { class: "ch-arrow", children: [Icons.chevronRight()], onTap: move(1), attrs: { "aria-label": "Next channel" } }),
     ],
   });
 }
@@ -645,10 +657,7 @@ export const channelViewScreen: ScreenDef = {
 
     const sendTo = el("button", {
       class: "cv-sendto",
-      onTap: aimed(() => openSend(ctx, strip), [
-        { kind: "screen", id: "ch.sendto" },
-        { kind: "screen", id: "ch.sendfrom" },
-      ]),
+      onTap: aimed(() => openSend(ctx, strip), { kind: "screen", id: sendScreenOf(ctx, strip) ?? "ch.sendto" }),
       children: [el("span", { class: "cv-sendto-icon", children: [Icons.sendTo()] }), el("span", { text: "SEND" })],
     });
 

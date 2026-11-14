@@ -15,7 +15,7 @@ import { meterLevels, setMeterSource, startMeterTicker } from "./meters";
 import { storeScene } from "./scene";
 import { captureSettings, inSettingsFile } from "../model/settings-file";
 import { declarations, declarationsOn, px, readBack, readStyle } from "../style/css-read";
-import { INTERACTIVE } from "../ui/dom";
+import { INTERACTIVE, LOCKED_CLASS } from "../ui/dom";
 import { SHORT_PROGRESS_MS, dialog } from "../ui/widgets";
 import { udkAssignment } from "../model/udk";
 import { openDateTimeSet, openTimeZone } from "./date-time";
@@ -1719,6 +1719,71 @@ describe("the SEND screen", () => {
 
   it("starts on SEND TO's first page when the unit is switched on", () => {
     expect(["ui.sendView", "ui.sendToPage", "ui.sendFromPage"].map(persisted)).toEqual([false, false, false]);
+  });
+
+  it("holds [SEND] shut only where the page holds the screen it opens", async () => {
+    const shell = await mount();
+    const hold = (id: string): void => shell.setLocks([{ target: { kind: "screen", id }, reason: "Held by the page" }]);
+    const opens = async (strip: string): Promise<{ shut: boolean; opened: string }> => {
+      shell.ctx.nav.home();
+      shell.ctx.nav.push({ id: "channel-view", strip });
+      await flush();
+      const send = shell.root.querySelector<HTMLElement>(".cv-sendto");
+      const shut = send?.classList.contains(LOCKED_CLASS) ?? false;
+      send?.click();
+      await flush();
+      return { shut, opened: shell.ctx.nav.current.id };
+    };
+    // CH 1 opens SEND TO and the stereo bus SEND FROM: each is held by that screen alone.
+    hold("ch.sendfrom");
+    expect(await opens("ch1")).toEqual({ shut: false, opened: "ch.sendto" });
+    expect(await opens("bus.stereo")).toEqual({ shut: true, opened: "channel-view" });
+    hold("ch.sendto");
+    expect(await opens("ch1")).toEqual({ shut: true, opened: "channel-view" });
+    expect(await opens("bus.stereo")).toEqual({ shut: false, opened: "ch.sendfrom" });
+    // A MIX bus opens the view last shown, and is held by that view's screen.
+    expect(await opens("bus.mix1")).toEqual({ shut: true, opened: "channel-view" });
+    await shell.ctx.store.set("ui.sendView", "from");
+    expect(await opens("bus.mix1")).toEqual({ shut: false, opened: "ch.sendfrom" });
+  });
+
+  it("holds a channel arrow shut where the strip it steps to shows the view the page holds shut", async () => {
+    const shell = await mount();
+    const hold = (id: string): void => shell.setLocks([{ target: { kind: "screen", id }, reason: "Held by the page" }]);
+    const arrow = (name: string): HTMLElement | null => shell.root.querySelector<HTMLElement>(`.ch-arrow[aria-label="${name}"]`);
+    const shut = (): boolean[] => ["Previous channel", "Next channel"].map((n) => arrow(n)?.classList.contains(LOCKED_CLASS) ?? false);
+    const step = async (name: string): Promise<void> => {
+      arrow(name)?.click();
+      await flush();
+    };
+
+    // From MIX 2 R on SEND TO the next channel is the stereo bus, which shows SEND FROM.
+    await shell.ctx.store.set("ui.lane.bus.mix2", 1);
+    shell.ctx.nav.push({ id: "ch.sendto", strip: "bus.mix2" });
+    await flush();
+    hold("ch.sendfrom");
+    expect(shut()).toEqual([false, true]);
+    await step("Next channel");
+    expect(shell.ctx.nav.current).toEqual({ id: "ch.sendto", strip: "bus.mix2" });
+    expect(cells(shell)).toEqual(["STEREO"]);
+    shell.setLocks([]);
+    await step("Next channel");
+    expect(shell.ctx.nav.current).toEqual({ id: "ch.sendto", strip: "bus.stereo" });
+    expect(cells(shell)).toEqual(["CH 1", "CH 2", "CH 3", "CH 4"]);
+
+    // From the streaming bus, which has no SEND, the next channel is CH 1, which shows SEND TO.
+    shell.ctx.nav.home();
+    await shell.ctx.store.set("ui.lane.bus.stream", 1);
+    shell.ctx.nav.push({ id: "ch.sendfrom", strip: "bus.stream" });
+    await flush();
+    hold("ch.sendto");
+    expect(shut()).toEqual([false, true]);
+    await step("Next channel");
+    expect(shell.ctx.nav.current).toEqual({ id: "ch.sendfrom", strip: "bus.stream" });
+    shell.setLocks([]);
+    await step("Next channel");
+    expect(shell.ctx.nav.current).toEqual({ id: "ch.sendfrom", strip: "ch1" });
+    expect(cells(shell)).toEqual(["MIX 1", "MIX 2"]);
   });
 
   it("shows a strip with no sends that it has no SEND screen", async () => {

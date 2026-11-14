@@ -70,10 +70,15 @@ function viewOf(ctx: AppContext, strip: Strip, asked: SendView): SendView | unde
   return views.includes(asked) ? asked : views[0];
 }
 
+/** The screen the channel view's [SEND] opens: the view last shown, where the strip has it. */
+export function sendScreenOf(ctx: AppContext, strip: Strip): string | undefined {
+  const view = viewOf(ctx, strip, ctx.store.str(VIEW_PATH, "to") === "from" ? "from" : "to");
+  return view === undefined ? undefined : SCREEN[view];
+}
+
 /** The channel view's [SEND]: the SEND screen on the view last shown, where the strip has it. */
 export function openSend(ctx: AppContext, strip: Strip): void {
-  const view = viewOf(ctx, strip, ctx.store.str(VIEW_PATH, "to") === "from" ? "from" : "to");
-  if (view === "from") ctx.nav.push({ id: "ch.sendfrom", strip: strip.id });
+  if (sendScreenOf(ctx, strip) === "ch.sendfrom") ctx.nav.push({ id: "ch.sendfrom", strip: strip.id });
   else ctx.nav.push({ id: "ch.sendto", strip: strip.id });
 }
 
@@ -197,10 +202,15 @@ function sendScreen(asked: SendView): ScreenDef {
     build(ctx: AppContext, route: Route): ScreenBody {
       const strip = routeStrip(ctx, route);
       if (!strip) return noChannel();
-      if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
-      // A strip the arrows step to that lacks the view in use shows the one it has.
+      // A strip the arrows step to that lacks the view in use shows the one it
+      // has, so an arrow onto it lands on the other view's screen.
+      const selector = channelSelector(ctx, strip, route, true, (next) => {
+        const lands = viewOf(ctx, next, asked);
+        return lands === undefined || lands === asked ? undefined : { kind: "screen", id: SCREEN[lands] };
+      });
+      if (fxShutOut(ctx, strip)) return { ...notAvailable(ctx, strip, route), headerLeft: selector };
       const shown = viewOf(ctx, strip, asked);
-      if (!shown) return noBlock(ctx, strip, route, "SEND");
+      if (!shown) return { ...noBlock(ctx, strip, route, "SEND"), headerLeft: selector };
       const pages = shown === "to" ? sendToPages(ctx.model, strip) : sendFromPages(ctx.model, strip);
       const page = Math.min(pages.length - 1, Math.max(0, Math.trunc(ctx.store.num(PAGE_PATH[shown], 0))));
       const cards = pages[page] ?? [];
@@ -216,7 +226,7 @@ function sendScreen(asked: SendView): ScreenDef {
           ],
         }),
         side: sideMenu(ctx, strip, shown),
-        headerLeft: channelSelector(ctx, strip, route, true),
+        headerLeft: selector,
         headerCenter: titleBox("SEND"),
       };
     },

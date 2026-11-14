@@ -107,7 +107,7 @@ export interface DeviceLink {
 | 対象 | 使えなくなるもの |
 | --- | --- |
 | `{ kind: "path", path }` | そのパスに書くコントロール。値ボックス・ノブ・フェーダー・スイッチ・プルダウン・その値を選ぶシートを開くボタン。複数のパスに書くコントロールは、そのすべてを名乗り、ページがどれか 1 つでも使えなくすれば使えなくなる。 |
-| `{ kind: "screen", id }` | その route id の画面を開くボタン。HOME の `setup` / `microsd` / `monitor`、SETUP の項目 (`setup.language`、`setup.rate` など)、microSD の項目 (`microsd.saveload` など)、チャンネルのブロック (`ch.eq` など)。 |
+| `{ kind: "screen", id }` | その route id の画面を開くボタン。HOME の `setup` / `microsd` / `monitor`、SETUP の項目 (`setup.language`、`setup.rate` など)、microSD の項目 (`microsd.saveload` など)、チャンネルのブロック (`ch.eq` など)、[SEND] (開くビューの画面。`ch.sendto` / `ch.sendfrom`)。SEND 画面のチャンネルの矢印のうち、もう一方のビューを出すストリップへ移るものは、そのビューの画面で止まる。 |
 | `{ kind: "op", op }` | 本体にその操作を渡すボタン (`UnitOp["kind"]`。`scene.recall`、`recorder.arm`、`card.eject` など)。状態ごとに渡す操作が変わるトランスポートのボタンは、いま押したときに渡す操作で決まる。 |
 
 - 使えなくしたコントロールは、使えないコントロールの見た目 (`is-disabled`、`aria-disabled="true"`) と
