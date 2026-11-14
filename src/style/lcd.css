@@ -1419,9 +1419,28 @@
   left: 75px;
 }
 
-.chs-bustype-list .dropdown-option {
+.chs-bustype-list .dropdown-option,
+.chs-eqtype-list .dropdown-option,
+.chs-geqlimit-list .dropdown-option {
   min-width: 136px;
   min-height: 31px;
+}
+
+/* EQ Type's list hangs under its box (x317..452 / y105..144), as BUS Type's
+ * does, its frame two pixels out from the box's left edge (confirmed on a
+ * URX44V). */
+.chs-eqtype-list {
+  top: 146px;
+  left: 315px;
+}
+
+/* GEQ Limit's list opens beside its box (x77..212 / y209..248), its foot level
+ * with the box's foot and its head above the middle of the glass (confirmed on
+ * a URX44V). */
+.chs-geqlimit-list {
+  top: auto;
+  bottom: 24px;
+  left: 214px;
 }
 
 /* The ducker's key list: short names three rows by eight, hanging under the box

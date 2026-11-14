@@ -884,6 +884,7 @@ export const chSettingScreen: ScreenDef = {
             path: `${base}.eqType`,
             writes: (v) => ctx.store.writesOf(() => setEqType(ctx, strip, v as EqType)),
             label: "EQ Type",
+            listClass: "chs-eqtype-list",
           }),
         ),
       );
@@ -915,6 +916,7 @@ export const chSettingScreen: ScreenDef = {
             path: geqLimitPath(base, side),
             writes: (v) => ctx.store.writesOf(() => setGeqLimit(ctx, strip, side, v)),
             label: "GEQ Limit",
+            listClass: "chs-geqlimit-list",
           }),
         ),
       );
