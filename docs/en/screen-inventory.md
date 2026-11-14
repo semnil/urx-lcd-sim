@@ -96,7 +96,6 @@ were before V1.5.
 | Screen or part | Screen ID | Ref. | Status |
 | --- | --- | --- | --- |
 | Recall Safe (SCENE) | — | p79-80 | Not built |
-| EQ Type and GEQ Limit (CH SETTING of STEREO and MIX), and the channel view's GEQ area | — | p97-98, p104 | Not built |
 | GEQ | — | p122-123 | Not built |
 | SEND (SEND TO and SEND FROM) | — | p125 | Not built. The screen is built as SEND TO, as it was before V1.5 |
 | Submenu | — | p36, p39 | Not built |
@@ -322,7 +321,8 @@ write are in one place, `src/screens/stereo-link.ts`.
 A MIX bus's CH SETTING carries two more rows under Color / Icon / Name (D0 p093-2). `BUS Type` is a
 136px pulldown on the third row, the row Signal Type takes (the box is x77..212 / y157..196 in
 D0 p093-2), and `Pan Link` is an 86px button on the fourth, where `PAN` / `BAL` stand (x317..402 /
-y209..248). The second row is empty. No other bus and no channel carries either.
+y209..248). The second row carries EQ Type ("Flex12GEQ on a bus" below). No other bus and no channel
+carries either.
 
 - `BUS Type` is `VARI` (a level per send) or `FIXED` (one fixed level), and ships on `VARI`. Its list
   opens under the box, with `FIXED`'s face meeting the foot of the glass.
@@ -348,6 +348,32 @@ y209..248). The second row is empty. No other bus and no channel carries either.
   URX22).
 
 The decision is in one place, `src/screens/mix-bus.ts`, and `src/screens/mix-bus.test.ts` pins it.
+
+## Flex12GEQ on a bus
+
+System firmware V1.5 lets the stereo bus and the MIX buses run Flex12GEQ, a 31-band graphic EQ, in
+place of their 4-band EQ (p97-98, p104).
+
+- CH SETTING of the stereo bus and of a MIX bus carries `EQ Type` on the second row, where a mono
+  channel's COMP / EQ stands (the box x317..452 / y105..144 in p098-2): `4band PEQ` or `Flex12GEQ`, shipping
+  on `4band PEQ`. While the bus runs Flex12GEQ, `GEQ Limit` stands on the fourth row under BUS Type
+  (x77..212 / y209..248 in p098-2): `±15dB`, `±12dB`, `±6dB` or `-24dB`, for the side in view (L or R), shipping on
+  `±15dB`. Coming and going, it moves no other field. Over 48 kHz EQ Type is left out, as the unit drops the item.
+- Taking Flex12GEQ switches the bus's EQ on, and on a MIX bus switches the GEQ Link off; going back to
+  4band PEQ changes nothing else. Each side holds its own [GEQ] switch and GEQ Limit (confirmed on a
+  URX44V). The simulator ships a MIX bus with its GEQ Link on, L to R, and the stereo bus with it off.
+- A narrower GEQ Limit pulls each band of the side into its window, `-24dB` taking every band above
+  0 dB to 0 dB, and a wider one leaves them where they were pulled to. While the GEQ Link is on, the
+  other side takes the same limit (confirmed on a URX44V).
+- At a sampling frequency over 48 kHz a bus on Flex12GEQ goes back to 4band PEQ with every band of
+  both sides at 0 dB, and stays there at a lower rate; its [GEQ] switches, limits and link stay as they
+  were (confirmed on a URX44V, at 88.2 kHz).
+- The channel view shows the GEQ area in place of the EQ area while the bus runs Flex12GEQ (p104-1).
+  Its badge is the side's [GEQ], in the EQ's green. Under it a panel a pixel larger than the EQ's
+  (x301..380 / y84..127, `--graph-bg`) holds a 1px slot for each band, 2px apart (x310..370 / y87..124,
+  `--geq-slot`), and on each slot a 2x1 mark at the band's gain (`--geq-mark`): 0 dB on y105, and 1.2px
+  to a dB, held to the slot's ends. Touching the area opens nothing yet: the GEQ screen is not built.
+- The signal the meters read passes a bus on Flex12GEQ flat: the GEQ's bands are not modelled yet.
 
 ## Knob readout bar
 

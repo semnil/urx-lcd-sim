@@ -101,7 +101,9 @@ PY
 | `--well-deep` | `#191819` | The value box on the PAN / LEVEL panel |
 | `--surface-sunk` | `#31393a` | The panel PAN / LEVEL sit on |
 | `--surface-on-sunk` | `#5a656b` | The face of MONITOR's [Source] (x6..95 / y112..151 in p070-1) and of a RECORDER slot's source button (x319..388 / y184..220 in p084-2) |
-| `--graph-bg` | `#212021` | The panel the EQ / COMP curve is drawn on |
+| `--graph-bg` | `#212021` | The panel the EQ / COMP curve is drawn on, and the GEQ area's (x301..380 / y84..127 in p104-1) |
+| `--geq-slot` | `#4a494a` | A band's 1px slot in the GEQ area (x310 / y87..124 in p104-1) |
+| `--geq-mark` | `#9cf36b` | A band's 2x1 gain mark in the GEQ area (x310..311 / y105 in p104-1) |
 | `--graph-grid` | `#4a515a` | The rule drawn at 0 dB on that panel (x180 / y86 in p105-1) |
 | `--graph-grid-lit` | `#63695a` | That rule where it crosses the fill under the curve (x180 / y150 in p109-1) |
 | `--handle-arrow` | `#ce0484` | The triangles on both sides of the way a handle holding the focus moves (x141..147 / y93..100 in D0 p103-1) |
