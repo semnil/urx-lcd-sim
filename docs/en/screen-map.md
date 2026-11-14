@@ -39,6 +39,7 @@ flowchart LR
   CV --> COMP["COMP<br>(ch.comp)"]
   CV --> EQ["EQ<br>(ch.eq)"]
   CV --> DUCK["DUCKER<br>(ch.ducker)"]
+  CV --> GEQ["GEQ<br>(ch.geq)"]
   CV --> DLY["DELAY<br>(ch.delay)"]
   CV --> SENDTO["SEND TO<br>(ch.sendto)"]
   CV --> INS["INS FX<br>(ch.insfx)"]

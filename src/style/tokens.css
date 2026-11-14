@@ -56,7 +56,18 @@
   --well-deep: #191819; /* the value box on that panel */
   --graph-bg: #212021; /* the panel an EQ curve is drawn on */
   --geq-slot: #4a494a; /* a band's slot in the GEQ area's summary */
-  --geq-mark: #9cf36b; /* a band's gain mark in the GEQ area's summary */
+  --geq-mark: #9cf36b; /* a band's gain mark in the GEQ area's summary, and the GEQ screen's curve */
+  --geq-curve-alpha: 0.72; /* how much of the panel shows through that curve */
+  --geq-fill: #73de4a33; /* the area between the GEQ screen's curve and its 0 dB line */
+  --geq-zero: #dedfde; /* the 0 dB line across the GEQ graph */
+  --geq-dot: #d6d7d6; /* a band's dot on the GEQ graph */
+  --geq-dot-held: #d6419c; /* the dot of the band holding the focus */
+  --geq-window: #9695966b; /* over the bands the sliders show, and the slider holding the focus */
+  --geq-rule: #5a5d5a; /* the gain rules across the GEQ sliders, and the line down each slider */
+  --geq-tick: #a5a6a5; /* the gains named beside those rules */
+  --geq-bar: #00940e6b; /* a slider's bar from 0 dB to its box */
+  --geq-box-held: #5a595a; /* the face of the slider box holding the focus */
+  --geq-link-mark: #adaead; /* the copy mark in [GEQ Link]'s corner */
   --shape-box: #212421; /* the face of the EQ screen's filter shape box */
   --shape-box-edge: #636973; /* the 1px line round that box */
   --oneknob-band: #3a3942; /* the band under [1 1-knob] while it is off */

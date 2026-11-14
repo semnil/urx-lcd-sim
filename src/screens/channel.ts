@@ -66,7 +66,7 @@ export function carriesBlock(ctx: AppContext, strip: Strip, block: Block): boole
  * the channel's name in the toolbar, no title, a line saying so in the middle,
  * the knob readout strip with its cells empty, and nothing to operate.
  */
-export function noBlock(ctx: AppContext, strip: Strip, route: Route, block: Block, atRate = false): ScreenBody {
+export function noBlock(ctx: AppContext, strip: Strip, route: Route, block: Block | "GEQ", atRate = false): ScreenBody {
   return {
     main: el("div", { class: "screen-missing", text: `This channel has no ${block} screen${atRate ? " at this sampling frequency" : ""}` }),
     headerLeft: channelSelector(ctx, strip, route, true),
@@ -649,10 +649,18 @@ export const channelViewScreen: ScreenDef = {
       );
     } else if (strip.kind === "mix" || strip.kind === "stereo") {
       // A bus on Flex12GEQ shows its GEQ area where the EQ area stands. The
-      // switch is the side's own [GEQ]; touching the area opens nothing yet.
+      // switch is the side's own [GEQ], and touching the area opens the GEQ screen.
       blocks.push(
         runsGeq(ctx, strip)
-          ? block(ctx, "GEQ", "geq", geqOnPath(base, geqSide(ctx, strip)), true, el("div", { class: "cv-geq", children: [geqThumb(ctx, strip)] }), () => undefined)
+          ? block(
+              ctx,
+              "GEQ",
+              "geq",
+              geqOnPath(base, geqSide(ctx, strip)),
+              true,
+              el("div", { class: "cv-geq", children: [geqThumb(ctx, strip)] }),
+              aimed(() => ctx.nav.push({ id: "ch.geq", strip: strip.id }), { kind: "screen", id: "ch.geq" }),
+            )
           : eqBlock(),
         insFxBlock(),
       );

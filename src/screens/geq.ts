@@ -2,6 +2,7 @@
 // and [GEQ] switch, and what the unit changes along with them (`src/model/geq.ts`).
 
 import type { AppContext } from "../app/context";
+import type { DeviceStore, WriteRule } from "../device/store";
 import type { Strip } from "../model/types";
 import { allStrips } from "../model/types";
 import {
@@ -82,6 +83,26 @@ export function setGeqLimit(ctx: GeqCtx, strip: Strip, side: GeqSide, limit: str
   });
 }
 
+/**
+ * Turn the GEQ Link on with `from` as the side the other follows, as one
+ * operation of the store: the other side takes `from`'s GEQ Limit and band
+ * gains first, then the link goes on.
+ */
+export function makeGeqLink(ctx: GeqCtx, strip: Strip, from: GeqSide): void {
+  const b = base(strip);
+  const to: GeqSide = from === "l" ? "r" : "l";
+  ctx.store.operation(() => {
+    void ctx.store.set(geqLimitPath(b, to), geqLimitOf(ctx, strip, from));
+    GEQ_BANDS.forEach((_, band) => void ctx.store.set(geqBandPath(b, to, band), ctx.store.num(geqBandPath(b, from, band), 0)));
+    void ctx.store.set(geqLinkPath(b), from === "l" ? "L>R" : "R>L");
+  });
+}
+
+/** Turn the GEQ Link off: each side keeps what it holds. */
+export function breakGeqLink(ctx: GeqCtx, strip: Strip): void {
+  void ctx.store.set(geqLinkPath(base(strip)), "Off");
+}
+
 /** The GEQ Limit a side stands on. */
 export function geqLimitOf(ctx: GeqCtx, strip: Strip, side: GeqSide): string {
   return ctx.store.str(geqLimitPath(base(strip), side), GEQ_LIMIT_SHIPPED);
@@ -102,4 +123,19 @@ export function dropGeqOverRate(ctx: GeqCtx, rate: number): void {
       if (ctx.store.num(geqBandPath(b, s, band), 0) !== 0) void ctx.store.set(geqBandPath(b, s, band), 0);
     });
   }
+}
+
+/** A band's gain or the GEQ Limit of one side, as its path names it. */
+const SIDE_SETTING = /^ch\.(?<id>.+)\.geq\.(?<side>[lr])\.(?<rest>band\.\d+|limit)$/;
+
+/**
+ * While a bus's GEQ Link is on, a band or the GEQ Limit written on one side is
+ * written on the other side too.
+ */
+export function geqLinkWriteRule(store: DeviceStore): WriteRule {
+  return (path, value) => {
+    const m = SIDE_SETTING.exec(path)?.groups as { id: string; side: GeqSide; rest: string } | undefined;
+    if (!m || store.str(geqLinkPath(`ch.${m.id}`), "Off") === "Off") return [];
+    return [[`ch.${m.id}.geq.${m.side === "l" ? "r" : "l"}.${m.rest}`, value]];
+  };
 }

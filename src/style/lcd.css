@@ -1607,13 +1607,37 @@
   justify-content: flex-end;
 }
 
-.dialog-actions .btn {
+.dialog-actions .btn,
+.dialog-choices .btn {
   background: var(--surface);
   width: 86px;
   min-height: 39px;
   padding-bottom: 6px;
   font-size: var(--fs-lg);
   box-shadow: inset 0 -3px 0 var(--btn-bevel);
+}
+
+/* Answers that name what they do stand side by side across the middle of the
+ * dialog, the question higher up over them, and [Cancel] alone at the foot. */
+.dialog.has-choices {
+  position: relative;
+  padding-top: 33px;
+}
+
+.dialog-choices {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* The answers' 39px row centred on the 232px between the frame's edges, on a whole pixel. */
+  top: 96px;
+  display: flex;
+  /* Two 140px answers this far apart leave a whole pixel either side within the frame's 406px. */
+  gap: 26px;
+  justify-content: center;
+}
+
+.dialog-choices .btn {
+  width: 140px;
 }
 
 .screen-missing {
@@ -8235,6 +8259,241 @@
   bottom: -12px;
   border-top: 6px solid var(--accent-focus);
   border-bottom: 0;
+}
+
+/* --- GEQ ----------------------------------------------------------------- */
+
+.geq-screen {
+  position: relative;
+  flex: 1 1 auto;
+}
+
+/* The toolbar's [GEQ Link], left of the [GEQ] switch (p122-1). Two classes, because
+ * the reset that makes a button inherit its font and colour is more specific than one. */
+.geq-toolbar > .geq-link {
+  position: absolute;
+  left: 147px;
+  top: 2px;
+  width: 103px;
+  height: 40px;
+  padding: 0 0 3px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  box-shadow: inset 0 -3px 0 var(--btn-bevel);
+  pointer-events: auto;
+  cursor: default;
+}
+
+/* Lit while the link is on: the face of a selected option, its name in black. */
+.geq-toolbar > .geq-link.is-on {
+  background: var(--accent-selected);
+  color: var(--text-inverse);
+  box-shadow: inset 0 -3px 0 rgb(0 0 0 / var(--px-band-cast));
+}
+
+/* The copy mark in its top right corner. */
+.geq-link-mark {
+  position: absolute;
+  right: 3px;
+  top: 3px;
+  display: flex;
+  color: var(--geq-link-mark);
+}
+
+.geq-link-mark svg {
+  width: 10px;
+  height: 10px;
+}
+
+.badge.badge-title.badge-geq.is-on {
+  background: var(--block-eq);
+}
+
+/* The GEQ graph: the response over the 31 bands, on a panel as wide as the sliders'. */
+.geq-graph {
+  position: absolute;
+  left: -2px;
+  top: 0;
+  width: 420px;
+  height: 40px;
+  cursor: pointer;
+}
+
+.geq-graph svg,
+.geq-sliders > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.geq-frame {
+  fill: var(--graph-bg);
+  stroke: var(--surface);
+}
+
+.geq-graph .geq-rule {
+  stroke: var(--surface);
+}
+
+.geq-zero {
+  stroke: var(--geq-zero);
+}
+
+.geq-fill {
+  fill: var(--geq-fill);
+}
+
+.geq-curve {
+  fill: none;
+  stroke: var(--geq-mark);
+  stroke-opacity: var(--geq-curve-alpha);
+}
+
+.geq-window {
+  fill: var(--geq-window);
+}
+
+.geq-dot {
+  fill: var(--geq-dot);
+}
+
+.geq-dot.is-held {
+  fill: var(--geq-dot-held);
+}
+
+/* How many bands may still be moved away from 0 dB, over the meters. */
+.geq-available {
+  position: absolute;
+  left: 424px;
+  top: 0;
+  width: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.geq-available-caption {
+  height: 14px;
+  line-height: 14px;
+  font-size: var(--fs-md);
+}
+
+.geq-available-count {
+  margin-top: 5px;
+  height: 18px;
+  line-height: 18px;
+  font-size: 16px;
+}
+
+.geq-screen > .dyn-io {
+  top: 48px;
+}
+
+/* The sliders: four bands at a time, 3px to a decibel. The marks above and below
+ * a box at either end of the limit stop at the area's frame rather than lie over
+ * the graph or the readout bar. */
+.geq-sliders {
+  position: absolute;
+  left: -2px;
+  top: 51px;
+  width: 420px;
+  height: 120px;
+  overflow: hidden;
+}
+
+.geq-sliders .geq-rule {
+  stroke: var(--geq-rule);
+}
+
+.geq-sl-zero {
+  stroke: var(--text);
+}
+
+.geq-bar {
+  fill: var(--geq-bar);
+}
+
+.geq-tick {
+  position: absolute;
+  left: 0;
+  width: 21px;
+  height: 10px;
+  margin-top: -4px;
+  line-height: 10px;
+  text-align: right;
+  font-size: 10px;
+  color: var(--geq-tick);
+  pointer-events: none;
+}
+
+/* The column of the slider holding the focus. */
+.geq-shade {
+  position: absolute;
+  top: 0;
+  width: 56px;
+  height: 120px;
+  background: var(--geq-window);
+  pointer-events: none;
+}
+
+/* A slider's box, at its band's gain: the EQ screen's handle, named by the band.
+ * Two classes, for the reason the toolbar's [GEQ Link] gives. */
+.geq-sliders > .geq-box {
+  position: absolute;
+  width: 52px;
+  height: 28px;
+  box-sizing: border-box;
+  padding: 0;
+  border: 3px solid var(--handle-ring);
+  border-radius: 4px;
+  background: var(--handle-face);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.geq-sliders > .geq-box.is-held {
+  border-color: var(--accent-focus);
+  background: var(--geq-box-held);
+}
+
+/* A box that cannot move, a band at 0 dB while twelve others stand away from it,
+ * is drawn at half its brightness, as the EQ screen draws a shape box with no list:
+ * its frame goes grey, and the rules show through its face and its name. */
+.geq-sliders > .geq-box.is-shut {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* The box holding the focus carries a mark above and below it, fading out and
+ * back in every two seconds as the EQ screen's handles do. */
+.geq-box.is-held::before,
+.geq-box.is-held::after {
+  content: "";
+  position: absolute;
+  left: 20px;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  animation: focus-mark-blink 2s ease-in-out infinite;
+}
+
+.geq-box.is-held::before {
+  top: -14px;
+  border-bottom: 6px solid var(--accent-focus);
+}
+
+.geq-box.is-held::after {
+  top: 30px;
+  border-top: 6px solid var(--accent-focus);
 }
 
 /* --- INS FX -------------------------------------------------------------- */

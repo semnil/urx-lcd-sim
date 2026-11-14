@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
+import { geqBandPath } from "../model/geq";
 import { bandResponse } from "../model/eq-response";
 import { CLIP_DB, OVER_DB, insertCurveGainDb } from "../model/levels";
 import { panLawDb } from "../model/pan-law";
@@ -353,6 +354,27 @@ describe("the buses", () => {
     await store.set("osc.mode", "Pink Noise");
     const [pinkLow, pinkHigh] = [(await at(100))[1], (await at(10000))[1]];
     expect(pinkHigh, "noise takes no frequency of the oscillator's").toBe(pinkLow);
+  });
+});
+
+describe("a bus on Flex12GEQ", () => {
+  it("takes the oscillator's sine through each side's own bands, and passes it flat on a side whose [GEQ] is off", async () => {
+    const store = await unit();
+    await only(store);
+    await store.set("osc.on", true);
+    await store.set("osc.level", -20);
+    await store.set("osc.frequency", 1000);
+    await store.set("ch.bus.stereo.eq.low.gain", -15);
+    await store.set("ch.bus.stereo.eq.low.freq", 1000);
+    await store.set("ch.bus.stereo.eqType", "Flex12GEQ");
+    expect(read(store, tapId("bus.stereo", "preFader")), "the 4-band EQ is out").toEqual([-20, -20].map((db) => expect.closeTo(db, 6)));
+    await store.set(geqBandPath("ch.bus.stereo", "l", 17), 12);
+    await store.set(geqBandPath("ch.bus.stereo", "r", 17), -6);
+    expect(read(store, tapId("bus.stereo", "preFader"))).toEqual([-8, -26].map((db) => expect.closeTo(db, 6)));
+    await store.set("ch.bus.stereo.geq.l.on", false);
+    expect(read(store, tapId("bus.stereo", "preFader"))).toEqual([-20, -26].map((db) => expect.closeTo(db, 6)));
+    await store.set("ch.bus.stereo.eqType", "4band PEQ");
+    expect(read(store, tapId("bus.stereo", "preFader"))[0], "back on 4band PEQ, the EQ again").toBeLessThan(-30);
   });
 });
 
