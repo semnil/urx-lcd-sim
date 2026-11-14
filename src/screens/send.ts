@@ -203,14 +203,17 @@ function sendScreen(asked: SendView): ScreenDef {
       const strip = routeStrip(ctx, route);
       if (!strip) return noChannel();
       // A strip the arrows step to that lacks the view in use shows the one it
-      // has, so an arrow onto it lands on the other view's screen.
-      const selector = channelSelector(ctx, strip, route, true, (next) => {
-        const lands = viewOf(ctx, next, asked);
-        return lands === undefined || lands === asked ? undefined : { kind: "screen", id: SCREEN[lands] };
-      });
-      if (fxShutOut(ctx, strip)) return { ...notAvailable(ctx, strip, route), headerLeft: selector };
+      // has. An arrow that brings up a view other than the one up now (any view,
+      // from a strip showing none) names that view's screen, so a page holding
+      // that screen shut holds the arrow shut.
+      const selector = (up: SendView | undefined): HTMLElement =>
+        channelSelector(ctx, strip, route, true, (next) => {
+          const lands = fxShutOut(ctx, next) ? undefined : viewOf(ctx, next, asked);
+          return lands === undefined || lands === up ? undefined : { kind: "screen", id: SCREEN[lands] };
+        });
+      if (fxShutOut(ctx, strip)) return { ...notAvailable(ctx, strip, route), headerLeft: selector(undefined) };
       const shown = viewOf(ctx, strip, asked);
-      if (!shown) return { ...noBlock(ctx, strip, route, "SEND"), headerLeft: selector };
+      if (!shown) return { ...noBlock(ctx, strip, route, "SEND"), headerLeft: selector(undefined) };
       const pages = shown === "to" ? sendToPages(ctx.model, strip) : sendFromPages(ctx.model, strip);
       const page = Math.min(pages.length - 1, Math.max(0, Math.trunc(ctx.store.num(PAGE_PATH[shown], 0))));
       const cards = pages[page] ?? [];
@@ -226,7 +229,7 @@ function sendScreen(asked: SendView): ScreenDef {
           ],
         }),
         side: sideMenu(ctx, strip, shown),
-        headerLeft: selector,
+        headerLeft: selector(shown),
         headerCenter: titleBox("SEND"),
       };
     },

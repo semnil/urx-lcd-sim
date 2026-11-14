@@ -113,7 +113,7 @@ Each lock (`SimLock`) is a target and the reason the page gives for it. A target
 | Target | Holds shut |
 | --- | --- |
 | `{ kind: "path", path }` | a control that writes that path: a value box, a knob, a fader, a switch, a pulldown, a button that opens the sheet picking it. A control that writes several paths names each of them, and the page holding any one of them holds it. |
-| `{ kind: "screen", id }` | a button that opens the screen of that route id: HOME's `setup` / `microsd` / `monitor`, SETUP's entries (`setup.language`, `setup.rate`, ...), microSD's (`microsd.saveload`, ...), a channel's blocks (`ch.eq`, ...), and [SEND] by the view it opens on (`ch.sendto` / `ch.sendfrom`). On the SEND screen, a channel arrow onto a strip that shows the other view is held by that view's screen. |
+| `{ kind: "screen", id }` | a button that opens the screen of that route id: HOME's `setup` / `microsd` / `monitor`, SETUP's entries (`setup.language`, `setup.rate`, ...), microSD's (`microsd.saveload`, ...), a channel's blocks (`ch.eq`, ...), and [SEND] by the view it opens on (`ch.sendto` / `ch.sendfrom`). On the SEND screen, a channel arrow that brings up a view the screen is not showing now is held by that view's screen. |
 | `{ kind: "op", op }` | a button that hands the unit that operation (`UnitOp["kind"]`: `scene.recall`, `recorder.arm`, `card.eject`, ...). A transport button that hands the unit a different operation in each state is held by the one it would hand it now. |
 
 - A control held shut takes the face of a control out of reach (`is-disabled`, `aria-disabled="true"`) and

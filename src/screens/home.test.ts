@@ -7,7 +7,7 @@ import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
 import { CH_COLOR_PALETTE, unitById } from "../model/units";
 import type { Strip } from "../model/types";
-import { bankStrips, findStrip, INTEGRATION_DAW } from "../model/types";
+import { allStrips, bankStrips, findStrip, INTEGRATION_DAW } from "../model/types";
 import { OSC_TARGETS } from "../model/oscillator";
 import { bankName, channelLabel, stripLane } from "./strip-state";
 import { buildRegistry } from "./index";
@@ -1784,7 +1784,93 @@ describe("the SEND screen", () => {
     await step("Next channel");
     expect(shell.ctx.nav.current).toEqual({ id: "ch.sendfrom", strip: "ch1" });
     expect(cells(shell)).toEqual(["MIX 1", "MIX 2"]);
+
+    // Back from the view a strip showed in place of the one asked for: from the
+    // stereo bus's SEND FROM, reached from SEND TO, the previous channel is MIX 2
+    // on SEND TO.
+    shell.ctx.nav.home();
+    await shell.ctx.store.set("ui.lane.bus.stereo", 0);
+    shell.ctx.nav.push({ id: "ch.sendto", strip: "bus.stereo" });
+    await flush();
+    hold("ch.sendto");
+    expect(cells(shell)).toEqual(["CH 1", "CH 2", "CH 3", "CH 4"]);
+    expect(shut()).toEqual([true, false]);
+    await step("Previous channel");
+    expect(shell.ctx.nav.current).toEqual({ id: "ch.sendto", strip: "bus.stereo" });
+
+    // From a strip that shows no view, any view an arrow brings up is held by its
+    // own screen, the one asked for included.
+    shell.setLocks([]);
+    shell.ctx.nav.home();
+    shell.ctx.nav.push({ id: "ch.sendto", strip: "bus.stream" });
+    await flush();
+    hold("ch.sendto");
+    expect(shut()).toEqual([false, true]);
+    await step("Next channel");
+    expect(shell.ctx.nav.current).toEqual({ id: "ch.sendto", strip: "bus.stream" });
   });
+
+  it("holds an arrow off an FX channel the sampling frequency has shut by the view it brings up, and not one onto it", async () => {
+    const shell = await mount();
+    const arrow = (name: string): HTMLElement | null => shell.root.querySelector<HTMLElement>(`.ch-arrow[aria-label="${name}"]`);
+    const shut = (): boolean[] => ["Previous channel", "Next channel"].map((n) => arrow(n)?.classList.contains(LOCKED_CLASS) ?? false);
+    await shell.ctx.store.set("setup.followUsb", false);
+    await shell.ctx.store.set("setup.samplingFrequency", 192000);
+    await shell.ctx.store.set("ui.lane.fx2", 1);
+    shell.ctx.nav.push({ id: "ch.sendto", strip: "fx2" });
+    await flush();
+    expect(shell.root.querySelector(".screen-missing")?.textContent).toBe("This channel is not available at this sampling frequency");
+    shell.setLocks([{ target: { kind: "screen", id: "ch.sendto" }, reason: "Held by the page" }]);
+    // The previous channel is FX 2 L, shut as well; the next is MIX 1 on SEND TO.
+    expect(shut()).toEqual([false, true]);
+    arrow("Next channel")?.click();
+    await flush();
+    expect(shell.ctx.nav.current).toEqual({ id: "ch.sendto", strip: "fx2" });
+  });
+
+  it("brings up no view the page holds shut by a channel arrow, on any strip, side, model or sampling frequency", async () => {
+    /** The view up now, by its lit tab, or undefined where the screen shows none. */
+    const up = (shell: Shell): string | undefined => shell.root.querySelector(".side .sendto-tab.is-on")?.textContent ?? undefined;
+    const VIEW: Record<string, string> = { "ch.sendto": "SEND\nTO", "ch.sendfrom": "SEND\nFROM" };
+    let held = 0;
+    for (const id of ["URX44V", "URX44", "URX22"] as const) {
+      for (const rate of [48000, 192000]) {
+        const shell = await mount(id);
+        await shell.ctx.store.set("setup.followUsb", false);
+        await shell.ctx.store.set("setup.samplingFrequency", rate);
+        for (const strip of allStrips(shell.ctx.model)) {
+          for (const lane of strip.kind === "monoIn" ? [0] : [0, 1]) {
+            for (const screen of ["ch.sendto", "ch.sendfrom"]) {
+              for (const lock of ["ch.sendto", "ch.sendfrom"]) {
+                for (const name of ["Previous channel", "Next channel"]) {
+                  shell.setLocks([]);
+                  shell.ctx.nav.home();
+                  await shell.ctx.store.set(`ui.lane.${strip.id}`, lane);
+                  shell.ctx.nav.push({ id: screen, strip: strip.id });
+                  await flush();
+                  const state = (): unknown[] => [shell.ctx.nav.current, shell.ctx.store.str("ui.selectedStrip", ""), shell.ctx.store.num(`ui.lane.${strip.id}`, 0)];
+                  const before = { state: state(), view: up(shell) };
+                  shell.setLocks([{ target: { kind: "screen", id: lock }, reason: "Held by the page" }]);
+                  const arrow = shell.root.querySelector<HTMLElement>(`.ch-arrow[aria-label="${name}"]`);
+                  const shut = arrow?.classList.contains(LOCKED_CLASS) ?? false;
+                  arrow?.click();
+                  await flush();
+                  const label = `${id} ${rate} ${strip.id}/${lane} ${screen} held ${lock} ${name}`;
+                  if (up(shell) === VIEW[lock] && before.view !== VIEW[lock]) expect.fail(`${label} brought up the held view`);
+                  if (shut) {
+                    held++;
+                    expect(state(), `${label} moved on a held arrow`).toEqual(before.state);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    // Some of those steps were refused, so the sweep reached the case it guards.
+    expect(held).toBeGreaterThan(0);
+  }, 60_000);
 
   it("shows a strip with no sends that it has no SEND screen", async () => {
     const shell = await mount();
