@@ -1900,7 +1900,8 @@
   color: var(--block-comp);
 }
 
-.ind-row .badge-eq.is-on {
+.ind-row .badge-eq.is-on,
+.ind-row .badge-geq.is-on {
   color: var(--block-eq);
 }
 

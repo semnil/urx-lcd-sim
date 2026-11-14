@@ -177,3 +177,25 @@ describe("the channel view of a bus", () => {
     expect([marks[0], marks[1], marks[9], marks[11], marks[30]]).toEqual([[9, 21], [11, 9], [27, 39], [31, 39], [69, 21]]);
   });
 });
+
+describe("HOME's strip of a bus", () => {
+  it("names GEQ in EQ's place while the bus runs Flex12GEQ, lit by the side's [GEQ]", async () => {
+    const shell = await mount([{ id: "home" }]);
+    await shell.ctx.store.set("ui.bankSide", "output");
+    await flush();
+    const badgeOf = (): [string, boolean] | undefined => {
+      const strips = [...shell.root.querySelectorAll<HTMLElement>(".hm-strip, .strip")];
+      const stereo = strips.find((n) => /STEREO|ST\b/.test(n.textContent ?? "") && n.querySelector(".ind-block"));
+      const node = stereo?.querySelector<HTMLElement>(".ind-block .badge-eq, .ind-block .badge-geq");
+      return node ? [node.textContent ?? "", node.classList.contains("is-on")] : undefined;
+    };
+    expect(badgeOf()?.[0]).toBe("EQ");
+    setEqType(shell.ctx, strip(shell, "bus.stereo"), "Flex12GEQ");
+    await flush();
+    expect(badgeOf()).toEqual(["GEQ", true]);
+    await shell.ctx.store.set("ch.bus.stereo.geq.l.on", false);
+    await flush();
+    expect(badgeOf()).toEqual(["GEQ", false]);
+  });
+});
+

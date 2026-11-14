@@ -373,6 +373,8 @@ place of their 4-band EQ (p97-98, p104).
   (x301..380 / y84..127, `--graph-bg`) holds a 1px slot for each band, 2px apart (x310..370 / y87..124,
   `--geq-slot`), and on each slot a 2x1 mark at the band's gain (`--geq-mark`): 0 dB on y105, and 1.2px
   to a dB, held to the slot's ends. Touching the area opens nothing yet: the GEQ screen is not built.
+- HOME's strip of the bus names `GEQ` in EQ's place, lit in the EQ's green by the side's [GEQ] (confirmed on a
+  URX44V).
 - The signal the meters read passes a bus on Flex12GEQ flat: the GEQ's bands are not modelled yet.
 
 ## Knob readout bar
