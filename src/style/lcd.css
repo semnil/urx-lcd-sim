@@ -1607,13 +1607,37 @@
   justify-content: flex-end;
 }
 
-.dialog-actions .btn {
+.dialog-actions .btn,
+.dialog-choices .btn {
   background: var(--surface);
   width: 86px;
   min-height: 39px;
   padding-bottom: 6px;
   font-size: var(--fs-lg);
   box-shadow: inset 0 -3px 0 var(--btn-bevel);
+}
+
+/* Answers that name what they do stand side by side across the middle of the
+ * dialog, the question higher up over them, and [Cancel] alone at the foot. */
+.dialog.has-choices {
+  position: relative;
+  padding-top: 33px;
+}
+
+.dialog-choices {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* The answers' 39px row centred on the 232px between the frame's edges, on a whole pixel. */
+  top: 96px;
+  display: flex;
+  /* Two 140px answers this far apart leave a whole pixel either side within the frame's 406px. */
+  gap: 26px;
+  justify-content: center;
+}
+
+.dialog-choices .btn {
+  width: 140px;
 }
 
 .screen-missing {

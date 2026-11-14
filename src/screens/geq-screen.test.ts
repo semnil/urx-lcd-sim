@@ -11,8 +11,8 @@ import { setEqType } from "./geq";
 import { buildRegistry } from "./index";
 
 // The GEQ screen of a bus on Flex12GEQ: the sliders four bands at a time, the
-// swipe and the GEQ graph that step them, and the twelve-band limit Available
-// counts down to.
+// swipe and the GEQ graph that step them, the twelve-band limit Available
+// counts down to, and the GEQ Link that writes one side's settings on the other.
 
 const flush = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 
@@ -256,6 +256,85 @@ describe("the GEQ screen", () => {
     shell.root.querySelector<HTMLElement>(".cv-block-geq")?.click();
     await flush();
     expect([shell.ctx.nav.current.id, names(shell)]).toEqual(["ch.geq", ["20", "25", "31.5", "40"]]);
+  });
+});
+
+describe("the GEQ Link", () => {
+  it.each([
+    ["L>R", "l", true],
+    ["R>L", "r", true],
+    ["Off", "l", false],
+  ] as const)("at %s writes a band and the GEQ Limit set on side %s on the other side too: %s", async (link, side, carried) => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    const other = side === "l" ? "r" : "l";
+    await s.set("ch.bus.stereo.geq.link", link);
+    await s.set(geqBandPath("ch.bus.stereo", side, 17), 6);
+    await s.set(`ch.bus.stereo.geq.${side}.limit`, "±12dB");
+    expect([band(shell, other, 17), s.str(`ch.bus.stereo.geq.${other}.limit`, "")]).toEqual(carried ? [6, "±12dB"] : [0, "±15dB"]);
+  });
+
+  const answers = (shell: Shell): string[] => [...shell.root.querySelectorAll(".dialog .btn")].map((b) => b.textContent ?? "");
+  const answer = async (shell: Shell, label: string): Promise<void> => {
+    [...shell.root.querySelectorAll<HTMLElement>(".dialog .btn")].find((b) => b.textContent === label)?.click();
+    await flush();
+  };
+  const openLink = async (shell: Shell): Promise<void> => {
+    shell.root.querySelector<HTMLElement>(".geq-link")?.click();
+    await flush();
+  };
+
+  it.each([
+    ["ST L → ST R", "l", "L>R"],
+    ["ST R → ST L", "r", "R>L"],
+  ] as const)("off, asks which side leads: %s gives the other side its limit and bands, then links them", async (choice, from, link) => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    const to = from === "l" ? "r" : "l";
+    await s.set(geqBandPath("ch.bus.stereo", from, 0), 0.5);
+    await s.set(geqBandPath("ch.bus.stereo", to, 1), 3);
+    await s.set(`ch.bus.stereo.geq.${from}.limit`, "±12dB");
+    await flush();
+    await openLink(shell);
+    expect(shell.root.querySelector(".dialog-text")?.textContent).toBe("Make Link GEQ Parameters?");
+    expect(answers(shell)).toEqual(["ST L → ST R", "ST R → ST L", "Cancel"]);
+    await answer(shell, choice);
+    expect(shell.root.querySelector(".dialog")).toBeNull();
+    expect([s.str("ch.bus.stereo.geq.link", ""), band(shell, to, 0), band(shell, to, 1), s.str(`ch.bus.stereo.geq.${to}.limit`, "")]).toEqual([link, 0.5, 0, "±12dB"]);
+    expect(shell.root.querySelector(".geq-link")?.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("on, asks whether to break the link, and [OK] breaks it with each side keeping what it holds", async () => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    await s.set("ch.bus.stereo.geq.link", "L>R");
+    await s.set(geqBandPath("ch.bus.stereo", "l", 5), -4);
+    await flush();
+    await openLink(shell);
+    expect([shell.root.querySelector(".dialog-text")?.textContent, answers(shell)]).toEqual(["Break Link GEQ Parameters?", ["Cancel", "OK"]]);
+    await answer(shell, "Cancel");
+    expect(s.str("ch.bus.stereo.geq.link", "")).toBe("L>R");
+    await openLink(shell);
+    await answer(shell, "OK");
+    expect([s.str("ch.bus.stereo.geq.link", ""), band(shell, "l", 5), band(shell, "r", 5)]).toEqual(["Off", -4, -4]);
+  });
+
+  it("changes nothing when [Cancel] answers the question of which side leads", async () => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    await s.set(geqBandPath("ch.bus.stereo", "l", 0), 2);
+    await flush();
+    await openLink(shell);
+    await answer(shell, "Cancel");
+    expect([s.str("ch.bus.stereo.geq.link", ""), band(shell, "r", 0), shell.root.querySelector(".dialog")]).toEqual(["Off", 0, null]);
+  });
+
+  it("leaves the other side's [GEQ] where it is", async () => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    await s.set("ch.bus.stereo.geq.link", "L>R");
+    await s.set("ch.bus.stereo.geq.l.on", false);
+    expect(s.bool("ch.bus.stereo.geq.r.on", false)).toBe(true);
   });
 });
 

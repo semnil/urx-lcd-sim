@@ -85,7 +85,7 @@ Which screen leads to which is drawn in [screen-map.md](screen-map.md).
 | INS FX | `ch.insfx` | p120 | Built (effect picker sheet, and the settings of the effect taken; the guide has no figure of it) |
 | Parameter settings | `ch.effect` | — | Built (an FX channel opens it from its panel on the channel view; an insert is set on the INS FX screen itself; the guide has no figure of it) |
 | DUCKER | `ch.ducker` | p121 | Built |
-| GEQ | `ch.geq` | p122 | Built ([GEQ Link]'s sheet is not built: "Flex12GEQ on a bus" below) |
+| GEQ | `ch.geq` | p122 | Built |
 | DELAY | `ch.delay` | p124 | Built |
 | SEND TO | `ch.sendto` | p125 | Built |
 
@@ -97,7 +97,6 @@ were before V1.5.
 | Screen or part | Screen ID | Ref. | Status |
 | --- | --- | --- | --- |
 | Recall Safe (SCENE) | — | p79-80 | Not built |
-| [GEQ Link]'s sheet (GEQ screen) | — | p122 | Not built. The button is drawn, lit while the link is on, and opens nothing |
 | SEND (SEND TO and SEND FROM) | — | p125 | Not built. The screen is built as SEND TO, as it was before V1.5 |
 | Submenu | — | p36, p39 | Not built |
 
@@ -144,6 +143,7 @@ compared are not written here.
 | An FX channel's panel and the EFFECT TYPE screen | `ch.effect` | Only the FX strip on HOME (p049-3). The arrangement follows what the unit shows |
 | MONITOR's Source sheet | `monitor.level` | Only the Source button (p070-1). The guide does not show the sheet itself. The title, names, arrangement and back button match the unit (confirmed on a URX44V) |
 | The STREAMING input source sheet | (no screen) | Nothing. The sheet lies over STREAMING's INPUT screen. The title, names, arrangement and back button follow the unit (confirmed on a URX44V) |
+| The GEQ Link dialogs | `ch.geq` | Only [GEQ Link] (p122-1). The wording, the mark and the answers of `Make Link GEQ Parameters?` and `Break Link GEQ Parameters?` match the unit, [Cancel] standing at the foot on the right in the first and its two answers across the middle with the question higher up (confirmed on a URX44V). The exact place of those answers follows no image |
 
 ### The screen exists, but no default state draws it
 
@@ -382,7 +382,14 @@ place of their 4-band EQ (p97-98, p104).
 - The GEQ screen (`ch.geq`, p122-1) sets one side of the bus, the side the channel selector stands on.
   - The toolbar carries [GEQ Link] (x147..249, the copy mark in its corner, `--geq-link-mark`) and the
     side's [GEQ] (x254..369). [GEQ Link] takes the channel arrows' face while the link is off and
-    `--accent-selected` while it is on. Its sheet is not built: the button opens nothing.
+    `--accent-selected` while it is on. While the link is off, a touch asks `Make Link GEQ Parameters?`
+    beside the i mark, answered by [ST L → ST R], [ST R → ST L] and [Cancel] at the foot on the right; the
+    side named first gives the other its band gains, and the link goes on. While it is on, a touch asks
+    `Break Link GEQ Parameters?`, answered by [Cancel] and [OK] (confirmed on a URX44V). The simulator
+    copies the GEQ Limit along with the bands, keeps both sides as they are when [OK] breaks the link,
+    and names a MIX bus's sides in the answers as its toolbar does. The two answers stand side by side
+    across the middle of the dialog, the question higher up over them (confirmed on a URX44V); the
+    simulator puts the answers on y116..154 and the question on y53..96.
   - The GEQ graph (x0..419 / y50..89) draws the side's response over the 31 bands, each band a peaking
     filter of Q 3 (fitted to p122-1, where the curve lands half a pixel from the figure's on average), with
     a 3px dot on each band (`--geq-dot`; `--geq-dot-held` for the band holding the focus), a rule at the
@@ -410,6 +417,8 @@ place of their 4-band EQ (p97-98, p104).
     (confirmed on a URX44V). The simulator draws such a box at half its brightness.
   - The IN and OUT meters read the bus before and after its GEQ, and the readout bar carries the gains of
     the bands shown.
+  - While the GEQ Link is on, a band set on either side is set on the other too, as the limit is
+    (confirmed on a URX44V).
 - The signal the meters read passes a bus on Flex12GEQ flat: the GEQ's bands are not modelled yet.
 
 ## Knob readout bar

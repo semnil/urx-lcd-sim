@@ -39,9 +39,10 @@ import {
 import { drawnScale, el, writing } from "../ui/dom";
 import { Icons } from "../ui/icons";
 import { dbSpec, type NumericSpec } from "../ui/param-spec";
-import { PointerHolds, attachSpin, markFocus, setAriaValue } from "../ui/widgets";
+import { PointerHolds, attachSpin, dialog, markFocus, setAriaValue } from "../ui/widgets";
 import { NS, channelSelector, dynMeters, noBlock, noChannel, routeStrip, titleBadge } from "./channel";
-import { geqLimitOf, geqSide, runsGeq } from "./geq";
+import { breakGeqLink, geqLimitOf, geqSide, makeGeqLink, runsGeq } from "./geq";
+import { channelLabel } from "./strip-state";
 import type { ScreenBody, ScreenDef } from "./types";
 
 /** Where the screen keeps the page of sliders shown, on every bus. */
@@ -271,6 +272,30 @@ function attachPageSwipe(ctx: AppContext, area: HTMLElement): void {
   });
 }
 
+// --- The GEQ Link ----------------------------------------------------------
+
+/**
+ * [GEQ Link] asks before it changes anything. Off, it asks which side the other
+ * takes its settings from, each answer naming the two sides as the toolbar does;
+ * on, it asks whether to break the link.
+ */
+function openGeqLink(ctx: AppContext, strip: Strip, linked: boolean): void {
+  const path = geqLinkPath(`ch.${strip.id}`);
+  const name = (lane: 0 | 1): string => channelLabel(strip, lane, true);
+  ctx.overlay(
+    linked
+      ? dialog({ message: "Break Link GEQ Parameters?", onOk: writing(path, () => breakGeqLink(ctx, strip)) })
+      : dialog({
+          message: "Make Link GEQ Parameters?",
+          onOk: () => undefined,
+          choices: [
+            { label: `${name(0)} → ${name(1)}`, onPick: writing(path, () => makeGeqLink(ctx, strip, "l")) },
+            { label: `${name(1)} → ${name(0)}`, onPick: writing(path, () => makeGeqLink(ctx, strip, "r")) },
+          ],
+        }),
+  );
+}
+
 // --- The screen ------------------------------------------------------------
 
 export const geqScreen: ScreenDef = {
@@ -320,12 +345,12 @@ export const geqScreen: ScreenDef = {
       headerCenter: el("div", {
         class: "geq-toolbar",
         children: [
-          // GEQ Link chooses which side the other follows; that sheet is not built yet.
           el("button", {
             class: `geq-link${linked ? " is-on" : ""}`,
             text: "GEQ Link",
-            attrs: { "aria-pressed": String(linked), "aria-disabled": "true" },
+            attrs: { "aria-pressed": String(linked) },
             children: [el("span", { class: "geq-link-mark", children: [Icons.copy()] })],
+            onTap: () => openGeqLink(ctx, strip, linked),
           }),
           titleBadge("GEQ", "geq", on, writing(geqOnPath(base, side), () => void ctx.store.set(geqOnPath(base, side), !on))),
         ],

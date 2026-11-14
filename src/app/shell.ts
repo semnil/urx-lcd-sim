@@ -30,6 +30,7 @@ import { delaySyncWriteRule } from "../model/effects";
 import { eqOneKnobWriteRule } from "../screens/channel";
 import { evenPairCues, pairWriteRule } from "../screens/stereo-link";
 import { panLinkWriteRule } from "../screens/mix-bus";
+import { geqLinkWriteRule } from "../screens/geq";
 import { screenOnly } from "../screens/screen-only";
 import { bankSide, bankTotal, currentBank, stepBank } from "../screens/strip-state";
 import type { AppContext, KnobReadout } from "./context";
@@ -204,6 +205,7 @@ export class Shell {
         delaySyncWriteRule(store),
         eqOneKnobWriteRule(store),
         panLinkWriteRule({ store, model }),
+        geqLinkWriteRule(store),
       ),
     );
     this.offScreenOnly = store.setScreenOnly(screenOnly);

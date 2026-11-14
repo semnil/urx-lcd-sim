@@ -1043,6 +1043,11 @@ export interface DialogOptions {
   /** What [OK] does. Named with `aimed` or `writing`, it names [OK] so, and [OK] is held shut with its target. */
   onOk: () => void;
   onCancel?: () => void;
+  /**
+   * Answers that stand in a row of their own under the question, each closing the dialog and doing what it
+   * names. A dialog given them answers with these and [Cancel], and carries no [OK].
+   */
+  choices?: readonly { label: string; onPick: () => void }[];
 }
 
 export interface DropdownSpec {
@@ -1234,10 +1239,18 @@ export function dialog(options: DialogOptions): HTMLElement {
     options.onCancel?.();
   };
   const cancel = button(options.cancelLabel ?? "Cancel", modal.cancel);
-  const focusable = options.okOnly === true ? [ok] : [cancel, ok];
+  const choices = (options.choices ?? []).map((c) => {
+    const pick = (): void => {
+      close();
+      c.onPick();
+    };
+    const aims = aimOf(c.onPick);
+    return button(c.label, aims.length ? aimed(pick, aims) : pick);
+  });
+  const focusable = options.okOnly === true ? [ok] : choices.length ? [cancel] : [cancel, ok];
   overlay.appendChild(
     el("div", {
-      class: options.caution === true ? "dialog is-caution" : "dialog",
+      class: `dialog${options.caution === true ? " is-caution" : ""}${choices.length ? " has-choices" : ""}`,
       children: [
         el("div", {
           class: "dialog-ask",
@@ -1246,6 +1259,7 @@ export function dialog(options: DialogOptions): HTMLElement {
             el("p", { class: "dialog-text", text: options.message }),
           ],
         }),
+        ...(choices.length ? [el("div", { class: "dialog-choices", children: choices })] : []),
         el("div", { class: "dialog-actions", children: focusable }),
       ],
     }),

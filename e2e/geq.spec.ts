@@ -1,8 +1,9 @@
 // Flex12GEQ by real clicks: on a MIX bus's CH SETTING, EQ Type and GEQ Limit
 // open their lists and take a pick, GEQ Limit comes in without moving any other
 // field, and the channel view shows the GEQ area in place of the EQ; on the
-// stereo bus's GEQ screen, a swipe and the graph step the sliders and a box
-// dragged up lifts its band.
+// stereo bus's GEQ screen, a swipe and the graph step the sliders, a box
+// dragged up lifts its band, and [GEQ Link] makes and breaks the link through
+// its dialogs.
 
 import { expect, test, type Page } from "@playwright/test";
 import { button, lcd, tapInto } from "./tour";
@@ -87,4 +88,20 @@ test("the GEQ screen steps its sliders by a swipe and by a touch on the graph, a
   await page.mouse.up();
   await expect(lcd(page).locator(".geq-available-count")).toHaveText("11");
   await expect(lcd(page).locator(".knob-cell-value").nth(1)).not.toHaveText("0.0dB");
+});
+
+test("[GEQ Link] makes the link from the side chosen and breaks it after [OK]", async ({ page }) => {
+  await geqScreen(page);
+  const link = lcd(page).locator(".geq-link");
+  await expect(link).toHaveAttribute("aria-pressed", "false");
+  await link.click();
+  await expect(lcd(page).locator(".dialog-text")).toHaveText("Make Link GEQ Parameters?");
+  await button(page, "ST L → ST R", true).click();
+  await expect(lcd(page).getByRole("dialog")).toHaveCount(0);
+  await expect(link).toHaveAttribute("aria-pressed", "true");
+  await link.click();
+  await expect(lcd(page).locator(".dialog-text")).toHaveText("Break Link GEQ Parameters?");
+  await button(page, "OK", true).click();
+  await expect(lcd(page).getByRole("dialog")).toHaveCount(0);
+  await expect(link).toHaveAttribute("aria-pressed", "false");
 });
