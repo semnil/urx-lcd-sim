@@ -6,31 +6,33 @@ import type { Route } from "../app/navigator";
 import type { ParamPath, ParamValue } from "../device/path";
 import type { DeviceStore, WriteRule } from "../device/store";
 import { clamp } from "../device/store";
-import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, GATE_DEFAULTS, compEqBankDefaults, faderShipped, holdsEq, sendShipsOn, ssmcsBankDefaults } from "../model/defaults";
+import { COMP_DEFAULTS, DUCKER_SOURCE_DEFAULT, GATE_DEFAULTS, compEqBankDefaults, faderShipped, holdsEq, ssmcsBankDefaults } from "../model/defaults";
 import { COMP_KNEE_WIDTH, compResponse, grBarShare, levelBarShare } from "../model/dynamics";
 import { DYNAMICS_TIME_PLACES, DYNAMICS_TIME_STOPS, type DynamicsTime } from "../model/dynamics-times";
 import { EQ_SHAPES, eqBandOn, eqBandShape, eqShapeReads, fourBandResponse } from "../model/channel-eq";
 import type { Strip, StripKind } from "../model/types";
-import { findStrip, sendsTo } from "../model/types";
+import { findStrip } from "../model/types";
 import { CH_COLOR_NONE, CH_COLOR_OFF, CH_COLOR_PALETTE } from "../model/units";
 import { aimOf, aimed, el, lockable, makeTappable, setPressed, writes, writing } from "../ui/dom";
 import { inkOn } from "../ui/color";
+import type { LockTarget } from "../ui/locks";
 import { Icons } from "../ui/icons";
 import type { NumericSpec } from "../ui/param-spec";
 import { compRatioSpec, faderSpec, fineGainSpec, freqSpec, intSpec, logFreqSpec, msSpec, panSpec, stoppedMsSpec, wholeDbSpec } from "../ui/param-spec";
-import { attachDrag, attachSpin, knobControl, markFocus, meter, panSlider, pickerSheet, pulldown, setAriaValue, sideTab, toggle, unbuilt, valueBox } from "../ui/widgets";
+import { attachDrag, attachSpin, knobControl, markFocus, meter, pickerSheet, pulldown, setAriaValue, toggle, unbuilt, valueBox } from "../ui/widgets";
 import { type GrSpec, type LampState, blockReduction, drawnLevels, inputMeterId, markBlockLamps, markClipSafe, markLevelBar, markReduction, showBlockLamps } from "./meters";
 import { DELAY_MAX_MS, type Tap, compSpec, duckerSources, duckerSpec, gateSpec, stripTap, tapId } from "./signal-flow";
 import { PAN_BAL, SIGNAL_TYPES, carriesStereo, enterSsmcs, setPanBal, setSignalType, signalType, stripPosition } from "./stereo-link";
-import { BUS_TYPES, FIXED_LEVEL_TEXT, busType, panLinkOn, sendLocks, sendPanPath, setBusType, setPanLink } from "./mix-bus";
+import { BUS_TYPES, busType, panLinkOn, setBusType, setPanLink } from "./mix-bus";
 import { homeSide, sceneBox } from "./home";
 import { headAmp, headAmpSwitch } from "./head-amp";
 import { inputSourceSheet, sourceBoxLabel } from "./input-source";
 import { NO_EFFECT, insertBase } from "./insert-fx";
 import { effectSettingsScreen, fxShutOut, insFxScreen, openEffectParams } from "./effect-params";
 import { ssmcsArea } from "./ssmcs";
+import { hasSend, openSend, sendScreenOf } from "./send";
 import { toggleCue } from "./cue";
-import { COMP_EQ_SSMCS, channelLabel, eqShut, phasePath, runsSsmcs, selectStrip, selectedStripId, sendsTarget, stepChannel, stripColor, stripLane, stripLanes } from "./strip-state";
+import { COMP_EQ_SSMCS, channelLabel, eqShut, phasePath, runsSsmcs, selectStrip, selectedStripId, sendsTarget, stepChannel, steppedChannel, stripColor, stripLane, stripLanes } from "./strip-state";
 import type { ScreenBody, ScreenDef } from "./types";
 import { setSpokenAttr } from "../ui/spoken";
 import { EQ_TYPES, GEQ_BANDS, GEQ_LIMITS, carriesGeq, geqBandPath, geqLimitPath, geqOnPath, geqOverRate, type EqType } from "../model/geq";
@@ -66,7 +68,7 @@ export function carriesBlock(ctx: AppContext, strip: Strip, block: Block): boole
  * the channel's name in the toolbar, no title, a line saying so in the middle,
  * the knob readout strip with its cells empty, and nothing to operate.
  */
-export function noBlock(ctx: AppContext, strip: Strip, route: Route, block: Block | "GEQ", atRate = false): ScreenBody {
+export function noBlock(ctx: AppContext, strip: Strip, route: Route, block: Block | "GEQ" | "SEND", atRate = false): ScreenBody {
   return {
     main: el("div", { class: "screen-missing", text: `This channel has no ${block} screen${atRate ? " at this sampling frequency" : ""}` }),
     headerLeft: channelSelector(ctx, strip, route, true),
@@ -86,32 +88,6 @@ export function notAvailable(ctx: AppContext, strip: Strip, route: Route, narrow
     headerLeft: channelSelector(ctx, strip, route, narrow),
     knobStrip: true,
   };
-}
-
-/**
- * What the SEND TO tabs choose between, in the order the unit stacks them. The
- * tabs a strip shows are the groups it has a send into: a channel shows all
- * three, an FX return shows STEREO and MIX 1-2, and a MIX bus reaches the
- * stereo bus alone, so it is given no chooser.
- */
-const SEND_GROUPS = [
-  { key: "ST", label: "STEREO" },
-  { key: "MIX", label: "MIX\n1-2" },
-  { key: "FX", label: "FX\n1-2" },
-] as const;
-
-function sendTargets(ctx: AppContext, from: Strip, group: string): Strip[] {
-  const pool =
-    group === "MIX"
-      ? ctx.model.outputs.filter((o) => o.kind === "mix")
-      : group === "FX"
-        ? ctx.model.inputs.filter((s) => s.kind === "fx")
-        : ctx.model.outputs.filter((o) => o.kind === "stereo");
-  return pool.filter((to) => sendsTo(from, to));
-}
-
-function sendGroups(ctx: AppContext, from: Strip): (typeof SEND_GROUPS)[number][] {
-  return SEND_GROUPS.filter((g) => sendTargets(ctx, from, g.key).length > 0);
 }
 
 /** Where the microSD recorder taps a channel, in the order the pulldown lists. */
@@ -192,11 +168,22 @@ export function titleBox(label: string, extraClass = ""): HTMLElement {
   return el("div", { class: `badge badge-title badge-plain ${extraClass}`.trim(), text: label });
 }
 
-/** The "‹ CH 1 ›" selector every channel screen carries in its toolbar. */
-export function channelSelector(ctx: AppContext, strip: Strip, route: Route, narrow = false): HTMLElement {
-  const move = (delta: number): void => {
-    const next = stepChannel(ctx, delta, strip);
-    ctx.nav.stepStrip(next.id);
+/**
+ * The "‹ CH 1 ›" selector every channel screen carries in its toolbar. Where an
+ * arrow lands on another screen than this one, `landsOn` names it, so a page
+ * holding that screen shut holds the arrow shut.
+ */
+export function channelSelector(
+  ctx: AppContext,
+  strip: Strip,
+  route: Route,
+  narrow = false,
+  landsOn?: (next: Strip) => LockTarget | undefined,
+): HTMLElement {
+  const move = (delta: -1 | 1): (() => void) => {
+    const step = (): void => ctx.nav.stepStrip(stepChannel(ctx, delta, strip).id);
+    const aim = landsOn?.(steppedChannel(ctx, delta, strip));
+    return aim === undefined ? step : aimed(step, aim);
   };
   // The name opens the screen that sets it on the screen a channel opens on,
   // the one that carries the copy mark. On the screens under it and on CH
@@ -210,7 +197,7 @@ export function channelSelector(ctx: AppContext, strip: Strip, route: Route, nar
   return el("div", {
     class: "ch-selector",
     children: [
-      el("button", { class: "ch-arrow", children: [Icons.chevronLeft()], onTap: () => move(-1), attrs: { "aria-label": "Previous channel" } }),
+      el("button", { class: "ch-arrow", children: [Icons.chevronLeft()], onTap: move(-1), attrs: { "aria-label": "Previous channel" } }),
       el("button", {
         class: `ch-chip${narrow ? " is-narrow" : ""}`,
         style: { "--rail": colour },
@@ -230,7 +217,7 @@ export function channelSelector(ctx: AppContext, strip: Strip, route: Route, nar
           opens ? el("span", { class: "ch-chip-copy", children: [Icons.copy()] }) : null,
         ],
       }),
-      el("button", { class: "ch-arrow", children: [Icons.chevronRight()], onTap: () => move(1), attrs: { "aria-label": "Next channel" } }),
+      el("button", { class: "ch-arrow", children: [Icons.chevronRight()], onTap: move(1), attrs: { "aria-label": "Next channel" } }),
     ],
   });
 }
@@ -670,8 +657,8 @@ export const channelViewScreen: ScreenDef = {
 
     const sendTo = el("button", {
       class: "cv-sendto",
-      onTap: aimed(() => ctx.nav.push({ id: "ch.sendto", strip: strip.id }), { kind: "screen", id: "ch.sendto" }),
-      children: [el("span", { class: "cv-sendto-icon", children: [Icons.sendTo()] }), el("span", { text: "SEND TO" })],
+      onTap: aimed(() => openSend(ctx, strip), { kind: "screen", id: sendScreenOf(ctx, strip) ?? "ch.sendto" }),
+      children: [el("span", { class: "cv-sendto-icon", children: [Icons.sendTo()] }), el("span", { text: "SEND" })],
     });
 
     const panCell = el("div", {
@@ -702,16 +689,16 @@ export const channelViewScreen: ScreenDef = {
       ],
     });
 
-    // What a channel routes decides what it can set: only a strip that sends to
-    // STEREO has a SEND TO.
-    const sendsToStereo = inputChannel || strip.kind === "fx" || strip.kind === "mix";
+    // What a strip routes decides what it can set: every strip that sends or is
+    // sent to has a [SEND], and the streaming bus, which does neither, has none.
+    const sends = hasSend(ctx.model, strip);
     return {
       main: el("div", {
         class: "cv-main",
         children: [
           gainCell,
           el("div", { class: "cv-blocks", children: blocks }),
-          ...(sendsToStereo ? [sendTo] : []),
+          ...(sends ? [sendTo] : []),
           ...(streaming ? [] : [panCell, levelCell]),
           onOff,
         ],
@@ -2102,104 +2089,6 @@ export function oneKnobButton(ctx: AppContext, path: string, onTap?: (next: bool
   return node;
 }
 
-export const sendToScreen: ScreenDef = {
-  id: "ch.sendto",
-  toolbar: "sub",
-  sideAtTop: true,
-  build(ctx, route): ScreenBody {
-    const strip = routeStrip(ctx, route);
-    if (!strip) return noChannel();
-    if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
-    const base = `ch.${strip.id}`;
-    const groups = sendGroups(ctx, strip);
-    // A strip that has no send into the group last picked shows its first one,
-    // and leaves the pick alone so another strip still comes up on it.
-    const stored = ctx.store.str("ui.sendToGroup", "MIX");
-    const group = groups.some((g) => g.key === stored) ? stored : (groups[0]?.key ?? "ST");
-    const targets = sendTargets(ctx, strip, group);
-    // A bus taking its sends at a fixed level reads `Fixed` under the level and
-    // gives the knob nothing to turn, and the stereo bus takes a channel at its
-    // own fader, with no level of its own.
-    // An FX return the sampling frequency has put out of reach names itself and
-    // offers nothing to set.
-    const shut = (t: Strip): boolean => t.kind === "fx" && fxShutOut(ctx, t);
-    const specs = targets.map((t) =>
-      t.kind === "stereo" || shut(t)
-        ? null
-        : sendLocks(ctx, t).busFixed
-          ? { label: "Level", text: FIXED_LEVEL_TEXT }
-          : faderSpec(`${base}.send.${t.id}.level`, "Level"),
-    );
-    ctx.setKnobs([specs[0] ?? null, specs[1] ?? null, null, null]);
-    return {
-      main: el("div", {
-        class: "sendto-screen",
-        children: targets.map((t) => {
-          const onPath = `${base}.send.${t.id}.on`;
-          const prePath = `${base}.send.${t.id}.pre`;
-          const { busFixed, panLinked } = sendLocks(ctx, t);
-          // The tap is taken against the stereo bus's own fader, so a send into
-          // it is the reference and carries no tap of its own.
-          const noTap = busFixed || t.kind === "stereo";
-          // The send carries its own placing; the level is on the knob under it.
-          // The stereo bus places the channel where the channel itself stands, and
-          // so does a bus on Pan Link: the row is named after the channel's own
-          // position, and turning it here turns that position.
-          const toStereo = t.kind === "stereo";
-          const placing = (toStereo || panLinked) && stripPosition(ctx, strip).caption === "PAN" ? "Pan" : "Bal";
-          const balSpec = panSpec(toStereo ? stripPosition(ctx, strip).path : sendPanPath(ctx, strip, t), `${t.label} ${placing}`);
-          const balance = ctx.store.num(balSpec.path, 0);
-          // A fixed bus takes the send at one level, so the unit offers neither
-          // the tap nor the placing, and an FX return takes the send summed to
-          // one side, so it offers no placing. Each keeps its place on the cell.
-          const empty = (cls: string): HTMLElement => el("span", { class: `sendto-empty ${cls}` });
-          const noPlacing = busFixed || t.kind === "fx";
-          return el("div", {
-            class: "sendto-cell",
-            children: [
-              el("div", {
-                class: "sendto-head",
-                children: [
-                  el("span", { class: "sendto-title", text: t.label }),
-                  el("span", { class: "sendto-name", text: shut(t) ? "" : ctx.store.str(`ch.${t.id}.name`, "") }),
-                ],
-              }),
-              el("div", {
-                class: "sendto-body",
-                children: shut(t) ? [] : [
-                  toggle("ON", ctx.store.bool(onPath, sendShipsOn(strip, t)), writing(onPath, () => void ctx.store.set(onPath, !ctx.store.bool(onPath, sendShipsOn(strip, t)))), "btn-switch btn-on"),
-                  noTap
-                    ? empty("sendto-empty-pre")
-                    : toggle("PRE", ctx.store.bool(prePath, false), writing(prePath, () => void ctx.store.set(prePath, !ctx.store.bool(prePath, false))), "btn-switch btn-pre"),
-                  noPlacing ? empty("sendto-empty-slider") : panSlider(balance),
-                  noPlacing
-                    ? empty("sendto-empty-bal")
-                    : el("div", {
-                        class: "sendto-bal",
-                        children: [
-                          el("span", { class: "sendto-bal-caption", text: placing }),
-                          valueBox(ctx, balSpec),
-                        ],
-                      }),
-                ],
-              }),
-            ],
-          });
-        }),
-      }),
-      ...(groups.length > 1
-        ? {
-            side: groups.map((g) =>
-              sideTab(g.label, g.key === group, writing("ui.sendToGroup", () => void ctx.store.set("ui.sendToGroup", g.key)), undefined, "sendto-tab"),
-            ),
-          }
-        : {}),
-      headerLeft: channelSelector(ctx, strip, route, true),
-      headerCenter: titleBox("SEND TO"),
-    };
-  },
-};
-
 /** The send-destination popup the HOME side menu's [Sends] button opens. */
 export const sendsSelectScreen: ScreenDef = {
   id: "sends-select",
@@ -2250,6 +2139,5 @@ export const channelScreens: ScreenDef[] = [
   delayScreen,
   insFxScreen,
   effectSettingsScreen,
-  sendToScreen,
   sendsSelectScreen,
 ];

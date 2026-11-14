@@ -170,7 +170,16 @@ export const TOUR: Stop[] = [
   { id: "ch.comp", from: "channel-view", go: (page) => block(page, "COMP", "ch.comp") },
   { id: "ch.eq", from: "channel-view", go: (page) => block(page, "EQ", "ch.eq") },
   { id: "ch.insfx", from: "channel-view", go: (page) => block(page, "INS FX", "ch.insfx") },
-  to("ch.sendto", "channel-view", "SEND TO"),
+  to("ch.sendto", "channel-view", "SEND"),
+  {
+    id: "ch.sendfrom",
+    go: async (page) => {
+      await bank(page, "MIX, ST STREAMING");
+      await tapInto(page, button(page, "MIX 1 settings"), "channel-view");
+      await tapInto(page, button(page, "SEND", true), "ch.sendto");
+      await tapInto(page, button(page, "SEND FROM"), "ch.sendfrom");
+    },
+  },
   {
     id: "ch.ssmcs",
     go: async (page) => {

@@ -1128,7 +1128,8 @@ describe("the SEND TO rail", () => {
     const pre = px(declarations(CSS, ".sendto-body .btn-pre")["margin-top"]);
     const slider = declarations(CSS, ".sendto-body .pan-slider");
     const bal = declarations(CSS, ".sendto-bal");
-    expect([top, pre, px(slider["margin-top"]), px(bal["margin-top"])]).toEqual([9, 12, 11, 6]);
+    // [ON] at y95 and [PRE] at y146 (p125-1, and D0 p116-1).
+    expect([top, pre, px(slider["margin-top"]), px(bal["margin-top"])]).toEqual([10, 11, 11, 6]);
     expect(px(slider["width"])).toBe(88);
     const box = declarations(CSS, ".sendto-bal .value-box");
     expect(px(box["width"])).toBe(38);

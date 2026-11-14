@@ -140,15 +140,24 @@ export function phasePath(ctx: AppContext, strip: Strip): ParamPath {
   return strip.kind === "stIn" ? `${base}.phase.${stripLane(ctx, strip) === 0 ? "l" : "r"}` : `${base}.phase`;
 }
 
-/**
- * Move the dedicated screens to the neighbouring channel, as the "‹ ›" arrows do:
- * through every strip in device order, a two-channel strip one channel at a
- * time. The strip it lands on becomes the selected one.
- */
-export function stepChannel(ctx: AppContext, delta: number, from: Strip): Strip {
+/** The channel the "‹ ›" arrows step to from `from`, and its side: through every strip in device order, a two-channel strip one channel at a time. */
+function channelStop(ctx: AppContext, delta: number, from: Strip): [Strip, 0 | 1] {
   const stops = allStrips(ctx.model).flatMap((s): [Strip, 0 | 1][] => (stripLanes(s) === 2 ? [[s, 0], [s, 1]] : [[s, 0]]));
   const at = stops.findIndex(([s, lane]) => s.id === from.id && lane === stripLane(ctx, from));
-  const [strip, lane] = stops[(Math.max(0, at) + delta + stops.length) % stops.length] ?? [from, 0];
+  return stops[(Math.max(0, at) + delta + stops.length) % stops.length] ?? [from, 0];
+}
+
+/** The strip the "‹ ›" arrows would step to from `from`, without stepping there. */
+export function steppedChannel(ctx: AppContext, delta: number, from: Strip): Strip {
+  return channelStop(ctx, delta, from)[0];
+}
+
+/**
+ * Move the dedicated screens to the neighbouring channel, as the "‹ ›" arrows do.
+ * The strip it lands on becomes the selected one.
+ */
+export function stepChannel(ctx: AppContext, delta: number, from: Strip): Strip {
+  const [strip, lane] = channelStop(ctx, delta, from);
   selectStrip(ctx, strip.id);
   if (stripLanes(strip) === 2) setStripLane(ctx, strip, lane);
   return strip;

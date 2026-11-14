@@ -87,7 +87,7 @@ Which screen leads to which is drawn in [screen-map.md](screen-map.md).
 | DUCKER | `ch.ducker` | p121 | Built |
 | GEQ | `ch.geq` | p122 | Built |
 | DELAY | `ch.delay` | p124 | Built |
-| SEND TO | `ch.sendto` | p125 | Built |
+| SEND (SEND TO and SEND FROM) | `ch.sendto` / `ch.sendfrom` | p125 | Built |
 
 ### Added by System firmware V1.5, not built yet
 
@@ -97,7 +97,6 @@ were before V1.5.
 | Screen or part | Screen ID | Ref. | Status |
 | --- | --- | --- | --- |
 | Recall Safe (SCENE) | — | p79-80 | Not built |
-| SEND (SEND TO and SEND FROM) | — | p125 | Not built. The screen is built as SEND TO, as it was before V1.5 |
 | Submenu | — | p36, p39 | Not built |
 
 ## What this simulator does not build
@@ -143,6 +142,7 @@ compared are not written here.
 | An FX channel's panel and the EFFECT TYPE screen | `ch.effect` | Only the FX strip on HOME (p049-3). The arrangement follows what the unit shows |
 | MONITOR's Source sheet | `monitor.level` | Only the Source button (p070-1). The guide does not show the sheet itself. The title, names, arrangement and back button match the unit (confirmed on a URX44V) |
 | The STREAMING input source sheet | (no screen) | Nothing. The sheet lies over STREAMING's INPUT screen. The title, names, arrangement and back button follow the unit (confirmed on a URX44V) |
+| SEND TO, and SEND FROM on a strip other than MIX 1 | `ch.sendto` / `ch.sendfrom` | Only MIX 1's SEND FROM (p125-1); D0 p116-1 shows SEND TO as it was before System firmware V1.5. The side menu, the cards on each page, the arrows and the captions follow the unit (confirmed on a URX44V) |
 | The GEQ Link dialogs | `ch.geq` | Only [GEQ Link] (p122-1). The wording, the mark and the answers of `Make Link GEQ Parameters?` and `Break Link GEQ Parameters?` match the unit, [Cancel] standing at the foot on the right in the first and its two answers across the middle with the question higher up (confirmed on a URX44V). The exact place of those answers follows no image |
 
 ### The screen exists, but no default state draws it
@@ -330,8 +330,8 @@ carries either.
 - Taking a type resets every send into that bus — the level to the bottom of its fader, and the
   switch to the side the type taken decides (`FIXED` off, `VARI` on). Taking the type back resets it
   again rather than putting back what was there.
-- A send into a `FIXED` bus loses [PRE], the pan slider and `Bal` from its SEND TO cell, and its knob
-  is bound to nothing. What goes keeps its room, so nothing else on the cell moves. On the unit's
+- A send into a `FIXED` bus loses [PRE], the pan slider and its value from its card on the SEND screen, and its knob
+  is bound to nothing. What goes keeps its room, so nothing else on the card moves. On the unit's
   screen (confirmed on a URX44V) its division of the readout bar reads `Level` over `Fixed`, as bright as
   the division beside it; HOME's [Sends] view reads the strip's level as `Fixed` and stops turning it,
   dark only while the send is switched off; and back on `VARI`, [PRE] shows the tap as it was before.
@@ -487,7 +487,7 @@ A button that switches on and off keeps its weight whichever way it is set; the 
 the state. The switches set their names in the regular weight: [ON] / [CUE] / [PRE] (ON and CUE in p048-1),
 AUTO / SAFE, the INPUT flags, the bank options and the block name boxes that switch their block. [1-knob]
 sets its name one step lighter than bold, at 600 (p105-1, p111-1, p113-1), and the sample-rate buttons set
-theirs bold. The block name boxes that switch nothing (INPUT, CH SETTING, SEND TO, FX1 / FX2) and the
+theirs bold. The block name boxes that switch nothing (INPUT, CH SETTING, SEND, FX1 / FX2) and the
 indicator badges on HOME's strip are bold.
 
 A name on a lit cyan face takes one of three colors. An on/off switch such as [ON] / [CUE] / [PRE] or
@@ -498,7 +498,7 @@ each token's row in [design-tokens.md](design-tokens.md).
 ## [ON] / [CUE] / [PRE] switches
 
 The three are the same control, drawn at the same dimensions on HOME's strips, in the channel view, in
-SEND TO and on OSCILLATOR: 40x40, corner radius 3px, the bottom 4px a band, the label 13px centered on
+the SEND screen and on OSCILLATOR: 40x40, corner radius 3px, the bottom 4px a band, the label 13px centered on
 the face above the band. Lit is `--accent-on` over `--switch-band-lit`; unlit is the pale `--accent-cue`
 over the opaque `--switch-band` (156,150,156) for ON, CUE and PRE alike (y204..207 under CUE in p048-1).
 `btn-switch` holds the dimensions, and `btn-on` / `btn-cue` / `btn-pre` the colors. OSCILLATOR's [ON]
@@ -613,7 +613,8 @@ The values read at RANGEs of -6, -12, -24, -48 and -70 are kept as tables; a RAN
 taken straight between the two, and one shallower than -6 scales the -6 values down by its share
 (confirmed on a URX44V).
 
-SEND TO's button is 86x38, with face `--surface-btn` and a 3px shadow band at the bottom.
+The channel view's [SEND] is 86x38, with face `--surface-btn` and a 3px shadow band at the bottom (x110..195 /
+y144..181 in p095-1). The stereo bus carries it in the same place (p104-1).
 
 ## Channel screen toolbar
 
@@ -684,7 +685,7 @@ has a size of its own for this box (`--fs-2xl`). A lit EQ box carries a curve at
 left in `--eq-badge-curve`: five 8px dots joined by a 2px line (x254..297 / y8..34 in D0 p106-1, the first
 dot cut by the box's edge). On an unlit EQ box the curve is drawn in the graph grips' ring colour, `--handle-ring`.
 
-Channel screens that switch nothing (CH SETTING, INPUT, SEND TO) show their own name in a box of the
+Channel screens that switch nothing (CH SETTING, INPUT, SEND) show their own name in a box of the
 same height, 116px from x254. Even the longest of the names, CH SETTING, is 112px of ink and leaves
 2px inside the box on each side (x256..367 in D0 p092-1). The face is `--surface-sunken` and the text white, with no shadow band, and it cannot be pressed
 (D0 p092-1 / p106-1 / p125-1). The screens of the line opened from the toolbar icons (SETUP, MONITOR,
@@ -841,7 +842,7 @@ channel's name in the toolbar, draws no title, and shows `This channel is not av
 the middle, with the knob readout bar at the foot, its cells empty, and nothing to operate: the name opens nothing, and
 nothing is written. The name box there carries no colour, its icon square and rail the box's own face, and names the
 channel on its first line alone. The Sends destination sheet leaves FX 2 out, and HOME's [Sends] on FX 2 moves to FX 1
-when the rate goes up and stays on FX 1 when it comes back down. On SEND TO's FX 1-2 tab the FX 2 cell keeps its
+when the rate goes up and stays on FX 1 when it comes back down. On SEND TO's page of FX buses the FX 2 card keeps its
 `FX2` and nothing under it: no second line, no [ON], no [PRE], and no Level on the knob (confirmed on a
 URX44V). A settings file loaded, or a unit coming back from storage, at 176.4 or 192 kHz with [Sends] on FX 2 puts
 [Sends] on FX 1 the same way.
@@ -1298,35 +1299,61 @@ The main area is cut into two 84px rows, 10px apart, and the lower row ends 5px 
 bar (measured on p095-1: upper row y50..133, lower row y144..227, top of the bar 233). It is not a
 layout that fills the remainder, so the margin above the bar does not collapse.
 
-## SEND TO destination tabs
+## The SEND screen
 
-STEREO / MIX 1-2 / FX 1-2 are stacked on the rail at the right of the screen, the selected one in
-`--accent-menu` and the others in `--surface-toolbar` (D0 p116-1: x422..479, each 54px high, 6px apart).
-The destinations of the group the tab chose line up as cells. The rail shows only the groups that
-strip has a send into: a channel has STEREO, MIX 1-2 and FX 1-2, an FX return has STEREO and MIX 1-2, and a MIX bus
-reaches the stereo bus alone and so shows no tabs (the table under the side menu in the user guide's
-"SEND TO screen"). A strip that has no send into the group last picked shows its own first group and
-leaves the pick alone.
+The channel view's [SEND] opens the SEND screen, titled `SEND` (p125-1). Its side menu switches between
+two views: [SEND TO], the sends from the channel in view into each bus it reaches, and [SEND FROM], the
+sends into the bus in view from each channel that reaches it. A strip shows the views it has: an input
+channel SEND TO alone, lit, with nothing to switch to; a MIX bus and an FX channel both, opening on SEND
+TO; the stereo bus SEND FROM alone, in the second place with the first left empty. The streaming bus,
+which sends nothing and takes no send, has no [SEND] (all confirmed on a URX44V). The two tabs stand
+where the rail's tabs stand (x422..479 / y50..106 and y110..166 in p125-1), the one in view lit in
+`--accent-menu`.
+
+Each view lays its cards out four to a page, a page for each kind (confirmed on a URX44V):
+
+- SEND TO: the MIX buses; then the FX buses and the stereo bus. CH 1 shows MIX 1 and MIX 2, then FX1,
+  FX2 and STEREO; FX 1 shows MIX 1 and MIX 2, then STEREO; a MIX bus shows STEREO alone.
+- SEND FROM: the mono channels; the stereo channels; then the FX channels and the MIX buses. MIX 1 shows
+  CH 1 to CH 4, CH 5/6 to CH 11/12, then FX1 and FX2; FX 1 shows the first two of those; the stereo bus
+  all three, its last page FX1, FX2, MIX 1 and MIX 2.
+
+Which strip sends to which bus follows the block diagram: a channel sends to the MIX buses, the FX
+buses and the stereo bus, an FX channel to the MIX buses and the stereo bus, a MIX bus to the stereo
+bus (TO ST), and the streaming bus to nothing (`sendsTo` in `src/model/types.ts`).
+
+A round [>] over the right edge of the fourth card (x380..416 / y120..155 in p125-1) steps to the next
+page, and a [<] over the left edge of the first card to the page before; an end with no page beyond it
+carries no arrow. The unit comes back to the view and the page last shown, and starts on SEND TO's first
+page when it is switched on (confirmed on a URX44V); the simulator keeps them until the page is reloaded.
+A strip with fewer pages than the page last shown shows its last, and leaves the page for the strips that
+have it.
 
 A send's tap (PRE / POST) is taken against the stereo bus's own fader, so a send into the stereo bus
-is that reference and carries no tap: [PRE] goes from its cell, keeping its room. A send into the
+is that reference and carries no tap: [PRE] goes from its card, keeping its room. A send into the
 stereo bus has no level and no placing of its own either: no Level goes on the knob, the pan slider and
-its value show the channel's own PAN (BAL), and turning the value box turns the channel's PAN (BAL). On a channel
-placed by its PAN the value is captioned `Pan` (CH 3's PAN at L20 shows `Pan` L20 in the STEREO cell, and
-one step of the box takes CH 3's PAN to L21; confirmed on a URX44V), and on a channel
-placed by its BAL `Bal`: a stereo channel, an FX channel and a pair linked on its balance (CH 5/6, FX1
-and CH 3 of CH 3/4 each show `Bal` C in the STEREO cell, and one step of the box takes the BAL to R1;
-confirmed on a URX44V).
+its value show the channel's own PAN (BAL), and turning the value box turns the channel's PAN (BAL). A
+MIX bus goes into the stereo bus on its own balance, so its card there has no pan slider and no value
+(confirmed on a URX44V).
 
-A cell is a column like a HOME strip, 98px wide and 181px high: under a 36px `--surface-raised` band
-naming the destination come [ON], [PRE], the send's own pan slider, and `Bal` with its value (measured
-on p125-1: ON y95, PRE y146, slider y197, value y207..228). The send level is not in the cell; the knob
-and its readout bar hold it. A send into FX 1 or FX 2 is summed to one side, so its cell has no pan slider
-and no `Bal` (confirmed on a URX44V).
+The value is captioned after the position the sending channel is placed by, into any bus: `Pan` for a
+channel placed by its PAN, `Bal` for a stereo channel, an FX channel and a pair linked on its balance.
+With MIX 1's Pan Link off, CH 1's card reads `Pan` and CH 5/6's `Bal` on MIX 1's SEND FROM, and MIX 1's
+card reads `Pan` on CH 1's SEND TO (confirmed on a URX44V). Into the stereo bus, CH 3's PAN at L20 shows
+`Pan` L20, and one step of the box takes CH 3's PAN to L21; CH 5/6, FX1 and CH 3 of CH 3/4 linked on its
+balance each show `Bal` C, and one step of the box takes the BAL to R1 (confirmed on a URX44V).
 
-Tabs on the rail are 57px high and 3px apart for SEND TO, and 52px high and 7px apart for the menu
-screens (MONITOR, SCENE, OSCILLATOR, Software Integration). The SEND TO tabs and the menu tabs have a
-3px shadow band at the bottom. A SEND TO name on two lines leads 21px, and a name stands a pixel above
+A card is a column like a HOME strip, 98px wide and 181px high: under a 36px `--surface-raised` band
+naming the bus (on SEND TO) or the channel (on SEND FROM) in two white bold lines come [ON], [PRE], the
+send's own pan slider, and `Pan` or `Bal` with its value (measured on p125-1: ON y95, PRE y146, slider
+y197, value y207..228). The unit draws an icon at the band's left, which the simulator does not draw. The
+send level is not in the card; the knob and its readout bar hold it, and under a card whose send has no
+level the bar's cell stands empty. A send into FX 1 or FX 2 is summed to one side, so its card has no pan
+slider and no value (confirmed on a URX44V).
+
+Tabs on the rail are 57px high and 3px apart for SEND, and 52px high and 7px apart for the menu
+screens (MONITOR, SCENE, OSCILLATOR, Software Integration). The SEND tabs and the menu tabs have a
+3px shadow band at the bottom. A SEND name on two lines leads 21px, and a name stands a pixel above
 the middle of its tab, two on two lines (STEREO at y73..82, MIX 1-2 at y122..131 and y143..152 in D0 p116-1).
 
 Sends ship **open** with nothing going through them: the switch on, the level at the bottom of the fader, the tap after the fader, the pan centred, each where the send has one (a send into the stereo bus has the switch alone, and a send into FX 1 or FX 2 no pan). The exception is the send from MIX 1-2 into STEREO, which ships with its switch off.
@@ -1434,13 +1461,13 @@ p166-1), the same as the unit shows. D0 p036-1 draws it unlit, and that figure i
 ## Top of the side rail
 
 The rail starts at a different height depending on the screen. On HOME, MONITOR (Level / Setting / CUE),
-SEND TO and the Sends sheet it starts right below the toolbar (y50); on the others (OSCILLATOR, SCENE
+the SEND screen and the Sends sheet it starts right below the toolbar (y50); on the others (OSCILLATOR, SCENE
 LIST, Output Patch, Peripheral, Software Integration, RECORDER, SAVE/LOAD, TOOLS) it starts 6px lower
 (y56). The rule cannot be derived from the captures, so each screen declares it with `sideAtTop` on
 `ScreenDef`.
 
-A tab's name is 14.5px at weight 600, and OSCILLATOR's and SEND TO's tabs set theirs in the regular weight (p069-1, p084-2, p089-1, p092-1,
-p060-1, p076-1; OSCILLATOR in p073-1, SEND TO in p125-1).
+A tab's name is 14.5px at weight 600, and OSCILLATOR's and the SEND screen's tabs set theirs in the regular weight (p069-1, p084-2, p089-1, p092-1,
+p060-1, p076-1; OSCILLATOR in p073-1, SEND in p125-1).
 
 How high a tab sets its name depends on the screen. Below is the distance from a tab's top to the bottom
 of its name's ink, leaving out the tails of y and g.
@@ -1503,7 +1530,7 @@ send's [PRE] nor its placing was checked on a URX22 too.
 - PRE is taken after the channel's EQ and INS FX and before its fader (on a stereo channel, before
   DUCKER); POST after the fader (on a stereo channel, after DUCKER). The channel's [ON] stops a PRE send
   as well.
-- The assign to the stereo bus (SEND TO's STEREO [ON]) cuts the way into the stereo bus alone and no
+- The assign to the stereo bus (the [ON] of SEND TO's STEREO card) cuts the way into the stereo bus alone and no
   other send. The level into the stereo bus is the channel's fader, and its placing the channel's PAN
   (BAL).
 - A send into a MIX bus on FIXED takes the signal after the fader at 0 dB, whatever the send's level and
@@ -2323,7 +2350,7 @@ The knob at the foot of a strip turns the send to the destination the [Sends] ta
 stands there instead (p048-1 reads the factory fader's `0.00`, p166-1 the send's `-∞` under MIX 1). The FX 1-2 faders ship at the bottom, `-∞`.
 The tab names the stereo bus short, `ST`, and a numbered bus with the space, `MIX 1` (p048-1, p166-1).
 
-While that send is switched off on the SEND TO screen, the knob's face and its lit arc take
+While that send is switched off on the SEND screen, the knob's face and its lit arc take
 `--send-off` and the value `--send-off-ink`. The knob still turns, and what it sets does not leave the
 channel. The value alone stays light because it has to be read: 4.5:1 over the well it stands in (`--surface-well`).
 

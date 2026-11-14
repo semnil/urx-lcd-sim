@@ -1017,17 +1017,19 @@ describe("every knob-bound parameter is reachable on the glass", () => {
       const { shell } = await mount();
       await open(shell, { id: "channel-view", strip });
       const names: string[] = [];
-      if (shell.root.querySelector(".cv-sendto")) names.push("SEND TO");
+      if (shell.root.querySelector(".cv-sendto")) names.push(shell.root.querySelector(".cv-sendto")?.textContent ?? "");
       for (const cell of shell.root.querySelectorAll(".cv-param .cv-caption")) names.push(cell.textContent ?? "");
       for (const btn of shell.root.querySelectorAll(".cv-onoff .btn")) names.push(btn.textContent ?? "");
       return names;
     };
-    // A SEND TO needs a send to STEREO (channels, FX, MIX). The streaming bus is
-    // the one with no position, no level and no on/off.
-    expect(await controls("ch1")).toEqual(["SEND TO", "PAN", "LEVEL", "CUE", "ON"]);
-    expect(await controls("fx1")).toEqual(["SEND TO", "BALANCE", "LEVEL", "CUE", "ON"]);
-    expect(await controls("bus.mix1")).toEqual(["SEND TO", "BALANCE", "LEVEL", "CUE", "ON"]);
-    expect(await controls("bus.stereo"), "the stereo bus is what the others send to").toEqual([
+    // A [SEND] needs a send from the strip or into it (channels, FX, MIX and the
+    // stereo bus). The streaming bus does neither, and is the one with no position,
+    // no level and no on/off.
+    expect(await controls("ch1")).toEqual(["SEND", "PAN", "LEVEL", "CUE", "ON"]);
+    expect(await controls("fx1")).toEqual(["SEND", "BALANCE", "LEVEL", "CUE", "ON"]);
+    expect(await controls("bus.mix1")).toEqual(["SEND", "BALANCE", "LEVEL", "CUE", "ON"]);
+    expect(await controls("bus.stereo"), "the stereo bus takes the others' sends").toEqual([
+      "SEND",
       "BALANCE",
       "LEVEL",
       "CUE",

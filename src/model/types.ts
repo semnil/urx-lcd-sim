@@ -87,11 +87,10 @@ export function allStrips(model: UnitModel): Strip[] {
 }
 
 /**
- * Whether `from` has a send to `to` (user guide, "SEND TO screen", the table
- * under the side menu's send switch buttons). A channel reaches the stereo
- * bus, both MIX buses and both FX returns; an FX return reaches the stereo bus
- * and both MIX buses; a MIX bus reaches the stereo bus; the streaming bus
- * sends nowhere.
+ * Whether `from` has a send to `to`, as the block diagram routes them and the
+ * SEND screen lists them. A channel reaches the stereo bus, both MIX buses and
+ * both FX returns; an FX return reaches the stereo bus and both MIX buses; a
+ * MIX bus reaches the stereo bus (TO ST); the streaming bus sends nowhere.
  */
 export function sendsTo(from: Strip, to: Strip): boolean {
   if (from.id === to.id || from.kind === "streaming") return false;

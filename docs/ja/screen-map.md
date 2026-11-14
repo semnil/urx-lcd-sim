@@ -41,7 +41,7 @@ flowchart LR
   CV --> DUCK["DUCKER<br>(ch.ducker)"]
   CV --> GEQ["GEQ<br>(ch.geq)"]
   CV --> DLY["DELAY<br>(ch.delay)"]
-  CV --> SENDTO["SEND TO<br>(ch.sendto)"]
+  CV --> SENDTO["SEND TO / SEND FROM<br>(ch.sendto / ch.sendfrom)"]
   CV --> INS["INS FX<br>(ch.insfx)"]
   CV --> FXP["パラメーター設定<br>(ch.effect)"]
   CV --> SSM

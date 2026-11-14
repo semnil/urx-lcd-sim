@@ -3,6 +3,7 @@
 
 import { channelScreens } from "./channel";
 import { geqScreen } from "./geq-screen";
+import { sendFromScreen, sendToScreen } from "./send";
 import { bankSelectScreen, homeScreen } from "./home";
 import { microsdScreens } from "./microsd";
 import { monitorScreens } from "./monitor";
@@ -24,6 +25,8 @@ export function buildRegistry(): ScreenRegistry {
     ...microsdScreens,
     ...channelScreens,
     geqScreen,
+    sendToScreen,
+    sendFromScreen,
     ...ssmcsScreens,
   );
 }

@@ -5849,13 +5849,28 @@
 }
 
 .sendto-screen {
+  position: relative;
   flex-direction: row;
   align-items: flex-start;
   gap: 8px;
 }
 
-/* One destination per column of the screen's own grid; the columns a channel
- * does not send to are left empty. */
+/* The round arrows at the ends of a page of sends: [>] over the right edge of the
+ * fourth card (p125-1: x380..416 / y120..155), [<] over the left edge of the first. */
+.lcd .ssmcs-page.send-page {
+  top: 70px;
+}
+
+.lcd .ssmcs-page.send-page-next {
+  left: 379px;
+}
+
+.lcd .ssmcs-page.send-page-prev {
+  left: 1px;
+}
+
+/* One send to a card, four cards to a page; the places a page does not fill
+ * are left empty. */
 .sendto-cell {
   flex: 0 0 98px;
   height: 181px;
@@ -5884,24 +5899,22 @@
   translate: 8px 1px;
 }
 
-.sendto-title {
-  font-weight: 700;
-}
-
+/* Both lines in white and bold (p125-1, and D0 p116-1). */
+.sendto-title,
 .sendto-name {
-  color: var(--text-secondary);
+  font-weight: 700;
 }
 
 .sendto-body {
   flex: 1 1 auto;
-  padding: 9px 5px 2px;
+  padding: 10px 5px 2px;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
 .sendto-body .btn-pre {
-  margin-top: 12px;
+  margin-top: 11px;
 }
 
 .sendto-body .pan-slider {
@@ -5979,6 +5992,11 @@
 
 .sendto-tab + .sendto-tab {
   margin-top: 0;
+}
+
+/* SEND TO's place on a strip that has SEND FROM alone, kept empty so SEND FROM stays second. */
+.sendto-tab-empty {
+  flex: 0 0 auto;
 }
 
 /* --- COMP ---------------------------------------------------------------
