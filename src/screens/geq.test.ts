@@ -8,6 +8,9 @@ import { GEQ_BANDS, geqBandPath } from "../model/geq";
 import { findStrip } from "../model/types";
 import { unitById } from "../model/units";
 import { dropGeqOverRate, setEqType, setGeqLimit } from "./geq";
+import { recallScene } from "./scene";
+import { captureSettings, applySettings } from "../model/settings-file";
+import { captureScene } from "../model/scene-state";
 import { buildRegistry } from "./index";
 
 // Flex12GEQ on the stereo bus and the MIX buses: the EQ Type that runs it, each
@@ -196,6 +199,47 @@ describe("HOME's strip of a bus", () => {
     await shell.ctx.store.set("ch.bus.stereo.geq.l.on", false);
     await flush();
     expect(badgeOf()).toEqual(["GEQ", false]);
+  });
+});
+
+describe("a state saved before Flex12GEQ was kept", () => {
+  it.each(["a scene", "a settings file"] as const)("puts a bus back on 4band PEQ through %s that names no EQ Type, and keeps one it names", async (route) => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    const old = route === "a scene" ? captureScene(s) : captureSettings(s);
+    const now = { ...old };
+    delete old["ch.bus.mix1.eqType"];
+    expect(Object.keys(old).some((p) => p.endsWith(".eqType")), "every bus but MIX 1 names one").toBe(true);
+    setEqType(shell.ctx, strip(shell, "bus.mix1"), "Flex12GEQ");
+    setEqType(shell.ctx, strip(shell, "bus.stereo"), "Flex12GEQ");
+    await flush();
+    const put = async (state: Record<string, unknown>): Promise<void> => {
+      if (route === "a scene") {
+        await s.set("scene.Standard.1.title", "old");
+        await s.set("scene.Standard.1.state", JSON.stringify(state));
+        await recallScene(shell.ctx, 1);
+      } else await applySettings(s, state as Parameters<typeof applySettings>[1]);
+      await flush();
+    };
+    await put({ ...old, "ch.bus.stereo.eqType": "Flex12GEQ" });
+    expect([s.str("ch.bus.mix1.eqType", ""), s.str("ch.bus.stereo.eqType", "")]).toEqual(["4band PEQ", "Flex12GEQ"]);
+    setEqType(shell.ctx, strip(shell, "bus.mix1"), "Flex12GEQ");
+    await put({ ...now, "ch.bus.mix1.eqType": "Flex12GEQ" });
+    expect(s.str("ch.bus.mix1.eqType", "")).toBe("Flex12GEQ");
+  });
+});
+
+describe("the EQ screen of a bus on Flex12GEQ", () => {
+  it("shows no 4-band EQ to set while the bus runs Flex12GEQ, switched under it too, and the EQ again on 4band PEQ", async () => {
+    const shell = await mount([{ id: "channel-view", strip: "bus.mix1" }, { id: "ch.eq", strip: "bus.mix1" }]);
+    const shows = (): string => (shell.root.querySelector(".screen-missing")?.textContent ?? "") || (shell.root.querySelector(".eq-curve") ? "the EQ" : "");
+    expect(shows()).toBe("the EQ");
+    setEqType(shell.ctx, strip(shell, "bus.mix1"), "Flex12GEQ");
+    await flush();
+    expect(shows()).toBe("This channel has no EQ screen");
+    setEqType(shell.ctx, strip(shell, "bus.mix1"), "4band PEQ");
+    await flush();
+    expect(shows()).toBe("the EQ");
   });
 });
 

@@ -1734,6 +1734,8 @@ export const eqScreen: ScreenDef = {
     if (fxShutOut(ctx, strip)) return notAvailable(ctx, strip, route);
     if (!carriesBlock(ctx, strip, "EQ")) return noBlock(ctx, strip, route, "EQ");
     if (eqShut(ctx, strip)) return noBlock(ctx, strip, route, "EQ", true);
+    // A bus on Flex12GEQ runs no 4-band EQ to set.
+    if (runsGeq(ctx, strip)) return noBlock(ctx, strip, route, "EQ");
     const base = `ch.${strip.id}`;
     const bandKey = ctx.store.str("ui.eqBand", "low");
     const band = EQ_BANDS.find((b) => b.key === bandKey) ?? EQ_BANDS[0];
