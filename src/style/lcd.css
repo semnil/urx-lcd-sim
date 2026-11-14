@@ -1421,7 +1421,8 @@
 
 .chs-bustype-list .dropdown-option,
 .chs-eqtype-list .dropdown-option,
-.chs-geqlimit-list .dropdown-option {
+.chs-geqlimit-list .dropdown-option,
+.chs-rec-list .dropdown-option {
   min-width: 136px;
   min-height: 31px;
 }
@@ -1440,6 +1441,13 @@
 .chs-geqlimit-list {
   top: auto;
   bottom: 24px;
+  left: 214px;
+}
+
+/* Rec Point's list opens beside its box (x77..212 / y105..144), with PRE COMP
+ * level with the box (confirmed on a URX44V), on BUS Type's rows. */
+.chs-rec-list {
+  top: 66px;
   left: 214px;
 }
 

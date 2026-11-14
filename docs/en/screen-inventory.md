@@ -2264,7 +2264,10 @@ The boxes and marks that differ by screen:
   The box is 40px high, the two rows are 11px apart, and the value starts 16px in.
 
 The list opens directly below the box, and is pulled inward where it would cross the edge of the
-screen. A list taller than the screen scrolls. It closes on a tap on an item, a tap outside the list,
+screen. One that would run off the foot stands on the foot of the glass, as COMP's and SSMCS COMP's Knee
+hangs from its box down to the foot (confirmed on a URX44V). CH SETTING's Rec Point opens beside its box,
+on BUS Type's 31px rows, with PRE COMP level with the box (confirmed on a URX44V). A list taller than the
+screen scrolls. It closes on a tap on an item, a tap outside the list,
 or `Escape`, and also when the screen changes. It is implemented in one place, `openOptions()` in
 `src/ui/widgets.ts`, shared by `pulldown()` (a box showing a value) and `dropdown()` (a box showing a
 setting name).

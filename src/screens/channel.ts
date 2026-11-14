@@ -851,6 +851,7 @@ export const chSettingScreen: ScreenDef = {
           pulldown(ctx, ctx.store.str(`${base}.recPoint`, REC_POINT_DEFAULT), recPoints(ctx, strip), (v) => void ctx.store.set(`${base}.recPoint`, v), {
             path: `${base}.recPoint`,
             label: "Rec Point",
+            listClass: "chs-rec-list",
           }),
         ),
       );
