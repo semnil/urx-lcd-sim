@@ -142,7 +142,7 @@ PY
 | `--oneknob-type` | `#636973` | The face of 1-knob EQ's curve pulldown (x250 / y60 in p113-2) |
 | `--handle-face` | `#5a6163` | The face of the G / T / R handles on the curve (p105-1) |
 | `--handle-ring` | `#a5aab5` | The same, its 3px rim |
-| `--surface-btn` | `#52555a` | The face of a button standing alone on the glass (SEND TO in p099-1) |
+| `--surface-btn` | `#52555a` | The face of a button standing alone on the glass ([SEND] in p099-1) |
 | `--surface-disabled` | `#212829` | The face of a button that cannot be used (Store at x5..94 / y230..268 and the Edit tab at x422..479 / y115..163 in D0 p073-1) |
 | `--surface-knob` | `#4a4952` | The face of the knob toggle button in the bottom right corner (x432..477 / y238..269 in p046-1) |
 | `--scroll-thumb-dim` | `#cecace` | The thumb on a list's scroll bar (x395..402 / y110..124 in p076-1) |
@@ -193,7 +193,7 @@ PY
 | `--accent-focus` | `#ff009c` | The TOUCH AND TURN focus ring (the A.Gain value box in p095-1) |
 | `--accent-focus-fill` | `#5a284a` | The same, inside the ring |
 | `--focus-ring` | `#f2f4f7` | The simulator's own mark for where the keys act (a pale dashed line). Not taken from the unit |
-| `--send-off` | `#5a6169` | A send switched off on the SEND TO screen, as a HOME strip shows it: the knob's face and arc. No figure shows it; the simulator's own value |
+| `--send-off` | `#5a6169` | A send switched off on the SEND screen, as a HOME strip shows it: the knob's face and arc. No figure shows it; the simulator's own value |
 | `--send-off-ink` | `#8c949c` | The same, its value. No figure shows it; the simulator's own value, 4.5:1 over the value box's well (`--surface-well`) |
 | `--accent-bank-in` | `#429a29` | The INPUT channel bank button |
 | `--accent-bank-out` | `#de5152` | The OUTPUT channel bank button. No figure the guide's pages show has this button; the same value is the face of a lit destination button in p074-1 (x212..301 / y155..191) |
@@ -330,12 +330,12 @@ PY
 | `--corner-badge-fx-e` | `#52829c` | a lit DELAY or INS FX switch: bottom corner over the band, the second shade (D0 p098-2 at DELAY x406..465) |
 | `--corner-badge-fx-f` | `#5a9abd` | a lit DELAY or INS FX switch: bottom corner over the band, the third shade (D0 p098-2 at DELAY x406..465) |
 | `--badge-band-fx` | `#63a2c5` | a lit DELAY or INS FX switch: its 3px band (D0 p098-2 at DELAY x406..465) |
-| `--corner-sendto-a` | `#080c10` | the channel view's [SEND TO]: top corner, the outer shade (p095-1 at x110..195 / y144..181) |
-| `--corner-sendto-b` | `#31393a` | the channel view's [SEND TO]: top corner, the second shade (p095-1 at x110..195 / y144..181) |
-| `--corner-sendto-c` | `#4a5152` | the channel view's [SEND TO]: top corner, the third shade (p095-1 at x110..195 / y144..181) |
-| `--corner-sendto-d` | `#080808` | the channel view's [SEND TO]: bottom corner over the band, the outer shade (p095-1 at x110..195 / y144..181) |
-| `--corner-sendto-e` | `#212829` | the channel view's [SEND TO]: bottom corner over the band, the second shade (p095-1 at x110..195 / y144..181) |
-| `--corner-sendto-f` | `#31353a` | the channel view's [SEND TO]: bottom corner over the band, the third shade (p095-1 at x110..195 / y144..181) |
+| `--corner-sendto-a` | `#080c10` | the channel view's [SEND]: top corner, the outer shade (p095-1 at x110..195 / y144..181) |
+| `--corner-sendto-b` | `#31393a` | the channel view's [SEND]: top corner, the second shade (p095-1 at x110..195 / y144..181) |
+| `--corner-sendto-c` | `#4a5152` | the channel view's [SEND]: top corner, the third shade (p095-1 at x110..195 / y144..181) |
+| `--corner-sendto-d` | `#080808` | the channel view's [SEND]: bottom corner over the band, the outer shade (p095-1 at x110..195 / y144..181) |
+| `--corner-sendto-e` | `#212829` | the channel view's [SEND]: bottom corner over the band, the second shade (p095-1 at x110..195 / y144..181) |
+| `--corner-sendto-f` | `#31353a` | the channel view's [SEND]: bottom corner over the band, the third shade (p095-1 at x110..195 / y144..181) |
 | `--corner-flag-a` | `#4a4d52` | INPUT's flags: top corner, the outer shade (p106-1 at x107..174 / y147..170) |
 | `--corner-flag-b` | `#9c9ea5` | INPUT's flags: top corner, the second shade (p106-1 at x107..174 / y147..170) |
 | `--corner-flag-c` | `#cec6ce` | INPUT's flags: top corner, the third shade (p106-1 at x107..174 / y147..170) |

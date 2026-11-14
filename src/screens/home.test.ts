@@ -1,3 +1,4 @@
+import { persisted } from "../app/persist";
 import { describe, expect, it, vi } from "vitest";
 import { Shell } from "../app/shell";
 import { grBarShare, levelBarShare } from "../model/dynamics";
@@ -1565,14 +1566,26 @@ describe("where the side rail starts", () => {
   });
 });
 
-describe("the SEND TO destination tabs", () => {
-  const tabs = (shell: Shell): { label: string; on: boolean }[] =>
-    [...shell.root.querySelectorAll(".sendto-tab")].map((t) => ({
-      label: t.textContent ?? "",
-      on: t.classList.contains("is-on"),
-    }));
+describe("the SEND screen", () => {
+  /** The side menu's places, top to bottom: a tab's name and whether it is lit, or null for a place left empty. */
+  const tabs = (shell: Shell): ({ label: string; on: boolean } | null)[] =>
+    [...shell.root.querySelectorAll(".side .sendto-tab")].map((t) =>
+      t.classList.contains("sendto-tab-empty") ? null : { label: t.textContent ?? "", on: t.classList.contains("is-on") },
+    );
   const cells = (shell: Shell): string[] =>
     [...shell.root.querySelectorAll(".sendto-title")].map((t) => t.textContent ?? "");
+  const cellOf = (shell: Shell, title: string): Element | undefined =>
+    [...shell.root.querySelectorAll(".sendto-cell")].find((c) => c.querySelector(".sendto-title")?.textContent === title);
+  /** The names on each page of a view, stepping through them by the round arrows. */
+  const pagesOf = async (shell: Shell): Promise<string[][]> => {
+    const pages = [cells(shell)];
+    for (let next = shell.root.querySelector<HTMLElement>(".send-page-next"); next; next = shell.root.querySelector<HTMLElement>(".send-page-next")) {
+      next.click();
+      await flush();
+      pages.push(cells(shell));
+    }
+    return pages;
+  };
 
   it("ships every send switched on with nothing going through it, the tap after the fader", async () => {
     const shell = await mount();
@@ -1595,13 +1608,13 @@ describe("the SEND TO destination tabs", () => {
   it("gives the stereo bus no level of its own, and places a channel into it by the channel's own PAN, turned from here", async () => {
     const shell = await mount();
     await shell.ctx.store.set("ch.ch1.pan", -20);
-    await shell.ctx.store.set("ui.sendToGroup", "ST");
+    await shell.ctx.store.set("ui.sendToPage", 1);
     shell.ctx.nav.push({ id: "ch.sendto", strip: "ch1" });
     await flush();
-    expect(cells(shell)).toEqual(["STEREO"]);
-    expect(shell.root.querySelectorAll('.knob-cell[role="slider"]'), "no level on a knob").toHaveLength(0);
-    const bal = shell.root.querySelector<HTMLElement>(".sendto-bal .value-box");
-    expect([shell.root.querySelector(".sendto-bal-caption")?.textContent, bal?.textContent], "the channel's PAN").toEqual(["Pan", "L20"]);
+    expect(cells(shell)).toEqual(["FX1", "FX2", "STEREO"]);
+    expect(shell.root.querySelectorAll('.knob-cell[role="slider"]'), "a level on the knob under each FX bus, none under the stereo bus").toHaveLength(2);
+    const bal = cellOf(shell, "STEREO")?.querySelector<HTMLElement>(".sendto-bal .value-box");
+    expect([cellOf(shell, "STEREO")?.querySelector(".sendto-bal-caption")?.textContent, bal?.textContent], "the channel's PAN").toEqual(["Pan", "L20"]);
     expect([bal?.hasAttribute("aria-disabled"), bal?.tabIndex], "in reach").toEqual([false, 0]);
     bal?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
     await flush();
@@ -1616,7 +1629,7 @@ describe("the SEND TO destination tabs", () => {
     await shell.ctx.store.set("ch.ch4.signalType", "STEREO");
     await shell.ctx.store.set("ch.ch3.panBal", "BAL");
     await shell.ctx.store.set("ch.ch4.panBal", "BAL");
-    await shell.ctx.store.set("ui.sendToGroup", "ST");
+    await shell.ctx.store.set("ui.sendToPage", 1);
     const read: [string, string | null | undefined, string | null | undefined, number][] = [];
     for (const [strip, position] of [
       ["ch_5_6", "ch.ch_5_6.balance"],
@@ -1626,8 +1639,8 @@ describe("the SEND TO destination tabs", () => {
       shell.ctx.nav.home();
       shell.ctx.nav.push({ id: "ch.sendto", strip });
       await flush();
-      const bal = shell.root.querySelector<HTMLElement>(".sendto-bal .value-box");
-      const caption = shell.root.querySelector(".sendto-bal-caption")?.textContent;
+      const bal = cellOf(shell, "STEREO")?.querySelector<HTMLElement>(".sendto-bal .value-box");
+      const caption = cellOf(shell, "STEREO")?.querySelector(".sendto-bal-caption")?.textContent;
       const before = bal?.textContent;
       bal?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
       await flush();
@@ -1640,14 +1653,102 @@ describe("the SEND TO destination tabs", () => {
     ]);
   });
 
-  it("stacks the three groups down the rail, one of them lit", async () => {
+  it.each([
+    ["ch1", [{ label: "SEND\nTO", on: true }, null], [["MIX 1", "MIX 2"], ["FX1", "FX2", "STEREO"]]],
+    ["ch_5_6", [{ label: "SEND\nTO", on: true }, null], [["MIX 1", "MIX 2"], ["FX1", "FX2", "STEREO"]]],
+    ["fx1", [{ label: "SEND\nTO", on: true }, { label: "SEND\nFROM", on: false }], [["MIX 1", "MIX 2"], ["STEREO"]]],
+    ["bus.mix1", [{ label: "SEND\nTO", on: true }, { label: "SEND\nFROM", on: false }], [["STEREO"]]],
+  ] as const)("opens %s on SEND TO, its side menu and the buses on each page as the unit shows them", async (strip, side, pages) => {
+    // URX44V: CH 1 shows SEND TO alone, lit; a MIX bus and FX 1 both, SEND TO lit.
     const shell = await mount();
-    shell.ctx.nav.push({ id: "ch.sendto", strip: "ch1" });
+    shell.ctx.nav.push({ id: "channel-view", strip });
     await flush();
+    shell.root.querySelector<HTMLElement>(".cv-sendto")?.click();
+    await flush();
+    expect([shell.ctx.nav.current.id, tabs(shell)]).toEqual(["ch.sendto", side]);
+    expect(await pagesOf(shell)).toEqual(pages);
+  });
 
-    expect(tabs(shell).map((t) => t.label)).toEqual(["STEREO", "MIX\n1-2", "FX\n1-2"]);
-    expect(tabs(shell).filter((t) => t.on).map((t) => t.label), "exactly one is lit").toEqual(["MIX\n1-2"]);
-    expect(cells(shell)).toEqual(["MIX 1", "MIX 2"]);
+  it.each([
+    ["bus.mix1", [["CH 1", "CH 2", "CH 3", "CH 4"], ["CH 5/6", "CH 7/8", "CH 9/10", "CH 11/12"], ["FX1", "FX2"]]],
+    ["fx1", [["CH 1", "CH 2", "CH 3", "CH 4"], ["CH 5/6", "CH 7/8", "CH 9/10", "CH 11/12"]]],
+    ["bus.stereo", [["CH 1", "CH 2", "CH 3", "CH 4"], ["CH 5/6", "CH 7/8", "CH 9/10", "CH 11/12"], ["FX1", "FX2", "MIX 1", "MIX 2"]]],
+  ] as const)("shows on %s's SEND FROM the channels that send to it, a page for each kind", async (strip, pages) => {
+    // URX44V: the mono channels, the stereo channels, then the FX channels and the MIX buses.
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "ch.sendfrom", strip });
+    await flush();
+    expect(await pagesOf(shell)).toEqual(pages);
+  });
+
+  it("gives the stereo bus SEND FROM alone, in the second place, and opens it there from the channel view", async () => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "channel-view", strip: "bus.stereo" });
+    await flush();
+    shell.root.querySelector<HTMLElement>(".cv-sendto")?.click();
+    await flush();
+    expect([shell.ctx.nav.current.id, tabs(shell)]).toEqual(["ch.sendfrom", [null, { label: "SEND\nFROM", on: true }]]);
+  });
+
+  it("switches between SEND TO and SEND FROM from the side menu, and comes back to the view and page last shown", async () => {
+    // URX44V: MIX 1's SEND FROM left on its second page came back on it.
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "channel-view", strip: "bus.mix1" });
+    await flush();
+    shell.root.querySelector<HTMLElement>(".cv-sendto")?.click();
+    await flush();
+    [...shell.root.querySelectorAll<HTMLElement>(".side .sendto-tab")].find((t) => t.textContent === "SEND\nFROM")?.click();
+    await flush();
+    shell.root.querySelector<HTMLElement>(".send-page-next")?.click();
+    await flush();
+    expect([shell.ctx.nav.current.id, tabs(shell).map((t) => t?.on), cells(shell)[0]]).toEqual(["ch.sendfrom", [false, true], "CH 5/6"]);
+    shell.ctx.nav.home();
+    shell.ctx.nav.push({ id: "channel-view", strip: "bus.mix1" });
+    await flush();
+    shell.root.querySelector<HTMLElement>(".cv-sendto")?.click();
+    await flush();
+    expect([shell.ctx.nav.current.id, cells(shell)[0]]).toEqual(["ch.sendfrom", "CH 5/6"]);
+    // A channel, which has no SEND FROM, opens on SEND TO and leaves the view kept for the others.
+    shell.ctx.nav.home();
+    shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
+    await flush();
+    shell.root.querySelector<HTMLElement>(".cv-sendto")?.click();
+    await flush();
+    expect([shell.ctx.nav.current.id, shell.ctx.store.str("ui.sendView", "")]).toEqual(["ch.sendto", "from"]);
+  });
+
+  it("starts on SEND TO's first page when the unit is switched on", () => {
+    expect(["ui.sendView", "ui.sendToPage", "ui.sendFromPage"].map(persisted)).toEqual([false, false, false]);
+  });
+
+  it("shows a strip with no sends that it has no SEND screen", async () => {
+    const shell = await mount();
+    shell.ctx.nav.push({ id: "ch.sendto", strip: "bus.stream" });
+    await flush();
+    expect(shell.root.querySelector(".screen-missing")?.textContent).toBe("This channel has no SEND screen");
+  });
+
+  it("gives a MIX bus's send into the stereo bus no tap and no placing, and its level no knob", async () => {
+    const shell = await mount();
+    await shell.ctx.store.set("ui.sendFromPage", 2);
+    shell.ctx.nav.push({ id: "ch.sendfrom", strip: "bus.stereo" });
+    await flush();
+    const parts = (title: string): boolean[] =>
+      [".btn-on", ".btn-pre", ".pan-slider", ".sendto-bal"].map((sel) => cellOf(shell, title)?.querySelector(sel) != null);
+    expect([parts("FX1"), parts("MIX 1")]).toEqual([
+      [true, false, true, true],
+      [true, false, false, false],
+    ]);
+    expect(shell.root.querySelectorAll('.knob-cell[role="slider"]'), "no level on a knob").toHaveLength(0);
+    expect(shell.root.querySelectorAll(".knob-cell.is-empty"), "and the readout bar still stands, its cells empty").toHaveLength(4);
+  });
+
+  it("reads on SEND FROM the level each channel sends at, on the knob under its card", async () => {
+    const shell = await mount();
+    await shell.ctx.store.set("ch.ch2.send.bus.mix1.level", -12);
+    shell.ctx.nav.push({ id: "ch.sendfrom", strip: "bus.mix1" });
+    await flush();
+    expect([...shell.root.querySelectorAll(".knob-cell-value")].slice(0, 4).map((c) => c.textContent)).toEqual(["-\u221e", "-12.0dB", "-\u221e", "-\u221e"]);
   });
 
   it("offers a ducker every channel and the three mixer buses, by their numbers alone", async () => {
@@ -1815,14 +1916,15 @@ describe("the SEND TO destination tabs", () => {
     expect([at("MIX 1"), at("MIX 2")], "the mixes on the third").toEqual(["3/1", "3/2"]);
   });
 
-  it("names a send's placing after the channel's own position while the bus is on Pan Link, and turns that position there", async () => {
+  it("names a send's placing after the channel's own position, and on Pan Link reads and turns that position there", async () => {
+    // URX44V (System firmware V1.5): with Pan Link off, CH 1's card reads Pan and CH 5/6's Bal.
     const shell = await mount();
     await shell.ctx.store.set("ch.ch1.pan", -63);
     shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
     shell.ctx.nav.push({ id: "ch.sendto", strip: "ch1" });
     await flush();
     const cell = (): Element | undefined => [...shell.root.querySelectorAll(".sendto-cell")][0];
-    expect(cell()?.querySelector(".sendto-bal-caption")?.textContent).toBe("Bal");
+    expect([cell()?.querySelector(".sendto-bal-caption")?.textContent, cell()?.querySelector(".sendto-bal .value-box")?.textContent], "its own send's placing").toEqual(["Pan", "C"]);
 
     await shell.ctx.store.set("ch.bus.mix1.panLink", true);
     await flush();
@@ -1839,7 +1941,7 @@ describe("the SEND TO destination tabs", () => {
 
     await shell.ctx.store.set("ch.bus.mix1.panLink", false);
     await flush();
-    expect(cell()?.querySelector(".sendto-bal-caption")?.textContent).toBe("Bal");
+    expect(cell()?.querySelector(".sendto-bal-caption")?.textContent).toBe("Pan");
   });
 
   it("names a stereo channel's send on Pan Link after its BAL, and turns the BAL there", async () => {
@@ -1863,12 +1965,12 @@ describe("the SEND TO destination tabs", () => {
 
   it("gives a send into the stereo bus no tap of its own, and keeps its placing", async () => {
     const shell = await mount();
-    await shell.ctx.store.set("ui.sendToGroup", "ST");
+    await shell.ctx.store.set("ui.sendToPage", 1);
     shell.ctx.nav.push({ id: "ch.sendto", strip: "ch1" });
     await flush();
 
-    const cell = shell.root.querySelector(".sendto-cell");
-    expect(cells(shell)).toEqual(["STEREO"]);
+    const cell = cellOf(shell, "STEREO");
+    expect(cells(shell)).toEqual(["FX1", "FX2", "STEREO"]);
     expect(cell?.querySelector(".btn-on"), "the switch stays").not.toBeNull();
     expect(cell?.querySelector(".btn-pre"), "the tap is the stereo fader itself").toBeNull();
     expect(cell?.querySelector(".sendto-empty-pre"), "and its room is kept").not.toBeNull();
@@ -1881,9 +1983,7 @@ describe("the SEND TO destination tabs", () => {
     shell.ctx.nav.push({ id: "ch.sendto", strip: "fx1" });
     await flush();
 
-    expect(tabs(shell).map((t) => t.label), "an FX return reaches no FX bus").toEqual(["STEREO", "MIX\n1-2"]);
-    expect(tabs(shell).filter((t) => t.on).map((t) => t.label)).toEqual(["MIX\n1-2"]);
-    expect(cells(shell)).toEqual(["MIX 1", "MIX 2"]);
+    expect(cells(shell), "an FX return reaches no FX bus").toEqual(["MIX 1", "MIX 2"]);
     // The four values the cell carries, and the level on the knob under it.
     expect([...shell.root.querySelectorAll(".sendto-cell .btn-on")].map((b) => b.getAttribute("aria-pressed"))).toEqual([
       "true",
@@ -1897,22 +1997,13 @@ describe("the SEND TO destination tabs", () => {
     ]);
   });
 
-  it("keeps a MIX bus without a rail, since the stereo bus is all it reaches", async () => {
+  it("shows a strip with fewer pages than the page last shown its last page, and leaves the page for the strips that have it", async () => {
     const shell = await mount();
+    await shell.ctx.store.set("ui.sendToPage", 1);
     shell.ctx.nav.push({ id: "ch.sendto", strip: "bus.mix1" });
     await flush();
-    expect(tabs(shell)).toHaveLength(0);
-    expect(cells(shell)).toEqual(["STEREO"]);
-  });
-
-  it("shows an FX return its first group when the one last picked is not one of its own", async () => {
-    const shell = await mount();
-    await shell.ctx.store.set("ui.sendToGroup", "FX");
-    shell.ctx.nav.push({ id: "ch.sendto", strip: "fx1" });
-    await flush();
-    expect(tabs(shell).filter((t) => t.on).map((t) => t.label)).toEqual(["STEREO"]);
-    expect(cells(shell)).toEqual(["STEREO"]);
-    expect(shell.ctx.store.str("ui.sendToGroup", ""), "and leaves the pick for the strips that have it").toBe("FX");
+    expect([cells(shell), shell.root.querySelector(".send-page-prev"), shell.root.querySelector(".send-page-next")]).toEqual([["STEREO"], null, null]);
+    expect(shell.ctx.store.num("ui.sendToPage", 0)).toBe(1);
   });
 
   it("turns an FX return's MIX send from the knob under its HOME strip", async () => {
@@ -1931,20 +2022,21 @@ describe("the SEND TO destination tabs", () => {
     expect(level()?.querySelector(".strip-level-value")?.textContent).toBe("-12.0");
   });
 
-  it("shows the destinations of the group that is picked", async () => {
+  it("steps the pages by the round arrows, [>] on every page but the last and [<] on every page but the first", async () => {
     const shell = await mount();
-    shell.ctx.nav.push({ id: "ch.sendto", strip: "ch1" });
+    shell.ctx.nav.push({ id: "ch.sendfrom", strip: "bus.mix1" });
     await flush();
-
-    const pick = async (label: string): Promise<void> => {
-      [...shell.root.querySelectorAll<HTMLElement>(".sendto-tab")].find((t) => t.textContent === label)?.click();
-      await flush();
-    };
-    await pick("FX\n1-2");
-    expect(cells(shell)).toEqual(["FX1", "FX2"]);
-    await pick("STEREO");
-    expect(cells(shell)).toEqual(["STEREO"]);
-    expect(tabs(shell).filter((t) => t.on).map((t) => t.label)).toEqual(["STEREO"]);
+    const arrows = (): boolean[] => [shell.root.querySelector(".send-page-prev") != null, shell.root.querySelector(".send-page-next") != null];
+    expect(arrows()).toEqual([false, true]);
+    shell.root.querySelector<HTMLElement>(".send-page-next")?.click();
+    await flush();
+    expect(arrows()).toEqual([true, true]);
+    shell.root.querySelector<HTMLElement>(".send-page-next")?.click();
+    await flush();
+    expect([arrows(), cells(shell)]).toEqual([[true, false], ["FX1", "FX2"]]);
+    shell.root.querySelector<HTMLElement>(".send-page-prev")?.click();
+    await flush();
+    expect(cells(shell)[0]).toBe("CH 5/6");
   });
 
   it("places each send by its own balance, not by the channel's pan", async () => {
@@ -1959,14 +2051,6 @@ describe("the SEND TO destination tabs", () => {
     expect(values, "MIX 1 carries its own placing; MIX 2 is untouched").toEqual(["R21", "C"]);
   });
 
-  it("gives a bus no chooser, being the far end of a send itself", async () => {
-    const shell = await mount();
-    shell.ctx.nav.push({ id: "ch.sendto", strip: "bus.mix1" });
-    await flush();
-
-    expect(tabs(shell), "a MIX bus reaches the stereo bus and nothing else").toEqual([]);
-    expect(cells(shell)).toEqual(["STEREO"]);
-  });
 });
 
 describe("the microSD menu", () => {
@@ -4137,7 +4221,7 @@ describe("a dedicated channel screen's toolbar", () => {
   });
 
   it("names a screen that switches nothing in the same box, unpressable", async () => {
-    for (const [id, label] of [["ch.setting", "CH SETTING"], ["ch.input", "INPUT"], ["ch.sendto", "SEND TO"]] as const) {
+    for (const [id, label] of [["ch.setting", "CH SETTING"], ["ch.input", "INPUT"], ["ch.sendto", "SEND"]] as const) {
       const shell = await open(id);
       const box = shell.root.querySelector<HTMLElement>(".toolbar-center .badge-title");
       expect(box?.textContent, `${id} names itself in the middle`).toBe(label);
@@ -5264,7 +5348,7 @@ describe("what the dedicated channel screens draw", () => {
     expect(shell.ctx.nav.current.strip).toBe("ch4");
   });
 
-  it("takes FX 2 off the Sends list, out of its SEND TO cell and off HOME's [Sends] at 176.4 / 192 kHz, and an FX send's placing at any rate", async () => {
+  it("takes FX 2 off the Sends list, out of its card on SEND TO and off HOME's [Sends] at 176.4 / 192 kHz, and an FX send's placing at any rate", async () => {
     const seen: Record<string, unknown> = {};
     for (const rate of [96000, 176400, 192000]) {
       const shell = await mount();
@@ -5283,10 +5367,11 @@ describe("what the dedicated channel screens draw", () => {
       const options = [...shell.root.querySelectorAll(".sends-option")].map((n) => n.textContent);
       shell.ctx.nav.home();
       shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
-      await store.set("ui.sendToGroup", "FX");
+      await store.set("ui.sendToPage", 1);
       shell.ctx.nav.push({ id: "ch.sendto", strip: "ch1" });
       await flush();
-      const cells = [...shell.root.querySelectorAll(".sendto-cell")].map((cell) =>
+      // The page carries FX 1, FX 2 and then the stereo bus; the first two are the FX buses.
+      const cells = [...shell.root.querySelectorAll(".sendto-cell")].slice(0, 2).map((cell) =>
         [".sendto-title", ".sendto-name", ".btn-on", ".btn-pre", ".pan-slider", ".sendto-bal"].map((sel) => cell.querySelector(sel)?.textContent ?? null),
       );
       const bar = [...shell.root.querySelectorAll(".knob-strip .knob-cell")].slice(0, 2).map((c) => c.querySelector(".knob-cell-label")?.textContent ?? "");
@@ -5374,18 +5459,18 @@ describe("what the dedicated channel screens draw", () => {
   it("leaves the pan slider and Bal off a send into an FX return, which is summed to one side", async () => {
     const shell = await mount();
     shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
-    await shell.ctx.store.set("ui.sendToGroup", "FX");
+    await shell.ctx.store.set("ui.sendToPage", 1);
     shell.ctx.nav.push({ id: "ch.sendto", strip: "ch1" });
     await flush();
     const cells = (): (string | null)[][] =>
-      [...shell.root.querySelectorAll(".sendto-cell")].map((cell) =>
+      [...shell.root.querySelectorAll(".sendto-cell")].slice(0, 2).map((cell) =>
         [".sendto-title", ".btn-on", ".btn-pre", ".pan-slider", ".sendto-bal"].map((sel) => (cell.querySelector(sel) ? (cell.querySelector(sel)?.textContent ?? "") : null)),
       );
     expect(cells(), "FX 1-2").toEqual([
       ["FX1", "ON", "PRE", null, null],
       ["FX2", "ON", "PRE", null, null],
     ]);
-    await shell.ctx.store.set("ui.sendToGroup", "MIX");
+    await shell.ctx.store.set("ui.sendToPage", 0);
     await flush();
     expect(cells().map((c) => c[3] !== null && c[4] !== null), "MIX 1-2 keep theirs").toEqual([true, true]);
   });
@@ -5579,7 +5664,7 @@ describe("what the dedicated channel screens draw", () => {
     expect(seen, "out of reach, and a touch opens nothing").toEqual(screens.map(([id]) => [id, "true", id, 3]));
   });
 
-  it("names CH SETTING and INPUT in the wider box, and SEND TO in the narrow one", async () => {
+  it("names CH SETTING and INPUT in the wider box, and SEND in the narrow one", async () => {
     const shell = await mount();
     shell.ctx.nav.push({ id: "channel-view", strip: "ch1" });
     shell.ctx.nav.push({ id: "ch.setting", strip: "ch1" });

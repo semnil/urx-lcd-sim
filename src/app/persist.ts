@@ -71,6 +71,11 @@ const IN_FLIGHT = [
   // What CONSOLE LOCK's Change Password holds while it is open, and the password it sets: the
   // simulator keeps no password in the browser's storage.
   "ui.consoleLock.",
+  // The SEND screen's view and pages: the unit comes back to them until it is switched off, and
+  // then starts on SEND TO's first page.
+  "ui.sendView",
+  "ui.sendToPage",
+  "ui.sendFromPage",
 ];
 
 /** Where a state written before [SAFE] and [Clip Safe] were one switch keeps [SAFE]. */

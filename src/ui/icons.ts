@@ -618,7 +618,7 @@ export const Icons = {
   pageOn: (): SVGSVGElement => sized(svg("0 0 8 12", ["M0 0H3L8 6L3 12H0L5 6Z"], true), "icon-page-step"),
 
   /**
-   * The mark on [SEND TO]: a lead rising from below that turns right into a
+   * The mark on the channel view's [SEND]: a lead rising from below that turns right into a
    * pair of chevrons.
    */
   /** The curve in EQ's lit title box: five dots joined by a 2px line, the first cut by the box's edge. */
