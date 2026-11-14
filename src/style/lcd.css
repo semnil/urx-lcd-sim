@@ -1422,16 +1422,27 @@
 .chs-bustype-list .dropdown-option,
 .chs-eqtype-list .dropdown-option,
 .chs-geqlimit-list .dropdown-option,
-.chs-rec-list .dropdown-option {
+.chs-rec-list .dropdown-option,
+.chs-comp-list .dropdown-option,
+.chs-signal-list .dropdown-option {
   min-width: 136px;
   min-height: 31px;
 }
 
-/* EQ Type's list hangs under its box (x317..452 / y105..144), as BUS Type's
- * does, its frame two pixels out from the box's left edge (confirmed on a
- * URX44V). */
-.chs-eqtype-list {
+/* EQ Type's and COMP / EQ's lists hang under their box (x317..452 /
+ * y105..144), as BUS Type's does, the frame two pixels out from the box's left
+ * edge (confirmed on a URX44V). */
+.chs-eqtype-list,
+.chs-comp-list {
   top: 146px;
+  left: 315px;
+}
+
+/* Signal Type's list hangs under its box (x317..452 / y157..196) down to the
+ * foot of the glass, as BUS Type's does (confirmed on a URX44V). */
+.chs-signal-list {
+  top: auto;
+  bottom: 0;
   left: 315px;
 }
 
@@ -1444,8 +1455,9 @@
   left: 214px;
 }
 
-/* Rec Point's list opens beside its box (x77..212 / y105..144), with PRE COMP
- * level with the box (confirmed on a URX44V), on BUS Type's rows. */
+/* Rec Point's list opens beside its box (x77..212 / y105..144), its second row
+ * level with the box: PRE COMP on a mono channel, PRE FADER on a stereo one
+ * (confirmed on a URX44V). */
 .chs-rec-list {
   top: 66px;
   left: 214px;

@@ -1955,8 +1955,9 @@ USER DEFINED KNOBS の割り当てのシートを開く。
   2 つの行は 11px 空け、値は左端から 16px。
 
 一覧は箱の真下に開き、画面の端に掛かるときは内側へ寄せる。下端からはみ出すものは画面の下端に
-立ち、COMP と SSMCS COMP の Knee は箱から画面の下端まで垂れる (URX44V で確認)。CH SETTING の Rec Point は
-箱の右に BUS Type と同じ 31px の行で開き、PRE COMP が箱と同じ高さに来る (URX44V で確認)。画面より縦に長い一覧は
+立ち、COMP と SSMCS COMP の Knee は箱から画面の下端まで垂れる (URX44V で確認)。CH SETTING の一覧は BUS Type と同じ
+31px の行で、Rec Point は箱の右に開き 2 行目が箱と同じ高さに来る (モノラルのチャンネルは PRE COMP、ステレオの
+チャンネルは PRE FADER)。COMP / EQ は箱の下に、Signal Type は箱の下から画面の下端まで開く (URX44V で確認)。画面より縦に長い一覧は
 スクロールする。閉じるのは項目のタップ・一覧の外のタップ・`Escape` の 3 つで、画面が
 切り替わったときも閉じる。実装は `src/ui/widgets.ts` の `openOptions()` 1 箇所で、
 `pulldown()` (値を表示する箱) と `dropdown()` (設定名を表示する箱) が共有する。

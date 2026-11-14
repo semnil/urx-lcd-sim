@@ -858,8 +858,8 @@ export const chSettingScreen: ScreenDef = {
     }
     if (strip.kind === "monoIn") {
       children.push(
-        field("COMP / EQ", "comp", pulldown(ctx, ctx.store.str(`${base}.compEqOrder`, "COMP->EQ"), COMP_EQ_ORDERS, (v) => setCompEq(ctx, strip, v), { path: `${base}.compEqOrder`, label: "COMP / EQ", writes: (v) => ctx.store.writesOf(() => setCompEq(ctx, strip, v)) })),
-        field("Signal Type", "signal", pulldown(ctx, signalType(ctx, strip), SIGNAL_TYPES, (v) => setSignalType(ctx, strip, v), { path: `${base}.signalType`, label: "Signal Type", writes: (v) => ctx.store.writesOf(() => setSignalType(ctx, strip, v)) })),
+        field("COMP / EQ", "comp", pulldown(ctx, ctx.store.str(`${base}.compEqOrder`, "COMP->EQ"), COMP_EQ_ORDERS, (v) => setCompEq(ctx, strip, v), { path: `${base}.compEqOrder`, label: "COMP / EQ", writes: (v) => ctx.store.writesOf(() => setCompEq(ctx, strip, v)), listClass: "chs-comp-list" })),
+        field("Signal Type", "signal", pulldown(ctx, signalType(ctx, strip), SIGNAL_TYPES, (v) => setSignalType(ctx, strip, v), { path: `${base}.signalType`, label: "Signal Type", writes: (v) => ctx.store.writesOf(() => setSignalType(ctx, strip, v)), listClass: "chs-signal-list" })),
       );
       // A stereo pair is placed either by one PAN per channel or by the pair's
       // balance, so it offers the choice under the Signal Type.
