@@ -201,6 +201,17 @@ export const TOUR: Stop[] = [
     },
   },
   {
+    id: "ch.geq",
+    go: async (page) => {
+      await bank(page, "MIX, ST STREAMING");
+      await tapInto(page, button(page, "STEREO settings"), "channel-view");
+      await tapInto(page, button(page, /^STEREO L/), "ch.setting");
+      await pick(page, "EQ Type", "Flex12GEQ");
+      await tapInto(page, button(page, "Back", true), "channel-view");
+      await block(page, "GEQ", "ch.geq");
+    },
+  },
+  {
     id: "ch.effect",
     go: async (page) => {
       await bank(page, "FX 1 - 2");

@@ -15,6 +15,7 @@
 //     stays there back at 48 kHz.
 
 import type { ParamPath } from "../device/path";
+import { biquadDb, peakingBiquad } from "./eq-response";
 import type { Strip } from "./types";
 
 /** The EQ Types, as the unit names them. */
@@ -38,6 +39,31 @@ export const GEQ_BANDS = [
   "20", "25", "31.5", "40", "50", "63", "80", "100", "125", "160", "200", "250", "315", "400", "500", "630",
   "800", "1k", "1.25k", "1.6k", "2k", "2.5k", "3.15k", "4k", "5k", "6.3k", "8k", "10k", "12.5k", "16k", "20k",
 ] as const;
+
+/** Each band's centre, in Hz, in the order of GEQ_BANDS. */
+export const GEQ_BAND_HZ = [
+  20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630,
+  800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500, 16000, 20000,
+] as const;
+
+/**
+ * The Q each band is drawn with: a peaking biquad per band, the bands adding in
+ * dB. Fitted to the response the guide's GEQ screen draws (p122-1), where it
+ * lands half a pixel from the figure's curve on average.
+ */
+export const GEQ_BAND_Q = 3;
+
+/** How many bands the GEQ screen's sliders show at once. */
+export const GEQ_PAGE_SIZE = 4;
+
+/** How many pages of sliders the bands fill: seven of four and a last one of three. */
+export const GEQ_PAGES = Math.ceil(GEQ_BANDS.length / GEQ_PAGE_SIZE);
+
+/** The bands a page of sliders shows, by their index in GEQ_BANDS. */
+export function geqPageBands(page: number): number[] {
+  const first = Math.min(GEQ_PAGES - 1, Math.max(0, Math.trunc(page))) * GEQ_PAGE_SIZE;
+  return Array.from({ length: Math.min(GEQ_PAGE_SIZE, GEQ_BANDS.length - first) }, (_, i) => first + i);
+}
 
 /** How many bands of a side may be away from 0 dB at once. */
 export const GEQ_MAX_ACTIVE = 12;
@@ -86,4 +112,20 @@ export function geqClamp(db: number, limit: string): number {
 /** Whether a sampling frequency leaves Flex12GEQ out of reach. */
 export function geqOverRate(rate: number): boolean {
   return rate > GEQ_MAX_RATE;
+}
+
+/** How many of a side's bands stand away from 0 dB. */
+export function geqActive(gains: readonly number[]): number {
+  return gains.filter((db) => db !== 0).length;
+}
+
+/** The side's response in dB, as a function of frequency: each band a peaking biquad, the bands adding. */
+export function geqResponse(gains: readonly number[]): (hz: number) => number {
+  const parts = gains.flatMap((db, band) => {
+    const hz = GEQ_BAND_HZ[band];
+    if (db === 0 || hz === undefined) return [];
+    const c = peakingBiquad(hz, GEQ_BAND_Q, db);
+    return [(at: number) => biquadDb(c, at)];
+  });
+  return (hz) => parts.reduce((sum, p) => sum + p(hz), 0);
 }

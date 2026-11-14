@@ -103,7 +103,18 @@ PY
 | `--surface-on-sunk` | `#5a656b` | The face of MONITOR's [Source] (x6..95 / y112..151 in p070-1) and of a RECORDER slot's source button (x319..388 / y184..220 in p084-2) |
 | `--graph-bg` | `#212021` | The panel the EQ / COMP curve is drawn on, and the GEQ area's (x301..380 / y84..127 in p104-1) |
 | `--geq-slot` | `#4a494a` | A band's 1px slot in the GEQ area (x310 / y87..124 in p104-1) |
-| `--geq-mark` | `#9cf36b` | A band's 2x1 gain mark in the GEQ area (x310..311 / y105 in p104-1) |
+| `--geq-mark` | `#9cf36b` | A band's 2x1 gain mark in the GEQ area (x310..311 / y105 in p104-1), and the curve on the GEQ screen's graph |
+| `--geq-curve-alpha` | `0.72` | How much of that curve stands over the panel: over the 0 dB line it reads `#ade78c` (x100 / y70 in p122-1) |
+| `--geq-fill` | `#73de4a33` | Between the GEQ screen's curve and its 0 dB line (x61..63 / y71..72 in p122-1) |
+| `--geq-zero` | `#dedfde` | The 0 dB line across the GEQ graph (x393..408 / y70 in p122-1) |
+| `--geq-dot` | `#d6d7d6` | A band's 3px dot on the GEQ graph (x65..67 / y69..71 in p122-1) |
+| `--geq-dot-held` | `#d6419c` | The dot of the band holding the focus (x16..18 / y69..71 in p122-1) |
+| `--geq-window` | `#9695966b` | Over the bands the sliders show on the GEQ graph (x10..59 / y50..89 in p122-1), and over the column of the slider holding the focus (x24..79 / y101..220) |
+| `--geq-rule` | `#5a5d5a` | The gain rules across the GEQ sliders and the line down each slider (y116 and x157 in p122-1) |
+| `--geq-tick` | `#a5a6a5` | The gains named beside those rules (x4..19 / y111..210 in p122-1) |
+| `--geq-bar` | `#00940e6b` | A slider's bar between 0 dB and its box (x135..178 / y148..160 in p122-1) |
+| `--geq-box-held` | `#5a595a` | The face of the slider box holding the focus (x29..74 / y147..168 in p122-1) |
+| `--geq-link-mark` | `#adaead` | The copy mark in [GEQ Link]'s corner (x239..246 / y5..14 in p122-1) |
 | `--graph-grid` | `#4a515a` | The rule drawn at 0 dB on that panel (x180 / y86 in p105-1) |
 | `--graph-grid-lit` | `#63695a` | That rule where it crosses the fill under the curve (x180 / y150 in p109-1) |
 | `--handle-arrow` | `#ce0484` | The triangles on both sides of the way a handle holding the focus moves (x141..147 / y93..100 in D0 p103-1) |

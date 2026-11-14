@@ -2,6 +2,7 @@
 // one module; nothing else in the app enumerates screens.
 
 import { channelScreens } from "./channel";
+import { geqScreen } from "./geq-screen";
 import { bankSelectScreen, homeScreen } from "./home";
 import { microsdScreens } from "./microsd";
 import { monitorScreens } from "./monitor";
@@ -22,6 +23,7 @@ export function buildRegistry(): ScreenRegistry {
     ...monitorScreens,
     ...microsdScreens,
     ...channelScreens,
+    geqScreen,
     ...ssmcsScreens,
   );
 }

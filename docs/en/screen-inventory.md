@@ -85,6 +85,7 @@ Which screen leads to which is drawn in [screen-map.md](screen-map.md).
 | INS FX | `ch.insfx` | p120 | Built (effect picker sheet, and the settings of the effect taken; the guide has no figure of it) |
 | Parameter settings | `ch.effect` | — | Built (an FX channel opens it from its panel on the channel view; an insert is set on the INS FX screen itself; the guide has no figure of it) |
 | DUCKER | `ch.ducker` | p121 | Built |
+| GEQ | `ch.geq` | p122 | Built ([GEQ Link]'s sheet is not built: "Flex12GEQ on a bus" below) |
 | DELAY | `ch.delay` | p124 | Built |
 | SEND TO | `ch.sendto` | p125 | Built |
 
@@ -96,7 +97,7 @@ were before V1.5.
 | Screen or part | Screen ID | Ref. | Status |
 | --- | --- | --- | --- |
 | Recall Safe (SCENE) | — | p79-80 | Not built |
-| GEQ | — | p122-123 | Not built |
+| [GEQ Link]'s sheet (GEQ screen) | — | p122 | Not built. The button is drawn, lit while the link is on, and opens nothing |
 | SEND (SEND TO and SEND FROM) | — | p125 | Not built. The screen is built as SEND TO, as it was before V1.5 |
 | Submenu | — | p36, p39 | Not built |
 
@@ -372,12 +373,43 @@ place of their 4-band EQ (p97-98, p104).
   Its badge is the side's [GEQ], in the EQ's green. Under it a panel a pixel larger than the EQ's
   (x301..380 / y84..127, `--graph-bg`) holds a 1px slot for each band, 2px apart (x310..370 / y87..124,
   `--geq-slot`), and on each slot a 2x1 mark at the band's gain (`--geq-mark`): 0 dB on y105, and 1.2px
-  to a dB, held to the slot's ends. Touching the area opens nothing yet: the GEQ screen is not built.
+  to a dB, held to the slot's ends. Touching the area opens the GEQ screen.
 - The EQ screen of a bus on Flex12GEQ, reached by the channel arrows from another channel's, reads `This channel
   has no EQ screen`. A scene or a settings file saved before the simulator kept the EQ Type puts a bus back on
   4band PEQ.
 - HOME's strip of the bus names `GEQ` in EQ's place, lit in the EQ's green by the side's [GEQ] (confirmed on a
   URX44V).
+- The GEQ screen (`ch.geq`, p122-1) sets one side of the bus, the side the channel selector stands on.
+  - The toolbar carries [GEQ Link] (x147..249, the copy mark in its corner, `--geq-link-mark`) and the
+    side's [GEQ] (x254..369). [GEQ Link] takes the channel arrows' face while the link is off and
+    `--accent-selected` while it is on. Its sheet is not built: the button opens nothing.
+  - The GEQ graph (x0..419 / y50..89) draws the side's response over the 31 bands, each band a peaking
+    filter of Q 3 (fitted to p122-1, where the curve lands half a pixel from the figure's on average), with
+    a 3px dot on each band (`--geq-dot`; `--geq-dot-held` for the band holding the focus), a rule at the
+    edge of each page and a window over the bands the sliders show (`--geq-window`). A touch on the graph
+    brings the sliders to the bands under it. The guide draws the graph at ±15dB alone, 0 dB on y70 and
+    14px to 15 dB; the simulator keeps that scale at every limit and stops a dot or the curve at the
+    frame, which a cut past -20 dB at -24dB reaches.
+  - The sliders (x0..419 / y101..220) show four bands at a time: seven pages of four, and a last page of
+    three. A swipe to the left across them, off the boxes, shows the next four, and one to the right the
+    four before (confirmed on a URX44V). Each band's box (52x28, the EQ screen's handle) stands at the
+    band's gain, 3px to a dB at ±15dB with 0 dB on y161, and its bar (`--geq-bar`) runs between the
+    0 dB line and the box. The rules, named at the left (`--geq-tick`), are, top to bottom: +15, +12, +6,
+    0, -6, -12, -15 at ±15dB; +12, +6, 0, -6, -12 at ±12dB; +6, +3, 0, -3, -6 at ±6dB; and 0, -6, -12,
+    -18, -24 at -24dB (confirmed on a URX44V). The guide draws ±15dB alone; at the other limits the
+    simulator spreads the limit evenly between the same top and bottom rules.
+  - A touch on a box takes the focus to its band, and a drag turns the gain in 0.5 dB steps inside the
+    side's GEQ Limit. The box holding the focus is framed pink with a mark above and below it, and its
+    column is lit; at either end of the limit the marks stop at the area's frame. The screen opens with
+    the focus on the first band shown. A band keeps the focus while the sliders step to a page that does
+    not show it, its dot on the graph alone lit, and its box is framed again back on its page (confirmed
+    on a URX44V).
+  - Available (x428..472 / y52..83) counts the bands that may still leave 0 dB: twelve, less the side's
+    bands away from it. With twelve away, a band at 0 dB does not move, and nothing says why; its box
+    goes grey, its face and its name letting the rules through, while its readout cell reads as before
+    (confirmed on a URX44V). The simulator draws such a box at half its brightness.
+  - The IN and OUT meters read the bus before and after its GEQ, and the readout bar carries the gains of
+    the bands shown.
 - The signal the meters read passes a bus on Flex12GEQ flat: the GEQ's bands are not modelled yet.
 
 ## Knob readout bar
