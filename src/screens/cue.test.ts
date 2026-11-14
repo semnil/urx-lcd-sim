@@ -6,10 +6,8 @@ import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
 import { allStrips, findStrip } from "../model/types";
 import { unitById } from "../model/units";
-import { applySettings, captureSettings } from "../model/settings-file";
 import { CUE_MODE, cueGroup, setCueMode, toggleCue } from "./cue";
 import { buildRegistry } from "./index";
-import { recallScene, storeScene } from "./scene";
 import { setSignalType } from "./stereo-link";
 
 // The unit's CUE runs in two groups, the inputs and the outputs. Within a group
@@ -117,46 +115,36 @@ describe("the outputs an input cue takes out", () => {
   });
 
   /**
-   * Keep a scene and a settings file holding CH 1 alone in the cue, and return
-   * what puts it back by `route`: values put back cue an input without its [CUE].
+   * Values put back — by the unit's own panel, or a save the browser kept — can
+   * cue an input without its [CUE]. A scene and a settings file carry none.
    */
-  async function inputCueKept(shell: Shell, route: "a scene" | "a settings file"): Promise<() => Promise<void>> {
-    await press(shell, "ch1");
-    await shell.ctx.store.set("scene.Standard.1.title", "CH 1 cued");
-    await storeScene(shell.ctx, "Standard", 1);
-    const settings = captureSettings(shell.ctx.store);
-    await press(shell, "ch1");
-    return async () => {
-      if (route === "a scene") await recallScene(shell.ctx, 1);
-      else await applySettings(shell.ctx.store, settings);
-      await flush();
-      expect(cued(shell), `${route} puts CH 1 back in the cue`).toEqual(["ch1"]);
-    };
+  async function putBackCh1(shell: Shell): Promise<void> {
+    await shell.ctx.store.restore("ch.ch1.cue", true);
+    await flush();
+    expect(cued(shell), "CH 1 put back in the cue").toEqual(["ch1"]);
   }
 
-  it.each(["a scene", "a settings file"] as const)("are forgotten once an output is cued, also for an input cue %s puts back", async (route) => {
+  it("are forgotten once an output is cued, also for an input cue put back", async () => {
     const shell = await mount();
-    const putBack = await inputCueKept(shell, route);
     await press(shell, "bus.stereo");
     await press(shell, "ch1");
     await press(shell, "bus.mix1");
     expect(cued(shell)).toEqual(["bus.mix1"]);
     await press(shell, "bus.mix1");
     expect(cued(shell)).toEqual([]);
-    await putBack();
+    await putBackCh1(shell);
     await press(shell, "ch1");
     expect(cued(shell), "STEREO stays out").toEqual([]);
   });
 
-  it.each(["a scene", "a settings file"] as const)("are forgotten once they come back, also for an input cue %s puts back", async (route) => {
+  it("are forgotten once they come back, also for an input cue put back", async () => {
     const shell = await mount();
-    const putBack = await inputCueKept(shell, route);
     await press(shell, "bus.stereo");
     await press(shell, "ch1");
     await press(shell, "ch1");
     expect(cued(shell)).toEqual(["bus.stereo"]);
     await press(shell, "bus.stereo");
-    await putBack();
+    await putBackCh1(shell);
     await press(shell, "ch1");
     expect(cued(shell), "STEREO stays out").toEqual([]);
   });
@@ -168,23 +156,21 @@ describe("the outputs an input cue takes out", () => {
     shell.root.querySelector<HTMLElement>(".cue-clear")?.click();
     await flush();
     expect(cued(shell), "the bin leaves nothing in the cue").toEqual([]);
-    // Values put back, as a scene or a settings file does, can cue an input without its [CUE].
+    // Values put back can cue an input without its [CUE].
     await shell.ctx.store.restore("ch.ch1.cue", true);
     await press(shell, "ch1");
     expect(cued(shell)).toEqual([]);
   });
 
-  it("come back on an input cue taken out, not on an output cue a scene puts back", async () => {
+  it("come back on an input cue taken out, not on an output cue put back", async () => {
     const shell = await mount();
-    await press(shell, "bus.mix1");
-    await shell.ctx.store.set("scene.Standard.1.title", "MIX 1 cued");
-    await storeScene(shell.ctx, "Standard", 1);
-    await press(shell, "bus.mix1");
     await press(shell, "bus.stereo");
     await press(shell, "ch1");
-    await recallScene(shell.ctx, 1);
+    // Values put back can leave MIX 1 alone in the cue without a [CUE].
+    await shell.ctx.store.restore("ch.ch1.cue", false);
+    await shell.ctx.store.restore("ch.bus.mix1.cue", true);
     await flush();
-    expect(cued(shell), "the scene puts MIX 1 alone back in the cue").toEqual(["bus.mix1"]);
+    expect(cued(shell), "MIX 1 alone back in the cue").toEqual(["bus.mix1"]);
     await press(shell, "bus.mix1");
     expect(cued(shell), "STEREO stays out").toEqual([]);
   });

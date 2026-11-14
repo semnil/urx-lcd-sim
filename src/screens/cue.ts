@@ -108,7 +108,16 @@ export function setCueMode(ctx: CueCtx, mode: CueMode): void {
   if (cueMode(ctx) === mode) return;
   ctx.store.operation(() => {
     void ctx.store.set(CUE_MODE, mode);
-    for (const s of allStrips(ctx.model)) if (ctx.store.bool(cuePath(s), false)) void ctx.store.set(cuePath(s), false);
-    void ctx.store.set(OUTPUT_MEMORY, "");
+    takeCuesOut(ctx);
   });
+}
+
+/**
+ * What a switch of the CUE Mode does to the cues, however the mode was
+ * switched: every strip in the cue taken out and the remembered outputs
+ * forgotten. Only a strip in the cue is written.
+ */
+export function takeCuesOut(ctx: CueCtx): void {
+  for (const s of allStrips(ctx.model)) if (ctx.store.bool(cuePath(s), false)) void ctx.store.set(cuePath(s), false);
+  void ctx.store.set(OUTPUT_MEMORY, "");
 }

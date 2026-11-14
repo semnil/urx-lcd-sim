@@ -24,6 +24,7 @@ import { followRecall, pairStates } from "./stereo-link";
 import { settlePanLink } from "./mix-bus";
 import { onSsmcsStops } from "./ssmcs";
 import { onDelayGrid } from "./channel";
+import { cueMode, takeCuesOut } from "./cue";
 import { allStrips, channelPairs } from "../model/types";
 import { aimed, el, markShut, setPressed, writing } from "../ui/dom";
 import { Icons } from "../ui/icons";
@@ -484,8 +485,11 @@ function loadSettings(ctx: AppContext, entry: CardEntry): void {
  */
 function putBackSettings(ctx: AppContext, held: string): void {
   const pairs = pairStates(ctx);
+  const mode = cueMode(ctx);
   void applySettings(ctx.store, onDelayGrid(onSsmcsStops(onDynamicsTimeStops(onPitchMidiControl(onlyHeld(ctx.model, fromJson(held) as Record<string, ParamValue>)))))).then(() => {
     followRecall(ctx, pairs);
+    // The file carries no [CUE]; a CUE Mode it switches takes every cue out, as a switch on MONITOR does.
+    if (cueMode(ctx) !== mode) ctx.store.operation(() => takeCuesOut(ctx));
     settlePanLink(ctx);
     const rate = ctx.store.num("setup.samplingFrequency", 48000);
     dropInsertsOverRate(ctx, rate);
