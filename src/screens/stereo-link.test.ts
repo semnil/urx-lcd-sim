@@ -291,8 +291,9 @@ describe("the PAN / BAL choice a stereo pair carries", () => {
     expect(options.map((o) => o.textContent)).toEqual(["MONO x 2", "STEREO"]);
     expect(options[0]?.getAttribute("aria-selected"), "the list shows where it stands").toBe("true");
 
+    // Its place under the box is the stylesheet's, as BUS Type's is.
     const list = options[0]?.closest<HTMLElement>(".dropdown-list");
-    expect([list?.style.left, list?.style.top], "the list is placed against its box").not.toContain("");
+    expect(list?.classList.contains("chs-signal-list"), "the list is placed against its box").toBe(true);
 
     options[1]?.click();
     await flush();

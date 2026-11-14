@@ -1143,14 +1143,16 @@ function openOptions(ctx: AppContext, spec: OptionListSpec): void {
   close = ctx.overlay(sheet, spec.onClose);
 
   // A list with no place of its own opens under the box it belongs to, pulled
-  // back onto the screen when it would run off an edge.
+  // back onto the screen when it would run off an edge. Pulled up from the foot,
+  // it stands on the foot of the glass: COMP's Knee hangs from its box down to
+  // the foot (confirmed on a URX44V).
   const root = sheet.parentElement;
   if (!spec.listClass && spec.anchor && root) {
     const at = offsetWithin(spec.anchor, root);
     const room = { width: root.offsetWidth, height: root.offsetHeight };
     const below = at.bottom + 2;
     const above = at.top - 2 - list.offsetHeight;
-    const lowest = room.height - 2 - list.offsetHeight;
+    const lowest = room.height - list.offsetHeight;
     list.style.left = `${Math.max(2, Math.min(at.left, room.width - 2 - list.offsetWidth))}px`;
     list.style.top = `${Math.max(2, below > lowest ? (above >= 2 ? above : lowest) : below)}px`;
   }
