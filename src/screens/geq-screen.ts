@@ -117,7 +117,7 @@ function svgNode(tag: string, attrs: Record<string, string | number>): SVGElemen
 }
 
 /** The response over every band, a dot on each, and the window over the page the sliders show. */
-function geqGraph(ctx: AppContext, gains: readonly number[], page: number, held: number | null): HTMLElement {
+function geqGraph(ctx: AppContext, gains: readonly number[], page: number, held: number): HTMLElement {
   const svg = document.createElementNS(NS, "svg");
   svg.setAttribute("viewBox", `0 0 ${OV_W} ${OV_H}`);
   svg.setAttribute("aria-hidden", "true");
@@ -145,8 +145,7 @@ function geqGraph(ctx: AppContext, gains: readonly number[], page: number, held:
   // a pixel left of the next, over the frame's top and bottom as well.
   const from = ovRule(page) - 1;
   svg.append(svgNode("rect", { class: "geq-window", x: from, y: 0, width: ovRule(page + 1) - from, height: OV_H }));
-  GEQ_BANDS.forEach((_, band) => {
-    const db = gains[band] ?? 0;
+  gains.forEach((db, band) => {
     svg.append(svgNode("circle", { class: `geq-dot${band === held ? " is-held" : ""}`, cx: ovDotX(band), cy: Math.round(ovY(db) - 0.5) + 0.5, r: 1.5 }));
   });
   // A touch brings the sliders to the page under it; a key steps them on, and round to the first.
@@ -155,8 +154,8 @@ function geqGraph(ctx: AppContext, gains: readonly number[], page: number, held:
     attrs: { "aria-label": `GEQ graph, bands ${GEQ_BANDS[geqPageBands(page)[0] ?? 0]} to ${GEQ_BANDS[geqPageBands(page).at(-1) ?? 0]}` },
     children: [svg as unknown as HTMLElement],
     onTap: (ev) => {
-      const node = ev.currentTarget as HTMLElement | null;
-      if (ev instanceof MouseEvent && ev.detail > 0 && node) {
+      if (ev instanceof MouseEvent && ev.detail > 0) {
+        const node = ev.currentTarget as HTMLElement;
         const box = node.getBoundingClientRect();
         const x = (ev.clientX - box.left) / drawnScale(node);
         setGeqPage(ctx, Math.floor((x - OV_LEFT + 1) / OV_PAGE_W));
@@ -293,7 +292,6 @@ function openGeqLink(ctx: AppContext, strip: Strip, linked: boolean): void {
       ? dialog({ message: "Break Link GEQ Parameters?", onOk: writing(path, () => breakGeqLink(ctx, strip)) })
       : dialog({
           message: "Make Link GEQ Parameters?",
-          onOk: () => undefined,
           choices: [
             { label: `${name(0)} → ${name(1)}`, onPick: writing(path, () => makeGeqLink(ctx, strip, "l")) },
             { label: `${name(1)} → ${name(0)}`, onPick: writing(path, () => makeGeqLink(ctx, strip, "r")) },
@@ -328,7 +326,7 @@ export const geqScreen: ScreenDef = {
     const linked = ctx.store.str(geqLinkPath(base), "Off") !== "Off";
     const available = GEQ_MAX_ACTIVE - geqActive(gains);
 
-    const graph = geqGraph(ctx, gains, page, held < 0 ? null : held);
+    const graph = geqGraph(ctx, gains, page, held);
     // A band's dot moves with the focus, as the box it belongs to does.
     ctx.focus.follow(graph, () => {
       graph.querySelectorAll(".geq-dot").forEach((dot, band) => dot.classList.toggle("is-held", ctx.focus.holds(geqBandPath(base, side, band))));

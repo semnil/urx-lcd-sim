@@ -126,7 +126,7 @@ export function dropGeqOverRate(ctx: GeqCtx, rate: number): void {
 }
 
 /** A band's gain or the GEQ Limit of one side, as its path names it. */
-const SIDE_SETTING = /^ch\.(.+)\.geq\.(l|r)\.(band\.\d+|limit)$/;
+const SIDE_SETTING = /^ch\.(?<id>.+)\.geq\.(?<side>[lr])\.(?<rest>band\.\d+|limit)$/;
 
 /**
  * While a bus's GEQ Link is on, a band or the GEQ Limit written on one side is
@@ -134,10 +134,8 @@ const SIDE_SETTING = /^ch\.(.+)\.geq\.(l|r)\.(band\.\d+|limit)$/;
  */
 export function geqLinkWriteRule(store: DeviceStore): WriteRule {
   return (path, value) => {
-    const m = SIDE_SETTING.exec(path);
-    if (!m) return [];
-    const [, id, side, rest] = m;
-    if (store.str(geqLinkPath(`ch.${id ?? ""}`), "Off") === "Off") return [];
-    return [[`ch.${id ?? ""}.geq.${side === "l" ? "r" : "l"}.${rest ?? ""}`, value]];
+    const m = SIDE_SETTING.exec(path)?.groups as { id: string; side: GeqSide; rest: string } | undefined;
+    if (!m || store.str(geqLinkPath(`ch.${m.id}`), "Off") === "Off") return [];
+    return [[`ch.${m.id}.geq.${m.side === "l" ? "r" : "l"}.${m.rest}`, value]];
   };
 }

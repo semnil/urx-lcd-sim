@@ -1040,13 +1040,13 @@ export interface DialogOptions {
   okOnly?: boolean;
   /** Whether the dialog warns: its frame and mark take the warning colour, and the mark is the triangle. */
   caution?: boolean;
-  /** What [OK] does. Named with `aimed` or `writing`, it names [OK] so, and [OK] is held shut with its target. */
-  onOk: () => void;
-  onCancel?: () => void;
   /**
-   * Answers that stand in a row of their own under the question, each closing the dialog and doing what it
-   * names. A dialog given them answers with these and [Cancel], and carries no [OK].
+   * What [OK] does. Named with `aimed` or `writing`, it names [OK] so, and [OK] is held shut with its target. A
+   * dialog given none carries no [OK]: it is answered by its `choices` and [Cancel].
    */
+  onOk?: () => void;
+  onCancel?: () => void;
+  /** Answers that stand in a row of their own across the dialog, each closing it and doing what it names. */
   choices?: readonly { label: string; onPick: () => void }[];
 }
 
@@ -1228,12 +1228,17 @@ export function dialog(options: DialogOptions): HTMLElement {
     class: "dialog-overlay",
     attrs: { role: "dialog", "aria-modal": "true", "aria-label": options.message },
   });
-  const answer = (): void => {
-    close();
-    options.onOk();
-  };
-  const aims = aimOf(options.onOk);
-  const ok = button(options.okLabel ?? "OK", aims.length ? aimed(answer, aims) : answer);
+  const onOk = options.onOk;
+  const ok =
+    onOk === undefined
+      ? null
+      : button(
+          options.okLabel ?? "OK",
+          aimed(() => {
+            close();
+            onOk();
+          }, aimOf(onOk)),
+        );
   modal.cancel = () => {
     close();
     options.onCancel?.();
@@ -1244,10 +1249,9 @@ export function dialog(options: DialogOptions): HTMLElement {
       close();
       c.onPick();
     };
-    const aims = aimOf(c.onPick);
-    return button(c.label, aims.length ? aimed(pick, aims) : pick);
+    return button(c.label, aimed(pick, aimOf(c.onPick)));
   });
-  const focusable = options.okOnly === true ? [ok] : choices.length ? [cancel] : [cancel, ok];
+  const focusable = ok === null ? [cancel] : options.okOnly === true ? [ok] : [cancel, ok];
   overlay.appendChild(
     el("div", {
       class: `dialog${options.caution === true ? " is-caution" : ""}${choices.length ? " has-choices" : ""}`,
@@ -1267,7 +1271,7 @@ export function dialog(options: DialogOptions): HTMLElement {
   // The guide's dialog blocks the screen behind it, and Escape is the same as Cancel.
   MODALS.set(overlay, modal);
   // The focus opens on [Cancel], or on [OK] where it is the only answer.
-  queueMicrotask(() => (options.okOnly === true ? ok : cancel).focus());
+  queueMicrotask(() => (focusable[0] as HTMLElement).focus());
   return overlay;
 }
 

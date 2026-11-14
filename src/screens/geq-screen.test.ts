@@ -134,6 +134,15 @@ describe("the GEQ screen", () => {
       expect(held()).toEqual([[false, false, true, false], 2, false]);
     });
 
+    it("steps nothing when the touch is taken away rather than let go", async () => {
+      const shell = await mount();
+      const area = shell.root.querySelector(".geq-sliders");
+      area?.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, cancelable: true, clientX: 300, clientY: 150 }));
+      area?.dispatchEvent(new MouseEvent("pointercancel", { bubbles: true, cancelable: true, clientX: 200, clientY: 150 }));
+      await flush();
+      expect(names(shell)).toEqual(["20", "25", "31.5", "40"]);
+    });
+
     it("steps nothing when it starts on a box", async () => {
       const shell = await mount();
       await swipe(shell, 300, 200, ".geq-box");
@@ -151,6 +160,25 @@ describe("the GEQ screen", () => {
     graph()?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, clientX: 415, detail: 1 }));
     await flush();
     expect(names(shell), "past the last band, the last page").toEqual(["12.5k", "16k", "20k"]);
+  });
+
+  it("steps the sliders on by a key on the GEQ graph, from the last page round to the first", async () => {
+    const shell = await mount();
+    const key = async (): Promise<void> => {
+      const graph = shell.root.querySelector(".geq-graph");
+      graph?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      graph?.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter", bubbles: true }));
+      await flush();
+    };
+    await key();
+    expect(names(shell)).toEqual(["50", "63", "80", "100"]);
+    for (let i = 1; i < GEQ_PAGES; i++) await key();
+    expect(names(shell)).toEqual(["20", "25", "31.5", "40"]);
+  });
+
+  it("shows no channel for a strip the unit does not have", async () => {
+    const shell = await mount("bus.stereo", [{ id: "ch.geq", strip: "nope" }]);
+    expect([shell.root.querySelector(".geq-screen"), shell.root.querySelector(".screen-missing")?.textContent]).toEqual([null, "No channel selected"]);
   });
 
   it("counts down Available as bands leave 0 dB, and holds a band at 0 dB still while twelve stand away from it", async () => {
@@ -179,6 +207,7 @@ describe("the GEQ screen", () => {
     ["±12dB", [12, 6, 0, -6, -12], [15, 38, 60, 83, 105]],
     ["±6dB", [6, 3, 0, -3, -6], [15, 38, 60, 83, 105]],
     ["-24dB", [0, -6, -12, -18, -24], [15, 38, 60, 83, 105]],
+    ["a value off the list, read as ±15dB", [15, 12, 6, 0, -6, -12, -15], [15, 24, 42, 60, 78, 96, 105]],
   ])("rules the area at %s from the limit's top to its bottom", async (limit, gains, rows) => {
     const shell = await mount();
     await shell.ctx.store.set("ch.bus.stereo.geq.l.limit", limit);
