@@ -1970,7 +1970,8 @@ cursor. A settings file carries every value but the screen's own state (`ui.` ba
 shows, and the tabs OUTPUT PATCH, PERIPHERAL and SCENE LIST's Standard / Simple stand on), the card itself (`sd.`), the clock
 ("SETUP screen"), what a linked pair's COMP hears (`pair.`, "The three dynamics screens (GATE / COMP / DUCKER)")
 and each strip's [CUE], which a file the unit writes carries none of. A load leaves those tabs where they stand, as on the
-unit (confirmed on a URX44V), and the cues as well. SCENE LIST's
+unit (confirmed on a URX44V), and the cues as well, unless the file switches the CUE Mode: then every cue goes
+out and the remembered outputs are forgotten, as a switch on MONITOR's CUE tab does. SCENE LIST's
 cursor is in the file, and a load puts it back on the row it stood on when the file was saved, as on
 the unit (confirmed on a URX44V, on Standard's list). Where the tab standing open does not
 list that row, SCENE LIST opens the tab that does; a row both tabs list leaves the open tab where it

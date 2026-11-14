@@ -11,6 +11,7 @@ import { applyScene, captureScene, inScene } from "../model/scene-state";
 import { applySettings, captureSettings } from "../model/settings-file";
 import { recallScene, storeScene } from "./scene";
 import { setSignalType } from "./stereo-link";
+import { setCueMode, toggleCue } from "./cue";
 import { LEVEL_MIN_DB } from "../ui/param-spec";
 import { toJson } from "../device/value-json";
 
@@ -690,6 +691,69 @@ describe("what SCENE LIST's rows tell assistive technology", () => {
       shell.destroy();
       shell.root.remove();
     }
+  });
+});
+
+describe("a settings file load and the CUE Mode", () => {
+  const byText = (root: ParentNode, sel: string, text: string): HTMLElement | null =>
+    [...root.querySelectorAll<HTMLElement>(sel)].find((b) => b.textContent === text) ?? null;
+
+  /** Save the unit as it stands to `name`.urxf from SAVE/LOAD, as the page does. */
+  async function saveAs(shell: Shell, name: string): Promise<void> {
+    shell.ctx.nav.home();
+    shell.ctx.nav.push({ id: "microsd" });
+    shell.ctx.nav.push({ id: "microsd.saveload" });
+    await flush();
+    byText(shell.root, ".sd-actions .btn", "Save as")?.click();
+    await flush();
+    await shell.ctx.store.set("ui.titleEntry.text", name);
+    await flush();
+    shell.root.querySelector<HTMLElement>(".pick-dialog-ok")?.click();
+    await flush();
+    expect(readCard(shell.ctx.store).some((e) => e.name === `${name}.urxf`), "the file is on the card").toBe(true);
+  }
+
+  /** Load `name`.urxf from SAVE/LOAD's [Load], and let it finish. */
+  async function load(shell: Shell, name: string): Promise<void> {
+    shell.ctx.nav.home();
+    shell.ctx.nav.push({ id: "microsd" });
+    shell.ctx.nav.push({ id: "microsd.saveload" });
+    await shell.ctx.store.set("sd.selectedFile", readCard(shell.ctx.store).findIndex((e) => e.name === `${name}.urxf`));
+    await flush();
+    const button = byText(shell.root, ".sd-actions .btn", "Load");
+    if (!button) throw new Error("no [Load]");
+    button.click();
+    for (let i = 0; i < 20; i++) await flush();
+  }
+
+  const cued = (shell: Shell): string[] => [...shell.ctx.model.inputs, ...shell.ctx.model.outputs].filter((x) => shell.ctx.store.bool(`ch.${x.id}.cue`, false)).map((x) => x.id);
+  const press = (shell: Shell, id: string): void => {
+    const strip = [...shell.ctx.model.inputs, ...shell.ctx.model.outputs].find((x) => x.id === id);
+    if (!strip) throw new Error(`no ${id}`);
+    toggleCue(shell.ctx, strip);
+  };
+
+  it("takes every cue out where the file switches the CUE Mode", async () => {
+    const shell = await mount();
+    setCueMode(shell.ctx, "Last CUE");
+    await saveAs(shell, "LAST");
+    setCueMode(shell.ctx, "Mix CUE");
+    press(shell, "ch1");
+    press(shell, "ch2");
+    await flush();
+    expect(cued(shell)).toEqual(["ch1", "ch2"]);
+    await load(shell, "LAST");
+    expect([shell.ctx.store.str("monitor.cueMode", ""), ...cued(shell)]).toEqual(["Last CUE"]);
+  });
+
+  it("leaves the cues where they stand where the file keeps the CUE Mode", async () => {
+    const shell = await mount();
+    await saveAs(shell, "MIX");
+    press(shell, "ch1");
+    press(shell, "ch2");
+    await flush();
+    await load(shell, "MIX");
+    expect([shell.ctx.store.str("monitor.cueMode", ""), ...cued(shell)]).toEqual(["Mix CUE", "ch1", "ch2"]);
   });
 });
 
