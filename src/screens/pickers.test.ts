@@ -581,7 +581,7 @@ describe("the pulldowns' names", () => {
       "CH 1 EQ, 1-knob": ["1-knob type: Intensity (3 options)"].map((name) => spoken(name)),
       "CH 1 SSMCS Comp": ["Knee: Medium (3 options)"].map((name) => spoken(name)),
       "CH 5/6 DUCKER": ["Ducker Source: CH 1 (11 options)"].map((name) => spoken(name)),
-      "MIX 1 CH SETTING": ["BUS Type: VARI (2 options)"].map((name) => spoken(name)),
+      "MIX 1 CH SETTING": ["EQ Type: 4band PEQ (2 options)", "BUS Type: VARI (2 options)"].map((name) => spoken(name)),
     });
     for (const [where, list] of Object.entries(seen)) {
       expect(new Set(list.map((n) => n.split(": ")[0])).size, `${where}: one setting to a name`).toBe(list.length);

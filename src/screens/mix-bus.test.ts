@@ -49,15 +49,16 @@ describe("a MIX bus's BUS Type and Pan Link", () => {
   it("carries them on the MIX bus alone, on the rows the guide's figure has them", async () => {
     const { shell } = await mount();
     await open(shell, "ch.setting", "bus.mix1");
-    expect(captions(shell)).toEqual(["Color", "Icon", "Name", "BUS Type"]);
+    expect(captions(shell)).toEqual(["Color", "Icon", "Name", "EQ Type", "BUS Type"]);
     expect(shell.root.querySelector(".chs-bustype-field .pulldown")?.textContent).toContain("VARI");
     expect(shell.root.querySelector(".chs-panlink .btn")?.textContent).toBe("Pan Link");
     expect(shell.root.querySelector(".chs-panlink .btn")?.getAttribute("aria-pressed")).toBe("false");
 
-    // The other buses carry the name and the colour and nothing else.
-    for (const id of ["bus.stereo", "bus.stream"]) {
+    // The stereo bus carries the EQ Type the MIX buses do, the streaming bus the
+    // name and the colour alone.
+    for (const [id, caps] of [["bus.stereo", ["Color", "Icon", "Name", "EQ Type"]], ["bus.stream", ["Color", "Icon", "Name"]]] as const) {
       await open(shell, "ch.setting", id);
-      expect(captions(shell), id).toEqual(["Color", "Icon", "Name"]);
+      expect(captions(shell), id).toEqual(caps);
       expect(shell.root.querySelector(".chs-panlink"), id).toBeNull();
     }
     // Nor does a channel.
