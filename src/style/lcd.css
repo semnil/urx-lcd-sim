@@ -5884,24 +5884,22 @@
   translate: 8px 1px;
 }
 
-.sendto-title {
-  font-weight: 700;
-}
-
+/* Both lines in white and bold (p125-1, and D0 p116-1). */
+.sendto-title,
 .sendto-name {
-  color: var(--text-secondary);
+  font-weight: 700;
 }
 
 .sendto-body {
   flex: 1 1 auto;
-  padding: 9px 5px 2px;
+  padding: 10px 5px 2px;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
 .sendto-body .btn-pre {
-  margin-top: 12px;
+  margin-top: 11px;
 }
 
 .sendto-body .pan-slider {
