@@ -358,7 +358,7 @@ place of their 4-band EQ (p97-98, p104).
   channel's COMP / EQ stands (the box x317..452 / y105..144 in p098-2): `4band PEQ` or `Flex12GEQ`, shipping
   on `4band PEQ`. While the bus runs Flex12GEQ, `GEQ Limit` stands on the fourth row under BUS Type
   (x77..212 / y209..248 in p098-2): `±15dB`, `±12dB`, `±6dB` or `-24dB`, for the side in view (L or R), shipping on
-  `±15dB`. Both lists read so, top to bottom (confirmed on a URX44V). Coming and going, GEQ Limit moves no other field. Over 48 kHz EQ Type is left out, as the unit drops the item.
+  `±15dB`. Both lists read so, top to bottom, and the stereo bus's CH SETTING carries the two in the MIX bus's places, its third row empty (confirmed on a URX44V). Coming and going, GEQ Limit moves no other field. Over 48 kHz EQ Type is left out, as the unit drops the item.
 - Taking Flex12GEQ switches the bus's EQ on, and on a MIX bus switches the GEQ Link off; going back to
   4band PEQ changes nothing else. Each side holds its own [GEQ] switch and GEQ Limit (confirmed on a
   URX44V). The simulator ships a MIX bus with its GEQ Link on, L to R, and the stereo bus with it off.
