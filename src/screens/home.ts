@@ -42,6 +42,8 @@ import {
 import { CUE_METER, drawnLevels, homeMeterTap, lampState, lampTap, simulatedLevel, tapId } from "./meters";
 import { nameCursorScene } from "./scene";
 import { setSpokenAttr } from "../ui/spoken";
+import { geqOnPath } from "../model/geq";
+import { geqSide, runsGeq } from "./geq";
 
 /**
  * The pair of lamps every indicator block opens with: the left one is green
@@ -98,7 +100,10 @@ function indicatorRows(ctx: AppContext, strip: Strip): HTMLElement {
   const phantom = connector
     ? [el("span", { class: `sym${ctx.store.bool(headAmpSwitch(connector, "phantom"), false) ? " is-hot" : ""}`, text: "+48V" })]
     : [];
-  const eq = badge("EQ", on("eq.on"), "eq");
+  // A bus on Flex12GEQ names it in EQ's place, lit by the side's own [GEQ] (confirmed on a URX44V).
+  const eq = runsGeq(ctx, strip)
+    ? badge("GEQ", ctx.store.bool(geqOnPath(`ch.${strip.id}`, geqSide(ctx, strip)), true), "geq")
+    : badge("EQ", on("eq.on"), "eq");
   const insFx = badge("INS FX", ctx.store.bool(`${insertBase(ctx, strip)}.on`, false), "insfx");
 
   if (strip.kind === "monoIn") {

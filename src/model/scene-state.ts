@@ -13,6 +13,7 @@ import type { DeviceStore } from "../device/store";
 import type { ParamPath, ParamValue } from "../device/path";
 import { fromJson } from "../device/value-json";
 import { withEverySourceGain } from "./source-gain";
+import { EQ_TYPE_SHIPPED } from "./geq";
 
 /** The subtrees a scene is taken from: the mixer and the output patch. */
 const MIXER = ["ch", "source", "setup.outputPatch"];
@@ -78,11 +79,17 @@ export function withEverySceneCleared(store: DeviceStore, state: Record<ParamPat
 /**
  * A saved state as a recall or a settings file load puts it back: a source's
  * digital gain and a BALANCE, a strip's or a send's, that the store holds and
- * the state names none for come back at 0, the centre for a BALANCE.
+ * the state names none for come back at 0, the centre for a BALANCE, and a
+ * bus's EQ Type on 4band PEQ — a state saved before Flex12GEQ was kept ran the
+ * bus on its 4-band EQ.
  */
 export function asPutBack(store: DeviceStore, state: Record<ParamPath, ParamValue>): Record<ParamPath, ParamValue> {
   const out = withEverySourceGain(store, state);
-  for (const path of store.pathsUnder("ch")) if (path.endsWith(".balance") && !(path in out)) out[path] = 0;
+  for (const path of store.pathsUnder("ch")) {
+    if (path in out) continue;
+    if (path.endsWith(".balance")) out[path] = 0;
+    else if (path.endsWith(".eqType")) out[path] = EQ_TYPE_SHIPPED;
+  }
   return out;
 }
 

@@ -95,7 +95,6 @@ URX44V/44/22 ユーザーガイド (英語版 revision E0) が載せている LC
 | 画面・部分 | 画面 ID | 参照 | 状態 |
 | --- | --- | --- | --- |
 | Recall Safe (SCENE) | — | p79-80 | 未実装 |
-| EQ Type と GEQ Limit (STEREO と MIX の CH SETTING)、チャンネルビューの GEQ エリア | — | p97-98, p104 | 未実装 |
 | GEQ | — | p122-123 | 未実装 |
 | SEND (SEND TO と SEND FROM) | — | p125 | 未実装。画面は V1.5 より前と同じ SEND TO として作ってある |
 | サブメニュー | — | p36, p39 | 未実装 |
@@ -293,7 +292,7 @@ CH SETTING の `Signal Type` は 1 チャンネルではなく隣り合うモノ
 MIX バスの CH SETTING は Color / Icon / Name の下に 2 つを出す (D0 p093-2)。`BUS Type` は
 Signal Type と同じ 3 行目に 136px のプルダウン (箱は D0 p093-2 の x77..212 / y157..196)、
 `Pan Link` は 4 行目、`PAN` / `BAL` と同じ位置に 86px のボタン (x317..402 / y209..248)。
-2 行目は空く。他のバスとチャンネルはどちらも持たない。
+2 行目は EQ Type (下の「バスの Flex12GEQ」)。他のバスとチャンネルはどちらも持たない。
 
 - `BUS Type` は `VARI` (送りごとに変えられるレベル) と `FIXED` (固定レベル) の 2 択で、
   出荷時は `VARI`。一覧は箱の下に開き、`FIXED` の面が画面の下端に届く。
@@ -316,6 +315,33 @@ Signal Type と同じ 3 行目に 136px のプルダウン (箱は D0 p093-2 の
   で実機確認)。
 
 判定は `src/screens/mix-bus.ts` 1 箇所で、`src/screens/mix-bus.test.ts` が固定している。
+
+## バスの Flex12GEQ
+
+System ファームウェア V1.5 から、STEREO バスと MIX バスは 4 バンドの EQ の代わりに、31 バンドのグラフィック EQ の
+Flex12GEQ を使える (p97-98・p104)。
+
+- STEREO バスと MIX バスの CH SETTING は、2 行目 (モノラルのチャンネルの COMP / EQ と同じ位置。箱は p098-2 の
+  x317..452 / y105..144) に `EQ Type` を出す。`4band PEQ` か `Flex12GEQ` で、出荷時は `4band PEQ`。バスが Flex12GEQ の
+  あいだは、4 行目の BUS Type の下 (p098-2 の x77..212 / y209..248) に `GEQ Limit` を出す。`±15dB`・`±12dB`・`±6dB`・`-24dB`
+  のどれかで、表示している側 (L か R) の値。出荷時は `±15dB`。2 つの一覧は上からこの順でこの綴りで、STEREO バスの CH SETTING も 2 つを MIX バスと同じ位置に出し、3 行目は空く (URX44V で確認)。EQ Type の一覧は箱の下に、GEQ Limit の一覧は箱の右に、下端を箱の下端にそろえて開き、どちらも BUS Type と同じ 31px の行 (URX44V で確認、開く位置)。GEQ Limit は出ても消えても、ほかの欄を動かさない。48 kHz より上では、
+  本体が項目を消すので EQ Type を出さない。
+- Flex12GEQ にするとバスの EQ がオンになり、MIX バスでは GEQ Link がオフになる。4band PEQ に戻しても、ほかは変わらない。
+  [GEQ] のスイッチと GEQ Limit は側ごとに持つ (URX44V で確認)。シミュレーターの出荷時の状態では、MIX バスの GEQ Link は
+  L から R でオン、STEREO バスはオフ。
+- GEQ Limit を狭めると、その側のバンドを新しい範囲へ寄せる。`-24dB` では 0 dB より上のバンドが 0 dB になる。
+  広げても、寄せた値は戻らない。GEQ Link がオンのあいだは、もう片側も同じ Limit になる (URX44V で確認)。
+- サンプリング周波数が 48 kHz を超えると、Flex12GEQ のバスは 4band PEQ に戻り、両側の全バンドが 0 dB になる。
+  周波数を下げても戻らない。[GEQ] のスイッチ・Limit・Link はそのまま (URX44V で 88.2 kHz にして確認)。
+- バスが Flex12GEQ のあいだ、チャンネルビューは EQ エリアの代わりに GEQ エリアを出す (p104-1)。バッジはその側の
+  [GEQ] で、EQ と同じ緑。その下のパネルは EQ のものより 1px ずつ大きく (x301..380 / y84..127、`--graph-bg`)、
+  バンドごとに 1px の溝を 2px おきに並べ (x310..370 / y87..124、`--geq-slot`)、溝の上にバンドのゲインの位置で 2x1 の印を
+  置く (`--geq-mark`)。0 dB が y105、1 dB あたり 1.2px で、溝の端で止まる。エリアを触っても、まだ何も開かない
+  (GEQ 画面は未実装)。
+- Flex12GEQ のバスの EQ 画面 (ほかのチャンネルの EQ 画面からチャンネルの矢印で移ったとき) は `This channel has no EQ screen` と出す。
+  シミュレーターが EQ Type を持つ前に保存したシーンや設定ファイルは、バスを 4band PEQ に戻す。
+- HOME のバスのストリップは、EQ の位置に `GEQ` を出し、その側の [GEQ] で EQ と同じ緑に点く (URX44V で確認)。
+- メーターが読む信号は、Flex12GEQ のバスを素通りさせる。GEQ のバンドはまだ信号に入れていない。
 
 ## ノブ読み出しバー
 

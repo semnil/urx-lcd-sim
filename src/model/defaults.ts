@@ -17,6 +17,7 @@ import { SOURCES_SHIPPED_DOWN, digitalGainPath, digitalGainShipped } from "./sou
 import type { Strip, UnitModel } from "./types";
 import { CUE_MODE, CUE_MODE_SHIPPED, SENDS_TARGET_SHIPPED, allStrips, carriesInsert, channelPairs, findStrip, sendsTo } from "./types";
 import { UDK_BANKS, UDK_KNOBS, UDK_SHIPPED, UDK_UNASSIGNED, udkPath } from "./udk";
+import { EQ_TYPE_SHIPPED, GEQ_BANDS, GEQ_LIMIT_SHIPPED, GEQ_SIDES, carriesGeq, eqTypePath, geqBandPath, geqLimitPath, geqLinkPath, geqLinkShipped, geqOnPath } from "./geq";
 
 /**
  * The CH SETTING name a strip ships with. Mono channels are "ch 1", a stereo
@@ -294,6 +295,19 @@ function seedStrip(out: Map<ParamPath, ParamValue>, strip: Strip, model: UnitMod
     const effect = FX_EFFECT_DEFAULT[strip.id] ?? "";
     out.set(p("effect.type"), effect);
     for (const param of effectParams(effect)) out.set(p("effect", param.key), param.fallback);
+  }
+
+  // The stereo bus and the MIX buses ship on 4band PEQ, with Flex12GEQ's two
+  // sides switched on, at ±15dB and flat.
+  if (carriesGeq(strip)) {
+    const base = chPath(strip.id);
+    out.set(eqTypePath(base), EQ_TYPE_SHIPPED);
+    out.set(geqLinkPath(base), geqLinkShipped(strip));
+    for (const side of GEQ_SIDES) {
+      out.set(geqOnPath(base, side), true);
+      out.set(geqLimitPath(base, side), GEQ_LIMIT_SHIPPED);
+      GEQ_BANDS.forEach((_, band) => out.set(geqBandPath(base, side, band), 0));
+    }
   }
 
   if (strip.kind === "streaming") {

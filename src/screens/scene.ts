@@ -19,6 +19,7 @@ import { LIST_THUMB_MIN_PX, SHORT_PROGRESS_MS, button, dialog, listView, loading
 import { draftTitle, openTitleEntry } from "./title-entry";
 import type { ScreenBody, ScreenDef } from "./types";
 import { toJson } from "../device/value-json";
+import { dropGeqOverRate } from "./geq";
 
 /** The numbers a unit stores scenes under run from 1 to this. */
 const SCENE_COUNT = 63;
@@ -104,8 +105,9 @@ export async function recallScene(ctx: AppContext, no: number): Promise<void> {
   settlePanLink(ctx);
   await ctx.store.set("scene.current", no);
   // A scene carries the mixer and not the sampling frequency, so a stored insert
-  // can come back onto a unit that is running too fast for it.
+  // or Flex12GEQ can come back onto a unit that is running too fast for it.
   dropInsertsOverRate(ctx, ctx.store.num("setup.samplingFrequency", 48000));
+  dropGeqOverRate(ctx, ctx.store.num("setup.samplingFrequency", 48000));
   ctx.repaint();
 }
 

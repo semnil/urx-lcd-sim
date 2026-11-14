@@ -55,6 +55,8 @@
   --surface-sunk: #31393a; /* the panel PAN and LEVEL stand on */
   --well-deep: #191819; /* the value box on that panel */
   --graph-bg: #212021; /* the panel an EQ curve is drawn on */
+  --geq-slot: #4a494a; /* a band's slot in the GEQ area's summary */
+  --geq-mark: #9cf36b; /* a band's gain mark in the GEQ area's summary */
   --shape-box: #212421; /* the face of the EQ screen's filter shape box */
   --shape-box-edge: #636973; /* the 1px line round that box */
   --oneknob-band: #3a3942; /* the band under [1 1-knob] while it is off */
