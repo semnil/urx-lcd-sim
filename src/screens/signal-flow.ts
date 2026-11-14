@@ -14,6 +14,7 @@ import { COMPANDER_EXPANSION, COMP_KNEE_WIDTH, OVER_REDUCTION_MAX_DB, SSMCS_CORN
 import { bandResponse } from "../model/eq-response";
 import { SSMCS_BAND_KEYS, eqOutOfUse, fourBandResponse, fourBands, pinkGainDb, ssmcsBand, ssmcsEqResponse, ssmcsSideChain, ssmcsSideChainResponse } from "../model/channel-eq";
 import { type EffectOption, FX_EFFECTS, FX_EFFECT_DEFAULT, INPUT_INSERT_EFFECTS, NO_EFFECT, OUTPUT_INSERT_EFFECTS, effectParams, guitarOutputDb } from "../model/effects";
+import { GEQ_BANDS, GEQ_SIDES, geqBandPath, geqOnPath, geqResponse, type GeqSide } from "../model/geq";
 import {
   CLIP_DB,
   DETECTOR_OFFSET,
@@ -581,6 +582,15 @@ function eqOf(store: DeviceStore, base: string): Eq {
   return { db: pinkGainOf(store, `${base}.eq`, () => ["eq", fourBands(store, base)], response), response };
 }
 
+/** One side of a bus's Flex12GEQ, flat while the side's [GEQ] is off or every band stands at 0 dB. */
+function geqOf(store: DeviceStore, base: string, side: GeqSide): Eq {
+  if (!store.bool(geqOnPath(base, side), true)) return FLAT;
+  const gains = GEQ_BANDS.map((_, band) => store.num(geqBandPath(base, side, band), 0));
+  if (gains.every((db) => db === 0)) return FLAT;
+  const response = () => geqResponse(gains);
+  return { db: pinkGainOf(store, `${base}.geq.${side}`, () => ["geq", gains], response), response };
+}
+
 /** A MONO IN channel's HPF, flat while it is off. */
 function hpfOf(store: DeviceStore, base: string): Eq {
   if (!store.bool(`${base}.hpf.on`, false)) return FLAT;
@@ -824,10 +834,9 @@ function busesOut(f: FlowBuilder, base: Sums, ducking: Ducking): void {
   for (const s of buses) {
     const b = `ch.${s.id}`;
     const sum = f.put(s.id, "sum", sums.total(s.id, 2));
-    // A bus on Flex12GEQ runs it in place of its 4-band EQ. The signal does not
-    // model the GEQ's bands yet, so the bus passes it flat.
-    const eq = runsGeq(fc, s) ? FLAT : eqOf(store, b);
-    const pre = f.put(s.id, "preFader", sum.map((lane) => through(lane, eq)));
+    // A bus on Flex12GEQ runs it in place of its 4-band EQ, each side through its own bands.
+    const eqs = runsGeq(fc, s) ? GEQ_SIDES.map((side) => geqOf(store, b, side)) : [eqOf(store, b)];
+    const pre = f.put(s.id, "preFader", sum.map((lane, i) => through(lane, eqs[i] ?? eqs[0] ?? FLAT)));
     const [l, r] = panLawDb(store.num(`${b}.balance`, 0));
     const into = f.put(s.id, "preIns", f.on(s) ? pre.map((lane, i) => gain(lane, f.fader(s) + (i === 0 ? l : r))) : [[], []]);
     f.carryOver(s.id, pre, "preIns");

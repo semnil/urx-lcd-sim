@@ -419,7 +419,8 @@ place of their 4-band EQ (p97-98, p104).
     the bands shown.
   - While the GEQ Link is on, a band set on either side is set on the other too, as the limit is
     (confirmed on a URX44V).
-- The signal the meters read passes a bus on Flex12GEQ flat: the GEQ's bands are not modelled yet.
+- The signal the meters read runs each side of a bus on Flex12GEQ through that side's bands, as the
+  graph draws them, and passes it flat while the side's [GEQ] is off.
 
 ## Knob readout bar
 
