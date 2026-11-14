@@ -199,6 +199,51 @@ describe("the GEQ screen", () => {
     expect(Math.max(...ys)).toBeLessThanOrEqual(37.5);
   });
 
+  describe("two fingers on two bands at 0 dB with eleven away", () => {
+    /** A touch at `y`, as one finger among several. */
+    const touch = (type: string, id: number, y: number): MouseEvent => {
+      const ev = new MouseEvent(type, { bubbles: true, cancelable: true, clientX: 10, clientY: y, button: 0 });
+      Object.defineProperties(ev, { pointerId: { value: id }, pointerType: { value: "touch" } });
+      return ev;
+    };
+    const control = (shell: Shell, on: "box" | "cell", slot: number): HTMLElement | undefined =>
+      on === "box" ? boxes(shell)[slot] : [...shell.root.querySelectorAll<HTMLElement>(".knob-cell")][slot];
+
+    it.each([
+      ["bus.stereo", "Off", "box"],
+      ["bus.stereo", "L>R", "box"],
+      ["bus.mix1", "Off", "cell"],
+      ["bus.mix1", "L>R", "cell"],
+      ["bus.mix2", "Off", "box"],
+      ["bus.mix2", "L>R", "cell"],
+    ] as const)("on %s with the link %s, by its %s: the second finger's band stays at 0 dB, and moves once a band is back", async (id, link, on) => {
+      const shell = await mount(id);
+      const s = shell.ctx.store;
+      const path = (side: "l" | "r", n: number): string => geqBandPath(`ch.${id}`, side, n);
+      const away = (side: "l" | "r"): number => GEQ_BANDS.filter((_, n) => s.num(path(side, n), 0) !== 0).length;
+      await s.set(`ch.${id}.geq.link`, link);
+      for (let n = 4; n < 15; n++) await s.set(path("l", n), -3);
+      await flush();
+      control(shell, on, 0)?.dispatchEvent(touch("pointerdown", 1, 150));
+      control(shell, on, 1)?.dispatchEvent(touch("pointerdown", 2, 150));
+      window.dispatchEvent(touch("pointermove", 1, 120));
+      await flush();
+      window.dispatchEvent(touch("pointermove", 2, 120));
+      await flush();
+      window.dispatchEvent(touch("pointerup", 1, 120));
+      window.dispatchEvent(touch("pointerup", 2, 120));
+      await flush();
+      expect([s.num(path("l", 0), 0) > 0, s.num(path("l", 1), 99), away("l"), available(shell)]).toEqual([true, 0, 12, "0"]);
+      if (link !== "Off") expect(away("r")).toBe(12);
+      await press(box(shell, "20"), "Home");
+      await press(box(shell, "20"), "End");
+      await press(box(shell, "20"), "ArrowDown", 30);
+      expect(s.num(path("l", 0), 99)).toBe(0);
+      await press(box(shell, "25"), "ArrowUp");
+      expect([s.num(path("l", 1), 0), away("l")]).toEqual([0.5, 12]);
+    });
+  });
+
   it("turns a band in 0.5 dB steps inside the side's GEQ Limit", async () => {
     const shell = await mount();
     await press(box(shell, "40"), "ArrowUp", 3);

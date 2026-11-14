@@ -72,13 +72,19 @@ export function geqBandShut(ctx: Pick<AppContext, "store">, strip: Strip, side: 
 
 /**
  * A band's gain, as its slider and its readout cell turn it: in 0.5 dB steps
- * inside the side's GEQ Limit. A band that cannot move has nowhere to go.
+ * inside the side's GEQ Limit. A band that cannot move has nowhere to go. The
+ * range is read at each turn rather than when the screen was drawn, so a drag
+ * still held while another finger takes the twelfth band away from 0 dB stops
+ * at 0 dB too.
  */
 export function geqBandSpec(ctx: Pick<AppContext, "store" | "model">, strip: Strip, side: GeqSide, band: number): NumericSpec {
   const path = geqBandPath(`ch.${strip.id}`, side, band);
-  const [lo, hi] = geqLimitRange(geqLimitOf(ctx, strip, side));
-  const shut = geqBandShut(ctx, strip, side, band);
-  return { ...dbSpec(path, "Gain", shut ? 0 : lo, shut ? 0 : hi, 0, GEQ_STEP_DB, 1) };
+  const range = (): readonly [number, number] =>
+    geqBandShut(ctx, strip, side, band) ? [0, 0] : geqLimitRange(geqLimitOf(ctx, strip, side));
+  return Object.defineProperties(dbSpec(path, "Gain", 0, 0, 0, GEQ_STEP_DB, 1), {
+    min: { get: () => range()[0], enumerable: true },
+    max: { get: () => range()[1], enumerable: true },
+  });
 }
 
 // --- The GEQ graph ---------------------------------------------------------
