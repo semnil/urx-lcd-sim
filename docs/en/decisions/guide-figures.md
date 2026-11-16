@@ -116,7 +116,7 @@ sampled". A figure number is the extracted name in `reference/ug-lcd/`, or, writ
 
 ## A question the unit can answer is answered on the unit
 
-- **Decision** (2026-10-02): where what the unit does is not confirmed, the answer is to observe
+- **Decision** (2026-10-02): where what the unit does is not yet known, the answer is to look at
   the unit and follow it. A question that sets "follow the unit" beside a choice made without
   looking at it is not asked; the point goes to be confirmed. What is asked is what the unit has
   no answer to: the form of what is saved, where a dialog's focus starts, whether the docs or the
