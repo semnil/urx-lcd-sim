@@ -349,8 +349,8 @@
   --safe-selected-off: #3aa2b5; /* a parameter selected on a row whose [Safe] is off: no figure shows it */
   --safe-cell: #52555a; /* a parameter not selected: no figure shows it */
   --safe-cell-safe: #b5b6bd; /* a parameter not selected on a row whose [Safe] is on: no figure shows it */
-  --safe-off: #9c9e9c; /* [Safe] while off, and an Others button while it keeps nothing: no figure shows it */
-  --safe-off-band: #6b6d6b; /* the band at the foot of an Others button while it keeps nothing: no figure shows it */
+  --safe-off: var(--safe-row-name); /* [Safe] while off, and an Others button while it keeps nothing: the unit draws them in a row name's colour */
+  --safe-off-band: #4a4e55; /* the band at the foot of an Others button while it keeps nothing: no figure shows it */
   --safe-band: #bdbebd; /* the Others tab's separator bands */
   --accent-selected: #84dfff; /* selected list row, selected option button */
   --scene-preset: #4adb5a; /* the number of a scene the unit ships with */
