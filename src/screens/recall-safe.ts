@@ -30,6 +30,8 @@ export const SAFE_TABS = ["Input", "Output", "Others"] as const;
 export type SafeTab = (typeof SAFE_TABS)[number];
 
 const TAB_PATH = "ui.recallSafeTab";
+/** The row whose name was tapped last: the unit frames it in white. */
+const ROW_PATH = "ui.recallSafeRow";
 
 /** A parameter column, as the guide's table names them. */
 export type SafeKey = "name" | "source" | "ha" | "processing" | "recPoint" | "toMix" | "toFx" | "chOn" | "chLevel" | "toSt";
@@ -318,11 +320,15 @@ function rowId(strip: Strip): string {
   return strip.kind === "fx" ? strip.label.replace(/^FX(\d)/, "FX $1") : strip.label;
 }
 
-/** A row's name: the channel's fixed name over the name the user gave it, on a square of its colour. */
+/** A row's name: the channel's fixed name over the name the user gave it, on a square of its colour.
+ * A tap selects the row, which the unit frames in white. */
 function rowName(ctx: AppContext, strip: Strip): HTMLElement {
   const fixed = rowId(strip);
-  return el("div", {
-    class: "safe-row-name",
+  const selected = ctx.store.str(ROW_PATH, "") === strip.id;
+  return el("button", {
+    class: `safe-row-name${selected ? " is-selected" : ""}`,
+    attrs: { "aria-label": fixed, "aria-pressed": String(selected) },
+    onTap: () => void ctx.store.set(ROW_PATH, strip.id),
     children: [
       el("span", { class: "safe-row-icon", style: { background: stripColor(ctx, strip) } }),
       el("span", { class: "safe-row-id", text: fixed }),

@@ -60,3 +60,26 @@ test("RECALL SAFE stands each column's cells under its heading button", async ({
     }
   }
 });
+
+// A row's name is a button: a tap frames that row in white, one row at a time, and
+// no part of the screen moves for it.
+test("RECALL SAFE frames the row whose name is tapped, and moves nothing for it", async ({ page }) => {
+  await page.goto("./");
+  await tapInto(page, button(page, "Initial Data"), "scene");
+  await tapInto(page, button(page, "Recall Safe"), "scene.safe");
+  const rects = () =>
+    lcd(page).evaluate((glass) =>
+      [...glass.querySelectorAll(".main *")].map((n) => {
+        const r = n.getBoundingClientRect();
+        return [r.x, r.y, r.width, r.height];
+      }),
+    );
+  const framed = () => lcd(page).locator(".safe-row-name.is-selected");
+  await expect(framed()).toHaveCount(0);
+  const before = await rects();
+  await lcd(page).getByRole("button", { name: "C H 2", exact: true }).click();
+  await expect(framed()).toHaveAttribute("aria-label", "C H 2");
+  await lcd(page).getByRole("button", { name: "C H 3", exact: true }).click();
+  await expect(framed()).toHaveAttribute("aria-label", "C H 3");
+  expect(await rects()).toEqual(before);
+});

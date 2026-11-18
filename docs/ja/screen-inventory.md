@@ -1875,7 +1875,8 @@ p080-1)、サイドレールはほかに何も置かない。タブはグリフ�
 
 - Input は CH 1〜CH 4 を 1 行ずつ、ステレオ入力を組で 1 行、FX 1 と FX 2 を 1 行ずつ並べる。Output は MIX 1・
   MIX 2・ST・STR を並べる。行の名前の箱 (x11..68、高さ 36) は、変えられない名前の下にユーザーが付けた名前を置き、
-  アイコンの代わりにチャンネルの色の四角を敷く (URX44V で実機確認)。
+  アイコンの代わりにチャンネルの色の四角を敷く (URX44V で実機確認)。箱は左の角が丸く、右の角が角ばる (p079-1)。
+  箱をタップするとその行が選ばれ、選ばれた行の箱は白い枠で囲まれて四隅とも丸くなる (URX44V で実機確認)。
 - Input の列は Safe・All・Name・Source・HA・Processing・Rec Point・To MIX・To FX・CH ON・CH Level・To ST/Pan、
   Output の列は Safe・Incoming Sends・All・Name・Source・Processing・CH ON・CH Level・To ST/Bal。Safe・
   Incoming Sends・All は動かず、Name から右の列は下端のバーで横にスクロールし、Output は 4 列 (p079-1)、Input は

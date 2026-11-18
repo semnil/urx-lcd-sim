@@ -11106,11 +11106,14 @@
   gap: 6px;
 }
 
-.safe-row-name {
+/* A row's name: square on its right, until a tap selects it and frames it in white. */
+.lcd .safe-row-name {
   position: relative;
   width: 58px;
   height: 36px;
-  border-radius: var(--radius-md);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
   background: var(--safe-row-name);
   display: flex;
   flex-direction: column;
@@ -11120,6 +11123,11 @@
   font-size: 12.5px;
   line-height: 14px;
   color: var(--text);
+}
+
+.lcd .safe-row-name.is-selected {
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 0 0 2px var(--text);
 }
 
 /* The channel's icon, drawn as a square of the channel's colour (AGENTS.md). */
