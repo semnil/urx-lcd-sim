@@ -21,8 +21,9 @@ import type { Strip, UnitModel } from "../model/types";
 import { digitalGainPath } from "../model/source-gain";
 import { el, writing } from "../ui/dom";
 import { scrollbar, sideTab } from "../ui/widgets";
+import { Icons } from "../ui/icons";
 import type { ScreenBody, ScreenDef } from "./types";
-import { linkPartner } from "./stereo-link";
+import { isStereoLinked, linkPartner } from "./stereo-link";
 import { stripColor } from "./strip-state";
 
 /** The three tabs of the side menu. */
@@ -337,6 +338,28 @@ function rowName(ctx: AppContext, strip: Strip): HTMLElement {
   });
 }
 
+/** The row pitch of the names: a box and the gap under it. */
+const NAME_PITCH_PX = 44;
+
+/**
+ * HOME's stereo-link mark, drawn smaller in the gap between the names of a linked
+ * pair, across the middle of the boxes.
+ */
+function linkMarks(ctx: AppContext, rows: readonly Strip[]): HTMLElement[] {
+  return rows.flatMap((strip, i) => {
+    const above = rows[i - 1];
+    if (!above || linkPartner(ctx, strip)?.id !== above.id || !isStereoLinked(ctx, strip)) return [];
+    return [
+      el("span", {
+        class: "safe-link",
+        style: { top: `${i * NAME_PITCH_PX}px` },
+        attrs: { role: "img", "aria-label": `${above.label} and ${strip.label} stereo link` },
+        children: [Icons.link()],
+      }),
+    ];
+  });
+}
+
 function gridTab(ctx: AppContext, tab: "Input" | "Output"): HTMLElement {
   const rows = safeRows(ctx.model, tab);
   const columns = safeColumns(tab);
@@ -487,7 +510,7 @@ function gridTab(ctx: AppContext, tab: "Input" | "Output"): HTMLElement {
   const body = el("div", {
     class: "safe-rows",
     children: [
-      el("div", { class: "safe-names", children: rows.map((strip) => rowName(ctx, strip)) }),
+      el("div", { class: "safe-names", children: [...rows.map((strip) => rowName(ctx, strip)), ...linkMarks(ctx, rows)] }),
       el("div", { class: "safe-fixed-rows", children: rows.map(fixedRow) }),
       track(rows.map(cellRow)),
     ],

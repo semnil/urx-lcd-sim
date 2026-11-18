@@ -11082,8 +11082,30 @@
 }
 
 .safe-names {
+  position: relative;
   flex: 0 0 58px;
   margin-left: 3px;
+}
+
+/* HOME's stereo-link mark, smaller, in the gap between a linked pair's names: its
+ * disc sits across the gap's middle, 4px above the lower box. */
+.safe-link {
+  position: absolute;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  margin: -10px 0 0 -6px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--lcd-bg);
+  color: var(--text);
+  pointer-events: none;
+}
+
+.safe-link svg {
+  width: 8px;
+  height: 8px;
 }
 
 .safe-fixed-rows {

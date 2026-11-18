@@ -3,7 +3,7 @@
 // button stays lit.
 
 import { expect, test } from "@playwright/test";
-import { button, lcd, tapInto } from "./tour";
+import { TOUR, button, lcd, reach, tapInto } from "./tour";
 
 test("SCENE's [Recall Safe] opens RECALL SAFE, Source opens the pair's HA, and Others keeps a button lit", async ({ page }) => {
   await page.goto("./");
@@ -82,4 +82,24 @@ test("RECALL SAFE frames the row whose name is tapped, and moves nothing for it"
   await lcd(page).getByRole("button", { name: "C H 3", exact: true }).click();
   await expect(framed()).toHaveAttribute("aria-label", "C H 3");
   expect(await rects()).toEqual(before);
+});
+
+// A linked pair's names carry HOME's stereo-link mark, smaller, across the middle of
+// the gap between the two boxes.
+test("RECALL SAFE marks a stereo-linked pair between its names", async ({ page }) => {
+  await reach(page, TOUR.find((s) => s.id === "ch.setting")!);
+  await button(page, "Signal Type").click();
+  await lcd(page).getByRole("option", { name: "STEREO", exact: true }).click();
+  await tapInto(page, button(page, "HOME", true), "home");
+  await tapInto(page, button(page, "Initial Data"), "scene");
+  await tapInto(page, button(page, "Recall Safe"), "scene.safe");
+  const marks = lcd(page).locator(".safe-link");
+  await expect(marks).toHaveCount(1);
+  await expect(marks).toHaveAttribute("aria-label", "C H 1 and C H 2 stereo link");
+  const [mark, upper, lower] = await Promise.all(
+    [marks, lcd(page).getByRole("button", { name: "C H 1", exact: true }), lcd(page).getByRole("button", { name: "C H 2", exact: true })].map(async (l) => (await l.boundingBox())!),
+  );
+  expect(mark.x + mark.width / 2, "across the middle of the boxes").toBeCloseTo(upper!.x + upper!.width / 2, 1);
+  expect(mark.y + mark.height / 2, "in the middle of the gap").toBeCloseTo((upper!.y + upper!.height + lower!.y) / 2, 1);
+  expect(lower!.y - upper!.y, "the names keep their pitch").toBeCloseTo(44 * (upper!.width / 58), 1);
 });
