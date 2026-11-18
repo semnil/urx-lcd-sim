@@ -7,6 +7,7 @@ import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
 import { recallScene, storeScene } from "./scene";
 import { digitalGainPath } from "../model/source-gain";
+import { persisted } from "../app/persist";
 
 const flush = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 
@@ -237,6 +238,10 @@ describe("RECALL SAFE", () => {
     expect(framed()).toEqual(["C H 3"]);
     expect(grid(shell)).toEqual(before);
     expect(face(shell, "C H 3 Safe")).toBe("ON|off");
+  });
+
+  it("opens on Input when the unit is switched on, the framed row kept", () => {
+    expect(["ui.recallSafeTab", "ui.recallSafeRow"].map(persisted)).toEqual([false, true]);
   });
 
   it("carries no USER DEFINED KNOBS toggle on its side rail", async () => {
