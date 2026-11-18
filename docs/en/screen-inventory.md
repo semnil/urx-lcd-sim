@@ -2194,11 +2194,11 @@ Mode the menu's [Recall Safe] is out of reach, and a recall keeps nothing.
 - A cell with no button is black: HA on every row until its Source is selected; Source, HA, Processing, Rec Point
   and To FX on FX 1 and FX 2; Incoming Sends on ST and STR; Source on MIX 1, MIX 2 and ST; CH ON, CH Level and To
   ST/Bal on STR (confirmed on a URX44V).
-- [Safe] reads `ON`, light grey while off and green while on. A parameter button carries no words: dark grey while
+- [Safe] reads `ON`, in a row name box's colour while off and green while on. A parameter button carries no words: dark grey while
   not selected and teal once selected. On a row whose [Safe] is on, a button not selected is paler and a selected
   one cyan. [All] and the headings read `All` on the dark face while none of theirs is selected, `...` while some
   are and `All` lit once all are, and the headings take a Safe row's faces while any row's [Safe] is on. The
-  heading over Safe reads `ALL` light grey, `...` cyan while some rows are on, and `ALL` green once all are
+  heading over Safe reads `ALL` in a row name box's colour, `...` cyan while some rows are on, and `ALL` green once all are
   (confirmed on a URX44V).
 - Source goes by the input source's pair: CH 1 with CH 2 and CH 3 with CH 4. Selecting it opens the pair's HA,
   which goes by channel, and clearing it clears HA. A row's [All] selects every parameter, its HA included, then
@@ -2209,9 +2209,11 @@ Mode the menu's [Recall Safe] is out of reach, and a recall keeps nothing.
   (confirmed on a URX44V). A kept HA keeps its input source's D.Gain with it.
 - Others lays out three bands, EFFECT, BUS TYPE and OTHERS (x10..389, 20 high), with the buttons four to a row
   under each (86 by 40, 12 apart): FX 1, FX 2, INS FX (Input), INS FX (Output); MIX1, MIX2; Output Patch (p080-1).
-  A button is light grey under white words while off and green while on (confirmed on a URX44V), and a lit one
-  keeps what it names through a recall: an FX channel's effect, the inserts on the input or the output channels,
-  a MIX bus's BUS Type, or the output patch.
+  A button is in a row name box's colour under white words while off and green while on (confirmed on a URX44V),
+  and a lit one keeps what it names through a recall, whatever the rows' [Safe] are: an FX channel's effect, the
+  inserts on the input or the output channels, a MIX bus's BUS Type, or the output patch. A lit [FX 1] kept FX 1's
+  effect parameter while FX 2's, not lit, was recalled (confirmed on a URX44V); the other buttons are taken to work
+  the same way.
 
 ## The title entry sheet
 

@@ -327,11 +327,15 @@ describe("what a recall keeps", () => {
     await set(shell, "setup.outputPatch.mainOut", patch === "MIX 1" ? "MIX 2" : "MIX 1");
     await set(shell, "ch.bus.mix1.busType", "FIXED");
     await set(shell, "ch.fx1.effect.revTime", 5);
+    const fx2Before = shell.ctx.store.str("ch.fx2.effect.type", "");
+    await set(shell, "ch.fx2.effect.type", shell.ctx.store.str("ch.fx1.effect.type", ""));
     await set(shell, "ch.bus.mix2.busType", "FIXED");
     await recallScene(shell.ctx, 13);
     expect(shell.ctx.store.str("setup.outputPatch.mainOut", "")).toBe(patch === "MIX 1" ? "MIX 2" : "MIX 1");
     expect(shell.ctx.store.str("ch.bus.mix1.busType", "")).toBe("FIXED");
     expect(shell.ctx.store.num("ch.fx1.effect.revTime", 0)).toBe(5);
+    expect(fx2Before, "FX 2 runs another effect than FX 1").not.toBe(shell.ctx.store.str("ch.fx1.effect.type", ""));
+    expect(shell.ctx.store.str("ch.fx2.effect.type", ""), "FX 2, not lit, is recalled").toBe(fx2Before);
     expect(shell.ctx.store.str("ch.bus.mix2.busType", "")).not.toBe("FIXED");
   });
 });
