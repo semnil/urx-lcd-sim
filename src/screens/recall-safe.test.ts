@@ -204,6 +204,24 @@ describe("RECALL SAFE", () => {
     expect(track()).toBe("translateX(-92px)");
   });
 
+  it("opens a stereo input's HA with its own Source, as a mono channel's, and its All counts it", async () => {
+    const shell = await mount();
+    const row = (): string => rowsOf(shell).find((r) => r.id === "CH 5/6")!.cells.map(mark).join("");
+    expect(row()).toBe("oo-ooooooo");
+    await tap(shell, "C H 5 slash 6 Source");
+    expect(row(), "Source opens HA, not selected").toBe("oxoooooooo");
+    expect(rowsOf(shell).find((r) => r.id === "CH 7/8")!.cells.map(mark).join(""), "and no other row's").toBe("oo-ooooooo");
+    for (const c of ["Name", "Processing", "Rec Point", "To MIX", "To FX", "C H ON", "C H Level", "To ST slash Pan"]) await tap(shell, `C H 5 slash 6 ${c}`);
+    expect(face(shell, "Every parameter of C H 5 slash 6"), "nine of the ten").toBe("...|on");
+    await tap(shell, "C H 5 slash 6 HA");
+    expect(face(shell, "Every parameter of C H 5 slash 6")).toBe("All|on");
+    await tap(shell, "C H 5 slash 6 Source");
+    expect(row(), "clearing Source shuts HA and clears it").toBe("xo-xxxxxxx");
+    expect(shell.ctx.store.bool("safe.ch_5_6.ha", true)).toBe(false);
+    await tap(shell, "Every parameter of C H 7 slash 8");
+    expect(shell.ctx.store.bool("safe.ch_7_8.ha", false), "All selects HA with the rest").toBe(true);
+  });
+
   it("frames the row whose name was tapped, one row at a time and for good, and selects nothing else with it", async () => {
     const shell = await mount();
     const framed = (): string[] => [...shell.root.querySelectorAll(".safe-row-name.is-selected")].map((n) => name(n));
@@ -322,6 +340,49 @@ describe("what a recall keeps", () => {
     entry?.click();
     await flush();
     expect(shell.ctx.nav.current.id).toBe("scene");
+  });
+
+  it("keeps a stereo input's polarity under its HA, and not under the other nine", async () => {
+    const shell = await stored();
+    for (const key of ["name", "source", "processing", "recPoint", "toMix", "toFx", "chOn", "chLevel", "toSt"]) await set(shell, `safe.ch_5_6.${key}`, true);
+    await set(shell, "safe.ch_5_6.on", true);
+    await set(shell, "safe.ch_7_8.on", true);
+    await set(shell, "safe.ch_7_8.source", true);
+    await set(shell, "safe.ch_7_8.ha", true);
+    for (const ch of ["ch_5_6", "ch_7_8"]) await set(shell, `ch.${ch}.phase.l`, true);
+    await recallScene(shell.ctx, 13);
+    expect(["ch_5_6", "ch_7_8"].map((ch) => shell.ctx.store.bool(`ch.${ch}.phase.l`, false))).toEqual([false, true]);
+  });
+
+  it("keeps a kept HA's own source's D.Gain and no other's", async () => {
+    const shell = await stored();
+    expect(["ch_5_6", "ch_7_8", "ch_9_10"].map((ch) => shell.ctx.store.str(`ch.${ch}.source`, ""))).toEqual(["AUX IN", "USB MAIN A", "USB MAIN B"]);
+    await set(shell, "safe.ch_7_8.on", true);
+    await set(shell, "safe.ch_7_8.ha", true);
+    const gains = ["AUX IN", "USB MAIN A", "USB MAIN B", "USB SUB"].map(digitalGainPath);
+    const before = gains.map((p) => shell.ctx.store.num(p, 0));
+    for (const p of gains) await set(shell, p, shell.ctx.store.num(p, 0) + 1);
+    await recallScene(shell.ctx, 13);
+    expect(gains.map((p) => shell.ctx.store.num(p, 0))).toEqual([before[0], before[1]! + 1, before[2], before[3]]);
+  });
+
+  it("keeps a mono pair's Signal Type and a MIX bus's Pan Link with any parameter the row keeps, and not with Safe alone", async () => {
+    const shell = await stored();
+    // CH 1: Safe and CH Level. CH 3: Safe alone; CH 4: Safe and CH Level, the pair's second row,
+    // which does not keep the pair. MIX 1: Safe and Name; MIX 2: Name without Safe.
+    await set(shell, "safe.ch1.on", true);
+    await set(shell, "safe.ch1.chLevel", true);
+    await set(shell, "safe.ch3.on", true);
+    await set(shell, "safe.ch4.on", true);
+    await set(shell, "safe.ch4.chLevel", true);
+    await set(shell, "safe.bus.mix1.on", true);
+    await set(shell, "safe.bus.mix1.name", true);
+    await set(shell, "safe.bus.mix2.name", true);
+    for (const ch of ["ch1", "ch2", "ch3", "ch4"]) await set(shell, `ch.${ch}.signalType`, "STEREO");
+    for (const bus of ["mix1", "mix2"]) await set(shell, `ch.bus.${bus}.panLink`, true);
+    await recallScene(shell.ctx, 13);
+    expect(["ch1", "ch2", "ch3", "ch4"].map((ch) => shell.ctx.store.str(`ch.${ch}.signalType`, ""))).toEqual(["STEREO", "STEREO", "MONO x 2", "MONO x 2"]);
+    expect(["mix1", "mix2"].map((bus) => shell.ctx.store.bool(`ch.bus.${bus}.panLink`, false))).toEqual([true, false]);
   });
 
   it("keeps what a lit Others button names: the output patch, a bus's type and an effect", async () => {

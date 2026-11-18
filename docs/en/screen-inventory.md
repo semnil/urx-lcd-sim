@@ -2205,12 +2205,17 @@ Mode the menu's [Recall Safe] is out of reach, and a recall keeps nothing.
   heading over Safe reads `ALL` in a row name box's colour, `...` cyan while some rows are on, and `ALL` green once all are
   (confirmed on a URX44V).
 - Source goes by the input source's pair: CH 1 with CH 2 and CH 3 with CH 4. Selecting it opens the pair's HA,
-  which goes by channel, and clearing it clears HA. A row's [All] selects every parameter, its HA included, then
-  clears them. A heading selects its column on every row, and the heading over Safe turns Safe on every row of
-  the tab, the other tab's rows left alone (confirmed on a URX44V).
+  which goes by channel, and clearing it clears HA. A stereo input's Source goes by its own row and opens its own
+  HA the same way. A row's [All] selects every parameter, its HA included, then clears them. A heading selects its
+  column on every row, and the heading over Safe turns Safe on every row of the tab, the other tab's rows left alone
+  (confirmed on a URX44V).
 - A recall keeps a channel's parameter only where the row's [Safe] is on and the parameter is selected, and keeps
   the sends into a MIX bus where its [Safe] and [Incoming Sends] are both on; [Safe] alone keeps nothing
-  (confirmed on a URX44V). A kept HA keeps its input source's D.Gain with it.
+  (confirmed on a URX44V). A kept HA keeps the channel's polarity, a stereo input's L and R alike, and its own input
+  source's D.Gain alone: with USB MAIN A's kept, USB MAIN B's and USB SUB's went back. A mono pair's Signal Type and a
+  MIX bus's Pan Link are kept by any parameter the row keeps, whichever it is: [Safe] with no parameter selected keeps
+  neither. A pair's Signal Type is kept by its first channel's row (CH 1, CH 3), not by the second's (confirmed on a
+  URX44V).
 - Others lays out three bands, EFFECT, BUS TYPE and OTHERS (x10..389, 20 high), with the buttons four to a row
   under each (86 by 40, 12 apart): FX 1, FX 2, INS FX (Input), INS FX (Output); MIX1, MIX2; Output Patch (p080-1).
   A button is in a row name box's colour under white words while off and green while on (confirmed on a URX44V),

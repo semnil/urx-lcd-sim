@@ -96,7 +96,7 @@ function offers(strip: Strip, key: SafeKey | "incoming"): boolean {
     case "monoIn":
       return key !== "incoming";
     case "stIn":
-      return key !== "incoming" && key !== "ha";
+      return key !== "incoming";
     case "fx":
       return key === "name" || key === "toMix" || key === "chOn" || key === "chLevel" || key === "toSt";
     case "mix":
@@ -124,6 +124,10 @@ function cellsOf(ctx: AppContext, strip: Strip, tab: "Input" | "Output"): SafeKe
     .map((c) => c.key)
     .filter((k) => hasCell(ctx, strip, k));
 }
+
+/** Whether the row selects anything at all. */
+const selectsAny = (ctx: AppContext, strip: Strip, tab: "Input" | "Output"): boolean =>
+  cellsOf(ctx, strip, tab).some((k) => isSelected(ctx, strip, k));
 
 /** The channels a selection of Source goes to: the channel and the other of its input source's pair. */
 function sourceOwners(ctx: AppContext, strip: Strip): Strip[] {
@@ -420,7 +424,11 @@ function gridTab(ctx: AppContext, tab: "Input" | "Output"): HTMLElement {
             label: `Every parameter of every ${tab.toLowerCase()} channel`,
             on: tabFill !== "none",
             safe: anySafe,
-            writes: rows.flatMap((s) => safeColumns(tab).filter((c) => offers(s, c.key)).flatMap((c) => selectionWrites(ctx, s, c.key))),
+            writes: rows.flatMap((s) =>
+              safeColumns(tab)
+                .filter((c) => offers(s, c.key))
+                .flatMap((c) => selectionWrites(ctx, s, c.key)),
+            ),
             onTap: () => toggleTab(ctx, rows, tab),
           }),
         ],
@@ -607,10 +615,13 @@ function stripOf(model: UnitModel, path: ParamPath): { strip: Strip; rest: strin
 const under = (rest: string, ...heads: string[]): boolean => heads.some((h) => rest === h || rest.startsWith(`${h}.`));
 
 /** The parameter column a channel's own value belongs to, or none where no column covers it. */
-export function columnOf(strip: Strip, rest: string): SafeKey | "insFx" | "effect" | "busType" | undefined {
+export function columnOf(strip: Strip, rest: string): SafeKey | "insFx" | "effect" | "busType" | "row" | undefined {
   if (under(rest, "name", "color")) return "name";
   if (under(rest, "source")) return "source";
-  if (under(rest, "gain", "phantom", "hiZ", "clipSafe") || (strip.kind === "monoIn" && under(rest, "phase"))) return "ha";
+  if (under(rest, "gain", "phantom", "hiZ", "clipSafe", "phase")) return "ha";
+  // A mono pair's Signal Type and a MIX bus's Pan Link stay with any parameter the
+  // row keeps, whichever it is (confirmed on a URX44V).
+  if ((strip.kind === "monoIn" && under(rest, "signalType")) || (strip.kind === "mix" && under(rest, "panLink"))) return "row";
   if (under(rest, "hpf", "gate", "comp", "eq", "eqType", "geq", "ssmcs", "ducker", "compEqOrder", "delay")) return "processing";
   if (under(rest, "recPoint")) return "recPoint";
   if (under(rest, "send.bus.mix1", "send.bus.mix2")) return "toMix";
@@ -627,6 +638,19 @@ export function columnOf(strip: Strip, rest: string): SafeKey | "insFx" | "effec
 /** Whether a row's parameter is kept by a recall: the row's [Safe] on and the parameter selected. */
 function keeps(ctx: AppContext, strip: Strip, key: SafeKey): boolean {
   return isSafe(ctx, strip) && offers(strip, key) && isSelected(ctx, strip, key);
+}
+
+/**
+ * Whether the row keeps what no one column names: its [Safe] on and any of its
+ * parameters selected. A mono pair's Signal Type is held by the pair and kept by
+ * its first channel's row, CH 1's or CH 3's, and not by the second's (confirmed
+ * on a URX44V).
+ */
+function keepsRow(ctx: AppContext, strip: Strip): boolean {
+  const tab = strip.side === "input" ? "Input" : "Output";
+  const partner = strip.kind === "monoIn" ? linkPartner(ctx, strip) : undefined;
+  const holder = partner !== undefined && (partner.channels[0] ?? 0) < (strip.channels[0] ?? 0) ? partner : strip;
+  return isSafe(ctx, holder) && selectsAny(ctx, holder, tab);
 }
 
 /**
@@ -661,6 +685,8 @@ export function keptByRecallSafe(ctx: AppContext, paths: Iterable<ParamPath>): S
       if (other(strip.id)) kept.add(path);
     } else if (column === "busType") {
       if (other(strip.id === "bus.mix1" ? "busTypeMix1" : "busTypeMix2")) kept.add(path);
+    } else if (column === "row") {
+      if (keepsRow(ctx, strip)) kept.add(path);
     } else if (column !== undefined && keeps(ctx, strip, column)) {
       kept.add(path);
     }
