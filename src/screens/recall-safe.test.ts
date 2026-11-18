@@ -433,6 +433,27 @@ describe("what a recall keeps", () => {
     expect([...keptByRecallSafe(shell.ctx, ["ch.nowhere.level", "ch.ch1.somethingElse", "ch.ch1.level"])]).toEqual(["ch.ch1.level"]);
   });
 
+  it("selects a stereo pair's two rows as one, and keeps the pair whole through a recall", async () => {
+    const shell = await stored();
+    for (const ch of ["ch1", "ch2"]) await set(shell, `ch.${ch}.signalType`, "STEREO");
+    await flush();
+    await tap(shell, "C H 1 Safe");
+    await tap(shell, "C H 1 C H Level");
+    await tap(shell, "C H 1 C H ON");
+    expect(["on", "chLevel", "chOn"].map((k) => shell.ctx.store.bool(`safe.ch2.${k}`, false)), "CH 2's row follows CH 1's").toEqual([true, true, true]);
+    await tap(shell, "C H 3 Safe");
+    expect(shell.ctx.store.bool("safe.ch4.on", false), "an unlinked pair's rows stay apart").toBe(false);
+    for (const ch of ["ch1", "ch2"]) {
+      await set(shell, `ch.${ch}.level`, -12);
+      await set(shell, `ch.${ch}.on`, false);
+    }
+    await recallScene(shell.ctx, 13);
+    expect(["ch1", "ch2"].map((ch) => [shell.ctx.store.str(`ch.${ch}.signalType`, ""), shell.ctx.store.num(`ch.${ch}.level`, 0), shell.ctx.store.bool(`ch.${ch}.on`, true)])).toEqual([
+      ["STEREO", -12, false],
+      ["STEREO", -12, false],
+    ]);
+  });
+
   it("keeps the inserts on the input channels under INS FX (Input), and not the output channels' with them", async () => {
     const shell = await stored();
     const output = shell.ctx.model.outputs.find((s) => shell.ctx.store.has(`ch.${s.id}.insFx.on`))!;

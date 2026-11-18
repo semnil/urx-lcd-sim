@@ -136,13 +136,23 @@ function sourceOwners(ctx: AppContext, strip: Strip): Strip[] {
 }
 
 /**
- * Select or clear a parameter. Source goes by the input source's pair, CH 1 with
- * CH 2 and CH 3 with CH 4, and clearing it clears the pair's HA, which is a
- * button only while Source is selected.
+ * The rows a press on one goes to: the row, and its partner while the two run as
+ * a stereo pair, whose rows select as one (confirmed on a URX44V for [Safe], CH ON
+ * and CH Level).
+ */
+function linkedRows(ctx: AppContext, strip: Strip): Strip[] {
+  const partner = linkPartner(ctx, strip);
+  return partner && isStereoLinked(ctx, strip) ? [strip, partner] : [strip];
+}
+
+/**
+ * Select or clear a parameter, on both rows of a stereo pair. Source goes by the
+ * input source's pair, CH 1 with CH 2 and CH 3 with CH 4, and clearing it clears
+ * the pair's HA, which is a button only while Source is selected.
  */
 function setSelected(ctx: AppContext, strip: Strip, key: SafeKey, on: boolean): void {
   if (key !== "source") {
-    void ctx.store.set(safeKeyPath(strip, key), on);
+    for (const s of linkedRows(ctx, strip)) void ctx.store.set(safeKeyPath(s, key), on);
     return;
   }
   for (const s of sourceOwners(ctx, strip)) {
@@ -153,7 +163,7 @@ function setSelected(ctx: AppContext, strip: Strip, key: SafeKey, on: boolean): 
 
 /** The paths a selection of the parameter writes. */
 function selectionWrites(ctx: AppContext, strip: Strip, key: SafeKey): ParamPath[] {
-  if (key !== "source") return [safeKeyPath(strip, key)];
+  if (key !== "source") return linkedRows(ctx, strip).map((s) => safeKeyPath(s, key));
   return sourceOwners(ctx, strip).flatMap((s) => [safeKeyPath(s, "source"), ...(offers(s, "ha") ? [safeKeyPath(s, "ha")] : [])]);
 }
 
@@ -175,7 +185,7 @@ function toggleRow(ctx: AppContext, strip: Strip, tab: "Input" | "Output"): void
       if (key === "ha") continue;
       if (hasCell(ctx, strip, key) || (key === "source" && offers(strip, key))) setSelected(ctx, strip, key, on);
     }
-    if (on && offers(strip, "ha")) void ctx.store.set(safeKeyPath(strip, "ha"), true);
+    if (on && offers(strip, "ha")) for (const s of linkedRows(ctx, strip)) void ctx.store.set(safeKeyPath(s, "ha"), true);
   });
 }
 
@@ -467,7 +477,12 @@ function gridTab(ctx: AppContext, tab: "Input" | "Output"): HTMLElement {
           class: `safe-switch${safe ? " is-on" : ""}`,
           text: "ON",
           attrs: { "aria-label": `${name} Safe`, "aria-pressed": String(safe) },
-          onTap: writing(safeOnPath(strip), () => void ctx.store.set(safeOnPath(strip), !safe)),
+          onTap: writing(
+            linkedRows(ctx, strip).map(safeOnPath),
+            () => ctx.store.operation(() => {
+              for (const s of linkedRows(ctx, strip)) void ctx.store.set(safeOnPath(s), !safe);
+            }),
+          ),
         }),
         ...(output
           ? [

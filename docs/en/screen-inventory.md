@@ -2206,7 +2206,9 @@ Mode the menu's [Recall Safe] is out of reach, and a recall keeps nothing.
   (confirmed on a URX44V).
 - Source goes by the input source's pair: CH 1 with CH 2 and CH 3 with CH 4. Selecting it opens the pair's HA,
   which goes by channel, and clearing it clears HA. A stereo input's Source goes by its own row and opens its own
-  HA the same way. A row's [All] selects every parameter, its HA included, then clears them. A heading selects its
+  HA the same way. The two rows of a stereo-linked mono pair select as one: [Safe], CH ON and CH Level pressed on
+  CH 1's row turn on with CH 2's, and a recall keeps the pair whole (confirmed on a URX44V); the other columns are
+  taken to go together the same way. A row's [All] selects every parameter, its HA included, then clears them. A heading selects its
   column on every row, and the heading over Safe turns Safe on every row of the tab, the other tab's rows left alone
   (confirmed on a URX44V).
 - A recall keeps a channel's parameter only where the row's [Safe] is on and the parameter is selected, and keeps
