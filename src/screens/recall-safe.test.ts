@@ -8,6 +8,7 @@ import { buildRegistry } from "./index";
 import { recallScene, storeScene } from "./scene";
 import { digitalGainPath } from "../model/source-gain";
 import { persisted } from "../app/persist";
+import { keptByRecallSafe } from "./recall-safe";
 import { applySettings, captureSettings, inSettingsFile } from "../model/settings-file";
 
 const flush = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
@@ -204,6 +205,32 @@ describe("RECALL SAFE", () => {
     expect(track()).toBe("translateX(-92px)");
   });
 
+  it("steps the columns by a drag of the columns or of the bar's thumb, and a drag presses nothing", async () => {
+    const shell = await mount("URX44V", "Output");
+    const track = (): string => shell.root.querySelector<HTMLElement>(".safe-rows .safe-track")?.style.transform ?? "";
+    const host = (): HTMLElement => shell.root.querySelector<HTMLElement>(".safe-rows .safe-window") as HTMLElement;
+    const drag = (from: HTMLElement, dx: number): void => {
+      from.dispatchEvent(new PointerEvent("pointerdown", { button: 0, clientX: 100, bubbles: true }));
+      window.dispatchEvent(new PointerEvent("pointermove", { clientX: 100 + dx }));
+      window.dispatchEvent(new PointerEvent("pointerup", { clientX: 100 + dx }));
+    };
+    host().dispatchEvent(new WheelEvent("wheel", { deltaX: 0, deltaY: 30, cancelable: true }));
+    expect(track(), "an upright turn of the wheel leaves the columns").toBe("translateX(0px)");
+    drag(host(), -2);
+    expect(track(), "a nudge under 4 px is a tap").toBe("translateX(0px)");
+    drag(host(), -46);
+    expect(track(), "the columns dragged one column left").toBe("translateX(-46px)");
+    const before = shell.ctx.store.bool("safe.bus.mix1.chOn", false);
+    button(shell, "MIX 1 C H ON").click();
+    expect(shell.ctx.store.bool("safe.bus.mix1.chOn", false), "the click that ends a drag presses nothing").toBe(before);
+    await flush();
+    drag(shell.root.querySelector<HTMLElement>(".safe-hbar .scroll-thumb") as HTMLElement, -400);
+    expect(track(), "the thumb dragged back to the start").toBe("translateX(0px)");
+    shell.root.querySelector<HTMLElement>(".safe-hbar .scroll-thumb")?.dispatchEvent(new PointerEvent("pointerdown", { button: 2, clientX: 0, bubbles: true }));
+    window.dispatchEvent(new PointerEvent("pointermove", { clientX: 400 }));
+    expect(track(), "a right button drags nothing").toBe("translateX(0px)");
+  });
+
   it("opens a stereo input's HA with its own Source, as a mono channel's, and its All counts it", async () => {
     const shell = await mount();
     const row = (): string => rowsOf(shell).find((r) => r.id === "CH 5/6")!.cells.map(mark).join("");
@@ -397,6 +424,23 @@ describe("what a recall keeps", () => {
     await recallScene(shell.ctx, 13);
     expect(["ch1", "ch2", "ch3", "ch4"].map((ch) => shell.ctx.store.str(`ch.${ch}.signalType`, ""))).toEqual(["STEREO", "STEREO", "MONO x 2", "MONO x 2"]);
     expect(["mix1", "mix2"].map((bus) => shell.ctx.store.bool(`ch.bus.${bus}.panLink`, false))).toEqual([true, false]);
+  });
+
+  it("keeps nothing it has no row or column for", async () => {
+    const shell = await stored();
+    await set(shell, "safe.ch1.on", true);
+    for (const c of ["name", "source", "ha", "processing", "recPoint", "toMix", "toFx", "chOn", "chLevel", "toSt"]) await set(shell, `safe.ch1.${c}`, true);
+    expect([...keptByRecallSafe(shell.ctx, ["ch.nowhere.level", "ch.ch1.somethingElse", "ch.ch1.level"])]).toEqual(["ch.ch1.level"]);
+  });
+
+  it("keeps the inserts on the input channels under INS FX (Input), and not the output channels' with them", async () => {
+    const shell = await stored();
+    const output = shell.ctx.model.outputs.find((s) => shell.ctx.store.has(`ch.${s.id}.insFx.on`))!;
+    await set(shell, "safe.others.insFxInput", true);
+    await set(shell, "ch.ch1.insFx.on", true);
+    await set(shell, `ch.${output.id}.insFx.on`, true);
+    await recallScene(shell.ctx, 13);
+    expect([shell.ctx.store.bool("ch.ch1.insFx.on", false), shell.ctx.store.bool(`ch.${output.id}.insFx.on`, true)]).toEqual([true, false]);
   });
 
   it("keeps what a lit Others button names: the output patch, a bus's type and an effect", async () => {
