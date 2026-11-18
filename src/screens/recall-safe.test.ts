@@ -8,7 +8,7 @@ import { buildRegistry } from "./index";
 import { recallScene, storeScene } from "./scene";
 import { digitalGainPath } from "../model/source-gain";
 import { persisted } from "../app/persist";
-import { inSettingsFile } from "../model/settings-file";
+import { applySettings, captureSettings, inSettingsFile } from "../model/settings-file";
 
 const flush = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 
@@ -266,6 +266,20 @@ describe("RECALL SAFE", () => {
   it("is carried by a settings file, the tab and the framed row left behind", () => {
     expect(["safe.ch1.on", "safe.ch1.name", "safe.bus.mix1.incoming", "safe.others.fx1"].map(inSettingsFile)).toEqual([true, true, true, true]);
     expect(["ui.recallSafeTab", "ui.recallSafeRow"].map(inSettingsFile)).toEqual([false, false]);
+  });
+
+  it("comes back from a settings file as the file holds it, what was set after the save turned off", async () => {
+    const shell = await mount();
+    const { store } = shell.ctx;
+    const empty = captureSettings(store);
+    await store.set("safe.ch1.on", true);
+    const some = captureSettings(store);
+    for (const [path, value] of [["safe.ch1.name", true], ["safe.ch2.on", true], ["safe.bus.mix1.on", true], ["safe.bus.mix1.incoming", true], ["safe.others.fx1", true]] as const)
+      await store.set(path, value);
+    await applySettings(store, some);
+    expect(["safe.ch1.on", "safe.ch1.name", "safe.ch2.on", "safe.bus.mix1.incoming", "safe.others.fx1"].map((p) => store.bool(p, false))).toEqual([true, false, false, false, false]);
+    await applySettings(store, empty);
+    expect(store.bool("safe.ch1.on", false), "a file saved with nothing set turns everything off").toBe(false);
   });
 
   it("carries no USER DEFINED KNOBS toggle on its side rail", async () => {

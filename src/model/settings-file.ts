@@ -48,12 +48,14 @@ export function captureSettings(store: DeviceStore): Record<string, ParamValue> 
  * it does not name comes back empty, HOME's [Sends], where the file does not
  * name its destination and the store holds one, comes back on the stereo bus,
  * and the CUE Mode, where the file was saved before it was kept and the store
- * holds one, comes back on Mix CUE.
+ * holds one, comes back on Mix CUE. What RECALL SAFE is set to comes back as the
+ * file holds it, so a [Safe] or a selection the file does not name comes back off.
  */
 export async function applySettings(store: DeviceStore, state: Record<string, ParamValue>): Promise<void> {
   const named = { ...state };
   if (!(SENDS_TARGET in state) && store.has(SENDS_TARGET)) named[SENDS_TARGET] = SENDS_TARGET_SHIPPED;
   if (!(CUE_MODE in state) && store.has(CUE_MODE)) named[CUE_MODE] = CUE_MODE_SHIPPED;
+  for (const path of store.pathsUnder("safe")) if (!(path in state)) named[path] = false;
   await store.batch(async () => {
     for (const [path, value] of Object.entries(withEverySceneCleared(store, asPutBack(store, named)))) {
       if (!inSettingsFile(path)) continue;
