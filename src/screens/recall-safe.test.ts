@@ -212,6 +212,14 @@ describe("RECALL SAFE", () => {
     expect(button(shell, "C H 2").getAttribute("aria-pressed")).toBe("true");
     await tap(shell, "C H 2");
     expect(framed(), "a tap on the framed row keeps it framed").toEqual(["C H 2"]);
+    const sideTab = async (label: string): Promise<void> => {
+      [...shell.root.querySelectorAll<HTMLElement>(".side .side-tab")].find((t) => t.textContent === label)!.click();
+      await flush();
+    };
+    await sideTab("Output");
+    expect(framed(), "Output frames none of its rows").toEqual([]);
+    await sideTab("Input");
+    expect(framed(), "back on Input, the row is framed still").toEqual(["C H 2"]);
     await tap(shell, "C H 3");
     expect(framed()).toEqual(["C H 3"]);
     expect(grid(shell)).toEqual(before);
