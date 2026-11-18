@@ -1880,7 +1880,8 @@ p080-1)、サイドレールはほかに何も置かない。タブはグリフ�
   Output の列は Safe・Incoming Sends・All・Name・Source・Processing・CH ON・CH Level・To ST/Bal。Safe・
   Incoming Sends・All は動かず、Name から右の列は下端のバーで横にスクロールし、Output は 4 列 (p079-1)、Input は
   5 列が見える。7 つの見出しは本体と同じ位置で改行する (`Process-` / `ing`、`Rec` / `Point`、`CH` / `Level`、
-  `To` / `ST/Pan`) (URX44V で実機確認)。行は横のバーで縦にスクロールし、3 行が見える。
+  `To` / `ST/Pan`) (URX44V で実機確認)。どの列も、スクロールしてもしなくても、マスは見出しのボタンの真下に並ぶ
+  (URX44V で実機確認)。行は横のバーで縦にスクロールし、3 行が見える。
 - ボタンの無いマスは黒い。Source を選ぶまでの全部の行の HA、FX 1・FX 2 の Source・HA・Processing・Rec Point・
   To FX、ST・STR の Incoming Sends、MIX 1・MIX 2・ST の Source、STR の CH ON・CH Level・To ST/Bal
   (URX44V で実機確認)。

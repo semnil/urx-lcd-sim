@@ -11090,8 +11090,10 @@
   margin-left: 6px;
 }
 
+/* The rows' window starts where the headings' window does, so a column's cells stand
+ * under its heading button. */
 .safe-rows .safe-window {
-  margin-left: 6px;
+  margin-left: 4px;
   flex: 0 0 182px;
 }
 

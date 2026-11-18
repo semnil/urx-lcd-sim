@@ -2183,8 +2183,8 @@ Mode the menu's [Recall Safe] is out of reach, and a recall keeps nothing.
   ST/Pan; Output's are Safe, Incoming Sends, All, Name, Source, Processing, CH ON, CH Level and To ST/Bal. Safe,
   Incoming Sends and All stay, and the columns from Name onward scroll sideways under a bar at the foot, four in
   view on Output (p079-1) and five on Input. Seven headings break as the unit breaks them (`Process-` / `ing`,
-  `Rec` / `Point`, `CH` / `Level`, `To` / `ST/Pan`) (confirmed on a URX44V). The rows scroll under the bar beside
-  them, three in view.
+  `Rec` / `Point`, `CH` / `Level`, `To` / `ST/Pan`) (confirmed on a URX44V). Every column's cells stand under its
+  heading button, scrolled or not (confirmed on a URX44V). The rows scroll under the bar beside them, three in view.
 - A cell with no button is black: HA on every row until its Source is selected; Source, HA, Processing, Rec Point
   and To FX on FX 1 and FX 2; Incoming Sends on ST and STR; Source on MIX 1, MIX 2 and ST; CH ON, CH Level and To
   ST/Bal on STR (confirmed on a URX44V).
