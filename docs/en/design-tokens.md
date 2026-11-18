@@ -185,9 +185,9 @@ PY
 | `--safe-lit-band` | `#19864a` | The band at the foot of a lit Others button (p080-1, y117..119) |
 | `--safe-selected` | `#73dfff` | A parameter selected on a row whose [Safe] is on, and the headings over them (p079-1) |
 | `--safe-band` | `#bdbebd` | The Others tab's separator bands (p080-1, x10..389 / y56..75) |
-| `--safe-selected-off` | `#3aa2b5` | A parameter selected on a row whose [Safe] is off. No figure shows it: the unit draws it teal, and the value stands in until it is compared with the unit |
+| `--safe-selected-off` | `#3aa2b5` | A parameter selected on a row whose [Safe] is off. No figure shows it: the unit draws it teal, and the value reads the same as the unit beside it (confirmed on a URX44V) |
 | `--safe-cell` | `#52555a` | A parameter not selected. No figure shows it: the unit draws it dark grey, and the value is `--surface-btn`'s |
-| `--safe-cell-safe` | `#b5b6bd` | A parameter not selected on a row whose [Safe] is on. No figure shows it: the unit draws it paler than [Safe] while off, and the value stands in until it is compared with the unit |
+| `--safe-cell-safe` | `#b5b6bd` | A parameter not selected on a row whose [Safe] is on. No figure shows it: the unit draws it paler than [Safe] while off, and the value reads the same as the unit beside it (confirmed on a URX44V) |
 | `--safe-off` | `var(--safe-row-name)` | [Safe] while off, and an Others button that keeps nothing. No figure shows it: the unit draws them in the colour of a row's name box, under white words (confirmed on a URX44V) |
 | `--safe-off-band` | `#4a4e55` | The band at the foot of an Others button that keeps nothing. No figure shows it: the value darkens `--safe-off` as `--safe-lit-band` darkens `--safe-lit` |
 | `--accent-cue` | `#d6ced6` | The [CUE] button in the off state |
