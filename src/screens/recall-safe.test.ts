@@ -9,6 +9,7 @@ import { recallScene, storeScene } from "./scene";
 import { digitalGainPath } from "../model/source-gain";
 import { persisted } from "../app/persist";
 import { keptByRecallSafe } from "./recall-safe";
+import { setSignalType } from "./stereo-link";
 import { applySettings, captureSettings, inSettingsFile } from "../model/settings-file";
 
 const flush = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
@@ -451,6 +452,27 @@ describe("what a recall keeps", () => {
     expect(["ch1", "ch2"].map((ch) => [shell.ctx.store.str(`ch.${ch}.signalType`, ""), shell.ctx.store.num(`ch.${ch}.level`, 0), shell.ctx.store.bool(`ch.${ch}.on`, true)])).toEqual([
       ["STEREO", -12, false],
       ["STEREO", -12, false],
+    ]);
+  });
+
+  it("gives the second row of a pair the first's settings when the pair is linked after they were made", async () => {
+    const shell = await stored();
+    await tap(shell, "C H 1 Safe");
+    await tap(shell, "C H 1 C H Level");
+    await tap(shell, "C H 1 C H ON");
+    await tap(shell, "C H 2 Name");
+    expect(["on", "chLevel", "chOn", "name"].map((k) => shell.ctx.store.bool(`safe.ch2.${k}`, false))).toEqual([false, false, false, true]);
+    setSignalType(shell.ctx, shell.ctx.model.inputs.find((s) => s.id === "ch1")!, "STEREO");
+    await flush();
+    expect(["on", "chLevel", "chOn", "name"].map((k) => shell.ctx.store.bool(`safe.ch2.${k}`, true)), "CH 1's, and CH 2's own Name gone").toEqual([true, true, true, false]);
+    for (const ch of ["ch1", "ch2"]) {
+      await set(shell, `ch.${ch}.level`, -12);
+      await set(shell, `ch.${ch}.on`, false);
+    }
+    await recallScene(shell.ctx, 13);
+    expect(["ch1", "ch2"].map((ch) => [shell.ctx.store.num(`ch.${ch}.level`, 0), shell.ctx.store.bool(`ch.${ch}.on`, true)])).toEqual([
+      [-12, false],
+      [-12, false],
     ]);
   });
 

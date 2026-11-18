@@ -313,7 +313,8 @@ write are in one place, `src/screens/stereo-link.ts`.
   name, the colour, and the position outside `BAL`. Signal Type and `PAN` / `BAL` are the pair's
   and are written to both; the insert and the BALANCE stay held by the lower-numbered channel. A
   linked pair put back with two CUEs, by a browser save from a version whose channels each held their
-  own, takes the lower-numbered channel's.
+  own, takes the lower-numbered channel's. Linking also gives the other channel's RECALL SAFE row the
+  lower-numbered channel's [Safe] and selections (confirmed on a URX44V; "RECALL SAFE").
 
 `src/screens/stereo-link.test.ts` pins the behavior, and "the stereo-link mark between two strips" in
 `src/style/columns.test.ts` pins the mark's position.
@@ -2207,8 +2208,9 @@ Mode the menu's [Recall Safe] is out of reach, and a recall keeps nothing.
 - Source goes by the input source's pair: CH 1 with CH 2 and CH 3 with CH 4. Selecting it opens the pair's HA,
   which goes by channel, and clearing it clears HA. A stereo input's Source goes by its own row and opens its own
   HA the same way. The two rows of a stereo-linked mono pair select as one: [Safe], CH ON and CH Level pressed on
-  CH 1's row turn on with CH 2's, and a recall keeps the pair whole (confirmed on a URX44V); the other columns are
-  taken to go together the same way. A row's [All] selects every parameter, its HA included, then clears them. A heading selects its
+  CH 1's row turn on with CH 2's, and a recall keeps the pair whole. Linking a pair gives CH 2's row CH 1's [Safe]
+  and selections, made before the link (confirmed on a URX44V); the other columns are taken to go together the same
+  way. A row's [All] selects every parameter, its HA included, then clears them. A heading selects its
   column on every row, and the heading over Safe turns Safe on every row of the tab, the other tab's rows left alone
   (confirmed on a URX44V).
 - A recall keeps a channel's parameter only where the row's [Safe] is on and the parameter is selected, and keeps
