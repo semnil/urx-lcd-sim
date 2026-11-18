@@ -2182,7 +2182,8 @@ Mode the menu's [Recall Safe] is out of reach, and a recall keeps nothing.
   corners are round and its right corners square (p079-1). A tap on it selects the row, and the selected row's box
   is framed in white with all four corners round; a tap on the framed box keeps it framed, and the
   frame stays across a switch to another tab and back. One row is selected across the tabs: selecting MIX 1 on
-  Output takes the frame off CH 2 on Input (confirmed on a URX44V).
+  Output takes the frame off CH 2 on Input. Left for SCENE and opened again, it opens on the tab it was left on with the
+  same row framed (confirmed on a URX44V).
 - Input's columns are Safe, All, Name, Source, HA, Processing, Rec Point, To MIX, To FX, CH ON, CH Level and To
   ST/Pan; Output's are Safe, Incoming Sends, All, Name, Source, Processing, CH ON, CH Level and To ST/Bal. Safe,
   Incoming Sends and All stay, and the columns from Name onward scroll sideways under a bar at the foot, four in

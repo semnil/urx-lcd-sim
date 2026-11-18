@@ -227,6 +227,11 @@ describe("RECALL SAFE", () => {
     expect(framed(), "one row is framed across the tabs").toEqual([]);
     await sideTab("Output");
     expect(framed()).toEqual(["MIX 1"]);
+    shell.ctx.nav.back();
+    await flush();
+    await tap(shell, "Recall Safe");
+    expect(shell.root.querySelector(".side .side-tab.is-on, .side .side-tab[aria-pressed='true']")?.textContent, "it opens again on the tab it was left on").toBe("Output");
+    expect(framed(), "and with the row framed still").toEqual(["MIX 1"]);
     await sideTab("Input");
     await tap(shell, "C H 3");
     expect(framed()).toEqual(["C H 3"]);
