@@ -633,6 +633,8 @@ const under = (rest: string, ...heads: string[]): boolean => heads.some((h) => r
 export function columnOf(strip: Strip, rest: string): SafeKey | "insFx" | "effect" | "busType" | "row" | undefined {
   if (under(rest, "name", "color")) return "name";
   if (under(rest, "source")) return "source";
+  // HA keeps the polarity and the D.Gain (confirmed on a URX44V). +48V, A.Gain and Clip Safe are the
+  // guide's table's, and Hi-Z, which the table does not name, is taken to go with them.
   if (under(rest, "gain", "phantom", "hiZ", "clipSafe", "phase")) return "ha";
   // A mono pair's Signal Type and a MIX bus's Pan Link stay with any parameter the
   // row keeps, whichever it is (confirmed on a URX44V).

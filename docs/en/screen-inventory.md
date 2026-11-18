@@ -144,7 +144,7 @@ compared are not written here.
 | The STREAMING input source sheet | (no screen) | Nothing. The sheet lies over STREAMING's INPUT screen. The title, names, arrangement and back button follow the unit (confirmed on a URX44V) |
 | SEND TO, and SEND FROM on a strip other than MIX 1 | `ch.sendto` / `ch.sendfrom` | Only MIX 1's SEND FROM (p125-1); D0 p116-1 shows SEND TO as it was before System firmware V1.5. The side menu, the cards on each page, the arrows and the captions follow the unit (confirmed on a URX44V) |
 | The GEQ Link dialogs | `ch.geq` | Only [GEQ Link] (p122-1). The wording, the mark and the answers of `Make Link GEQ Parameters?` and `Break Link GEQ Parameters?` match the unit, [Cancel] standing at the foot on the right in the first and its two answers across the middle with the question higher up (confirmed on a URX44V). The exact place of those answers follows no image |
-| RECALL SAFE's Input tab, and its states other than all lit | `scene.safe` | Output's left end with every row lit (p079-1) and Others lit (p080-1). Input's rows, columns and black cells, the faces of each state, Source going by pairs, HA opening with Source, and what a recall keeps follow the unit (confirmed on a URX44V). The colours of the states p079-1 does not show, and where Input's scrolled columns start, follow no image |
+| RECALL SAFE's Input tab, and its states other than all lit | `scene.safe` | Output's left end with every row lit (p079-1) and Others lit (p080-1). Input's rows, columns and black cells, the faces of each state, Source going by pairs, HA opening with Source, and what a recall was seen to keep ("RECALL SAFE") follow the unit (confirmed on a URX44V). The colours of the states p079-1 does not show, and where Input's scrolled columns start, follow no image |
 
 ### The screen exists, but no default state draws it
 
@@ -2215,11 +2215,12 @@ Mode the menu's [Recall Safe] is out of reach, and a recall keeps nothing.
   (confirmed on a URX44V).
 - A recall keeps a channel's parameter only where the row's [Safe] is on and the parameter is selected, and keeps
   the sends into a MIX bus where its [Safe] and [Incoming Sends] are both on; [Safe] alone keeps nothing
-  (confirmed on a URX44V). A kept HA keeps the channel's polarity, a stereo input's L and R alike, and its own input
-  source's D.Gain alone: with USB MAIN A's kept, USB MAIN B's and USB SUB's went back. A mono pair's Signal Type and a
-  MIX bus's Pan Link are kept by any parameter the row keeps, whichever it is: [Safe] with no parameter selected keeps
-  neither. A pair's Signal Type is kept by its first channel's row (CH 1, CH 3), not by the second's (confirmed on a
-  URX44V).
+  (confirmed on a URX44V). A kept HA keeps the channel's polarity, a stereo input's L and R alike, and the D.Gain of
+  the channel's own input source, and no other source's: with USB MAIN A's kept, USB MAIN B's and USB SUB's went back.
+  A mono pair's Signal Type and a MIX bus's Pan Link are kept by any parameter the row keeps, whichever it is: [Safe]
+  with no parameter selected keeps neither. A pair's Signal Type is kept by its first channel's row (CH 1, CH 3), not
+  by the second's (confirmed on a URX44V). A kept HA also keeps +48V, A.Gain and Clip Safe, which the guide's table
+  puts under HA, and Hi-Z, which the table does not name; a recall of these four is unconfirmed.
 - Others lays out three bands, EFFECT, BUS TYPE and OTHERS (x10..389, 20 high), with the buttons four to a row
   under each (86 by 40, 12 apart): FX 1, FX 2, INS FX (Input), INS FX (Output); MIX1, MIX2; Output Patch (p080-1).
   A button is in a row name box's colour under white words while off and green while on (confirmed on a URX44V),

@@ -139,7 +139,7 @@ URX44V/44/22 ユーザーガイド (英語版 revision E0) が載せている LC
 | STREAMING の入力ソースのシート | (画面なし) | 何も無い。シートは STREAMING の INPUT 画面に重なる。題・項目名・並び・戻るボタンは実機に合わせた (URX44V で実機確認) |
 | SEND TO と、MIX 1 以外のストリップの SEND FROM | `ch.sendto` / `ch.sendfrom` | MIX 1 の SEND FROM (p125-1) だけ。D0 p116-1 は System ファームウェア V1.5 より前の SEND TO。サイドメニュー・ページごとのカード・矢印・見出しは実機に合わせた (URX44V で実機確認) |
 | GEQ Link のダイアログ | `ch.geq` | [GEQ Link] だけ (p122-1)。`Make Link GEQ Parameters?` と `Break Link GEQ Parameters?` の文言・印・答えは実機に合わせ、前者の [Cancel] は右下、2 つの答えは上下の中央で、問いはその上 (URX44V で実機確認)。その答えの正確な位置は、どの図にも拠らない |
-| RECALL SAFE の Input タブと、全部点いた状態以外 | `scene.safe` | 全部の行が点いた Output の左端 (p079-1) と、点いた Others (p080-1)。Input の行・列・黒いマス、各状態の見た目、Source が組で動くこと、Source で HA が開くこと、呼び出しで何が残るかは実機に合わせた (URX44V で実機確認)。p079-1 に無い状態の色と、Input のスクロールする列の始まる位置は、図に拠らない |
+| RECALL SAFE の Input タブと、全部点いた状態以外 | `scene.safe` | 全部の行が点いた Output の左端 (p079-1) と、点いた Others (p080-1)。Input の行・列・黒いマス、各状態の見た目、Source が組で動くこと、Source で HA が開くこと、呼び出しで残ると確かめたもの (「RECALL SAFE」) は実機に合わせた (URX44V で実機確認)。p079-1 に無い状態の色と、Input のスクロールする列の始まる位置は、図に拠らない |
 
 ### 画面はあるが、既定で描く状態が無い
 
@@ -1908,10 +1908,12 @@ p080-1)、サイドレールはほかに何も置かない。タブはグリフ�
 - 呼び出しでチャンネルのパラメーターが残るのは、その行の [Safe] が入っていて、かつそのパラメーターを選んで
   いるときだけ。MIX バスへの送りが残るのは、そのバスの [Safe] と [Incoming Sends] が両方入っているとき。
   [Safe] だけでは何も残らない (URX44V で実機確認)。残る HA は、チャンネルの位相 (ステレオ入力は L と R) と、
-  自分の入力ソースの D.Gain だけを残す。USB MAIN A のものを残しても、USB MAIN B と USB SUB のものは戻った。モノの
-  組の Signal Type と MIX バスの Pan Link は、その行がどのパラメーターでも 1 つ残せば残る。パラメーターを選ばない
-  [Safe] だけでは、どちらも残らない。組の Signal Type を残すのは組の 1 つ目のチャンネルの行 (CH 1、CH 3) で、
-  2 つ目の行では残らない (URX44V で実機確認)。
+  そのチャンネルの入力ソースの D.Gain を残し、ほかの入力ソースの D.Gain は残さない。USB MAIN A のものを残しても、
+  USB MAIN B と USB SUB のものは戻った。モノの組の Signal Type と MIX バスの Pan Link は、その行がどのパラメーター
+  でも 1 つ残せば残る。パラメーターを選ばない [Safe] だけでは、どちらも残らない。組の Signal Type を残すのは組の
+  1 つ目のチャンネルの行 (CH 1、CH 3) で、2 つ目の行では残らない (URX44V で実機確認)。残る HA は、ユーザーガイドの
+  表が HA に入れる +48V・A.Gain・Clip Safe と、表が挙げていない Hi-Z も残す。この 4 つを呼び出しで残すかは
+  確かめていない。
 - Others は EFFECT・BUS TYPE・OTHERS の 3 本の帯 (x10..389、高さ 20) を置き、その下にボタンを 1 行 4 個まで並べる
   (86 x 40、間隔 12)。FX 1・FX 2・INS FX (Input)・INS FX (Output)、MIX1・MIX2、Output Patch (p080-1)。
   ボタンは切れていると行の名前の箱と同じ色に白い文字、入ると緑 (URX44V で実機確認)。点いたボタンは、行の
