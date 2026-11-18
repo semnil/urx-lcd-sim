@@ -184,7 +184,7 @@ PY
 | `--safe-cell` | `#52555a` | 選んでいないパラメーター。図は無い。本体は濃い灰色で描き、値は `--surface-btn` と同じ |
 | `--safe-cell-safe` | `#b5b6bd` | [Safe] が入っている行の、選んでいないパラメーター。図は無い。本体は切れた [Safe] より淡く描き、この値は本体と並べて同じに見える (URX44V で確認) |
 | `--safe-off` | `var(--safe-row-name)` | 切れている [Safe] と、何も残さない Others のボタン。図は無い。本体は行の名前の箱と同じ色に白い文字で描く (URX44V で確認) |
-| `--safe-off-band` | `#4a4e55` | 何も残さない Others のボタンの下端の帯。図は無い。値は、`--safe-lit-band` が `--safe-lit` を暗くするのと同じ割合で `--safe-off` を暗くしたもの |
+| `--safe-off-band` | `#4a4e55` | 何も残さない Others のボタンの下端の帯。図は無い。値は、`--safe-lit-band` が `--safe-lit` を暗くするのと同じ割合で `--safe-off` を暗くしたもので、本体と並べて同じに見える (URX44V で確認) |
 | `--accent-cue` | `#d6ced6` | [CUE] ボタンのオフ状態 |
 | `--accent-udk` | `#5a3984` | USER DEFINED KNOBS のバーの面 (p038-4 の x2..421 / y235..254) |
 | `--accent-udk-label` | `#290c3a` | 同、帯に載るラベルの文字 (p038-4 の x2..421 / y255..271) |

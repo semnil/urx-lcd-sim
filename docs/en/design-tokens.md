@@ -189,7 +189,7 @@ PY
 | `--safe-cell` | `#52555a` | A parameter not selected. No figure shows it: the unit draws it dark grey, and the value is `--surface-btn`'s |
 | `--safe-cell-safe` | `#b5b6bd` | A parameter not selected on a row whose [Safe] is on. No figure shows it: the unit draws it paler than [Safe] while off, and the value reads the same as the unit beside it (confirmed on a URX44V) |
 | `--safe-off` | `var(--safe-row-name)` | [Safe] while off, and an Others button that keeps nothing. No figure shows it: the unit draws them in the colour of a row's name box, under white words (confirmed on a URX44V) |
-| `--safe-off-band` | `#4a4e55` | The band at the foot of an Others button that keeps nothing. No figure shows it: the value darkens `--safe-off` as `--safe-lit-band` darkens `--safe-lit` |
+| `--safe-off-band` | `#4a4e55` | The band at the foot of an Others button that keeps nothing. No figure shows it: the value darkens `--safe-off` as `--safe-lit-band` darkens `--safe-lit`, and reads the same as the unit beside it (confirmed on a URX44V) |
 | `--accent-cue` | `#d6ced6` | The [CUE] button in the off state |
 | `--accent-udk` | `#5a3984` | USER DEFINED KNOBS: the face of the bar (x2..421 / y235..254 in p038-4) |
 | `--accent-udk-label` | `#290c3a` | The same, the label text on that band (x2..421 / y255..271 in p038-4) |
