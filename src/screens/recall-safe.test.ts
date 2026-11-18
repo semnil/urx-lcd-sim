@@ -220,6 +220,14 @@ describe("RECALL SAFE", () => {
     expect(framed(), "Output frames none of its rows").toEqual([]);
     await sideTab("Input");
     expect(framed(), "back on Input, the row is framed still").toEqual(["C H 2"]);
+    await sideTab("Output");
+    await tap(shell, "MIX 1");
+    expect(framed()).toEqual(["MIX 1"]);
+    await sideTab("Input");
+    expect(framed(), "one row is framed across the tabs").toEqual([]);
+    await sideTab("Output");
+    expect(framed()).toEqual(["MIX 1"]);
+    await sideTab("Input");
     await tap(shell, "C H 3");
     expect(framed()).toEqual(["C H 3"]);
     expect(grid(shell)).toEqual(before);
