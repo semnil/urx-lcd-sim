@@ -2184,8 +2184,8 @@ Mode the menu's [Recall Safe] is out of reach, and a recall keeps nothing.
   is framed in white with all four corners round; a tap on the framed box keeps it framed, and the
   frame stays across a switch to another tab and back. One row is selected across the tabs: selecting MIX 1 on
   Output takes the frame off CH 2 on Input. Left for SCENE and opened again, it opens on the tab it was left on with the
-  same row framed. A stereo-linked pair (CH 1 and CH 2, CH 3 and CH 4) carries HOME's stereo-link mark, smaller,
-  across the middle of the gap between its two names (confirmed on a URX44V). Switched off and on, the unit opens it on Input, and the row framed before stays framed
+  same row framed. A stereo-linked pair (CH 1 and CH 2, CH 3 and CH 4) carries HOME's stereo-link mark, smaller, on
+  a disc of the panel's grey, across the middle of the gap between its two names (confirmed on a URX44V). Switched off and on, the unit opens it on Input, and the row framed before stays framed
   (confirmed on a URX44V).
 - A settings file carries what RECALL SAFE is set to, and a load puts it back (confirmed on a URX44V). A scene
   memory does not carry it, so a recall leaves it as it stands.

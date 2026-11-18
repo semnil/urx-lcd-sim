@@ -11088,7 +11088,8 @@
 }
 
 /* HOME's stereo-link mark, smaller, in the gap between a linked pair's names: its
- * disc sits across the gap's middle, 4px above the lower box. */
+ * disc, in the panel's grey the gap shows, sits across the gap's middle, 4px above
+ * the lower box. */
 .safe-link {
   position: absolute;
   left: 50%;
@@ -11098,7 +11099,7 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: var(--lcd-bg);
+  background: var(--safe-panel);
   color: var(--text);
   pointer-events: none;
 }
