@@ -11238,6 +11238,29 @@
   background: var(--scroll-thumb-dim);
 }
 
+/* The side menu's tabs carry no glyph, and their names stand in the middle
+ * (p079-1, p080-1). */
+.safe-tab {
+  height: 57px;
+  justify-content: center;
+  padding: 0;
+}
+
+.safe-tab .side-tab-icon {
+  display: none;
+}
+
+/* The tabs stand 60px apart, 3 between one's band and the next. */
+.safe-tab + .safe-tab {
+  margin-top: 0;
+}
+
+.safe-tab .side-tab-label {
+  font-weight: 400;
+  line-height: 21px;
+  translate: 0 -2px;
+}
+
 /* Others: a band over each group, its buttons four to a row under it. */
 .safe-others {
   padding: 6px 0 0 8px;

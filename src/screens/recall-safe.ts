@@ -557,7 +557,7 @@ export const recallSafeScreen: ScreenDef = {
     const tab: SafeTab = (SAFE_TABS as readonly string[]).includes(stored) ? (stored as SafeTab) : "Input";
     return {
       main: tab === "Others" ? othersTab(ctx) : gridTab(ctx, tab),
-      side: SAFE_TABS.map((t) => sideTab(t, t === tab, writing(TAB_PATH, () => void ctx.store.set(TAB_PATH, t)))),
+      side: SAFE_TABS.map((t) => sideTab(t, t === tab, writing(TAB_PATH, () => void ctx.store.set(TAB_PATH, t)), undefined, "safe-tab")),
     };
   },
 };
