@@ -139,7 +139,7 @@ URX44V/44/22 ユーザーガイド (英語版 revision E0) が載せている LC
 | STREAMING の入力ソースのシート | (画面なし) | 何も無い。シートは STREAMING の INPUT 画面に重なる。題・項目名・並び・戻るボタンは実機に合わせた (URX44V で実機確認) |
 | SEND TO と、MIX 1 以外のストリップの SEND FROM | `ch.sendto` / `ch.sendfrom` | MIX 1 の SEND FROM (p125-1) だけ。D0 p116-1 は System ファームウェア V1.5 より前の SEND TO。サイドメニュー・ページごとのカード・矢印・見出しは実機に合わせた (URX44V で実機確認) |
 | GEQ Link のダイアログ | `ch.geq` | [GEQ Link] だけ (p122-1)。`Make Link GEQ Parameters?` と `Break Link GEQ Parameters?` の文言・印・答えは実機に合わせ、前者の [Cancel] は右下、2 つの答えは上下の中央で、問いはその上 (URX44V で実機確認)。その答えの正確な位置は、どの図にも拠らない |
-| RECALL SAFE の Input タブと、全部点いた状態以外 | `scene.safe` | 全部の行が点いた Output の左端 (p079-1) と、点いた Others (p080-1)。Input の行・列・黒いマス、各状態の見た目、Source が組で動くこと、Source で HA が開くこと、呼び出しで何が残るかは実機に合わせた (URX44V で実機確認)。p079-1 に無い状態の色と、Input のスクロールする列の始まる位置は、図に拠らない |
+| RECALL SAFE の Input タブと、全部点いた状態以外 | `scene.safe` | 全部の行が点いた Output の左端 (p079-1) と、点いた Others (p080-1)。Input の行・列・黒いマス、各状態の見た目、Source が組で動くこと、Source で HA が開くこと、呼び出しで残ると確かめたもの (「RECALL SAFE」) は実機に合わせた (URX44V で実機確認)。p079-1 に無い状態の色と、Input のスクロールする列の始まる位置は、図に拠らない |
 
 ### 画面はあるが、既定で描く状態が無い
 
