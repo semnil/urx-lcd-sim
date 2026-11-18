@@ -2177,7 +2177,8 @@ names in the middle. The guide says Recall Safe works in Standard Mode alone: in
 Mode the menu's [Recall Safe] is out of reach, and a recall keeps nothing.
 
 - Input lists CH 1 to CH 4 a row each, a stereo input one row for its pair, and FX 1 and FX 2 a row each. Output
-  lists MIX 1, MIX 2, ST and STR. A row's name box (x11..68, 36 high) puts the channel's fixed name over the name
+  lists MIX 1, MIX 2, ST and STR. A URX22 lists its own channels the same way (CH 1, CH 2, CH 3/4 to CH 9/10),
+  unconfirmed on a URX22 and on a URX44. A row's name box (x11..68, 36 high) puts the channel's fixed name over the name
   the user gave it, on a square of the channel's colour that stands for its icon (confirmed on a URX44V). Its left
   corners are round and its right corners square (p079-1). A tap on it selects the row, and the selected row's box
   is framed in white with all four corners round; a tap on the framed box keeps it framed, and the
