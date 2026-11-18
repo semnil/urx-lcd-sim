@@ -8,6 +8,7 @@ import { bankSelectScreen, homeScreen } from "./home";
 import { microsdScreens } from "./microsd";
 import { monitorScreens } from "./monitor";
 import { sceneScreen, sceneTopScreen } from "./scene";
+import { recallSafeScreen } from "./recall-safe";
 import { ssmcsScreens } from "./ssmcs";
 import { setupScreens } from "./setup";
 import { titleEntryScreen } from "./title-entry";
@@ -18,6 +19,7 @@ export function buildRegistry(): ScreenRegistry {
     homeScreen,
     bankSelectScreen,
     sceneTopScreen,
+    recallSafeScreen,
     sceneScreen,
     titleEntryScreen,
     ...setupScreens,

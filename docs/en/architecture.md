@@ -127,7 +127,9 @@ What is left out is **what the unit was doing** at that moment: a take or a play
 (`sd.rec` and the rest) and a name half typed (`ui.titleEntry.`, `ui.dateTimeDraft.`) come back
 stopped, as they do on a unit that has been switched off. The console lock (`ui.consoleLock.`) is gone, as it is on a
 unit switched off and on, and so is its password (known-issues.md). The result of TOOLS' card test (`sd.tested`)
-is left out too, as a unit switched off no longer shows it. [Initialize All Memories] and [Initialize Current Memories],
+is left out too, as a unit switched off no longer shows it. So are the SEND screen's view and pages (`ui.sendView`,
+`ui.sendToPage`, `ui.sendFromPage`) and RECALL SAFE's tab (`ui.recallSafeTab`), which a unit switched on starts
+afresh: SEND TO's first page, and Input. [Initialize All Memories] and [Initialize Current Memories],
 in the Device menu outside the screen, ask first, then start again from the unit as it ships and store it at once over what was stored.
 [Initialize Current Memories] puts back each scene memory's title, mixer and protection, but resets the current
 scene selection. [Initialize All Memories] resets the scene memories too. Both leave the card in the slot as it stands, with

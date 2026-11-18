@@ -23,6 +23,7 @@ URX44V/44/22 ユーザーガイド (英語版 revision E0) が載せている LC
 | Sends 送り先選択 | `sends-select` | p52 | 実装済み。HOME のメインエリアに重なるシート。サイドレールは HOME のまま |
 | SCENE (メニュー) | `scene` | p75 | 実装済み。HOME 左上のシーン名から開く |
 | SCENE LIST | `scene.list` | p75-78 | 実装済み (Store/Recall と Edit) |
+| RECALL SAFE | `scene.safe` | p79-80 | 実装済み (System ファームウェア V1.5)。SCENE のメニューの [Recall Safe] から開く |
 | 題の入力 | `scene.title` | — | 実装済み。SCENE LIST の Edit タブの [Title] と、Store/Recall タブの [Store] から開く。SAVE/LOAD の [Save as]・[New folder]・[Rename] と RECORDER の [Rename] と TOOLS の [Format microSD] は同じ画面を `microsd.name` として開く ([Save as]・[New folder]・[Rename] はカードのキーボードで開き、拡張子を入力欄の外に出す。[Format microSD] は題 `Volume Label` を付け、11 文字までで、空でも [OK] で進む)。ガイドに図は無い |
 
 ### SETUP
@@ -95,7 +96,6 @@ URX44V/44/22 ユーザーガイド (英語版 revision E0) が載せている LC
 
 | 画面・部分 | 画面 ID | 参照 | 状態 |
 | --- | --- | --- | --- |
-| Recall Safe (SCENE) | — | p79-80 | 未実装 |
 | サブメニュー | — | p36, p39 | 未実装 |
 
 ## 作らないもの
@@ -139,6 +139,7 @@ URX44V/44/22 ユーザーガイド (英語版 revision E0) が載せている LC
 | STREAMING の入力ソースのシート | (画面なし) | 何も無い。シートは STREAMING の INPUT 画面に重なる。題・項目名・並び・戻るボタンは実機に合わせた (URX44V で実機確認) |
 | SEND TO と、MIX 1 以外のストリップの SEND FROM | `ch.sendto` / `ch.sendfrom` | MIX 1 の SEND FROM (p125-1) だけ。D0 p116-1 は System ファームウェア V1.5 より前の SEND TO。サイドメニュー・ページごとのカード・矢印・見出しは実機に合わせた (URX44V で実機確認) |
 | GEQ Link のダイアログ | `ch.geq` | [GEQ Link] だけ (p122-1)。`Make Link GEQ Parameters?` と `Break Link GEQ Parameters?` の文言・印・答えは実機に合わせ、前者の [Cancel] は右下、2 つの答えは上下の中央で、問いはその上 (URX44V で実機確認)。その答えの正確な位置は、どの図にも拠らない |
+| RECALL SAFE の Input タブと、全部点いた状態以外 | `scene.safe` | 全部の行が点いた Output の左端 (p079-1) と、点いた Others (p080-1)。Input の行・列・黒いマス、各状態の見た目、Source が組で動くこと、Source で HA が開くこと、呼び出しで何が残るかは実機に合わせた (URX44V で実機確認)。p079-1 に無い状態の色と、Input のスクロールする列の始まる位置は、図に拠らない |
 
 ### 画面はあるが、既定で描く状態が無い
 
@@ -283,7 +284,8 @@ CH SETTING の `Signal Type` は 1 チャンネルではなく隣り合うモノ
   保つのは、ヘッドアンプ (A.Gain・Clip Safe・Φ・+48V・Hi-Z)・入力ソース・名前・色と、
   `BAL` 以外での位置。Signal Type と `PAN`/`BAL` はペアの値で両方へ書き、インサートと
   BALANCE は若い番号のチャンネルが持つ形のまま。チャンネルごとに CUE を持っていた版のブラウザーの保存が
-  2 つの CUE を持つリンク中のペアを読み戻すと、若い番号のチャンネルの CUE にそろう。
+  2 つの CUE を持つリンク中のペアを読み戻すと、若い番号のチャンネルの CUE にそろう。リンクは、もう一方の
+  チャンネルの RECALL SAFE の行にも、若い番号のチャンネルの [Safe] と選択を写す (URX44V で実機確認、「RECALL SAFE」)。
 
 `src/screens/stereo-link.test.ts` が振る舞いを、`src/style/columns.test.ts` の
 「the stereo-link mark between two strips」がマークの位置を固定している。
@@ -1864,6 +1866,58 @@ x6..95・x149..238・x291..380、字形は錠 16x21・ごみ箱 16x18・名前�
 - Operation Mode が Simple Mode のあいだは Simple タブの一覧だけを開き、Standard タブは使えない。Edit タブは使える。
   Simple タブで Edit タブを開いたまま Operation Mode を Standard Mode にすると、SCENE LIST は Simple タブの Store/Recall
   タブで開き、Edit タブは使えない (実機確認)。
+
+## RECALL SAFE
+
+System ファームウェア V1.5。SCENE のメニューは [Scene List] の横に [Recall Safe] を置き (p75)、シーンの呼び出しで
+何をそのまま残すかを決める RECALL SAFE を開く。サイドメニューは Input・Output・Others を切り替え (p079-1、
+p080-1)、サイドレールはほかに何も置かない。タブはグリフを持たず、60 間隔・高さ 57 で、名前を上下の真ん中に置く。ガイドは Recall Safe を Standard Mode だけで使えるとするので、Simple Mode
+ではメニューの [Recall Safe] は押せず、呼び出しは何も残さない。
+
+- Input は CH 1〜CH 4 を 1 行ずつ、ステレオ入力を組で 1 行、FX 1 と FX 2 を 1 行ずつ並べる。Output は MIX 1・
+  MIX 2・ST・STR を並べる。URX22 は自分のチャンネルを同じ形で並べる (CH 1・CH 2・CH 3/4〜CH 9/10)。URX22 と
+  URX44 では実機で確かめていない。行の名前の箱 (x11..68、高さ 36) は、変えられない名前の下にユーザーが付けた名前を置き、
+  アイコンの代わりにチャンネルの色の四角を敷く (URX44V で実機確認)。箱は左の角が丸く、右の角が角ばる (p079-1)。
+  箱をタップするとその行が選ばれ、選ばれた行の箱は白い枠で囲まれて四隅とも丸くなる。枠の付いた箱をもう一度タップしても枠は残り、
+  別のタブへ切り替えて戻っても枠は残る。選ばれる行はタブをまたいで 1 つで、Output で MIX 1 を選ぶと Input の CH 2 の
+  枠は消える。SCENE へ戻って開き直すと、出たときのタブで、同じ行に枠が付いたまま開く。ステレオリンクした組 (CH 1 と CH 2、CH 3 と CH 4) は、2 つの名前の箱のあいだの真ん中に、
+  HOME と同じ形のステレオリンクのマークを、パネルと同じ灰色の円に載せて小さく出す (URX44V で実機確認)。電源を入れ直すと Input タブで開き、前に選んだ行の枠は残る (URX44V で実機確認)。
+- 設定ファイルは RECALL SAFE の設定を持ち、読み込むとそれも戻る (URX44V で実機確認)。シーンのメモリーは持たないので、
+  呼び出しでは今の設定のまま残る。
+- Input の列は Safe・All・Name・Source・HA・Processing・Rec Point・To MIX・To FX・CH ON・CH Level・To ST/Pan、
+  Output の列は Safe・Incoming Sends・All・Name・Source・Processing・CH ON・CH Level・To ST/Bal。Safe・
+  Incoming Sends・All は動かず、Name から右の列は下端のバーで横にスクロールし、Output は 4 列 (p079-1)、Input は
+  5 列が見える。7 つの見出しは本体と同じ位置で改行する (`Process-` / `ing`、`Rec` / `Point`、`CH` / `Level`、
+  `To` / `ST/Pan`) (URX44V で実機確認)。どの列も、スクロールしてもしなくても、マスは見出しのボタンの真下に並ぶ
+  (URX44V で実機確認)。行は横のバーで縦にスクロールし、3 行が見える。
+- ボタンの無いマスは黒い。Source を選ぶまでの全部の行の HA、FX 1・FX 2 の Source・HA・Processing・Rec Point・
+  To FX、ST・STR の Incoming Sends、MIX 1・MIX 2・ST の Source、STR の CH ON・CH Level・To ST/Bal
+  (URX44V で実機確認)。
+- [Safe] は `ON` と書き、切れていると行の名前の箱と同じ色、入ると緑。パラメーターのボタンは文字が無く、選んでいないと濃い
+  灰色、選ぶと青緑。[Safe] が入っている行では、選んでいないボタンはさらに淡く、選んだボタンはシアン。[All] と
+  見出しは、何も選んでいないと濃い面に `All`、一部を選ぶと `...`、全部を選ぶと点いた `All` になり、どれかの行の
+  [Safe] が入っている間は Safe の行の面になる。Safe の上の見出しは `ALL` (行の名前の箱と同じ色)、一部の行が入ると `...`
+  (シアン)、全部入ると `ALL` (緑) (URX44V で実機確認)。
+- Source は入力ソースの組で動く (CH 1 と CH 2、CH 3 と CH 4)。選ぶとその組の HA が開き、HA はチャンネルごとに
+  動き、Source を切ると HA も切れる。ステレオ入力の Source は自分の行だけで動き、同じように自分の HA を開く。
+  ステレオリンクしたモノの組の 2 行は 1 つとして選ばれ、CH 1 の行で押した [Safe]・CH ON・CH Level は CH 2 の行でも
+  入り、呼び出しでは組がそろって残る。リンクする前に選んだ CH 1 の行の [Safe] と選択は、リンクすると CH 2 の行にも
+  写る (URX44V で実機確認)。ほかの列も同じように一緒に動くものとしている。
+  行の [All] は HA を含めて全部のパラメーターを選び、次に全部切る。見出しはその列を全部の行で選び、Safe の上の
+  見出しはそのタブの全部の行の Safe を入れ、もう一方のタブの行は変えない (URX44V で実機確認)。
+- 呼び出しでチャンネルのパラメーターが残るのは、その行の [Safe] が入っていて、かつそのパラメーターを選んで
+  いるときだけ。MIX バスへの送りが残るのは、そのバスの [Safe] と [Incoming Sends] が両方入っているとき。
+  [Safe] だけでは何も残らない (URX44V で実機確認)。残る HA は、チャンネルの位相 (ステレオ入力は L と R) と、
+  自分の入力ソースの D.Gain だけを残す。USB MAIN A のものを残しても、USB MAIN B と USB SUB のものは戻った。モノの
+  組の Signal Type と MIX バスの Pan Link は、その行がどのパラメーターでも 1 つ残せば残る。パラメーターを選ばない
+  [Safe] だけでは、どちらも残らない。組の Signal Type を残すのは組の 1 つ目のチャンネルの行 (CH 1、CH 3) で、
+  2 つ目の行では残らない (URX44V で実機確認)。
+- Others は EFFECT・BUS TYPE・OTHERS の 3 本の帯 (x10..389、高さ 20) を置き、その下にボタンを 1 行 4 個まで並べる
+  (86 x 40、間隔 12)。FX 1・FX 2・INS FX (Input)・INS FX (Output)、MIX1・MIX2、Output Patch (p080-1)。
+  ボタンは切れていると行の名前の箱と同じ色に白い文字、入ると緑 (URX44V で実機確認)。点いたボタンは、行の
+  [Safe] に関係なく、名前の指すものを呼び出しで残す。FX チャンネルのエフェクト、入力または出力チャンネルの
+  インサート、MIX バスの BUS Type、出力パッチ。点いた [FX 1] は FX 1 のエフェクトのパラメーターを残し、点いて
+  いない FX 2 のものは呼び出された (URX44V で実機確認)。ほかのボタンも同じように働くものとしている。
 
 ## 題の入力シート
 

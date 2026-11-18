@@ -199,6 +199,14 @@ function collapsePair(ctx: PairCtx, strip: Strip): void {
     if (!pairSharesKey(rest, bal)) continue;
     void ctx.store.restore(`ch.${secondary.id}.${rest}`, ctx.store.get<ParamValue>(p, 0));
   }
+  // RECALL SAFE's two rows of the pair take the first channel's [Safe] and
+  // selections, and a selection the second row held alone goes (confirmed on a
+  // URX44V for [Safe], CH ON and CH Level).
+  const safeOf = (s: Strip): string => `safe.${s.id}.`;
+  for (const p of ctx.store.pathsUnder(`safe.${secondary.id}`))
+    if (!ctx.store.has(`${safeOf(primary)}${p.slice(safeOf(secondary).length)}`)) void ctx.store.restore(p, false);
+  for (const p of ctx.store.pathsUnder(`safe.${primary.id}`))
+    void ctx.store.restore(`${safeOf(secondary)}${p.slice(safeOf(primary).length)}`, ctx.store.get<ParamValue>(p, false));
 }
 
 /**

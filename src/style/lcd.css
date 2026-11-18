@@ -10958,3 +10958,384 @@
   width: 100%;
   height: 100%;
 }
+
+/* RECALL SAFE (p079-1, p080-1). Every place is in the main area's own pixels,
+ * which stand 2 left of and 50 below the glass's. */
+.safe-screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* The panel behind the rows' names and the columns that stay, and the one behind
+ * the columns that scroll, headings included. */
+.safe-panel {
+  position: absolute;
+  border-radius: var(--radius-md);
+  background: var(--safe-panel);
+}
+
+.safe-panel-fixed {
+  left: 6px;
+  top: 71px;
+  width: 201px;
+  height: 130px;
+}
+
+.safe-panel-scroll {
+  left: 209px;
+  top: 1px;
+  width: 183px;
+  height: 200px;
+}
+
+/* On Input, with no Incoming Sends, All stands where Incoming Sends does on
+ * Output and the scrolled columns start a column further left. */
+.safe-input .safe-panel-fixed {
+  width: 155px;
+}
+
+.safe-input .safe-panel-scroll {
+  left: 163px;
+  width: 229px;
+}
+
+.safe-head {
+  position: absolute;
+  left: 73px;
+  top: 1px;
+  display: grid;
+  grid-template-rows: 30px 35px;
+}
+
+.safe-fixed {
+  display: flex;
+  gap: 6px;
+}
+
+.safe-heading {
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 1px;
+  white-space: pre-line;
+  text-align: center;
+  font-size: 12.5px;
+  line-height: 13px;
+  color: var(--text);
+}
+
+/* A heading on two lines is set smaller, its lines closer. */
+.safe-heading.is-wrapped {
+  font-size: 11px;
+  line-height: 12px;
+}
+
+/* The columns that scroll: a window as wide as the panel's columns in view, and a
+ * track the bar under them slides. */
+.safe-window {
+  overflow: hidden;
+}
+
+.safe-track {
+  display: flex;
+  gap: 6px;
+  padding-left: 2px;
+  width: max-content;
+}
+
+.safe-screen > .safe-window {
+  position: absolute;
+  left: 209px;
+  top: 1px;
+  width: 182px;
+}
+
+.safe-input > .safe-window {
+  left: 163px;
+  width: 228px;
+}
+
+.safe-column-head {
+  display: grid;
+  grid-template-rows: 30px 35px;
+}
+
+.safe-rows {
+  position: absolute;
+  left: 6px;
+  top: 71px;
+  width: 386px;
+  height: 130px;
+  padding-top: 3px;
+  display: flex;
+  align-items: flex-start;
+}
+
+.safe-names,
+.safe-fixed-rows,
+.safe-rows .safe-track {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.safe-names {
+  position: relative;
+  flex: 0 0 58px;
+  margin-left: 3px;
+}
+
+/* HOME's stereo-link mark, smaller, in the gap between a linked pair's names: its
+ * disc, in the panel's grey the gap shows, sits across the gap's middle, 4px above
+ * the lower box. */
+.safe-link {
+  position: absolute;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  margin: -10px 0 0 -6px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--safe-panel);
+  color: var(--text);
+  pointer-events: none;
+}
+
+.safe-link svg {
+  width: 8px;
+  height: 8px;
+}
+
+.safe-fixed-rows {
+  margin-left: 6px;
+}
+
+/* The rows' window starts where the headings' window does, so a column's cells stand
+ * under its heading button. */
+.safe-rows .safe-window {
+  margin-left: 4px;
+  flex: 0 0 182px;
+}
+
+.safe-input .safe-rows .safe-window {
+  flex-basis: 228px;
+}
+
+.safe-cells {
+  display: flex;
+  gap: 6px;
+}
+
+/* A row's name: square on its right, until a tap selects it and frames it in white. */
+.lcd .safe-row-name {
+  position: relative;
+  width: 58px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  background: var(--safe-row-name);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-size: 12.5px;
+  line-height: 14px;
+  color: var(--text);
+}
+
+.lcd .safe-row-name.is-selected {
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 0 0 2px var(--text);
+}
+
+/* The channel's icon, drawn as a square of the channel's colour (AGENTS.md). */
+.safe-row-icon {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  translate: -50% -50%;
+  opacity: 0.6;
+}
+
+.safe-row-id,
+.safe-row-user {
+  position: relative;
+  max-width: 54px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: clip;
+}
+
+/* A button of the grid: 40 by 36 on a row, 40 by 35 in the heading row. Two
+ * classes, because the reset that makes a button inherit its font and colour is
+ * more specific than one. */
+.lcd .safe-btn,
+.lcd .safe-switch {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.lcd .safe-head .safe-btn,
+.lcd .safe-head .safe-switch,
+.lcd .safe-column-head .safe-btn {
+  height: 35px;
+}
+
+.lcd .safe-btn {
+  background: var(--safe-cell);
+  color: var(--text-inverse);
+}
+
+.lcd .safe-btn.is-on {
+  background: var(--safe-selected-off);
+}
+
+.lcd .safe-btn.is-safe {
+  background: var(--safe-cell-safe);
+}
+
+.lcd .safe-btn.is-safe.is-on {
+  background: var(--safe-selected);
+}
+
+/* A cell with no button. */
+.lcd .safe-btn.is-none {
+  display: block;
+  background: var(--lcd-bg);
+  cursor: default;
+}
+
+.lcd .safe-switch {
+  background: var(--safe-off);
+  color: var(--text);
+}
+
+.lcd .safe-switch.is-on {
+  background: var(--safe-lit);
+  color: var(--text-inverse);
+}
+
+.lcd .safe-switch.is-some {
+  background: var(--safe-selected);
+  color: var(--text-inverse);
+}
+
+.safe-vbar {
+  left: 400px;
+  top: 74px;
+  height: 121px;
+}
+
+/* The bar under the columns: the list bar laid on its side. */
+.safe-hbar {
+  position: absolute;
+  left: 213px;
+  top: 206px;
+  width: 171px;
+  height: 8px;
+  box-sizing: content-box;
+  border: 2px solid var(--well-deep);
+  border-radius: 6px;
+  background: var(--surface-sunken);
+}
+
+.safe-input .safe-hbar {
+  left: 167px;
+  width: 217px;
+}
+
+.safe-hbar .scroll-thumb {
+  top: 0;
+  height: 8px;
+  background: var(--scroll-thumb-dim);
+}
+
+/* The bar beside the rows draws the dimmer thumb the lists do. */
+.safe-vbar .scroll-thumb {
+  background: var(--scroll-thumb-dim);
+}
+
+/* The side menu's tabs carry no glyph, and their names stand in the middle
+ * (p079-1, p080-1). */
+.safe-tab {
+  height: 57px;
+  justify-content: center;
+  padding: 0;
+}
+
+.safe-tab .side-tab-icon {
+  display: none;
+}
+
+/* The tabs stand 60px apart, 3 between one's band and the next. */
+.safe-tab + .safe-tab {
+  margin-top: 0;
+}
+
+.safe-tab .side-tab-label {
+  font-weight: 400;
+  line-height: 21px;
+  translate: 0 -2px;
+}
+
+/* Others: a band over each group, its buttons four to a row under it. */
+.safe-others {
+  padding: 6px 0 0 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.safe-band {
+  width: 380px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  background: var(--safe-band);
+  color: var(--text-inverse);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.safe-others-row {
+  display: flex;
+  gap: 12px;
+  margin: 4px 0 6px;
+}
+
+.lcd .safe-other {
+  width: 86px;
+  height: 40px;
+  padding: 0 0 3px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--safe-off);
+  box-shadow: inset 0 -3px 0 var(--safe-off-band);
+  color: var(--text);
+  white-space: pre-line;
+  font-size: 12.5px;
+  line-height: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.lcd .safe-other.is-on {
+  background: var(--safe-lit);
+  box-shadow: inset 0 -3px 0 var(--safe-lit-band);
+  color: var(--text-inverse);
+}

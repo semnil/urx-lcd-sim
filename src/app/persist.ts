@@ -76,6 +76,9 @@ const IN_FLIGHT = [
   "ui.sendView",
   "ui.sendToPage",
   "ui.sendFromPage",
+  // RECALL SAFE's tab: the unit opens it on the tab it was left on until it is switched off, and
+  // then on Input. The row framed on it stays across the switch.
+  "ui.recallSafeTab",
 ];
 
 /** Where a state written before [SAFE] and [Clip Safe] were one switch keeps [SAFE]. */

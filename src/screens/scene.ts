@@ -20,6 +20,8 @@ import { draftTitle, openTitleEntry } from "./title-entry";
 import type { ScreenBody, ScreenDef } from "./types";
 import { toJson } from "../device/value-json";
 import { dropGeqOverRate } from "./geq";
+import { keptByRecallSafe } from "./recall-safe";
+import type { ParamValue } from "../device/path";
 
 /** The numbers a unit stores scenes under run from 1 to this. */
 const SCENE_COUNT = 63;
@@ -98,7 +100,7 @@ export async function recallScene(ctx: AppContext, no: number): Promise<void> {
   const bank = storedBank(ctx, no);
   const state = bank ? readScene(ctx.store, statePath(bank, no)) : isFactoryLocked(no) ? shippedScene(ctx.model, isPreset(no) ? no - PRESET_BASE : 0) : undefined;
   const pairs = pairStates(ctx);
-  if (state) await applyScene(ctx.store, onSsmcsStops(onDynamicsTimeStops(onPitchMidiControl(asPutBack(ctx.store, onlyHeld(ctx.model, state))))));
+  if (state) await applyScene(ctx.store, withoutKept(ctx, onSsmcsStops(onDynamicsTimeStops(onPitchMidiControl(asPutBack(ctx.store, onlyHeld(ctx.model, state)))))));
   followRecall(ctx, pairs);
   // A scene stored while Pan Link left each send's own placing where it was, or
   // kept Pan Link on over a FIXED bus, comes back as the unit would hold it.
@@ -109,6 +111,12 @@ export async function recallScene(ctx: AppContext, no: number): Promise<void> {
   dropInsertsOverRate(ctx, ctx.store.num("setup.samplingFrequency", 48000));
   dropGeqOverRate(ctx, ctx.store.num("setup.samplingFrequency", 48000));
   ctx.repaint();
+}
+
+/** A recalled mixer less what RECALL SAFE keeps as it stands. */
+function withoutKept(ctx: AppContext, state: Record<string, ParamValue>): Record<string, ParamValue> {
+  const kept = keptByRecallSafe(ctx, Object.keys(state));
+  return Object.fromEntries(Object.entries(state).filter(([path]) => !kept.has(path)));
 }
 
 /**
@@ -216,7 +224,25 @@ export const sceneTopScreen: ScreenDef = {
   toolbar: "sub",
   title: () => "SCENE",
   build(ctx): ScreenBody {
-    return { main: menuGrid([menuButton("Scene List", aimed(() => ctx.nav.push({ id: "scene.list" }), { kind: "screen", id: "scene.list" }))], "menu-grid-wide") };
+    const simple = ctx.store.str("setup.operationMode", "Standard") === "Simple";
+    return {
+      main: menuGrid(
+        [
+          menuButton("Scene List", aimed(() => ctx.nav.push({ id: "scene.list" }), { kind: "screen", id: "scene.list" })),
+          // Recall Safe works in Standard Mode alone (the guide's "Recall Safe menu").
+          markShut(
+            menuButton(
+              "Recall Safe",
+              aimed(() => {
+                if (!simple) ctx.nav.push({ id: "scene.safe" });
+              }, { kind: "screen", id: "scene.safe" }),
+            ),
+            simple,
+          ),
+        ],
+        "menu-grid-wide",
+      ),
+    };
   },
 };
 

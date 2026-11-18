@@ -341,6 +341,17 @@
 
   /* Accents, each tied to the control it names on the unit */
   --accent-on: #84e3ff; /* [ON] / [CUE] / [PRE] switch when it is lit */
+  --safe-panel: #42454a; /* RECALL SAFE: the panels its rows and its scrolled columns stand on */
+  --safe-row-name: #6b717b; /* a row's name box */
+  --safe-lit: #21c263; /* [Safe] while on, and an Others button while it keeps what it names */
+  --safe-lit-band: #19864a; /* the band at the foot of a lit Others button */
+  --safe-selected: #73dfff; /* a parameter selected on a row whose [Safe] is on */
+  --safe-selected-off: #3aa2b5; /* a parameter selected on a row whose [Safe] is off: no figure shows it */
+  --safe-cell: #52555a; /* a parameter not selected: no figure shows it */
+  --safe-cell-safe: #b5b6bd; /* a parameter not selected on a row whose [Safe] is on: no figure shows it */
+  --safe-off: var(--safe-row-name); /* [Safe] while off, and an Others button while it keeps nothing: the unit draws them in a row name's colour */
+  --safe-off-band: #4a4e55; /* the band at the foot of an Others button while it keeps nothing: no figure shows it */
+  --safe-band: #bdbebd; /* the Others tab's separator bands */
   --accent-selected: #84dfff; /* selected list row, selected option button */
   --scene-preset: #4adb5a; /* the number of a scene the unit ships with */
   --scene-protect: #32eb73; /* a protected scene's Lock cell */

@@ -229,7 +229,7 @@ const COST: Record<Task["kind"], number> = { draw: 1, press: 1, pick: 2 };
 
 /** How much work one case takes on, and how many cases share a route's survey in one state. */
 const SHARE = 35;
-const PARTS = 5;
+const PARTS = 6;
 
 /** Pressing the controls of a route in one state, one press to a unit, taken a case's share at a time. */
 interface Survey {
