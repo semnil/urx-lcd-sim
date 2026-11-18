@@ -23,6 +23,7 @@ URX44V/44/22 ユーザーガイド (英語版 revision E0) が載せている LC
 | Sends 送り先選択 | `sends-select` | p52 | 実装済み。HOME のメインエリアに重なるシート。サイドレールは HOME のまま |
 | SCENE (メニュー) | `scene` | p75 | 実装済み。HOME 左上のシーン名から開く |
 | SCENE LIST | `scene.list` | p75-78 | 実装済み (Store/Recall と Edit) |
+| RECALL SAFE | `scene.safe` | p79-80 | 実装済み (System ファームウェア V1.5)。SCENE のメニューの [Recall Safe] から開く |
 | 題の入力 | `scene.title` | — | 実装済み。SCENE LIST の Edit タブの [Title] と、Store/Recall タブの [Store] から開く。SAVE/LOAD の [Save as]・[New folder]・[Rename] と RECORDER の [Rename] と TOOLS の [Format microSD] は同じ画面を `microsd.name` として開く ([Save as]・[New folder]・[Rename] はカードのキーボードで開き、拡張子を入力欄の外に出す。[Format microSD] は題 `Volume Label` を付け、11 文字までで、空でも [OK] で進む)。ガイドに図は無い |
 
 ### SETUP
@@ -95,7 +96,6 @@ URX44V/44/22 ユーザーガイド (英語版 revision E0) が載せている LC
 
 | 画面・部分 | 画面 ID | 参照 | 状態 |
 | --- | --- | --- | --- |
-| Recall Safe (SCENE) | — | p79-80 | 未実装 |
 | サブメニュー | — | p36, p39 | 未実装 |
 
 ## 作らないもの
@@ -139,6 +139,7 @@ URX44V/44/22 ユーザーガイド (英語版 revision E0) が載せている LC
 | STREAMING の入力ソースのシート | (画面なし) | 何も無い。シートは STREAMING の INPUT 画面に重なる。題・項目名・並び・戻るボタンは実機に合わせた (URX44V で実機確認) |
 | SEND TO と、MIX 1 以外のストリップの SEND FROM | `ch.sendto` / `ch.sendfrom` | MIX 1 の SEND FROM (p125-1) だけ。D0 p116-1 は System ファームウェア V1.5 より前の SEND TO。サイドメニュー・ページごとのカード・矢印・見出しは実機に合わせた (URX44V で実機確認) |
 | GEQ Link のダイアログ | `ch.geq` | [GEQ Link] だけ (p122-1)。`Make Link GEQ Parameters?` と `Break Link GEQ Parameters?` の文言・印・答えは実機に合わせ、前者の [Cancel] は右下、2 つの答えは上下の中央で、問いはその上 (URX44V で実機確認)。その答えの正確な位置は、どの図にも拠らない |
+| RECALL SAFE の Input タブと、全部点いた状態以外 | `scene.safe` | 全部の行が点いた Output の左端 (p079-1) と、点いた Others (p080-1)。Input の行・列・黒いマス、各状態の見た目、Source が組で動くこと、Source で HA が開くこと、呼び出しで何が残るかは実機に合わせた (URX44V で実機確認)。p079-1 に無い状態の色と、Input のスクロールする列の始まる位置は、図に拠らない |
 
 ### 画面はあるが、既定で描く状態が無い
 
@@ -1864,6 +1865,41 @@ x6..95・x149..238・x291..380、字形は錠 16x21・ごみ箱 16x18・名前�
 - Operation Mode が Simple Mode のあいだは Simple タブの一覧だけを開き、Standard タブは使えない。Edit タブは使える。
   Simple タブで Edit タブを開いたまま Operation Mode を Standard Mode にすると、SCENE LIST は Simple タブの Store/Recall
   タブで開き、Edit タブは使えない (実機確認)。
+
+## RECALL SAFE
+
+System ファームウェア V1.5。SCENE のメニューは [Scene List] の横に [Recall Safe] を置き (p75)、シーンの呼び出しで
+何をそのまま残すかを決める RECALL SAFE を開く。サイドメニューは Input・Output・Others を切り替え (p079-1、
+p080-1)、サイドレールはほかに何も置かない。
+
+- Input は CH 1〜CH 4 を 1 行ずつ、ステレオ入力を組で 1 行、FX 1 と FX 2 を 1 行ずつ並べる。Output は MIX 1・
+  MIX 2・ST・STR を並べる。行の名前の箱 (x11..68、高さ 36) は、変えられない名前の下にユーザーが付けた名前を置き、
+  アイコンの代わりにチャンネルの色の四角を敷く (URX44V で実機確認)。
+- Input の列は Safe・All・Name・Source・HA・Processing・Rec Point・To MIX・To FX・CH ON・CH Level・To ST/Pan、
+  Output の列は Safe・Incoming Sends・All・Name・Source・Processing・CH ON・CH Level・To ST/Bal。Safe・
+  Incoming Sends・All は動かず、Name から右の列は下端のバーで横にスクロールし、Output は 4 列 (p079-1)、Input は
+  5 列が見える。7 つの見出しは本体と同じ位置で改行する (`Process-` / `ing`、`Rec` / `Point`、`CH` / `Level`、
+  `To` / `ST/Pan`) (URX44V で実機確認)。行は横のバーで縦にスクロールし、3 行が見える。
+- ボタンの無いマスは黒い。Source を選ぶまでの全部の行の HA、FX 1・FX 2 の Source・HA・Processing・Rec Point・
+  To FX、ST・STR の Incoming Sends、MIX 1・MIX 2・ST の Source、STR の CH ON・CH Level・To ST/Bal
+  (URX44V で実機確認)。
+- [Safe] は `ON` と書き、切れていると薄い灰色、入ると緑。パラメーターのボタンは文字が無く、選んでいないと濃い
+  灰色、選ぶと青緑。[Safe] が入っている行では、選んでいないボタンはさらに淡く、選んだボタンはシアン。[All] と
+  見出しは、何も選んでいないと濃い面に `All`、一部を選ぶと `...`、全部を選ぶと点いた `All` になり、どれかの行の
+  [Safe] が入っている間は Safe の行の面になる。Safe の上の見出しは `ALL` (薄い灰色)、一部の行が入ると `...`
+  (シアン)、全部入ると `ALL` (緑) (URX44V で実機確認)。
+- Source は入力ソースの組で動く (CH 1 と CH 2、CH 3 と CH 4)。選ぶとその組の HA が開き、HA はチャンネルごとに
+  動き、Source を切ると HA も切れる。行の [All] は HA を含めて全部のパラメーターを選び、次に全部切る。見出しは
+  その列を全部の行で選び、Safe の上の見出しはそのタブの全部の行の Safe を入れ、もう一方のタブの行は変えない
+  (URX44V で実機確認)。
+- 呼び出しでチャンネルのパラメーターが残るのは、その行の [Safe] が入っていて、かつそのパラメーターを選んで
+  いるときだけ。MIX バスへの送りが残るのは、そのバスの [Safe] と [Incoming Sends] が両方入っているとき。
+  [Safe] だけでは何も残らない (URX44V で実機確認)。残る HA は、その入力ソースの D.Gain も一緒に残す。
+- Others は EFFECT・BUS TYPE・OTHERS の 3 本の帯 (x10..389、高さ 20) を置き、その下にボタンを 1 行 4 個まで並べる
+  (86 x 40、間隔 12)。FX 1・FX 2・INS FX (Input)・INS FX (Output)、MIX1・MIX2、Output Patch (p080-1)。
+  ボタンは切れていると薄い灰色に白い文字、入ると緑 (URX44V で実機確認)。点いたボタンは、名前の指すものを
+  呼び出しで残す。FX チャンネルのエフェクト、入力または出力チャンネルのインサート、MIX バスの BUS Type、
+  出力パッチ。
 
 ## 題の入力シート
 

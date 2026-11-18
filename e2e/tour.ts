@@ -106,6 +106,7 @@ export const TOUR: Stop[] = [
   to("sends-select", undefined, "Sends"),
   to("scene", undefined, "Initial Data"),
   to("scene.list", "scene", "Scene List"),
+  to("scene.safe", "scene", "Recall Safe"),
   {
     id: "scene.title",
     from: "scene.list",

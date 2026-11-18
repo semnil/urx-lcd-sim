@@ -24,6 +24,7 @@ Which screen leads to which is drawn in [screen-map.md](screen-map.md).
 | Sends destination picker | `sends-select` | p52 | Built. A sheet over HOME's main area; the side rail stays HOME's |
 | SCENE (menu) | `scene` | p75 | Built. Opened from the scene name at HOME's top left |
 | SCENE LIST | `scene.list` | p75-78 | Built (Store/Recall and Edit) |
+| RECALL SAFE | `scene.safe` | p79-80 | Built (System firmware V1.5). Opened from [Recall Safe] on SCENE's menu |
 | Title entry | `scene.title` | — | Built. Opened from [Title] on SCENE LIST's Edit tab and from [Store] on its Store/Recall tab. [Save as], [New folder] and [Rename] on SAVE/LOAD, [Rename] on RECORDER and [Format microSD] on TOOLS open the same screen as `microsd.name` ([Save as], [New folder] and [Rename] open it on the card's keyboard, with the extension outside the field; [Format microSD] titles it `Volume Label`, takes up to 11 characters and lets [OK] go on with the field empty). The guide has no figure of it |
 
 ### SETUP
@@ -96,7 +97,6 @@ were before V1.5.
 
 | Screen or part | Screen ID | Ref. | Status |
 | --- | --- | --- | --- |
-| Recall Safe (SCENE) | — | p79-80 | Not built |
 | Submenu | — | p36, p39 | Not built |
 
 ## What this simulator does not build
@@ -144,6 +144,7 @@ compared are not written here.
 | The STREAMING input source sheet | (no screen) | Nothing. The sheet lies over STREAMING's INPUT screen. The title, names, arrangement and back button follow the unit (confirmed on a URX44V) |
 | SEND TO, and SEND FROM on a strip other than MIX 1 | `ch.sendto` / `ch.sendfrom` | Only MIX 1's SEND FROM (p125-1); D0 p116-1 shows SEND TO as it was before System firmware V1.5. The side menu, the cards on each page, the arrows and the captions follow the unit (confirmed on a URX44V) |
 | The GEQ Link dialogs | `ch.geq` | Only [GEQ Link] (p122-1). The wording, the mark and the answers of `Make Link GEQ Parameters?` and `Break Link GEQ Parameters?` match the unit, [Cancel] standing at the foot on the right in the first and its two answers across the middle with the question higher up (confirmed on a URX44V). The exact place of those answers follows no image |
+| RECALL SAFE's Input tab, and its states other than all lit | `scene.safe` | Output's left end with every row lit (p079-1) and Others lit (p080-1). Input's rows, columns and black cells, the faces of each state, Source going by pairs, HA opening with Source, and what a recall keeps follow the unit (confirmed on a URX44V). The colours of the states p079-1 does not show, and where Input's scrolled columns start, follow no image |
 
 ### The screen exists, but no default state draws it
 
@@ -2166,6 +2167,43 @@ The Edit tab (p077-1) sets glyph-only buttons [Protect], [Delete] and [Title] al
 - While Operation Mode is Simple Mode, only the Simple tab's list opens and the Standard tab cannot be used. The Edit tab
   can be used. With the Edit tab open on the Simple tab, setting Operation Mode to Standard Mode opens SCENE LIST on the
   Simple tab's Store/Recall tab, with the Edit tab unusable (confirmed on the unit).
+
+## RECALL SAFE
+
+System firmware V1.5. SCENE's menu carries [Recall Safe] beside [Scene List] (p75), and it opens RECALL SAFE, which
+says what a scene recall leaves as it stands. The side menu switches between Input, Output and Others (p079-1,
+p080-1), and the side rail carries nothing else.
+
+- Input lists CH 1 to CH 4 a row each, a stereo input one row for its pair, and FX 1 and FX 2 a row each. Output
+  lists MIX 1, MIX 2, ST and STR. A row's name box (x11..68, 36 high) puts the channel's fixed name over the name
+  the user gave it, on a square of the channel's colour that stands for its icon (confirmed on a URX44V).
+- Input's columns are Safe, All, Name, Source, HA, Processing, Rec Point, To MIX, To FX, CH ON, CH Level and To
+  ST/Pan; Output's are Safe, Incoming Sends, All, Name, Source, Processing, CH ON, CH Level and To ST/Bal. Safe,
+  Incoming Sends and All stay, and the columns from Name onward scroll sideways under a bar at the foot, four in
+  view on Output (p079-1) and five on Input. Seven headings break as the unit breaks them (`Process-` / `ing`,
+  `Rec` / `Point`, `CH` / `Level`, `To` / `ST/Pan`) (confirmed on a URX44V). The rows scroll under the bar beside
+  them, three in view.
+- A cell with no button is black: HA on every row until its Source is selected; Source, HA, Processing, Rec Point
+  and To FX on FX 1 and FX 2; Incoming Sends on ST and STR; Source on MIX 1, MIX 2 and ST; CH ON, CH Level and To
+  ST/Bal on STR (confirmed on a URX44V).
+- [Safe] reads `ON`, light grey while off and green while on. A parameter button carries no words: dark grey while
+  not selected and teal once selected. On a row whose [Safe] is on, a button not selected is paler and a selected
+  one cyan. [All] and the headings read `All` on the dark face while none of theirs is selected, `...` while some
+  are and `All` lit once all are, and the headings take a Safe row's faces while any row's [Safe] is on. The
+  heading over Safe reads `ALL` light grey, `...` cyan while some rows are on, and `ALL` green once all are
+  (confirmed on a URX44V).
+- Source goes by the input source's pair: CH 1 with CH 2 and CH 3 with CH 4. Selecting it opens the pair's HA,
+  which goes by channel, and clearing it clears HA. A row's [All] selects every parameter, its HA included, then
+  clears them. A heading selects its column on every row, and the heading over Safe turns Safe on every row of
+  the tab, the other tab's rows left alone (confirmed on a URX44V).
+- A recall keeps a channel's parameter only where the row's [Safe] is on and the parameter is selected, and keeps
+  the sends into a MIX bus where its [Safe] and [Incoming Sends] are both on; [Safe] alone keeps nothing
+  (confirmed on a URX44V). A kept HA keeps its input source's D.Gain with it.
+- Others lays out three bands, EFFECT, BUS TYPE and OTHERS (x10..389, 20 high), with the buttons four to a row
+  under each (86 by 40, 12 apart): FX 1, FX 2, INS FX (Input), INS FX (Output); MIX1, MIX2; Output Patch (p080-1).
+  A button is light grey under white words while off and green while on (confirmed on a URX44V), and a lit one
+  keeps what it names through a recall: an FX channel's effect, the inserts on the input or the output channels,
+  a MIX bus's BUS Type, or the output patch.
 
 ## The title entry sheet
 

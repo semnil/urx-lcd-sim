@@ -2300,7 +2300,8 @@ describe("the SCENE menu the scene box opens", () => {
     expect(shell.ctx.nav.current.id).toBe("scene");
     expect(shell.root.querySelector(".toolbar-title")?.textContent).toBe("SCENE");
     const entries = [...shell.root.querySelectorAll(".menu-btn")].map((b) => b.textContent);
-    expect(entries).toEqual(["Scene List"]);
+    // System firmware V1.5 adds Recall Safe beside the list (p75).
+    expect(entries).toEqual(["Scene List", "Recall Safe"]);
 
     shell.root.querySelector<HTMLElement>(".menu-btn")?.click();
     await flush();

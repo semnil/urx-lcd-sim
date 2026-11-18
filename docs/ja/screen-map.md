@@ -24,6 +24,7 @@ flowchart LR
   HOME --> BANK["(bank-select)"]
   HOME --> SCENE["SCENE (メニュー)<br>(scene)"]
   SCENE --> SLIST["SCENE LIST<br>(scene.list)"]
+  SCENE --> SAFE["RECALL SAFE<br>(scene.safe)"]
   SLIST --> STITLE["(scene.title)"]
   classDef ref fill:#fff6d5,stroke:#b8860b,stroke-width:2px;
 ```

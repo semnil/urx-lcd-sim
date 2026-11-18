@@ -179,6 +179,17 @@ PY
 | `--list-selected-mark` | `#3a3d3a` | A mark in a selected row: the ▶ (x12..19 / y124..131) and the factory preset's mark (x344..363 / y118..137) in D0 p073-1, the speaker in p086-1, the file mark in p089-1, the protection padlock in p077-1 |
 | `--scene-preset` | `#4adb5a` | The number of a scene the unit ships with (P01 in the scene name box at x19..34 / y18..26, P02 / P03 in the list at x24..41 / y162..170 and y200..208 in D0 p073-1) |
 | `--scene-protect` | `#32eb73` | A protected scene's Lock cell (the mean over x329..378 / y112..143 of 01's in p077-1) |
+| `--safe-panel` | `#42454a` | RECALL SAFE's panels, behind the rows and behind the scrolled columns (p079-1, x211..393 / y53..250) |
+| `--safe-row-name` | `#6b717b` | A RECALL SAFE row's name box (p079-1, MIX 1's at x11..68 / y124..159) |
+| `--safe-lit` | `#21c263` | [Safe] while on (p079-1, x75..114 / y124..159), and a lit Others button (p080-1) |
+| `--safe-lit-band` | `#19864a` | The band at the foot of a lit Others button (p080-1, y117..119) |
+| `--safe-selected` | `#73dfff` | A parameter selected on a row whose [Safe] is on, and the headings over them (p079-1) |
+| `--safe-band` | `#bdbebd` | The Others tab's separator bands (p080-1, x10..389 / y56..75) |
+| `--safe-selected-off` | `#3aa2b5` | A parameter selected on a row whose [Safe] is off. No figure shows it: the unit draws it teal, and the value stands in until it is compared with the unit |
+| `--safe-cell` | `#52555a` | A parameter not selected. No figure shows it: the unit draws it dark grey, and the value is `--surface-btn`'s |
+| `--safe-cell-safe` | `#b5b6bd` | A parameter not selected on a row whose [Safe] is on. No figure shows it: the unit draws it paler than [Safe] while off, and the value stands in until it is compared with the unit |
+| `--safe-off` | `#9c9e9c` | [Safe] while off, and an Others button that keeps nothing. No figure shows it: the unit draws it light grey under white words, and the value is `--badge-band-off`'s |
+| `--safe-off-band` | `#6b6d6b` | The band at the foot of an Others button that keeps nothing. No figure shows it |
 | `--accent-cue` | `#d6ced6` | The [CUE] button in the off state |
 | `--accent-udk` | `#5a3984` | USER DEFINED KNOBS: the face of the bar (x2..421 / y235..254 in p038-4) |
 | `--accent-udk-label` | `#290c3a` | The same, the label text on that band (x2..421 / y255..271 in p038-4) |
