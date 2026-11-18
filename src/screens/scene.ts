@@ -224,11 +224,21 @@ export const sceneTopScreen: ScreenDef = {
   toolbar: "sub",
   title: () => "SCENE",
   build(ctx): ScreenBody {
+    const simple = ctx.store.str("setup.operationMode", "Standard") === "Simple";
     return {
       main: menuGrid(
         [
           menuButton("Scene List", aimed(() => ctx.nav.push({ id: "scene.list" }), { kind: "screen", id: "scene.list" })),
-          menuButton("Recall Safe", aimed(() => ctx.nav.push({ id: "scene.safe" }), { kind: "screen", id: "scene.safe" })),
+          // Recall Safe works in Standard Mode alone (the guide's "Recall Safe menu").
+          markShut(
+            menuButton(
+              "Recall Safe",
+              aimed(() => {
+                if (!simple) ctx.nav.push({ id: "scene.safe" });
+              }, { kind: "screen", id: "scene.safe" }),
+            ),
+            simple,
+          ),
         ],
         "menu-grid-wide",
       ),

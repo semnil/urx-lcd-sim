@@ -607,6 +607,8 @@ function keeps(ctx: AppContext, strip: Strip, key: SafeKey): boolean {
  */
 export function keptByRecallSafe(ctx: AppContext, paths: Iterable<ParamPath>): Set<ParamPath> {
   const kept = new Set<ParamPath>();
+  // Recall Safe works in Standard Mode alone, so a recall in Simple Mode keeps nothing.
+  if (ctx.store.str("setup.operationMode", "Standard") === "Simple") return kept;
   const other = (key: string): boolean => ctx.store.bool(otherPath(key), false);
   const incoming = ctx.model.outputs.filter((s) => s.kind === "mix" && isSafe(ctx, s) && incomingSelected(ctx, s));
   // A channel whose HA is kept keeps its input source's D.Gain, which the source carries.

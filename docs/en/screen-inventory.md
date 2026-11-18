@@ -2172,7 +2172,8 @@ The Edit tab (p077-1) sets glyph-only buttons [Protect], [Delete] and [Title] al
 
 System firmware V1.5. SCENE's menu carries [Recall Safe] beside [Scene List] (p75), and it opens RECALL SAFE, which
 says what a scene recall leaves as it stands. The side menu switches between Input, Output and Others (p079-1,
-p080-1), and the side rail carries nothing else.
+p080-1), and the side rail carries nothing else. The guide says Recall Safe works in Standard Mode alone: in Simple
+Mode the menu's [Recall Safe] is out of reach, and a recall keeps nothing.
 
 - Input lists CH 1 to CH 4 a row each, a stereo input one row for its pair, and FX 1 and FX 2 a row each. Output
   lists MIX 1, MIX 2, ST and STR. A row's name box (x11..68, 36 high) puts the channel's fixed name over the name

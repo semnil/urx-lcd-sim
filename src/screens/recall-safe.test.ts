@@ -258,6 +258,24 @@ describe("what a recall keeps", () => {
     expect(shell.ctx.store.bool("ch.ch1.phantom", false)).toBe(true);
   });
 
+  it("keeps nothing in Simple Mode, where SCENE's [Recall Safe] is out of reach", async () => {
+    const shell = await stored();
+    await set(shell, "safe.ch1.on", true);
+    await set(shell, "safe.ch1.chOn", true);
+    await set(shell, "ch.ch1.on", false);
+    await set(shell, "setup.operationMode", "Simple");
+    await recallScene(shell.ctx, 13);
+    expect(shell.ctx.store.bool("ch.ch1.on", false)).toBe(true);
+    shell.ctx.nav.home();
+    shell.ctx.nav.push({ id: "scene" });
+    await flush();
+    const entry = [...shell.root.querySelectorAll<HTMLElement>(".main .menu-btn")].find((b) => b.textContent === "Recall Safe");
+    expect(entry?.getAttribute("aria-disabled")).toBe("true");
+    entry?.click();
+    await flush();
+    expect(shell.ctx.nav.current.id).toBe("scene");
+  });
+
   it("keeps what a lit Others button names: the output patch, a bus's type and an effect", async () => {
     const shell = await stored();
     const patch = shell.ctx.store.str("setup.outputPatch.mainOut", "");
