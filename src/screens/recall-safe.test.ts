@@ -202,7 +202,7 @@ describe("RECALL SAFE", () => {
     expect(track()).toBe("translateX(-92px)");
   });
 
-  it("frames the row whose name was tapped, one row at a time, and selects nothing else with it", async () => {
+  it("frames the row whose name was tapped, one row at a time and for good, and selects nothing else with it", async () => {
     const shell = await mount();
     const framed = (): string[] => [...shell.root.querySelectorAll(".safe-row-name.is-selected")].map((n) => name(n));
     expect(framed()).toEqual([]);
@@ -210,6 +210,8 @@ describe("RECALL SAFE", () => {
     await tap(shell, "C H 2");
     expect(framed()).toEqual(["C H 2"]);
     expect(button(shell, "C H 2").getAttribute("aria-pressed")).toBe("true");
+    await tap(shell, "C H 2");
+    expect(framed(), "a tap on the framed row keeps it framed").toEqual(["C H 2"]);
     await tap(shell, "C H 3");
     expect(framed()).toEqual(["C H 3"]);
     expect(grid(shell)).toEqual(before);

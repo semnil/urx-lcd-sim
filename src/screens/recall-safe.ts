@@ -321,7 +321,7 @@ function rowId(strip: Strip): string {
 }
 
 /** A row's name: the channel's fixed name over the name the user gave it, on a square of its colour.
- * A tap selects the row, which the unit frames in white. */
+ * A tap selects the row, which the unit frames in white; a tap on the framed row keeps it. */
 function rowName(ctx: AppContext, strip: Strip): HTMLElement {
   const fixed = rowId(strip);
   const selected = ctx.store.str(ROW_PATH, "") === strip.id;
