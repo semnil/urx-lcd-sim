@@ -8,6 +8,7 @@ import { buildRegistry } from "./index";
 import { recallScene, storeScene } from "./scene";
 import { digitalGainPath } from "../model/source-gain";
 import { persisted } from "../app/persist";
+import { inSettingsFile } from "../model/settings-file";
 
 const flush = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 
@@ -242,6 +243,11 @@ describe("RECALL SAFE", () => {
 
   it("opens on Input when the unit is switched on, the framed row kept", () => {
     expect(["ui.recallSafeTab", "ui.recallSafeRow"].map(persisted)).toEqual([false, true]);
+  });
+
+  it("is carried by a settings file, the tab and the framed row left behind", () => {
+    expect(["safe.ch1.on", "safe.ch1.name", "safe.bus.mix1.incoming", "safe.others.fx1"].map(inSettingsFile)).toEqual([true, true, true, true]);
+    expect(["ui.recallSafeTab", "ui.recallSafeRow"].map(inSettingsFile)).toEqual([false, false]);
   });
 
   it("carries no USER DEFINED KNOBS toggle on its side rail", async () => {

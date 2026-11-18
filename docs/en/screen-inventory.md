@@ -2186,6 +2186,8 @@ Mode the menu's [Recall Safe] is out of reach, and a recall keeps nothing.
   Output takes the frame off CH 2 on Input. Left for SCENE and opened again, it opens on the tab it was left on with the
   same row framed. Switched off and on, the unit opens it on Input, and the row framed before stays framed
   (confirmed on a URX44V).
+- A settings file carries what RECALL SAFE is set to, and a load puts it back (confirmed on a URX44V). A scene
+  memory does not carry it, so a recall leaves it as it stands.
 - Input's columns are Safe, All, Name, Source, HA, Processing, Rec Point, To MIX, To FX, CH ON, CH Level and To
   ST/Pan; Output's are Safe, Incoming Sends, All, Name, Source, Processing, CH ON, CH Level and To ST/Bal. Safe,
   Incoming Sends and All stay, and the columns from Name onward scroll sideways under a bar at the foot, four in

@@ -1880,6 +1880,8 @@ p080-1)、サイドレールはほかに何も置かない。タブはグリフ�
   箱をタップするとその行が選ばれ、選ばれた行の箱は白い枠で囲まれて四隅とも丸くなる。枠の付いた箱をもう一度タップしても枠は残り、
   別のタブへ切り替えて戻っても枠は残る。選ばれる行はタブをまたいで 1 つで、Output で MIX 1 を選ぶと Input の CH 2 の
   枠は消える。SCENE へ戻って開き直すと、出たときのタブで、同じ行に枠が付いたまま開く。電源を入れ直すと Input タブで開き、前に選んだ行の枠は残る (URX44V で実機確認)。
+- 設定ファイルは RECALL SAFE の設定を持ち、読み込むとそれも戻る (URX44V で実機確認)。シーンのメモリーは持たないので、
+  呼び出しでは今の設定のまま残る。
 - Input の列は Safe・All・Name・Source・HA・Processing・Rec Point・To MIX・To FX・CH ON・CH Level・To ST/Pan、
   Output の列は Safe・Incoming Sends・All・Name・Source・Processing・CH ON・CH Level・To ST/Bal。Safe・
   Incoming Sends・All は動かず、Name から右の列は下端のバーで横にスクロールし、Output は 4 列 (p079-1)、Input は
