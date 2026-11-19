@@ -231,4 +231,91 @@ describe("the submenu's buttons", () => {
     expect(store.num(path)).toBe(param.fallback);
     expect(store.str(`ch.${strip}.${block}.${nameKey}`)).toBe(name);
   });
+
+  it("opens on a swipe left from [<], not on a press that does not travel, and closes on [>] and outside", async () => {
+    const shell = await mount();
+    await at(shell, "channel-view", "ch1");
+    const tab = (): HTMLElement => shell.root.querySelector<HTMLElement>(".submenu-tab")!;
+    const pointer = (type: string, x: number): void => {
+      const ev = new MouseEvent(type, { clientX: x, bubbles: true, button: 0 });
+      (type === "pointerdown" ? tab() : window).dispatchEvent(Object.assign(ev, { pointerId: 1 }));
+    };
+    const open = (): boolean => shell.root.querySelector(".submenu") !== null;
+    pointer("pointerdown", 470);
+    pointer("pointermove", 465);
+    pointer("pointerup", 465);
+    await flush();
+    expect(open()).toBe(false);
+    pointer("pointerdown", 470);
+    pointer("pointermove", 440);
+    await flush();
+    expect(open()).toBe(true);
+    shell.root.querySelector<HTMLElement>(".submenu-close")!.click();
+    await flush();
+    expect(open()).toBe(false);
+    tab().dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
+    await flush();
+    shell.root.querySelector<HTMLElement>(".submenu-catch")!.click();
+    await flush();
+    expect(open()).toBe(false);
+  });
+
+  it("raises a message that goes when its run ends", async () => {
+    const shell = await mount();
+    await at(shell, "ch.gate", "ch1");
+    await press(shell, "Copy");
+    const message = shell.root.querySelector<HTMLElement>(".lcd-message")!;
+    expect(message.textContent).toBe("GATE Parameters Copied.");
+    message.dispatchEvent(new Event("animationend"));
+    expect(shell.root.querySelector(".lcd-message")).toBeNull();
+  });
+
+  it("SEND FROM's four set every send into the bus, and its Copy and Paste carry them to another bus", async () => {
+    const shell = await mount();
+    const { store } = shell.ctx;
+    await store.set("ch.ch1.level", -10);
+    await at(shell, "ch.sendfrom", "bus.mix1");
+    await press(shell, "All Pre");
+    expect([store.bool("ch.ch1.send.bus.mix1.pre"), store.bool("ch.ch2.send.bus.mix1.pre")]).toEqual([true, true]);
+    await press(shell, "All Post");
+    expect([store.bool("ch.ch1.send.bus.mix1.pre"), store.bool("ch.ch2.send.bus.mix1.pre")]).toEqual([false, false]);
+    await press(shell, "All Nominal");
+    expect([store.num("ch.ch1.send.bus.mix1.level"), store.num("ch.ch2.send.bus.mix1.level")]).toEqual([0, 0]);
+    await press(shell, "Dup.Stereo");
+    expect(store.num("ch.ch1.send.bus.mix1.level")).toBe(-10);
+    expect(shell.root.querySelector(".lcd-message")?.textContent).toBe('"Dup.Stereo" Completed.');
+    await press(shell, "Copy");
+    await at(shell, "ch.sendfrom", "bus.mix2");
+    await press(shell, "Paste");
+    expect(store.num("ch.ch1.send.bus.mix2.level")).toBe(-10);
+    expect(shell.root.querySelector(".lcd-message")?.textContent).toBe("MIX 2 Parameters Pasted.");
+  });
+
+  it("CH Copy Incoming Sends carries a MIX bus's sends to another MIX bus's CH Paste", async () => {
+    const shell = await mount();
+    const { store } = shell.ctx;
+    await store.set("ch.ch1.send.bus.mix1.level", -12);
+    await at(shell, "channel-view", "bus.mix1");
+    await press(shell, "CH Copy", "Incoming Sends");
+    await at(shell, "channel-view", "bus.mix2");
+    await press(shell, "CH Paste", "Incoming Sends");
+    expect(store.num("ch.ch1.send.bus.mix2.level")).toBe(-12);
+    // A plain CH Copy after it holds no sends, and the paste says so.
+    await at(shell, "channel-view", "ch1");
+    await press(shell, "CH Copy");
+    await at(shell, "channel-view", "bus.mix2");
+    await expect(press(shell, "CH Paste", "Incoming Sends")).rejects.toThrow();
+  });
+
+  it("Gain Flat asks first and on [OK] sets the gains to 0 dB", async () => {
+    const shell = await mount();
+    const { store } = shell.ctx;
+    const gain = store.pathsUnder("ch.ch1.eq").find((p) => /^ch\.ch1\.eq\.[^.]+\.gain$/.test(p))!;
+    await store.set(gain, 6);
+    await at(shell, "ch.eq", "ch1");
+    await press(shell, "Gain Flat");
+    expect(shell.root.querySelector(".dialog")?.textContent).toContain("Reset EQ Gains?");
+    await ok(shell);
+    expect(store.num(gain)).toBe(0);
+  });
 });
