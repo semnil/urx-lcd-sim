@@ -15,8 +15,8 @@ import { selectedStripId } from "./strip-state";
 
 /**
  * What SEND FROM's four buttons do to every send into the bus, each raising
- * `"All Pre" Completed.` and the like with no question first (measured on a
- * URX44V by sweeping every address): [All Pre] and [All Post] set every send's
+ * `"All Pre" Completed.` and the like with no question first (confirmed on a
+ * URX44V): [All Pre] and [All Post] set every send's
  * tap, [All Nominal] every send's level to 0 dB, and [Dup.Stereo] every send's
  * level to the channel's own fader, leaving the sends' ON and pan as they were.
  */
@@ -94,14 +94,14 @@ function channelMenu(ctx: AppContext, stripId: string | undefined, copied: Reado
 }
 
 /**
- * What [CH Copy] takes of a channel and [CH Paste] gives another. Measured on a
- * URX44V from CH 1 to CH 2, by sweeping every address before and after: the paste
+ * What [CH Copy] takes of a channel and [CH Paste] gives another. On a URX44V,
+ * from CH 1 to CH 2, the paste
  * carried the COMP / EQ choice, GATE, COMP, EQ, SSMCS, the phase, the HPF, the
  * fader, ON, PAN, the sends, the Rec Point and the input stage of the jack the
  * channel reads (A.Gain and Clip Safe); it left the name, the colour, the input
  * source, the Insert FX and CUE as they were. +48V and HI-Z are taken to go with
  * the rest of the input stage. The Signal Type and what hangs on it are not
- * carried, for want of a measure.
+ * carried, as nothing has shown what the unit does with it.
  */
 const CHANNEL_BLOCKS: readonly string[] = [
   "compEqOrder", "gate", "comp", "eq", "ssmcs", "phase", "hpf", "level", "on", "pan", "send", "recPoint",
@@ -110,7 +110,7 @@ const CHANNEL_BLOCKS: readonly string[] = [
 
 /**
  * What a MIX bus's [CH Copy] takes, and [CH Copy Incoming Sends] takes with every
- * send into the bus. Measured on a URX44V from MIX 1 to MIX 2: the paste carried
+ * send into the bus. On a URX44V, from MIX 1 to MIX 2, the paste carried
  * MIX 2's EQ, GEQ link and send to STEREO, and every send into MIX 2 (level, ON,
  * tap) took MIX 1's. The name, the colour, the Insert FX and CUE are taken to stay,
  * as a channel's do, and so are the bus type and Pan Link, which shape the bus.
