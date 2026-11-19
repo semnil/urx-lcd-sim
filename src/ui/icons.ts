@@ -488,16 +488,16 @@ export const Icons = {
   /**
    * A mark over the name of a submenu button: the six p039-1 (wide) draws, and
    * three no figure draws, shaped as the unit shows them — Gain Flat's ring and two
-   * level faders, Compare's see-saw with a ring on its low end and a weight on its
-   * high end, and Default's blank page with its corner folded down.
+   * level faders, Compare's see-saw with a ring on one end of its bar and a disc on
+   * the other, and Default's blank page with its corner folded down.
    */
   submenu: (name: SubmenuGlyph): SVGSVGElement => {
     if (name === "page") return sized(svg("0 0 16 20", [PAGE_OUTLINE], true), "icon-submenu-page");
     if (name === "compare")
       return mixed(
         "0 0 24 24",
-        ["M6 10.5A2.5 2.5 0 1 0 6 15.5A2.5 2.5 0 1 0 6 10.5Z", "M3 17.5L21 12.5"],
-        ["M13 7A4 4 0 1 1 21 7V10H13Z", "M11 15.5L14 20H8Z"],
+        ["M5.5 11.5A2.5 2.5 0 1 0 5.5 16.5A2.5 2.5 0 1 0 5.5 11.5Z", "M3 18.5L21 13.5"],
+        ["M15.5 7.5A3 3 0 1 0 21.5 7.5A3 3 0 1 0 15.5 7.5Z", "M12 16L15 21H9Z"],
         "icon-submenu-compare",
       );
     return sized(shareGlyph(name === "gainFlat" ? GAIN_FLAT : SUBMENU_GLYPHS[name]), `icon-submenu-${name}`);

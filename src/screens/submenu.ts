@@ -98,10 +98,9 @@ function channelMenu(ctx: AppContext, stripId: string | undefined, copied: Reado
  * from CH 1 to CH 2, the paste
  * carried the COMP / EQ choice, GATE, COMP, EQ, SSMCS, the phase, the HPF, the
  * fader, ON, PAN, the sends, the Rec Point and the input stage of the jack the
- * channel reads (A.Gain and Clip Safe); it left the name, the colour, the input
- * source, the Insert FX and CUE as they were. +48V and HI-Z are taken to go with
- * the rest of the input stage. The Signal Type and what hangs on it are not
- * carried, as nothing has shown what the unit does with it.
+ * channel reads (A.Gain, Clip Safe, +48V and HI-Z); it left the name, the colour,
+ * the input source, the Insert FX and CUE as they were. The Signal Type and what
+ * hangs on it are not carried, as nothing has shown what the unit does with it.
  */
 const CHANNEL_BLOCKS: readonly string[] = [
   "compEqOrder", "gate", "comp", "eq", "ssmcs", "phase", "hpf", "level", "on", "pan", "send", "recPoint",
@@ -144,10 +143,9 @@ const COPY_NAMES: Record<string, string> = {
 };
 
 /**
- * The blocks of a channel's settings each processing screen's copy takes. GATE's
- * takes its ON and all five values (confirmed on a URX44V: a paste from CH 1's GATE
- * to CH 2's carried ON, Threshold, Range, Attack, Hold and Decay); the others are
- * taken to take their own block whole.
+ * The blocks of a channel's settings each processing screen's copy takes: its own
+ * block whole (confirmed on a URX44V: GATE's paste carried ON and all five values,
+ * COMP's, EQ's, SSMCS's, DUCKER's, DELAY's and GEQ's every value they differed in).
  */
 const COPY_BLOCKS: Record<string, readonly string[]> = {
   "ch.gate": ["gate"],
@@ -177,8 +175,17 @@ const FLAT: Record<string, (ctx: AppContext, strip: string) => { question: strin
   },
 };
 
-/** The kind of copy a screen takes: SSMCS's pages share one. */
-const copyKind = (screen: string): string => (screen.startsWith("ch.ssmcs") ? "ch.ssmcs" : screen);
+/**
+ * The kind of copy a screen takes: SSMCS's pages share one, and an effect's takes
+ * the effect's own (confirmed on a URX44V: a copy of FX 1's effect leaves [Paste]
+ * dark on FX 2's, which holds another effect).
+ */
+function copyKind(ctx: AppContext, screen: string, strip: string | undefined): string {
+  if (screen.startsWith("ch.ssmcs")) return "ch.ssmcs";
+  if (screen === "ch.effect" && strip !== undefined) return `${screen}:${ctx.store.str(`ch.${strip}.effect.type`, "")}`;
+  if (screen === "ch.insfx" && strip !== undefined) return `${screen}:${ctx.store.str(`ch.${strip}.insFx.effect`, "")}`;
+  return screen;
+}
 
 /**
  * A processing screen's operations, with Gain Flat where the screen sets EQ gains.
@@ -188,8 +195,8 @@ const copyKind = (screen: string): string => (screen.startsWith("ch.ssmcs") ? "c
  * any SSMCS page lights them on every SSMCS page, EQ's included).
  */
 function screenMenu(ctx: AppContext, screen: string, strip: string | undefined, gainFlat: boolean, copied: ReadonlySet<string>): SubmenuSpec {
-  const kind = copyKind(screen);
-  const blocks = COPY_BLOCKS[kind];
+  const kind = copyKind(ctx, screen, strip);
+  const blocks = COPY_BLOCKS[screen.startsWith("ch.ssmcs") ? "ch.ssmcs" : screen];
   const how = gainFlat && strip !== undefined ? FLAT[screen]?.(ctx, strip) : undefined;
   const flat = how && strip !== undefined ? { ...how, strip } : undefined;
   const has = copied.has(kind);
@@ -245,9 +252,12 @@ export function submenuFor(ctx: AppContext, route: Route, copied: ReadonlySet<st
       return channelMenu(ctx, selectedStripId(ctx), copied);
     case "channel-view":
       return channelMenu(ctx, route.strip ?? selectedStripId(ctx), copied);
+    case "ch.insfx":
+      // A channel whose insert holds no effect has none (confirmed on a URX44V).
+      if (route.strip !== undefined && ctx.store.str(`ch.${route.strip}.insFx.effect`, "No Effect") === "No Effect") return undefined;
+      return screenMenu(ctx, route.id, route.strip, false, copied);
     case "ch.gate":
     case "ch.comp":
-    case "ch.insfx":
     case "ch.ducker":
     case "ch.delay":
     case "ch.effect":

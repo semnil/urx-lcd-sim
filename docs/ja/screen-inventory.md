@@ -1235,7 +1235,7 @@ y145..224 に立つ。
 | 画面 | 左の列 | 右の列 |
 | --- | --- | --- |
 | HOME (選んだストリップ) とチャンネルビュー | CH Copy, CH Paste, —, CH Default | MIX バスでは CH Copy Incoming Sends |
-| GATE, COMP, INS FX, DUCKER, DELAY, FX チャンネルのエフェクト, SSMCS の最初・COMP・Side Chain のページ | Copy, Paste, Compare, Default | — |
+| GATE, COMP, INS FX (インサートにエフェクトがあるとき), DUCKER, DELAY, FX チャンネルのエフェクト, SSMCS の最初・COMP・Side Chain のページ | Copy, Paste, Compare, Default | — |
 | EQ, GEQ, SSMCS の EQ のページ | Copy, Paste, Compare, Default | Gain Flat |
 | MIX バスの SEND FROM | Copy, Paste | All Pre, All Post, All Nominal, Dup.Stereo |
 
@@ -1246,13 +1246,13 @@ SEND TO、ステレオバスの SEND FROM、INPUT、CH SETTING には無い。4 
 
 | ボタン | 動き | メッセージ |
 | --- | --- | --- |
-| Copy | 画面の設定を写し取る。同じ種類の画面のコピーがあるまで、どのチャンネルでも [Paste] と [Compare] は暗いまま。SSMCS のページは 1 つのコピーを分け合う | `GATE Parameters Copied.` (EQ, COMP, GEQ, DUCKER, DELAY, SSMCS。INS FX と FX チャンネルのエフェクトは EFFECT) |
-| Paste | コピーを画面に与える。コピーは残る | `GATE Parameters Pasted.` |
+| Copy | 画面の設定を写し取る。同じ種類の画面のコピーがあるまで、どのチャンネルでも [Paste] と [Compare] は暗いまま。SSMCS のページは 1 つのコピーを分け合い、エフェクトのコピーは同じエフェクトにだけ渡る | `GATE Parameters Copied.` (EQ, COMP, GEQ, DUCKER, DELAY, SSMCS。INS FX と FX チャンネルのエフェクトは EFFECT) |
+| Paste | コピーの設定をすべて画面に与える。コピーは残る | `GATE Parameters Pasted.` |
 | Compare | 画面の設定とコピーを入れ替える。もう一度押すと両方が戻る | `GATE Parameters Swapped with Copy Buffer.` |
 | Default | サブメニューを閉じ、警告のダイアログで `Return to default GATE Setting?` と聞く。[OK] で画面の設定を工場出荷の値に戻す | `GATE Parameters Initialized.` |
 | Gain Flat | サブメニューを閉じ、`Reset EQ Gains?` (GEQ では `Reset GEQ Gains?`) と聞く。[OK] で Gain を 0 dB にする。GEQ では表示中の側だけ | なし |
 | CH Copy | チャンネルの設定を写し取る | `CH 1 Parameters Copied.` |
-| CH Paste | コピーをチャンネルに与える: COMP / EQ、GATE、COMP、EQ、SSMCS、位相、HPF、フェーダー、ON、PAN、送り、Rec Point、読むジャックの入力段。名前・色・入力ソース・Insert FX・CUE は残る | `CH 2 Parameter Pasted.` (MIX バスでは `MIX 2 Parameters Pasted.`) |
+| CH Paste | コピーをチャンネルに与える: COMP / EQ、GATE、COMP、EQ、SSMCS、位相、HPF、フェーダー、ON、PAN、送り、Rec Point、読むジャックの入力段 (A.Gain、Clip Safe、+48V、HI-Z)。名前・色・入力ソース・Insert FX・CUE は残る | `CH 2 Parameter Pasted.` (MIX バスでは `MIX 2 Parameters Pasted.`) |
 | CH Default | `Return to default CH 2 Setting?` と聞く。[OK] でチャンネルを工場出荷の値に戻す | `CH 2 Parameters Initialized.` |
 | CH Copy Incoming Sends | MIX バスの設定と、そのバスへのすべての送りを写し取る。その後、MIX バスの [CH Paste] は CH Paste の下に Incoming Sends と出し、両方を与える | `MIX 1 Parameters Copied.` |
 | SEND FROM の Copy / Paste | バスへのすべての送りを写し取り、表示中のバスに与える | `MIX 1 Parameters Copied.` / `MIX 2 Parameters Pasted.` |
@@ -1262,8 +1262,7 @@ SEND TO、ステレオバスの SEND FROM、INPUT、CH SETTING には無い。4 
 
 先に聞くのは Default、CH Default、Gain Flat だけ。メッセージは画面の下端から、画面のすべての上にせり上がり、
 約 1.8 秒とどまって下へ消える。淡いシートを、ダイアログの青い枠で囲み、ダイアログの印を付けた形 (図は無い)。
-確認していないもの: GATE 以外の画面で Paste が写す設定、CH Paste での +48V・HI-Z・Signal Type の扱い、
-Compare・Default・Gain Flat の印の形より細かいところ、URX22 と URX44。
+確認していないもの: CH Paste での Signal Type の扱い、URX22 と URX44。
 
 ## 画面に重なるシート
 

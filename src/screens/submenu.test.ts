@@ -39,7 +39,7 @@ describe("the submenu", () => {
     expect(faces(spec.right)).toEqual(["CH Copy Incoming Sends", "—", "—", "—"]);
   });
 
-  it.each(["ch.gate", "ch.comp", "ch.insfx", "ch.ducker", "ch.delay", "ch.effect", "ch.ssmcs", "ch.ssmcs.comp", "ch.ssmcs.sc"])(
+  it.each(["ch.gate", "ch.comp", "ch.ducker", "ch.delay", "ch.effect", "ch.ssmcs", "ch.ssmcs.comp", "ch.ssmcs.sc"])(
     "on %s carries Copy, Paste, Compare and Default in the left column",
     async (id) => {
       const shell = await mount();
@@ -48,6 +48,22 @@ describe("the submenu", () => {
       expect(faces(spec.right)).toEqual(["—", "—", "—", "—"]);
     },
   );
+
+  it("on INS FX only while the insert holds an effect", async () => {
+    const shell = await mount();
+    expect(submenuFor(shell.ctx, { id: "ch.insfx", strip: "ch1" })).toBeUndefined();
+    await shell.ctx.store.set("ch.ch1.insFx.effect", "Compander-H");
+    expect(faces(submenuFor(shell.ctx, { id: "ch.insfx", strip: "ch1" })!.left)).toEqual(["Copy", "Paste (x)", "Compare (x)", "Default"]);
+  });
+
+  it("keeps an effect's copy to the same effect", async () => {
+    const shell = await mount();
+    const kind = submenuFor(shell.ctx, { id: "ch.effect", strip: "fx1" })!.copy!.kind;
+    const pasteOn = (strip: string) => submenuFor(shell.ctx, { id: "ch.effect", strip }, new Set([kind]))!.left[1]?.enabled;
+    expect(pasteOn("fx1")).toBe(true);
+    expect(shell.ctx.store.str("ch.fx2.effect.type", "")).not.toBe(shell.ctx.store.str("ch.fx1.effect.type", ""));
+    expect(pasteOn("fx2")).toBe(false);
+  });
 
   it.each(["ch.eq", "ch.ssmcs.eq"])("on %s adds Gain Flat at the top of the right column", async (id) => {
     const shell = await mount();

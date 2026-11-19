@@ -1424,7 +1424,7 @@ Which screens carry it, and what it holds (confirmed on a URX44V):
 | Screen | Left column | Right column |
 | --- | --- | --- |
 | HOME (the strip selected) and the channel view | CH Copy, CH Paste, —, CH Default | CH Copy Incoming Sends on a MIX bus |
-| GATE, COMP, INS FX, DUCKER, DELAY, an FX channel's effect, SSMCS's first, COMP and Side Chain pages | Copy, Paste, Compare, Default | — |
+| GATE, COMP, INS FX (while the insert holds an effect), DUCKER, DELAY, an FX channel's effect, SSMCS's first, COMP and Side Chain pages | Copy, Paste, Compare, Default | — |
 | EQ, GEQ, SSMCS's EQ page | Copy, Paste, Compare, Default | Gain Flat |
 | SEND FROM of a MIX bus | Copy, Paste | All Pre, All Post, All Nominal, Dup.Stereo |
 
@@ -1435,13 +1435,13 @@ What each does (confirmed on a URX44V):
 
 | Button | What it does | Message |
 | --- | --- | --- |
-| Copy | Takes the screen's settings. [Paste] and [Compare] stay dark until there is a copy of the same kind of screen, on any channel; SSMCS's pages share one | `GATE Parameters Copied.` (EQ, COMP, GEQ, DUCKER, DELAY, SSMCS; INS FX and an FX channel's effect say EFFECT) |
-| Paste | Gives the screen the copy; the copy stays | `GATE Parameters Pasted.` |
+| Copy | Takes the screen's settings. [Paste] and [Compare] stay dark until there is a copy of the same kind of screen, on any channel; SSMCS's pages share one, and an effect's copy goes only to the same effect | `GATE Parameters Copied.` (EQ, COMP, GEQ, DUCKER, DELAY, SSMCS; INS FX and an FX channel's effect say EFFECT) |
+| Paste | Gives the screen every setting of the copy; the copy stays | `GATE Parameters Pasted.` |
 | Compare | Swaps the screen's settings with the copy; a second press puts both back | `GATE Parameters Swapped with Copy Buffer.` |
 | Default | Closes the submenu and asks `Return to default GATE Setting?` on a warning dialog; [OK] puts the screen's settings back to the factory's | `GATE Parameters Initialized.` |
 | Gain Flat | Closes the submenu and asks `Reset EQ Gains?` (`Reset GEQ Gains?` on GEQ); [OK] sets the gains to 0 dB, GEQ's on the side up only | none |
 | CH Copy | Takes the channel's settings | `CH 1 Parameters Copied.` |
-| CH Paste | Gives the channel the copy: COMP / EQ, GATE, COMP, EQ, SSMCS, phase, HPF, fader, ON, PAN, the sends, Rec Point and the input stage of the jack it reads. The name, colour, input source, Insert FX and CUE stay | `CH 2 Parameter Pasted.` (a MIX bus's: `MIX 2 Parameters Pasted.`) |
+| CH Paste | Gives the channel the copy: COMP / EQ, GATE, COMP, EQ, SSMCS, phase, HPF, fader, ON, PAN, the sends, Rec Point and the input stage of the jack it reads (A.Gain, Clip Safe, +48V, HI-Z). The name, colour, input source, Insert FX and CUE stay | `CH 2 Parameter Pasted.` (a MIX bus's: `MIX 2 Parameters Pasted.`) |
 | CH Default | Asks `Return to default CH 2 Setting?`; [OK] puts the channel back to the factory's | `CH 2 Parameters Initialized.` |
 | CH Copy Incoming Sends | Takes a MIX bus's settings and every send into it. A MIX bus's [CH Paste] then reads CH Paste over Incoming Sends and gives both | `MIX 1 Parameters Copied.` |
 | SEND FROM's Copy / Paste | Takes every send into the bus, and gives them to the bus up | `MIX 1 Parameters Copied.` / `MIX 2 Parameters Pasted.` |
@@ -1451,9 +1451,7 @@ What each does (confirmed on a URX44V):
 
 None asks first but Default, CH Default and Gain Flat. The message rises from the foot of the glass over
 everything on it, stands about 1.8 s and drops away; it is a pale sheet in the dialog's blue frame with the dialog's
-mark (no figure shows it). Not confirmed: which settings Paste carries on screens other than GATE, what CH Paste does
-with +48V, HI-Z and the Signal Type, the marks of Compare, Default and Gain Flat beyond their shapes, and the URX22
-and the URX44.
+mark (no figure shows it). Not confirmed: what CH Paste does with the Signal Type, and the URX22 and the URX44.
 
 ## Sheets over the screen
 
