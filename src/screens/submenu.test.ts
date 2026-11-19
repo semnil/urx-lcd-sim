@@ -6,6 +6,7 @@ import { Shell } from "../app/shell";
 import { DeviceStore } from "../device/store";
 import { SimTransport } from "../device/sim-transport";
 import { factoryState } from "../model/defaults";
+import { effectParams } from "../model/effects";
 import { unitById } from "../model/units";
 import { buildRegistry } from "./index";
 import { INCOMING_COPY, submenuFor, type SubmenuSpec } from "./submenu";
@@ -102,5 +103,93 @@ describe("the submenu", () => {
     const paste = (copied: string[]) => submenuFor(shell.ctx, { id: "channel-view", strip: "bus.mix2" }, new Set(copied))!.left[1];
     expect(paste(["channel"])?.sub).toBeUndefined();
     expect(paste(["channel", INCOMING_COPY])?.sub).toBe("Incoming Sends");
+  });
+});
+
+describe("the submenu's buttons", () => {
+  const flush = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
+
+  async function at(shell: Shell, id: string, strip: string): Promise<void> {
+    shell.ctx.nav.push({ id, strip });
+    await flush();
+  }
+
+  /** Open the submenu as the keys do, and press the button whose words are `label` (and `sub`). */
+  async function press(shell: Shell, label: string, sub?: string): Promise<void> {
+    const tab = shell.root.querySelector<HTMLElement>(".submenu-tab");
+    tab?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    await flush();
+    const node = [...shell.root.querySelectorAll<HTMLElement>(".submenu-btn")].find(
+      (n) => n.querySelector(".submenu-label")?.textContent === label && (n.querySelector(".submenu-sub")?.textContent ?? undefined) === sub,
+    );
+    if (!node) throw new Error(`no ${label} in the submenu`);
+    node.click();
+    await flush();
+  }
+
+  async function ok(shell: Shell): Promise<void> {
+    const node = [...shell.root.querySelectorAll<HTMLElement>(".dialog button")].find((n) => n.textContent === "OK");
+    if (!node) throw new Error("no [OK]");
+    node.click();
+    await flush();
+  }
+
+  it("CH Paste and CH Default act on the connector the channel reads, not the one of its number", async () => {
+    const shell = await mount();
+    const { store } = shell.ctx;
+    await store.set("ch.ch1.gain", 12);
+    await store.set("ch.ch1.phantom", true);
+    // CH 2 on MIC/LINE 3/4 reads connector 4.
+    await store.set("ch.ch2.source", "MIC/LINE 3/4");
+    await at(shell, "channel-view", "ch1");
+    await press(shell, "CH Copy");
+    await at(shell, "channel-view", "ch2");
+    await press(shell, "CH Paste");
+    expect([store.num("ch.ch4.gain"), store.bool("ch.ch4.phantom")]).toEqual([12, true]);
+    expect([store.num("ch.ch2.gain"), store.bool("ch.ch2.phantom")]).toEqual([-8, false]);
+    await press(shell, "CH Default");
+    await ok(shell);
+    expect([store.num("ch.ch4.gain"), store.bool("ch.ch4.phantom")]).toEqual([-8, false]);
+    expect(store.str("ch.ch2.source")).toBe("MIC/LINE 3/4");
+  });
+
+  it("GEQ's Copy takes its bands, and Paste, Compare and Default act on them", async () => {
+    const shell = await mount();
+    const { store } = shell.ctx;
+    await store.set("ch.bus.stereo.eqType", "Flex12GEQ");
+    const band = "ch.bus.stereo.geq.l.band.0";
+    await store.set(band, 6);
+    await at(shell, "ch.geq", "bus.stereo");
+    await press(shell, "Copy");
+    await store.set(band, -3);
+    await press(shell, "Paste");
+    expect(store.num(band)).toBe(6);
+    await store.set(band, -3);
+    await press(shell, "Compare");
+    expect(store.num(band)).toBe(6);
+    await press(shell, "Compare");
+    expect(store.num(band)).toBe(-3);
+    await press(shell, "Default");
+    await ok(shell);
+    expect(store.num(band)).toBe(0);
+  });
+
+  it.each([
+    ["ch.effect", "fx1", "effect", "type"],
+    ["ch.insfx", "ch1", "insFx", "effect"],
+  ])("Default on %s puts the effect's own values back and keeps the effect chosen", async (screen, strip, block, nameKey) => {
+    const shell = await mount();
+    const { store } = shell.ctx;
+    // An effect other than the one the strip comes up with, so a Default that took the factory's would show.
+    await store.set(`ch.${strip}.${block}.${nameKey}`, block === "insFx" ? "Compander-H" : "Rev-X Room");
+    const name = store.str(`ch.${strip}.${block}.${nameKey}`);
+    const param = effectParams(name).find((p) => typeof p.fallback === "number")!;
+    const path = `ch.${strip}.${block}.${param.key}`;
+    await store.set(path, (param.fallback as number) + 1);
+    await at(shell, screen, strip);
+    await press(shell, "Default");
+    await ok(shell);
+    expect(store.num(path)).toBe(param.fallback);
+    expect(store.str(`ch.${strip}.${block}.${nameKey}`)).toBe(name);
   });
 });

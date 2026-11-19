@@ -8,6 +8,8 @@
 
 import type { AppContext } from "../app/context";
 import type { Route } from "../app/navigator";
+import type { ParamValue } from "../device/path";
+import { effectParams } from "../model/effects";
 import { findStrip } from "../model/types";
 import type { SubmenuGlyph } from "../ui/submenu-glyphs";
 import { geqSide } from "./geq";
@@ -48,7 +50,18 @@ export interface SubmenuSpec {
    *  screen of that kind takes, the name the message gives it, the channel and the
    *  blocks of its settings (subtrees under `ch.<channel>`) it takes, and the
    *  message a paste raises where it is not "<name> Parameters Pasted.". */
-  copy?: { kind: string; name: string; strip?: string; blocks?: readonly string[]; pasted?: string };
+  copy?: {
+    kind: string;
+    name: string;
+    strip?: string;
+    blocks?: readonly string[];
+    pasted?: string;
+    /** Whether the copy takes the analog head amp of the connector the channel reads. */
+    headAmp?: boolean;
+    /** Where the blocks are the effect the strip runs: the values its Default puts back,
+     *  by path under `ch.<channel>`, keeping the effect chosen. */
+    effectDefaults?: ReadonlyMap<string, ParamValue>;
+  };
   /** The bus SEND FROM's four buttons act on. */
   sendBus?: string;
   /** What [Gain Flat] asks, and the gains it sets to 0 dB (paths under `ch.<channel>`). */
@@ -87,6 +100,7 @@ function channelMenu(ctx: AppContext, stripId: string | undefined, copied: Reado
             strip: strip.id,
             blocks: mix ? MIX_BLOCKS : CHANNEL_BLOCKS,
             pasted: `${strip.label} ${mix ? "Parameters" : "Parameter"} Pasted.`,
+            ...(mix ? {} : { headAmp: true }),
           },
         }
       : {}),
@@ -98,13 +112,13 @@ function channelMenu(ctx: AppContext, stripId: string | undefined, copied: Reado
  * from CH 1 to CH 2, the paste
  * carried the COMP / EQ choice, GATE, COMP, EQ, SSMCS, the phase, the HPF, the
  * fader, ON, PAN, the sends, the Rec Point and the input stage of the jack the
- * channel reads (A.Gain, Clip Safe, +48V and HI-Z); it left the name, the colour,
+ * channel reads (A.Gain, Clip Safe, +48V and HI-Z, from the connector the copied
+ * channel reads to the one the pasted channel reads); it left the name, the colour,
  * the input source, the Insert FX, CUE and the Signal Type as they were. Pasted onto
  * one channel of a stereo pair, both take the copy, as any write to one of a pair does.
  */
 const CHANNEL_BLOCKS: readonly string[] = [
   "compEqOrder", "gate", "comp", "eq", "ssmcs", "phase", "hpf", "level", "on", "pan", "send", "recPoint",
-  "gain", "clipSafe", "phantom", "hiZ",
 ];
 
 /**
@@ -146,12 +160,14 @@ const COPY_NAMES: Record<string, string> = {
  * The blocks of a channel's settings each processing screen's copy takes: its own
  * block whole (confirmed on a URX44V: GATE's paste carried ON and all five values,
  * COMP's, EQ's, SSMCS's, DUCKER's, DELAY's and GEQ's every value they differed in).
+ * An effect's Default puts back the values of the effect chosen and keeps it.
  */
 const COPY_BLOCKS: Record<string, readonly string[]> = {
   "ch.gate": ["gate"],
   "ch.comp": ["comp"],
   "ch.eq": ["eq"],
   "ch.insfx": ["insFx"],
+  "ch.geq": ["geq"],
   "ch.ducker": ["ducker"],
   "ch.delay": ["delay"],
   "ch.effect": ["effect"],
@@ -174,6 +190,13 @@ const FLAT: Record<string, (ctx: AppContext, strip: string) => { question: strin
     return strip ? { question: "Reset GEQ Gains?", gains: new RegExp(`^geq\\.${geqSide(ctx, strip)}\\.band\\.\\d+$`) } : undefined;
   },
 };
+
+/** The values of the effect a strip runs as the effect comes up, by path under `ch.<channel>`. */
+function effectDefaults(ctx: AppContext, screen: string, strip: string): ReadonlyMap<string, ParamValue> {
+  const block = screen === "ch.effect" ? "effect" : "insFx";
+  const name = ctx.store.str(`ch.${strip}.${block}.${screen === "ch.effect" ? "type" : "effect"}`, "");
+  return new Map(effectParams(name).map((p) => [`${block}.${p.key}`, p.fallback] as const));
+}
 
 /**
  * The kind of copy a screen takes: SSMCS's pages share one, and an effect's takes
@@ -216,7 +239,12 @@ function screenMenu(ctx: AppContext, screen: string, strip: string | undefined, 
     right: [flat ? { ...button("Gain Flat", "gainFlat"), act: "flat" } : gainFlat ? button("Gain Flat", "gainFlat") : null, null, null, null],
     wideGapBefore: 3,
     ...(flat ? { flat } : {}),
-    copy: { kind, name: COPY_NAMES[screen] ?? screen, ...(strip !== undefined && blocks ? { strip, blocks } : {}) },
+    copy: {
+      kind,
+      name: COPY_NAMES[screen] ?? screen,
+      ...(strip !== undefined && blocks ? { strip, blocks } : {}),
+      ...(strip !== undefined && (screen === "ch.insfx" || screen === "ch.effect") ? { effectDefaults: effectDefaults(ctx, screen, strip) } : {}),
+    },
   };
 }
 

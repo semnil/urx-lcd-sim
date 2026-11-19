@@ -1249,7 +1249,7 @@ SEND TO、ステレオバスの SEND FROM、INPUT、CH SETTING には無い。4 
 | Copy | 画面の設定を写し取る。同じ種類の画面のコピーがあるまで、どのチャンネルでも [Paste] と [Compare] は暗いまま。SSMCS のページは 1 つのコピーを分け合い、エフェクトのコピーは同じエフェクトにだけ渡る | `GATE Parameters Copied.` (EQ, COMP, GEQ, DUCKER, DELAY, SSMCS。INS FX と FX チャンネルのエフェクトは EFFECT) |
 | Paste | コピーの設定をすべて画面に与える。コピーは残る | `GATE Parameters Pasted.` |
 | Compare | 画面の設定とコピーを入れ替える。もう一度押すと両方が戻る | `GATE Parameters Swapped with Copy Buffer.` |
-| Default | サブメニューを閉じ、警告のダイアログで `Return to default GATE Setting?` と聞く。[OK] で画面の設定を工場出荷の値に戻す | `GATE Parameters Initialized.` |
+| Default | サブメニューを閉じ、警告のダイアログで `Return to default GATE Setting?` と聞く。[OK] で画面の設定を工場出荷の値に戻す。エフェクトでは、選んだエフェクトのままその初期値に戻す | `GATE Parameters Initialized.` |
 | Gain Flat | サブメニューを閉じ、`Reset EQ Gains?` (GEQ では `Reset GEQ Gains?`) と聞く。[OK] で Gain を 0 dB にする。GEQ では表示中の側だけ | なし |
 | CH Copy | チャンネルの設定を写し取る | `CH 1 Parameters Copied.` |
 | CH Paste | コピーをチャンネルに与える: COMP / EQ、GATE、COMP、EQ、SSMCS、位相、HPF、フェーダー、ON、PAN、送り、Rec Point、読むジャックの入力段 (A.Gain、Clip Safe、+48V、HI-Z)。名前・色・入力ソース・Insert FX・CUE は残る | `CH 2 Parameter Pasted.` (MIX バスでは `MIX 2 Parameters Pasted.`) |

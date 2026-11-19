@@ -6,7 +6,7 @@ import { clamp, combineWriteRules } from "../device/store";
 import type { DeviceStore } from "../device/store";
 import type { UnitActions } from "../device/unit";
 import { emulatedActions } from "../device/unit";
-import { allStrips, type UnitModel } from "../model/types";
+import { allStrips, findStrip, type UnitModel } from "../model/types";
 import { UDK_BANKS, UDK_KNOBS, UDK_UNASSIGNED, udkAssignment, udkPath } from "../model/udk";
 import { INTERACTIVE, aimed, clear, el, setPressed, tappedControl, writing } from "../ui/dom";
 import { FocusController } from "../ui/focus";
@@ -19,7 +19,8 @@ import type { Press } from "../ui/press";
 import { attachPress } from "../ui/press";
 import { PointerHolds, attachSpin, dialog, modalOf, setAriaValue, standsStill } from "../ui/widgets";
 import type { Modal } from "../ui/widgets";
-import { inSubtree, type ParamValue } from "../device/path";
+import { inSubtree, type ParamPath, type ParamValue } from "../device/path";
+import { jackParam, micLineConnector } from "../screens/head-amp";
 import { factoryState } from "../model/defaults";
 import type { NumericSpec } from "../ui/param-spec";
 import { BRIGHTNESS_MAX, formatValue } from "../ui/param-spec";
@@ -62,6 +63,10 @@ export interface ShellOptions {
   /** Whether an insert effect's values, as one is chosen, come from the page (AppContext). */
   insertValuesFromPage?: boolean;
 }
+
+/** The analog head amp a channel copy takes from, and gives to, the connector a channel reads. */
+const HEAD_AMP_KEYS = ["gain", "phantom", "hiZ", "clipSafe"] as const;
+type HeadAmpKey = (typeof HEAD_AMP_KEYS)[number];
 
 export class Shell {
   readonly ctx: AppContext;
@@ -601,6 +606,11 @@ export class Shell {
       const copy = spec.copy;
       if (!copy) return;
       const { strip, blocks } = copy;
+      const stripUp = strip === undefined ? undefined : findStrip(this.ctx.model, strip);
+      // The analog head amp the channel up reads, held as `#<key>`: it belongs to the connector, not the channel.
+      const connector = copy.headAmp && stripUp ? micLineConnector(this.ctx, stripUp) : undefined;
+      const headAmpPath = (key: string): ParamPath | undefined =>
+        connector && (HEAD_AMP_KEYS as readonly string[]).includes(key) ? jackParam(connector.channels[0] ?? 0, key as HeadAmpKey) : undefined;
       // What the screen's blocks hold on the channel up, by path under `ch.<channel>`.
       const take = (): Map<string, ParamValue> => {
         const taken = new Map<string, ParamValue>();
@@ -610,6 +620,10 @@ export class Shell {
           for (const path of this.ctx.store.pathsUnder(head + block)) {
             if (this.ctx.store.has(path)) taken.set(path.slice(head.length), this.ctx.store.get<ParamValue>(path, 0));
           }
+        }
+        for (const key of HEAD_AMP_KEYS) {
+          const path = headAmpPath(key);
+          if (path !== undefined && this.ctx.store.has(path)) taken.set(`#${key}`, this.ctx.store.get<ParamValue>(path, 0));
         }
         return taken;
       };
@@ -622,7 +636,7 @@ export class Shell {
         this.ctx.store.operation(() => {
           // Only what the channel up holds: a copy from another kind of channel carries paths it has not.
           for (const [rest, value] of values) {
-            const path = rest.startsWith("@") ? sendInto(rest.slice(1)) : `ch.${strip}.${rest}`;
+            const path = rest.startsWith("@") ? sendInto(rest.slice(1)) : rest.startsWith("#") ? headAmpPath(rest.slice(1)) : `ch.${strip}.${rest}`;
             if (path !== undefined && this.ctx.store.has(path)) void this.ctx.store.set(path, value);
           }
         });
@@ -659,10 +673,20 @@ export class Shell {
             message: `Return to default ${copy.name} Setting?`,
             caution: true,
             onOk: () => {
-              const factory = factoryState(this.ctx.model);
               const values = new Map<string, ParamValue>();
-              for (const [path, value] of factory) {
-                if (blocks.some((block) => inSubtree(path, `${head}.${block}`))) values.set(path.slice(head.length + 1), value);
+              if (copy.effectDefaults) {
+                // An effect goes back to its own values and stays the effect chosen.
+                for (const [rest, value] of copy.effectDefaults) values.set(rest, value);
+              } else {
+                const factory = factoryState(this.ctx.model);
+                for (const [path, value] of factory) {
+                  if (blocks.some((block) => inSubtree(path, `${head}.${block}`))) values.set(path.slice(head.length + 1), value);
+                }
+                for (const key of HEAD_AMP_KEYS) {
+                  const path = headAmpPath(key);
+                  const value = path === undefined ? undefined : factory.get(path);
+                  if (value !== undefined) values.set(`#${key}`, value);
+                }
               }
               put(values);
               this.showMessage(`${copy.name} Parameters Initialized.`);
