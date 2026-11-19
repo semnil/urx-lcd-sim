@@ -137,7 +137,7 @@ const NOTE_PIXELS: Readonly<Record<string, readonly string[]>> = {
 /** A mark drawn a pixel at a time, each pixel the mark's colour at its share. */
 function shareGlyph(rows: ShareMap): SVGSVGElement {
   const node = document.createElementNS(NS, "svg");
-  node.setAttribute("viewBox", `0 0 ${rows[0]?.length ?? 0} ${rows.length}`);
+  node.setAttribute("viewBox", `0 0 ${Math.max(0, ...rows.map((row) => row.length))} ${rows.length}`);
   node.setAttribute("aria-hidden", "true");
   node.setAttribute("focusable", "false");
   node.setAttribute("shape-rendering", "crispEdges");

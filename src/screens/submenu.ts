@@ -232,7 +232,7 @@ function screenMenu(ctx: AppContext, screen: string, strip: string | undefined, 
   const effect = (screen === "ch.effect" || screen === "ch.insfx") && strip !== undefined ? effectOf(ctx, strip) : undefined;
   // An effect's settings are where the strip keeps the effect it runs.
   const owner = effect?.owner ?? strip;
-  const blocks = effect ? [effect.block] : COPY_BLOCKS[screen.startsWith("ch.ssmcs") ? "ch.ssmcs" : screen];
+  const blocks = effect ? [effect.block] : (COPY_BLOCKS[screen.startsWith("ch.ssmcs") ? "ch.ssmcs" : screen] ?? []);
   const how = gainFlat && strip !== undefined ? FLAT[screen]?.(ctx, strip) : undefined;
   const flat = how && strip !== undefined ? { ...how, strip } : undefined;
   const has = copied.has(kind);
@@ -240,14 +240,14 @@ function screenMenu(ctx: AppContext, screen: string, strip: string | undefined, 
     left: [
       { ...button("Copy", "copy"), act: "copy" },
       // "GATE Parameters Pasted.", with no question first (confirmed on a URX44V).
-      { ...button("Paste", "paste", has), ...(blocks ? { act: "paste" as const } : {}) },
+      { ...button("Paste", "paste", has), act: "paste" },
       // Swaps the copy with what the screen holds, "GATE Parameters Swapped with Copy
       // Buffer.": a second press puts both back (confirmed on a URX44V).
-      { ...button("Compare", "compare", has), ...(blocks ? { act: "compare" as const } : {}) },
+      { ...button("Compare", "compare", has), act: "compare" },
       // Closes the submenu and asks "Return to default GATE Setting?" on a warning
       // dialog; [OK] puts the screen's settings back to the factory's and says "GATE
       // Parameters Initialized.", [Cancel] leaves all as it was (confirmed on a URX44V).
-      { ...button("Default", "page"), ...(blocks ? { act: "default" as const } : {}) },
+      { ...button("Default", "page"), act: "default" },
     ],
     right: [flat ? { ...button("Gain Flat", "gainFlat"), act: "flat" } : gainFlat ? button("Gain Flat", "gainFlat") : null, null, null, null],
     wideGapBefore: 3,
@@ -255,7 +255,7 @@ function screenMenu(ctx: AppContext, screen: string, strip: string | undefined, 
     copy: {
       kind,
       name: COPY_NAMES[screen] ?? screen,
-      ...(owner !== undefined && blocks ? { strip: owner, blocks } : {}),
+      ...(owner !== undefined ? { strip: owner, blocks } : {}),
       ...(effect ? { effectDefaults: effectDefaults(effect.block, effect.name) } : {}),
     },
   };

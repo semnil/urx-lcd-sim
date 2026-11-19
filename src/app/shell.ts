@@ -610,17 +610,14 @@ export class Shell {
       const stripUp = strip === undefined ? undefined : findStrip(this.ctx.model, strip);
       // The analog head amp the channel up reads, held as `#<key>`: it belongs to the connector, not the channel.
       const connector = copy.headAmp && stripUp ? micLineConnector(this.ctx, stripUp) : undefined;
-      const headAmpPath = (key: string): ParamPath | undefined =>
-        connector && (HEAD_AMP_KEYS as readonly string[]).includes(key) ? jackParam(connector.channels[0] ?? 0, key as HeadAmpKey) : undefined;
+      const headAmpPath = (key: HeadAmpKey): ParamPath | undefined => (connector ? jackParam(connector.channels[0] ?? 0, key) : undefined);
       // What the screen's blocks hold on the channel up, by path under `ch.<channel>`.
       const take = (): Map<string, ParamValue> => {
         const taken = new Map<string, ParamValue>();
         if (strip === undefined || !blocks) return taken;
         const head = `ch.${strip}.`;
         for (const block of blocks) {
-          for (const path of this.ctx.store.pathsUnder(head + block)) {
-            if (this.ctx.store.has(path)) taken.set(path.slice(head.length), this.ctx.store.get<ParamValue>(path, 0));
-          }
+          for (const path of this.ctx.store.pathsUnder(head + block)) taken.set(path.slice(head.length), this.ctx.store.get<ParamValue>(path, 0));
         }
         for (const key of HEAD_AMP_KEYS) {
           const path = headAmpPath(key);
@@ -637,7 +634,7 @@ export class Shell {
         this.ctx.store.operation(() => {
           // Only what the channel up holds: a copy from another kind of channel carries paths it has not.
           for (const [rest, value] of values) {
-            const path = rest.startsWith("@") ? sendInto(rest.slice(1)) : rest.startsWith("#") ? headAmpPath(rest.slice(1)) : `ch.${strip}.${rest}`;
+            const path = rest.startsWith("@") ? sendInto(rest.slice(1)) : rest.startsWith("#") ? headAmpPath(rest.slice(1) as HeadAmpKey) : `ch.${strip}.${rest}`;
             if (path !== undefined && this.ctx.store.has(path)) void this.ctx.store.set(path, value);
           }
         });
@@ -647,9 +644,7 @@ export class Shell {
         if (b.act === "copyIncoming" && strip !== undefined) {
           for (const from of allStrips(this.ctx.model)) {
             const head = `ch.${from.id}.send.${strip}`;
-            for (const path of this.ctx.store.pathsUnder(head)) {
-              if (this.ctx.store.has(path)) taken.set(`@${from.id}.${path.slice(head.length + 1)}`, this.ctx.store.get<ParamValue>(path, 0));
-            }
+            for (const path of this.ctx.store.pathsUnder(head)) taken.set(`@${from.id}.${path.slice(head.length + 1)}`, this.ctx.store.get<ParamValue>(path, 0));
           }
           if (copy.kind === "channel") this.copied.set(INCOMING_COPY, new Map());
         } else if (copy.kind === "channel") this.copied.delete(INCOMING_COPY);

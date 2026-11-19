@@ -318,4 +318,32 @@ describe("the submenu's buttons", () => {
     await ok(shell);
     expect(store.num(gain)).toBe(0);
   });
+
+  it("leaves the tab to a press of another button and to keys but Enter and Space", async () => {
+    const shell = await mount();
+    await at(shell, "channel-view", "ch1");
+    const tab = shell.root.querySelector<HTMLElement>(".submenu-tab")!;
+    tab.dispatchEvent(Object.assign(new MouseEvent("pointerdown", { clientX: 470, bubbles: true, button: 2 }), { pointerId: 1 }));
+    window.dispatchEvent(Object.assign(new MouseEvent("pointermove", { clientX: 400, bubbles: true }), { pointerId: 1 }));
+    tab.dispatchEvent(new KeyboardEvent("keydown", { key: "a", bubbles: true }));
+    await flush();
+    expect(shell.root.querySelector(".submenu")).toBeNull();
+  });
+
+  it("keeps the newer message when an older one's run ends", async () => {
+    const shell = await mount();
+    await at(shell, "ch.gate", "ch1");
+    await press(shell, "Copy");
+    const first = shell.root.querySelector<HTMLElement>(".lcd-message")!;
+    await press(shell, "Paste");
+    first.dispatchEvent(new Event("animationend"));
+    expect(shell.root.querySelector(".lcd-message")?.textContent).toBe("GATE Parameters Pasted.");
+  });
+
+  it("reads the strip from the selection where the route names none", async () => {
+    const shell = await mount();
+    expect(submenuFor(shell.ctx, { id: "channel-view" })?.copy?.strip).toBe(shell.ctx.store.str("ui.selectedStrip", "ch1"));
+    expect(submenuFor(shell.ctx, { id: "ch.insfx" })).toBeUndefined();
+    expect(submenuFor(shell.ctx, { id: "ch.sendfrom" })).toBeUndefined();
+  });
 });
