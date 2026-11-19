@@ -89,14 +89,13 @@ URX44V/44/22 ユーザーガイド (英語版 revision E0) が載せている LC
 | DELAY | `ch.delay` | p124 | 実装済み |
 | SEND (SEND TO と SEND FROM) | `ch.sendto` / `ch.sendfrom` | p125 | 実装済み |
 
-### System ファームウェア V1.5 で増えたもの (未実装)
+### System ファームウェア V1.5 で増えた部分
 
-ガイドの revision E0 が System ファームウェア V1.5 で増やしたもの。シミュレーターは、これらの画面を V1.5 より
-前のとおりに描いている。
+ガイドの revision E0 が System ファームウェア V1.5 で増やしたもののうち、それだけで 1 つの画面ではないもの。
 
 | 画面・部分 | 画面 ID | 参照 | 状態 |
 | --- | --- | --- | --- |
-| サブメニュー | — | p36, p39 | 未実装 |
+| サブメニュー | — | p36, p39-40 | 実装済み (下の「サブメニュー」) |
 
 ## 作らないもの
 
@@ -1221,6 +1220,49 @@ Active CUE (p071-1) は、見出しの下の `--surface` の 1px の枠 (x44..13
 [Clear CUE] と同じ面、もう一方は `--surface`。見出しはそれぞれ指すものの上に置き、このページの名前はすべて 13px で、2 つのモードの名前は太さ 600。
 CUE Mode の切り替えは、モードとそれが外すすべての CUE を 1 つの操作として書く (`src/screens/cue.ts` の `setCueMode`)。
 選んでいるモードをもう一度押しても何も変わらず、CUE も外れない (URX44V で確認)。タブの文字は図のとおり (URX44V で確認)。
+
+## サブメニュー
+
+画面で実行できる操作を、画面の右側に出す。サブメニューを持つ画面では、画面の右端に [<] がある。[<] から左へ
+スワイプすると開き、タップでは開かない。サブメニューの外のタップか、サブメニュー自身の [>] で閉じ、別の画面へ
+移っても閉じる。開いている間、その左側の画面は、シートが下の画面を暗くするのと同じく暗くなる。位置・大きさ・色・
+印・文字は p039-1 (wide)、閉じた [<] は p125-1 に合わせた。サブメニューは x246..479 / y5..266 に
+`--dialog-sheet` の地で立ち、ボタンは 102 × 52 で 2 列に並び、列の間は 14 px、行の間は 8 px。[<] と [>] は
+y145..224 に立つ。
+
+どの画面が持ち、何が並ぶか (URX44V で確認):
+
+| 画面 | 左の列 | 右の列 |
+| --- | --- | --- |
+| HOME (選んだストリップ) とチャンネルビュー | CH Copy, CH Paste, —, CH Default | MIX バスでは CH Copy Incoming Sends |
+| GATE, COMP, INS FX (インサートにエフェクトがあるとき), DUCKER, DELAY, FX チャンネルのエフェクト, SSMCS の最初・COMP・Side Chain のページ | Copy, Paste, Compare, Default | — |
+| EQ, GEQ, SSMCS の EQ のページ | Copy, Paste, Compare, Default | Gain Flat |
+| MIX バスか FX チャンネルの SEND FROM | Copy, Paste | All Pre, All Post, All Nominal, Dup.Stereo |
+
+SEND TO、ステレオバスの SEND FROM、INPUT、CH SETTING には無い。4 段の列の最後の段の上の間は 20 px、ほかは
+8 px。SEND FROM では 3 段目の上の間が 20 px。
+
+それぞれの動き (URX44V で確認):
+
+| ボタン | 動き | メッセージ |
+| --- | --- | --- |
+| Copy | 画面の設定を写し取る。同じ種類の画面のコピーがあるまで、どのチャンネルでも [Paste] と [Compare] は暗いまま。SSMCS のページは 1 つのコピーを分け合い、エフェクトのコピーは同じエフェクトにだけ渡る | `GATE Parameters Copied.` (EQ, COMP, GEQ, DUCKER, DELAY, SSMCS。INS FX と FX チャンネルのエフェクトは EFFECT) |
+| Paste | コピーの設定をすべて画面に与える。コピーは残る | `GATE Parameters Pasted.` |
+| Compare | 画面の設定とコピーを入れ替える。もう一度押すと両方が戻る | `GATE Parameters Swapped with Copy Buffer.` |
+| Default | サブメニューを閉じ、警告のダイアログで `Return to default GATE Setting?` と聞く。[OK] で画面の設定を工場出荷の値に戻す。エフェクトでは、選んだエフェクトのままその初期値に戻す | `GATE Parameters Initialized.` |
+| Gain Flat | サブメニューを閉じ、`Reset EQ Gains?` (GEQ では `Reset GEQ Gains?`) と聞く。[OK] で Gain を 0 dB にする。GEQ では表示中の側だけ | なし |
+| CH Copy | チャンネルの設定を写し取る | `CH 1 Parameters Copied.` |
+| CH Paste | コピーをチャンネルに与える: COMP / EQ、GATE、COMP、EQ、SSMCS、位相、HPF、フェーダー、ON、PAN、送り、Rec Point、読むジャックの入力段 (A.Gain、Clip Safe、+48V、HI-Z)。名前・色・入力ソース・Insert FX・CUE は残る | `CH 2 Parameter Pasted.` (MIX バスでは `MIX 2 Parameters Pasted.`) |
+| CH Default | `Return to default CH 2 Setting?` と聞く。[OK] でチャンネルを工場出荷の値に戻す | `CH 2 Parameters Initialized.` |
+| CH Copy Incoming Sends | MIX バスの設定と、そのバスへのすべての送りを写し取る。その後、MIX バスの [CH Paste] は CH Paste の下に Incoming Sends と出し、両方を与える | `MIX 1 Parameters Copied.` |
+| SEND FROM の Copy / Paste | バスへのすべての送りを写し取り、表示中のバスに与える | `MIX 1 Parameters Copied.` / `MIX 2 Parameters Pasted.` |
+| All Pre / All Post | バスへのすべての送りを PRE / POST にする | `"All Pre" Completed.` |
+| All Nominal | バスへのすべての送りの Level を 0 dB にする | `"All Nominal" Completed.` |
+| Dup.Stereo | バスへのすべての送りの Level を、そのチャンネル自身のフェーダーの値にする。ON と pan は残る | `"Dup.Stereo" Completed.` |
+
+先に聞くのは Default、CH Default、Gain Flat だけ。メッセージは画面の下端から、画面のすべての上にせり上がり、
+約 1.8 秒とどまって下へ消える。淡いシートを、ダイアログの青い枠で囲み、ダイアログの印を付けた形 (図は無い)。
+CH Paste は Signal Type を変えず、STEREO の組の片方に貼ると、両方がコピーを受け取る。確認していないもの: URX22 と URX44。
 
 ## 画面に重なるシート
 

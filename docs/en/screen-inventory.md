@@ -90,14 +90,13 @@ Which screen leads to which is drawn in [screen-map.md](screen-map.md).
 | DELAY | `ch.delay` | p124 | Built |
 | SEND (SEND TO and SEND FROM) | `ch.sendto` / `ch.sendfrom` | p125 | Built |
 
-### Added by System firmware V1.5, not built yet
+### Parts added by System firmware V1.5
 
-What revision E0 of the guide adds for System firmware V1.5. The simulator still draws these screens as they
-were before V1.5.
+What revision E0 of the guide adds for System firmware V1.5 that is not a screen of its own.
 
 | Screen or part | Screen ID | Ref. | Status |
 | --- | --- | --- | --- |
-| Submenu | — | p36, p39 | Not built |
+| Submenu | — | p36, p39-40 | Built ("The submenu" below) |
 
 ## What this simulator does not build
 
@@ -1410,6 +1409,50 @@ the same face as [Clear CUE] and the other on `--surface`. Each caption stands o
 every name on the page is 13px, the two modes' at weight 600. Switching the CUE Mode is one operation: the mode and every cue it takes
 out (`setCueMode` in `src/screens/cue.ts`). A press on the mode already chosen changes nothing and leaves the
 cues in (confirmed on a URX44V). The words of the tab are as the figure has them (confirmed on a URX44V).
+
+## The submenu
+
+The operations a screen offers, out over its right part. [<] stands at the right edge of the glass on the screens
+that carry it; a swipe left from it opens the submenu and a tap does not. A tap outside the submenu or on its own
+[>] puts it away, and every move to another screen does too. While it is out, the screen to its left is darkened
+the way a sheet darkens the screen under it. Its place, size, colours, marks and type are p039-1's (wide), and the
+closed [<] is p125-1's: the submenu stands at x246..479 / y5..266 on `--dialog-sheet`, its buttons are 102 by 52 in
+two columns 14 px apart, the rows 8 px apart, and [<] and [>] stand at y145..224.
+
+Which screens carry it, and what it holds (confirmed on a URX44V):
+
+| Screen | Left column | Right column |
+| --- | --- | --- |
+| HOME (the strip selected) and the channel view | CH Copy, CH Paste, —, CH Default | CH Copy Incoming Sends on a MIX bus |
+| GATE, COMP, INS FX (while the insert holds an effect), DUCKER, DELAY, an FX channel's effect, SSMCS's first, COMP and Side Chain pages | Copy, Paste, Compare, Default | — |
+| EQ, GEQ, SSMCS's EQ page | Copy, Paste, Compare, Default | Gain Flat |
+| SEND FROM of a MIX bus or an FX channel | Copy, Paste | All Pre, All Post, All Nominal, Dup.Stereo |
+
+SEND TO, the stereo bus's SEND FROM, INPUT and CH SETTING carry none. The gap above the last row of a column of
+four is 20 px, the others 8 px; on SEND FROM the gap above the third row is.
+
+What each does (confirmed on a URX44V):
+
+| Button | What it does | Message |
+| --- | --- | --- |
+| Copy | Takes the screen's settings. [Paste] and [Compare] stay dark until there is a copy of the same kind of screen, on any channel; SSMCS's pages share one, and an effect's copy goes only to the same effect | `GATE Parameters Copied.` (EQ, COMP, GEQ, DUCKER, DELAY, SSMCS; INS FX and an FX channel's effect say EFFECT) |
+| Paste | Gives the screen every setting of the copy; the copy stays | `GATE Parameters Pasted.` |
+| Compare | Swaps the screen's settings with the copy; a second press puts both back | `GATE Parameters Swapped with Copy Buffer.` |
+| Default | Closes the submenu and asks `Return to default GATE Setting?` on a warning dialog; [OK] puts the screen's settings back to the factory's; on an effect, the effect's own values, keeping the effect | `GATE Parameters Initialized.` |
+| Gain Flat | Closes the submenu and asks `Reset EQ Gains?` (`Reset GEQ Gains?` on GEQ); [OK] sets the gains to 0 dB, GEQ's on the side up only | none |
+| CH Copy | Takes the channel's settings | `CH 1 Parameters Copied.` |
+| CH Paste | Gives the channel the copy: COMP / EQ, GATE, COMP, EQ, SSMCS, phase, HPF, fader, ON, PAN, the sends, Rec Point and the input stage of the jack it reads (A.Gain, Clip Safe, +48V, HI-Z). The name, colour, input source, Insert FX and CUE stay | `CH 2 Parameter Pasted.` (a MIX bus's: `MIX 2 Parameters Pasted.`) |
+| CH Default | Asks `Return to default CH 2 Setting?`; [OK] puts the channel back to the factory's | `CH 2 Parameters Initialized.` |
+| CH Copy Incoming Sends | Takes a MIX bus's settings and every send into it. A MIX bus's [CH Paste] then reads CH Paste over Incoming Sends and gives both | `MIX 1 Parameters Copied.` |
+| SEND FROM's Copy / Paste | Takes every send into the bus, and gives them to the bus up | `MIX 1 Parameters Copied.` / `MIX 2 Parameters Pasted.` |
+| All Pre / All Post | Sets every send into the bus to PRE / POST | `"All Pre" Completed.` |
+| All Nominal | Sets every send level into the bus to 0 dB | `"All Nominal" Completed.` |
+| Dup.Stereo | Sets every send level into the bus to the channel's own fader; ON and pan stay | `"Dup.Stereo" Completed.` |
+
+None asks first but Default, CH Default and Gain Flat. The message rises from the foot of the glass over
+everything on it, stands about 1.8 s and drops away; it is a pale sheet in the dialog's blue frame with the dialog's
+mark (no figure shows it). CH Paste leaves the Signal Type as it was, and pasted onto one channel of a stereo pair it gives the copy
+to both. Not confirmed: the URX22 and the URX44.
 
 ## Sheets over the screen
 

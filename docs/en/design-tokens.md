@@ -143,7 +143,7 @@ PY
 | `--handle-face` | `#5a6163` | The face of the G / T / R handles on the curve (p105-1) |
 | `--handle-ring` | `#a5aab5` | The same, its 3px rim |
 | `--surface-btn` | `#52555a` | The face of a button standing alone on the glass ([SEND] in p099-1) |
-| `--surface-disabled` | `#212829` | The face of a button that cannot be used (Store at x5..94 / y230..268 and the Edit tab at x422..479 / y115..163 in D0 p073-1) |
+| `--surface-disabled` | `#212829` | The face of a button that cannot be used (Store at x5..94 / y230..268 and the Edit tab at x422..479 / y115..163 in D0 p073-1); a submenu button that cannot be used (Paste, x256..357 / y75..126 in wide/p039-1) |
 | `--surface-knob` | `#4a4952` | The face of the knob toggle button in the bottom right corner (x432..477 / y238..269 in p046-1) |
 | `--scroll-thumb-dim` | `#cecace` | The thumb on a list's scroll bar (x395..402 / y110..124 in p076-1) |
 | `--surface-sunken` | `#31313a` | The tray a dropdown list sits on (p084-3), the bands of the bank list |
@@ -154,7 +154,7 @@ PY
 | `--text` | `#ffffff` | Body text |
 | `--text-secondary` | `#c5c6ce` | Captions |
 | `--text-muted` | `#6b6d7b` | Labels in the off state |
-| `--tab-ink` | `#adaead` | The name and glyph on an unlit side-rail tab (Level, x422..479 / y50..101 in p070-1) |
+| `--tab-ink` | `#adaead` | The name and glyph on an unlit side-rail tab (Level, x422..479 / y50..101 in p070-1); the name and mark on a submenu button (Copy, x290..322 / y50..61 in wide/p039-1) |
 | `--tab-name-lit` | `#31313a` | The name on a lit side-rail tab (Analog in p060-1, Format in p092-1). p069-1, p070-1 and p076-1 draw the name in the glyph's `#3a3d42` as well; every screen follows the majority of the figures |
 | `--caption-pale` | `#cecace` | The caption of the Operation Mode box (x38..88 / y8..15 in wide/p042-1) |
 | `--drop-mark` | `#dedbde` | The down mark on a button that drops a list (the bank button's x205..213 / y9..14 and [Sends]'s x468..476 / y65..70 in p048-1) |
@@ -166,7 +166,7 @@ PY
 | `--ink-on-lit` | `#3a3d3a` | The name on [USB Storage Mode] while it is lit (p083-1). The name on a chosen option — a language (p056-1), SAMPLING FREQUENCY's rate (p059-1), Peripheral (p062-1 / p063-1), the input and output source sheets (p106-2 / p061-2), the assignment dialog (wide/p041-1), OSCILLATOR's mode (p073-1), PAN / BALANCE (p098-1) and USER DEFINED KNOBS' bank. A lit on/off switch such as [ON] or HDCP's [Enable] keeps black (`--text-inverse`; no figure shows HDCP's [Enable] lit, and the unit was checked) |
 | `--test-pass` | `#01ff00` | The grade and the recording lines of a card test (p093-2) |
 | `--text-disabled` | `#848284` | The name on a button or side-rail tab that cannot be used (Store at x5..94 / y230..268 and the Edit tab at x422..479 / y115..163 in D0 p073-1) |
-| `--menu-text-disabled` | `#7b797b` | The name on a menu entry that cannot be used (Recorder / Save/Load / Tools in p083-1, x82..386 / y99..109) |
+| `--menu-text-disabled` | `#7b797b` | The name on a menu entry that cannot be used (Recorder / Save/Load / Tools in p083-1, x82..386 / y99..109); the name and mark on a submenu button that cannot be used (Paste in wide/p039-1) |
 | `--text-inverse` | `#000000` | Black names on a light face: the [ON] / [CUE] / [PRE] switches (lit or not), block badges and titles, a lit option (the label of [ON], x19..35 / y182..190 in p048-1) |
 | `--dim-disabled` | `0.475` | The share of its own brightness a control that cannot be used keeps. The SAMPLING FREQUENCY row, which keeps its own colours while it follows the USB clock, is dimmed by this with `filter: brightness()`. The Recorder / Save/Load / Tools buttons go from face (74,81,90) to (33,40,41) and name (255,255,255) to (123,121,123) between wide/p081-1 and p083-1, and this factor lands within 3/255 on every channel of both pairs |
 
@@ -219,7 +219,7 @@ PY
 
 | Token | Value | Sampled from |
 | --- | --- | --- |
-| `--dialog-sheet` | `#bdbebd` | The dialog's face (wide/p041-2), and the section bands (x18..401 / y56..79 in p062-1) |
+| `--dialog-sheet` | `#bdbebd` | The dialog's face (wide/p041-2), and the section bands (x18..401 / y56..79 in p062-1); the submenu's ground (x246..479 / y5..266 in wide/p039-1) and its two tabs, and the message from the foot of the glass (no figure) |
 | `--peripheral-text` | `#bdbebd` | Peripheral's captions and note (x63..309 / y94..106 and x66..351 / y165..177 in p062-1) |
 | `--dialog-edge` | `#5a9aff` | The same, its 4px outer frame and the ring of the info mark |
 | `--dialog-caution` | `#f7f73a` | The frame and the triangle mark of a dialog that warns (TOOLS' Format). No figure has it; the operator chose the value of `--accent-bank-active` |
@@ -549,7 +549,7 @@ PY
 | `--radius-strip` | `6px` | The corner of the selected HOME strip, which keeps a rounded box since its frame runs round a curve (the top-right of strip 3 at x311 / y50 in p046-1; a quarter circle fitted to it gives radius 6). A strip that is not selected draws its corners in pixels |
 | `--radius-lg` | `6px` | The corner of a band along the screen's edge: the bottom-left of the toolbar icon row's band (x384 / y41 in p105-1, x295 / y41 in p046-1). A quarter circle fitted to it gives radius 6. The knob readout bar and the channel view's panels draw their corners in pixels |
 | `--key-held` | `#ffffff3d` | Laid over a Pitch Fix key while it is held down. No figure shows it; the simulator's own value |
-| `--scrim` | `#343431` | The shade a sheet or a dialog over the screen casts on the screen below: each channel of the pixels below is multiplied by this colour (`mix-blend-mode: multiply`). It is R 0.204, G 0.202 and B 0.192 rounded to 0-255; the factors are fitted to the darkened pixels of p106-2, p061-2 and p052-1 |
+| `--scrim` | `#343431` | The shade a sheet or a dialog over the screen casts on the screen below: each channel of the pixels below is multiplied by this colour (`mix-blend-mode: multiply`). It is R 0.204, G 0.202 and B 0.192 rounded to 0-255; the factors are fitted to the darkened pixels of p106-2, p061-2 and p052-1. The screen beside the open submenu is darkened the same way (wide/p039-1) |
 | `--sheet-shadow-near` | `#000000b8` | The first pixel outside the shadow a sheet drops to its right and below, which the 2px offset darkens further, to 0.82 in all (p106-2, p061-2) |
 | `--sheet-shadow-far` | `#00000059` | The second pixel out, darkened by 0.35. Nothing is darkened to the sheet's left or above it |
 | `--page-arrow` | `#ffffff7a` | The face of the discs that step between the SSMCS screens, which the screen below shows through (x386..421 / y117..152 in p115-1: white at an opacity of 0.48, reading 123 over black, 140 over `--graph-bg` and 165 over `--surface`) |

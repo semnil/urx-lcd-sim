@@ -1,6 +1,8 @@
 // Toolbar and strip icons, drawn as inline SVG so the project keeps no image
 // assets and no icon dependency.
 
+import { GAIN_FLAT, SUBMENU_GLYPHS, type ShareMap, type SubmenuGlyph } from "./submenu-glyphs";
+
 const NS = "http://www.w3.org/2000/svg";
 
 /**
@@ -132,6 +134,29 @@ const NOTE_PIXELS: Readonly<Record<string, readonly string[]>> = {
 };
 
 /** A page with its top-right corner folded down, as the card browser draws a file. */
+/** A mark drawn a pixel at a time, each pixel the mark's colour at its share. */
+function shareGlyph(rows: ShareMap): SVGSVGElement {
+  const node = document.createElementNS(NS, "svg");
+  node.setAttribute("viewBox", `0 0 ${Math.max(0, ...rows.map((row) => row.length))} ${rows.length}`);
+  node.setAttribute("aria-hidden", "true");
+  node.setAttribute("focusable", "false");
+  node.setAttribute("shape-rendering", "crispEdges");
+  rows.forEach((row, y) =>
+    row.forEach((share, x) => {
+      if (share === 0) return;
+      const px = document.createElementNS(NS, "rect");
+      px.setAttribute("x", String(x));
+      px.setAttribute("y", String(y));
+      px.setAttribute("width", "1");
+      px.setAttribute("height", "1");
+      px.setAttribute("fill", "currentColor");
+      px.setAttribute("fill-opacity", String(share));
+      node.appendChild(px);
+    }),
+  );
+  return node;
+}
+
 const PAGE_OUTLINE = "M0 0H10L16 6V20H0Z M2 2H9V7H14V18H2Z";
 
 export const Icons = {
@@ -459,26 +484,24 @@ export const Icons = {
    * The same mark as a RECORDER slot's source button draws it, softened: each
    * pixel takes the mark's colour at the share of it the unit shows over the face.
    */
-  copySoft: (): SVGSVGElement => {
-    const node = document.createElementNS(NS, "svg");
-    node.setAttribute("viewBox", "0 0 10 10");
-    node.setAttribute("aria-hidden", "true");
-    node.setAttribute("focusable", "false");
-    node.setAttribute("shape-rendering", "crispEdges");
-    COPY_SOFT.forEach((row, y) =>
-      row.forEach((share, x) => {
-        if (share === 0) return;
-        const px = document.createElementNS(NS, "rect");
-        px.setAttribute("x", String(x));
-        px.setAttribute("y", String(y));
-        px.setAttribute("width", "1");
-        px.setAttribute("height", "1");
-        px.setAttribute("fill", "currentColor");
-        px.setAttribute("fill-opacity", String(share));
-        node.appendChild(px);
-      }),
-    );
-    return node;
+  copySoft: (): SVGSVGElement => shareGlyph(COPY_SOFT),
+  /**
+   * A mark over the name of a submenu button: the six p039-1 (wide) draws, and
+   * three no figure draws, shaped as the unit shows them — Gain Flat's ring and two
+   * level faders, Compare's see-saw with a ring on one end of its bar and a disc on
+   * the other, and Default's blank page with its corner folded down.
+   */
+  submenu: (name: SubmenuGlyph): SVGSVGElement => {
+    if (name === "page") return sized(svg("0 0 16 20", [PAGE_OUTLINE], true), "icon-submenu-page");
+    if (name === "compare")
+      return mixed(
+        "0 0 24 24",
+        // The ring and the disc are the same size across, each standing on the bar.
+        ["M4.3 11A2.5 2.5 0 1 0 4.3 16A2.5 2.5 0 1 0 4.3 11Z", "M1 19L21 13.5"],
+        ["M13.3 10A3.5 3.5 0 1 0 20.3 10A3.5 3.5 0 1 0 13.3 10Z", "M11 16.5L14 21.5H8Z"],
+        "icon-submenu-compare",
+      );
+    return sized(shareGlyph(name === "gainFlat" ? GAIN_FLAT : SUBMENU_GLYPHS[name]), `icon-submenu-${name}`);
   },
   // A knob seen from above: a filled dial with its mark cut out at the top.
   // --- Side-rail tabs. The unit sets one of these above each tab's name. ---

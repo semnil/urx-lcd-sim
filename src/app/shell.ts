@@ -6,7 +6,7 @@ import { clamp, combineWriteRules } from "../device/store";
 import type { DeviceStore } from "../device/store";
 import type { UnitActions } from "../device/unit";
 import { emulatedActions } from "../device/unit";
-import type { UnitModel } from "../model/types";
+import { allStrips, findStrip, type UnitModel } from "../model/types";
 import { UDK_BANKS, UDK_KNOBS, UDK_UNASSIGNED, udkAssignment, udkPath } from "../model/udk";
 import { INTERACTIVE, aimed, clear, el, setPressed, tappedControl, writing } from "../ui/dom";
 import { FocusController } from "../ui/focus";
@@ -17,8 +17,11 @@ import { Locks, drawLocks } from "../ui/locks";
 import type { SimLock } from "../ui/locks";
 import type { Press } from "../ui/press";
 import { attachPress } from "../ui/press";
-import { PointerHolds, attachSpin, modalOf, setAriaValue, standsStill } from "../ui/widgets";
+import { PointerHolds, attachSpin, dialog, modalOf, setAriaValue, standsStill } from "../ui/widgets";
 import type { Modal } from "../ui/widgets";
+import { inSubtree, type ParamPath, type ParamValue } from "../device/path";
+import { jackParam, micLineConnector } from "../screens/head-amp";
+import { factoryState } from "../model/defaults";
 import type { NumericSpec } from "../ui/param-spec";
 import { BRIGHTNESS_MAX, formatValue } from "../ui/param-spec";
 import type { ScreenBody, ScreenRegistry } from "../screens/types";
@@ -33,6 +36,8 @@ import { panLinkWriteRule } from "../screens/mix-bus";
 import { geqLinkWriteRule } from "../screens/geq";
 import { screenOnly } from "../screens/screen-only";
 import { bankSide, bankTotal, currentBank, stepBank } from "../screens/strip-state";
+import { INCOMING_COPY, submenuFor } from "../screens/submenu";
+import type { SubmenuSpec } from "../screens/submenu";
 import type { AppContext, KnobReadout } from "./context";
 import { Navigator } from "./navigator";
 import type { Route, RouteChange } from "./navigator";
@@ -59,6 +64,11 @@ export interface ShellOptions {
   insertValuesFromPage?: boolean;
 }
 
+/** The analog head amp a channel copy takes from, and gives to, the connector a channel reads. */
+// HI-Z goes first: written after A.Gain, its rule would hold the gain copied to +40 dB.
+const HEAD_AMP_KEYS = ["hiZ", "phantom", "clipSafe", "gain"] as const;
+type HeadAmpKey = (typeof HEAD_AMP_KEYS)[number];
+
 export class Shell {
   readonly ctx: AppContext;
   readonly root: HTMLElement;
@@ -72,6 +82,12 @@ export class Shell {
   private knobs: (NumericSpec | KnobReadout | null)[] = [];
   /** Which four of them the readout bar is showing. */
   private knobPage = 0;
+  /** Whether the submenu is out over the screen. Every move between screens puts it away. */
+  private submenuOpen = false;
+  /** What each kind of submenu [Copy] holds: the values it took, by path under `ch.<channel>.`. */
+  private readonly copied = new Map<string, ReadonlyMap<string, ParamValue>>();
+  /** The message the unit raises from the foot of the glass, while it is up. */
+  private message: HTMLElement | undefined;
   private repaintScheduled = false;
   /** The screen the glass last drew. */
   private drawn: string | null = null;
@@ -173,6 +189,7 @@ export class Shell {
       this.moves.push(change);
       focus.release();
       this.knobPage = 0;
+      this.submenuOpen = false;
       // USER DEFINED KNOBS mode goes off on every jump to a top-level screen, on a
       // step back onto a screen drawn without its toggle, and on the way into the
       // channel-bank list; every other move keeps it.
@@ -332,6 +349,9 @@ export class Shell {
     if (dims || body.main.classList.contains("pick-dialog")) {
       for (const control of this.knobStripNode.querySelectorAll(INTERACTIVE)) control.toggleAttribute("inert", true);
     }
+    for (const old of this.lcd.querySelectorAll(":scope > .submenu-layer")) old.remove();
+    const submenu = submenuFor(this.ctx, route, new Set(this.copied.keys()));
+    if (submenu) this.lcd.appendChild(this.buildSubmenu(submenu));
     drawLocks(this.lcd, this.locks);
     repress();
     rescroll();
@@ -508,6 +528,212 @@ export class Shell {
   }
 
   /** The round button that switches USER DEFINED KNOBS mode on and off. */
+  /**
+   * The submenu's [<] tab at the right edge, or the submenu out over the right
+   * half of the glass. The tab answers a swipe to the left and not a tap; the
+   * submenu goes on a tap outside it or on its own [>] tab.
+   */
+  private buildSubmenu(spec: SubmenuSpec): HTMLElement {
+    const layer = el("div", { class: "submenu-layer" });
+    const shut = (): void => {
+      this.submenuOpen = false;
+      this.render();
+    };
+    if (!this.submenuOpen) {
+      const tab = el("div", { class: "submenu-tab", attrs: { role: "button", tabindex: "0", "aria-label": "Submenu" }, children: [Icons.chevronLeft()] });
+      tab.addEventListener("pointerdown", (down) => {
+        if (down.button !== 0) return;
+        const move = (m: PointerEvent): void => {
+          if (down.clientX - m.clientX < 12) return;
+          stop();
+          this.submenuOpen = true;
+          this.render();
+        };
+        const stop = (): void => {
+          window.removeEventListener("pointermove", move);
+          window.removeEventListener("pointerup", stop);
+          window.removeEventListener("pointercancel", stop);
+        };
+        window.addEventListener("pointermove", move);
+        window.addEventListener("pointerup", stop);
+        window.addEventListener("pointercancel", stop);
+      });
+      // The keys have no swipe: Enter or Space stands in for it.
+      tab.addEventListener("keydown", (ev) => {
+        if (ev.key !== "Enter" && ev.key !== " ") return;
+        ev.preventDefault();
+        this.submenuOpen = true;
+        this.render();
+      });
+      layer.appendChild(tab);
+      return layer;
+    }
+    const press = (b: NonNullable<SubmenuSpec["left"][number]>): void => {
+      if (spec.sendBus !== undefined && (b.act === "allPre" || b.act === "allPost" || b.act === "allNominal" || b.act === "dupStereo")) {
+        const bus = spec.sendBus;
+        const act = b.act;
+        this.ctx.store.operation(() => {
+          for (const from of allStrips(this.ctx.model)) {
+            const at = (key: string): string => `ch.${from.id}.send.${bus}.${key}`;
+            if (act === "allPre" || act === "allPost") {
+              if (this.ctx.store.has(at("pre"))) void this.ctx.store.set(at("pre"), act === "allPre");
+            } else if (this.ctx.store.has(at("level"))) {
+              void this.ctx.store.set(at("level"), act === "allNominal" ? 0 : this.ctx.store.num(`ch.${from.id}.level`, 0));
+            }
+          }
+        });
+        this.showMessage(`"${b.label}" Completed.`);
+        return;
+      }
+      if (b.act === "flat" && spec.flat) {
+        const { question, gains, strip } = spec.flat;
+        const head = `ch.${strip}.`;
+        this.submenuOpen = false;
+        this.render();
+        this.ctx.overlay(
+          dialog({
+            message: question,
+            caution: true,
+            onOk: () =>
+              this.ctx.store.operation(() => {
+                for (const path of this.ctx.store.pathsUnder(head.slice(0, -1))) {
+                  if (gains.test(path.slice(head.length))) void this.ctx.store.set(path, 0);
+                }
+              }),
+          }),
+        );
+        return;
+      }
+      const copy = spec.copy;
+      if (!copy) return;
+      const { strip, blocks } = copy;
+      const stripUp = strip === undefined ? undefined : findStrip(this.ctx.model, strip);
+      // The analog head amp the channel up reads, held as `#<key>`: it belongs to the connector, not the channel.
+      const connector = copy.headAmp && stripUp ? micLineConnector(this.ctx, stripUp) : undefined;
+      const headAmpPath = (key: HeadAmpKey): ParamPath | undefined => (connector ? jackParam(connector.channels[0] ?? 0, key) : undefined);
+      // What the screen's blocks hold on the channel up, by path under `ch.<channel>`.
+      const take = (): Map<string, ParamValue> => {
+        const taken = new Map<string, ParamValue>();
+        if (strip === undefined || !blocks) return taken;
+        const head = `ch.${strip}.`;
+        for (const block of blocks) {
+          for (const path of this.ctx.store.pathsUnder(head + block)) taken.set(path.slice(head.length), this.ctx.store.get<ParamValue>(path, 0));
+        }
+        for (const key of HEAD_AMP_KEYS) {
+          const path = headAmpPath(key);
+          if (path !== undefined && this.ctx.store.has(path)) taken.set(`#${key}`, this.ctx.store.get<ParamValue>(path, 0));
+        }
+        return taken;
+      };
+      // A send into the bus copied from, held as `@<source>.<key>`: the same source's send into this one.
+      const sendInto = (held: string): string | undefined => {
+        const from = allStrips(this.ctx.model).find((s) => held.startsWith(`${s.id}.`));
+        return from ? `ch.${from.id}.send.${strip}.${held.slice(from.id.length + 1)}` : undefined;
+      };
+      const put = (values: ReadonlyMap<string, ParamValue>): void =>
+        this.ctx.store.operation(() => {
+          // Only what the channel up holds: a copy from another kind of channel carries paths it has not.
+          for (const [rest, value] of values) {
+            const path = rest.startsWith("@") ? sendInto(rest.slice(1)) : rest.startsWith("#") ? headAmpPath(rest.slice(1) as HeadAmpKey) : `ch.${strip}.${rest}`;
+            if (path !== undefined && this.ctx.store.has(path)) void this.ctx.store.set(path, value);
+          }
+        });
+      const held = this.copied.get(copy.kind);
+      if (b.act === "copy" || b.act === "copyIncoming") {
+        const taken = take();
+        if (b.act === "copyIncoming" && strip !== undefined) {
+          for (const from of allStrips(this.ctx.model)) {
+            const head = `ch.${from.id}.send.${strip}`;
+            for (const path of this.ctx.store.pathsUnder(head)) taken.set(`@${from.id}.${path.slice(head.length + 1)}`, this.ctx.store.get<ParamValue>(path, 0));
+          }
+          if (copy.kind === "channel") this.copied.set(INCOMING_COPY, new Map());
+        } else if (copy.kind === "channel") this.copied.delete(INCOMING_COPY);
+        this.copied.set(copy.kind, taken);
+        this.showMessage(`${copy.name} Parameters Copied.`);
+        this.render();
+      } else if (b.act === "paste" && strip !== undefined && held) {
+        put(held);
+        this.showMessage(copy.pasted ?? `${copy.name} Parameters Pasted.`);
+      } else if (b.act === "compare" && strip !== undefined && held) {
+        const now = take();
+        put(held);
+        this.copied.set(copy.kind, now);
+        this.showMessage(`${copy.name} Parameters Swapped with Copy Buffer.`);
+      } else if (b.act === "default" && strip !== undefined && blocks) {
+        const head = `ch.${strip}`;
+        // The submenu goes as the question comes up, and a [Cancel] leaves it gone.
+        this.submenuOpen = false;
+        this.render();
+        this.ctx.overlay(
+          dialog({
+            message: `Return to default ${copy.name} Setting?`,
+            caution: true,
+            onOk: () => {
+              const values = new Map<string, ParamValue>();
+              if (copy.effectDefaults) {
+                // An effect goes back to its own values and stays the effect chosen.
+                for (const [rest, value] of copy.effectDefaults) values.set(rest, value);
+              } else {
+                const factory = factoryState(this.ctx.model);
+                for (const [path, value] of factory) {
+                  if (blocks.some((block) => inSubtree(path, `${head}.${block}`))) values.set(path.slice(head.length + 1), value);
+                }
+                for (const key of HEAD_AMP_KEYS) {
+                  const path = headAmpPath(key);
+                  const value = path === undefined ? undefined : factory.get(path);
+                  if (value !== undefined) values.set(`#${key}`, value);
+                }
+              }
+              put(values);
+              this.showMessage(`${copy.name} Parameters Initialized.`);
+            },
+          }),
+        );
+      }
+    };
+    const cell = (b: SubmenuSpec["left"][number], row: number): HTMLElement =>
+      b
+        ? el("button", {
+            ...(b.enabled && b.act ? { onTap: () => press(b) } : {}),
+            class: `submenu-btn${b.enabled ? "" : " is-disabled"}${row === spec.wideGapBefore ? " is-wide-gap" : ""}`,
+            attrs: b.enabled ? {} : { "aria-disabled": "true" },
+            children: [
+              el("span", { class: "submenu-glyph", children: [Icons.submenu(b.glyph)] }),
+              el("span", { class: "submenu-label", text: b.label }),
+              ...(b.sub === undefined ? [] : [el("span", { class: "submenu-sub", text: b.sub })]),
+            ],
+          })
+        : el("span", { class: `submenu-empty${row === spec.wideGapBefore ? " is-wide-gap" : ""}` });
+    const column = (items: SubmenuSpec["left"]): HTMLElement => el("div", { class: "submenu-col", children: items.map(cell) });
+    const close = el("button", { class: "submenu-close", attrs: { "aria-label": "Close the submenu" }, children: [Icons.chevronRight()] });
+    close.addEventListener("click", shut);
+    const catcher = el("div", { class: "submenu-catch", attrs: { "aria-hidden": "true" } });
+    catcher.addEventListener("click", shut);
+    layer.append(catcher, el("div", { class: "submenu", attrs: { role: "menu", "aria-label": "Submenu" }, children: [close, column(spec.left), column(spec.right)] }));
+    return layer;
+  }
+
+  /**
+   * The message the unit raises from the foot of the glass after an operation, as
+   * after a submenu [Copy] ("GATE Parameters Copied."): it rises, stands about 1.8 s
+   * and drops away, over everything on the glass (confirmed on a URX44V). No figure
+   * shows it; it takes the dialog's sheet, frame and mark.
+   */
+  private showMessage(text: string): void {
+    this.message?.remove();
+    const node = el("div", {
+      class: "lcd-message",
+      attrs: { role: "status" },
+      children: [el("span", { class: "lcd-message-mark", children: [Icons.info()] }), el("span", { text })],
+    });
+    node.addEventListener("animationend", () => {
+      node.remove();
+      if (this.message === node) this.message = undefined;
+    });
+    this.message = node;
+    this.lcd.appendChild(node);
+  }
+
   private buildKnobToggle(on: boolean): HTMLElement {
     const node = el("button", {
       class: "udk-toggle",
