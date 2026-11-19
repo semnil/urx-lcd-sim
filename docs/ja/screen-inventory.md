@@ -1262,7 +1262,7 @@ SEND TO、ステレオバスの SEND FROM、INPUT、CH SETTING には無い。4 
 
 先に聞くのは Default、CH Default、Gain Flat だけ。メッセージは画面の下端から、画面のすべての上にせり上がり、
 約 1.8 秒とどまって下へ消える。淡いシートを、ダイアログの青い枠で囲み、ダイアログの印を付けた形 (図は無い)。
-確認していないもの: CH Paste での Signal Type の扱い、URX22 と URX44。
+CH Paste は Signal Type を変えず、STEREO の組の片方に貼ると、両方がコピーを受け取る。確認していないもの: URX22 と URX44。
 
 ## 画面に重なるシート
 

@@ -1451,7 +1451,8 @@ What each does (confirmed on a URX44V):
 
 None asks first but Default, CH Default and Gain Flat. The message rises from the foot of the glass over
 everything on it, stands about 1.8 s and drops away; it is a pale sheet in the dialog's blue frame with the dialog's
-mark (no figure shows it). Not confirmed: what CH Paste does with the Signal Type, and the URX22 and the URX44.
+mark (no figure shows it). CH Paste leaves the Signal Type as it was, and pasted onto one channel of a stereo pair it gives the copy
+to both. Not confirmed: the URX22 and the URX44.
 
 ## Sheets over the screen
 

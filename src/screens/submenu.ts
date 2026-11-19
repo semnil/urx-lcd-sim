@@ -99,8 +99,8 @@ function channelMenu(ctx: AppContext, stripId: string | undefined, copied: Reado
  * carried the COMP / EQ choice, GATE, COMP, EQ, SSMCS, the phase, the HPF, the
  * fader, ON, PAN, the sends, the Rec Point and the input stage of the jack the
  * channel reads (A.Gain, Clip Safe, +48V and HI-Z); it left the name, the colour,
- * the input source, the Insert FX and CUE as they were. The Signal Type and what
- * hangs on it are not carried, as nothing has shown what the unit does with it.
+ * the input source, the Insert FX, CUE and the Signal Type as they were. Pasted onto
+ * one channel of a stereo pair, both take the copy, as any write to one of a pair does.
  */
 const CHANNEL_BLOCKS: readonly string[] = [
   "compEqOrder", "gate", "comp", "eq", "ssmcs", "phase", "hpf", "level", "on", "pan", "send", "recPoint",

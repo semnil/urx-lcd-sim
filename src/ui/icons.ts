@@ -496,8 +496,9 @@ export const Icons = {
     if (name === "compare")
       return mixed(
         "0 0 24 24",
-        ["M5.5 11.5A2.5 2.5 0 1 0 5.5 16.5A2.5 2.5 0 1 0 5.5 11.5Z", "M3 18.5L21 13.5"],
-        ["M15.5 7.5A3 3 0 1 0 21.5 7.5A3 3 0 1 0 15.5 7.5Z", "M12 16L15 21H9Z"],
+        // The ring and the disc are the same size across, each standing on the bar.
+        ["M4.3 11A2.5 2.5 0 1 0 4.3 16A2.5 2.5 0 1 0 4.3 11Z", "M1 19L21 13.5"],
+        ["M13.3 10A3.5 3.5 0 1 0 20.3 10A3.5 3.5 0 1 0 13.3 10Z", "M11 16.5L14 21.5H8Z"],
         "icon-submenu-compare",
       );
     return sized(shareGlyph(name === "gainFlat" ? GAIN_FLAT : SUBMENU_GLYPHS[name]), `icon-submenu-${name}`);
