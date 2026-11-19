@@ -34,6 +34,24 @@ test("a swipe from [<] opens the submenu, a tap does not, and [>] or a tap outsi
   await expect(tab(page)).toBeVisible();
 });
 
+// The closed [<] as p125-1 of the user guide draws it, pixel for pixel: the tab at x473..479 /
+// y145..224, and its mark a chevron from x480 at y181 to its point at x475..476 on y185..186 and
+// back to x480 at y190, its arms two pixels across.
+test("the closed [<] stands where p125-1 draws it, its mark whole on the glass", async ({ page }) => {
+  await reach(page, TOUR.find((s) => s.id === "ch.gate")!);
+  const box = await tab(page).evaluate((node) => {
+    const glass = node.closest(".lcd")!.getBoundingClientRect();
+    const k = glass.width / 480;
+    const at = (r: DOMRect) => ({ x: (r.left - glass.left) / k, y: (r.top - glass.top) / k, right: (r.right - glass.left) / k, bottom: (r.bottom - glass.top) / k });
+    const path = node.querySelector("path")!;
+    return { tab: at(node.getBoundingClientRect()), mark: at(path.getBoundingClientRect()), stroke: getComputedStyle(path).strokeWidth };
+  });
+  expect(box.tab).toEqual({ x: 473, y: 145, right: 480, bottom: 225 });
+  // The mark's line, without its stroke: the point at x475.5, the arms' ends past the glass's edge.
+  expect(box.mark).toEqual({ x: 475.5, y: 180, right: 481.5, bottom: 192 });
+  expect(box.stroke).toBe("1.5px");
+});
+
 test("[Copy] on GATE raises its message and lights [Paste] and [Compare] on every channel's GATE, not on COMP", async ({ page }) => {
   await reach(page, TOUR.find((s) => s.id === "ch.gate")!);
   await swipeOpen(page);
