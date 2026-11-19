@@ -4838,6 +4838,14 @@
   height: 12px;
 }
 
+/* The unit draws [>] a pixel left of the middle of its button, where [<] stands in the
+ * middle of its own (p125-1: the marks at x18..25 and x119..126 in the buttons at
+ * x2..41 and x103..142). */
+.ch-selector .ch-arrow:last-child svg {
+  position: relative;
+  left: -1px;
+}
+
 /* The icon keeps its place whatever the box is wide enough for, so on the
  * narrow box the name is drawn over it. */
 .ch-chip {

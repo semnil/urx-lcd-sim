@@ -3,7 +3,7 @@
 // pages of cards.
 
 import { expect, test, type Page } from "@playwright/test";
-import { button, lcd, tapInto } from "./tour";
+import { TOUR, button, lcd, reach, tapInto } from "./tour";
 
 /** HOME's MIX bank and the channel view of `strip`. */
 async function channelView(page: Page, strip: string): Promise<void> {
@@ -39,4 +39,21 @@ test("the stereo bus's [SEND] opens SEND FROM, the one view it has", async ({ pa
   await tapInto(page, button(page, "SEND", true), "ch.sendfrom");
   expect(await titles(page)).toEqual(["CH 1", "CH 2", "CH 3", "CH 4"]);
   await expect(button(page, "SEND TO")).toHaveCount(0);
+});
+
+// The step arrows as p125-1 draws them on SEND FROM: [<] in the middle of its button at
+// x2..41, [>] a pixel left of the middle of its button at x103..142.
+test("SEND FROM's step arrows stand where p125-1 draws them", async ({ page }) => {
+  await reach(page, TOUR.find((s) => s.id === "ch.sendfrom")!);
+  const at = await lcd(page).evaluate((glass) => {
+    const box = glass.getBoundingClientRect();
+    const k = box.width / 480;
+    const x = (n: Element) => (n.getBoundingClientRect().left - box.left) / k;
+    const arrow = (name: string) => glass.querySelector(`.ch-selector [aria-label="${name}"]`)!;
+    return {
+      prev: { button: x(arrow("Previous channel")), mark: x(arrow("Previous channel").querySelector("svg")!) },
+      next: { button: x(arrow("Next channel")), mark: x(arrow("Next channel").querySelector("svg")!) },
+    };
+  });
+  expect(at).toEqual({ prev: { button: 2, mark: 18.5 }, next: { button: 103, mark: 118.5 } });
 });
