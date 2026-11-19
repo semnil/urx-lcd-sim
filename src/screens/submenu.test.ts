@@ -44,7 +44,8 @@ describe("the submenu", () => {
     "on %s carries Copy, Paste, Compare and Default in the left column",
     async (id) => {
       const shell = await mount();
-      const spec = submenuFor(shell.ctx, { id, strip: "ch1" })!;
+      // An FX channel's effect is the FX channel's own.
+      const spec = submenuFor(shell.ctx, { id, strip: id === "ch.effect" ? "fx1" : "ch1" })!;
       expect(faces(spec.left)).toEqual(["Copy", "Paste (x)", "Compare (x)", "Default"]);
       expect(faces(spec.right)).toEqual(["—", "—", "—", "—"]);
     },
@@ -151,6 +152,44 @@ describe("the submenu's buttons", () => {
     await ok(shell);
     expect([store.num("ch.ch4.gain"), store.bool("ch.ch4.phantom")]).toEqual([-8, false]);
     expect(store.str("ch.ch2.source")).toBe("MIC/LINE 3/4");
+  });
+
+  it("CH Paste gives a connector the copied A.Gain whatever its HI-Z was", async () => {
+    const shell = await mount();
+    const { store } = shell.ctx;
+    await store.set("ch.ch1.hiZ", false);
+    await store.set("ch.ch1.gain", 60);
+    await store.set("ch.ch3.hiZ", true);
+    await store.set("ch.ch3.gain", 20);
+    await at(shell, "channel-view", "ch1");
+    await press(shell, "CH Copy");
+    await at(shell, "channel-view", "ch3");
+    await press(shell, "CH Paste");
+    expect([store.bool("ch.ch3.hiZ"), store.num("ch.ch3.gain")]).toEqual([false, 60]);
+  });
+
+  it("acts on the effect of the strip the arrows have brought up, and on a pair's shared insert", async () => {
+    const shell = await mount();
+    const { store } = shell.ctx;
+    await store.set("ch.ch1.insFx.effect", "Compander-H");
+    const param = effectParams("Compander-H").find((p) => typeof p.fallback === "number")!;
+    const path = `ch.ch1.insFx.${param.key}`;
+    await store.set(path, (param.fallback as number) + 1);
+    // From FX 1's effect screen, the arrows bring CH 1 up on the same screen.
+    await at(shell, "ch.effect", "fx1");
+    shell.ctx.nav.stepStrip("ch1");
+    await flush();
+    await press(shell, "Default");
+    await ok(shell);
+    expect(store.num(path)).toBe(param.fallback);
+    // CH 1 and CH 2 linked share CH 1's insert: CH 2's INS FX carries the submenu and acts on it.
+    await store.set(path, (param.fallback as number) + 1);
+    await store.set("ch.ch1.signalType", "STEREO");
+    await store.set("ch.ch2.signalType", "STEREO");
+    await at(shell, "ch.insfx", "ch2");
+    await press(shell, "Default");
+    await ok(shell);
+    expect(store.num(path)).toBe(param.fallback);
   });
 
   it("GEQ's Copy takes its bands, and Paste, Compare and Default act on them", async () => {

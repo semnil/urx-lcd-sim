@@ -65,7 +65,8 @@ export interface ShellOptions {
 }
 
 /** The analog head amp a channel copy takes from, and gives to, the connector a channel reads. */
-const HEAD_AMP_KEYS = ["gain", "phantom", "hiZ", "clipSafe"] as const;
+// HI-Z goes first: written after A.Gain, its rule would hold the gain copied to +40 dB.
+const HEAD_AMP_KEYS = ["hiZ", "phantom", "clipSafe", "gain"] as const;
 type HeadAmpKey = (typeof HEAD_AMP_KEYS)[number];
 
 export class Shell {

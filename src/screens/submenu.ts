@@ -9,10 +9,11 @@
 import type { AppContext } from "../app/context";
 import type { Route } from "../app/navigator";
 import type { ParamValue } from "../device/path";
-import { effectParams } from "../model/effects";
+import { NO_EFFECT, effectParams } from "../model/effects";
 import { findStrip } from "../model/types";
 import type { SubmenuGlyph } from "../ui/submenu-glyphs";
 import { geqSide } from "./geq";
+import { linkedPair } from "./stereo-link";
 import { selectedStripId } from "./strip-state";
 
 /**
@@ -166,11 +167,9 @@ const COPY_BLOCKS: Record<string, readonly string[]> = {
   "ch.gate": ["gate"],
   "ch.comp": ["comp"],
   "ch.eq": ["eq"],
-  "ch.insfx": ["insFx"],
   "ch.geq": ["geq"],
   "ch.ducker": ["ducker"],
   "ch.delay": ["delay"],
-  "ch.effect": ["effect"],
   "ch.ssmcs": ["ssmcs"],
 };
 
@@ -191,12 +190,22 @@ const FLAT: Record<string, (ctx: AppContext, strip: string) => { question: strin
   },
 };
 
-/** The values of the effect a strip runs as the effect comes up, by path under `ch.<channel>`. */
-function effectDefaults(ctx: AppContext, screen: string, strip: string): ReadonlyMap<string, ParamValue> {
-  const block = screen === "ch.effect" ? "effect" : "insFx";
-  const name = ctx.store.str(`ch.${strip}.${block}.${screen === "ch.effect" ? "type" : "effect"}`, "");
-  return new Map(effectParams(name).map((p) => [`${block}.${p.key}`, p.fallback] as const));
+/**
+ * The effect a strip runs and where it keeps it: an FX channel its own effect, any
+ * other strip its insert, held on the lower channel of a stereo-linked pair (as the
+ * effect screen reads it, whichever channel the arrows have brought up).
+ */
+function effectOf(ctx: AppContext, stripId: string): { owner: string; block: string; name: string } | undefined {
+  const strip = findStrip(ctx.model, stripId);
+  if (!strip) return undefined;
+  if (strip.kind === "fx") return { owner: strip.id, block: "effect", name: ctx.store.str(`ch.${strip.id}.effect.type`, "") };
+  const owner = (linkedPair(ctx, strip)?.[0] ?? strip).id;
+  return { owner, block: "insFx", name: ctx.store.str(`ch.${owner}.insFx.effect`, NO_EFFECT) };
 }
+
+/** The values of an effect as it comes up, by path under `ch.<channel>`. */
+const effectDefaults = (block: string, name: string): ReadonlyMap<string, ParamValue> =>
+  new Map(effectParams(name).map((p) => [`${block}.${p.key}`, p.fallback] as const));
 
 /**
  * The kind of copy a screen takes: SSMCS's pages share one, and an effect's takes
@@ -205,9 +214,8 @@ function effectDefaults(ctx: AppContext, screen: string, strip: string): Readonl
  */
 function copyKind(ctx: AppContext, screen: string, strip: string | undefined): string {
   if (screen.startsWith("ch.ssmcs")) return "ch.ssmcs";
-  if (screen === "ch.effect" && strip !== undefined) return `${screen}:${ctx.store.str(`ch.${strip}.effect.type`, "")}`;
-  if (screen === "ch.insfx" && strip !== undefined) return `${screen}:${ctx.store.str(`ch.${strip}.insFx.effect`, "")}`;
-  return screen;
+  const effect = (screen === "ch.effect" || screen === "ch.insfx") && strip !== undefined ? effectOf(ctx, strip) : undefined;
+  return effect ? `effect:${effect.name}` : screen;
 }
 
 /**
@@ -219,7 +227,10 @@ function copyKind(ctx: AppContext, screen: string, strip: string | undefined): s
  */
 function screenMenu(ctx: AppContext, screen: string, strip: string | undefined, gainFlat: boolean, copied: ReadonlySet<string>): SubmenuSpec {
   const kind = copyKind(ctx, screen, strip);
-  const blocks = COPY_BLOCKS[screen.startsWith("ch.ssmcs") ? "ch.ssmcs" : screen];
+  const effect = (screen === "ch.effect" || screen === "ch.insfx") && strip !== undefined ? effectOf(ctx, strip) : undefined;
+  // An effect's settings are where the strip keeps the effect it runs.
+  const owner = effect?.owner ?? strip;
+  const blocks = effect ? [effect.block] : COPY_BLOCKS[screen.startsWith("ch.ssmcs") ? "ch.ssmcs" : screen];
   const how = gainFlat && strip !== undefined ? FLAT[screen]?.(ctx, strip) : undefined;
   const flat = how && strip !== undefined ? { ...how, strip } : undefined;
   const has = copied.has(kind);
@@ -242,8 +253,8 @@ function screenMenu(ctx: AppContext, screen: string, strip: string | undefined, 
     copy: {
       kind,
       name: COPY_NAMES[screen] ?? screen,
-      ...(strip !== undefined && blocks ? { strip, blocks } : {}),
-      ...(strip !== undefined && (screen === "ch.insfx" || screen === "ch.effect") ? { effectDefaults: effectDefaults(ctx, screen, strip) } : {}),
+      ...(owner !== undefined && blocks ? { strip: owner, blocks } : {}),
+      ...(effect ? { effectDefaults: effectDefaults(effect.block, effect.name) } : {}),
     },
   };
 }
@@ -281,14 +292,16 @@ export function submenuFor(ctx: AppContext, route: Route, copied: ReadonlySet<st
     case "channel-view":
       return channelMenu(ctx, route.strip ?? selectedStripId(ctx), copied);
     case "ch.insfx":
+    case "ch.effect": {
       // A channel whose insert holds no effect has none (confirmed on a URX44V).
-      if (route.strip !== undefined && ctx.store.str(`ch.${route.strip}.insFx.effect`, "No Effect") === "No Effect") return undefined;
+      const effect = route.strip === undefined ? undefined : effectOf(ctx, route.strip);
+      if (!effect || effect.name === NO_EFFECT) return undefined;
       return screenMenu(ctx, route.id, route.strip, false, copied);
+    }
     case "ch.gate":
     case "ch.comp":
     case "ch.ducker":
     case "ch.delay":
-    case "ch.effect":
     case "ch.ssmcs":
     case "ch.ssmcs.comp":
     case "ch.ssmcs.sc":
