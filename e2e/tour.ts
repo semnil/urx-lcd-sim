@@ -61,13 +61,13 @@ async function pick(page: Page, name: string, option: string): Promise<void> {
 }
 
 /** Step the channel bank on HOME to `bank`. */
-async function bank(page: Page, name: string): Promise<void> {
+export async function bank(page: Page, name: string): Promise<void> {
   await tapInto(page, lcd(page).getByRole("button", { name: /channel bank/ }), "bank-select");
   await tapInto(page, button(page, name), "home");
 }
 
 /** A block of the channel view, touched where the block itself answers: off the switches and value boxes inside it. */
-async function block(page: Page, name: string | RegExp, id: string): Promise<void> {
+export async function block(page: Page, name: string | RegExp, id: string): Promise<void> {
   const node = button(page, name, true);
   const at = await node.evaluate((n) => {
     // The glass may be drawn in a shadow tree, whose elements the document's own lookup does not reach.

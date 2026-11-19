@@ -11339,3 +11339,245 @@
   box-shadow: inset 0 -3px 0 var(--safe-lit-band);
   color: var(--text-inverse);
 }
+
+/* --- Submenu (System firmware V1.5) ------------------------------------- */
+
+/* The layer over the glass that holds the submenu's tab, or the submenu itself.
+ * Only what it holds takes a touch. The places, sizes and colours are p039-1's
+ * (wide), and the closed tab's p125-1's. The layer takes no z-index of its own:
+ * one would make it a group of its own, and the dark it lays outside the submenu
+ * would then multiply into nothing. */
+.submenu-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.submenu-layer > * {
+  z-index: 12;
+  pointer-events: auto;
+}
+
+/* A dialog stands over the submenu's tab and darkens it with the rest of the glass. */
+.lcd:has(> .dialog-overlay) > .submenu-layer > * {
+  z-index: 9;
+}
+
+/* [<] at the right edge: the submenu's own colour, letting what is under it show
+ * through (x473..479 / y145..224 in p125-1), its mark running off the glass. */
+.submenu-tab {
+  position: absolute;
+  right: 0;
+  top: 145px;
+  width: 7px;
+  height: 80px;
+  border-radius: 3px 0 0 3px;
+  background: var(--dialog-sheet);
+  color: var(--text-inverse);
+  opacity: 0.8;
+  touch-action: none;
+  cursor: grab;
+}
+
+.submenu-tab svg,
+.submenu-close svg {
+  position: absolute;
+  top: 35px;
+  width: 7px;
+  height: 12px;
+}
+
+.submenu-tab svg {
+  left: 3px;
+}
+
+/* A tap outside the submenu puts it away. The screen there is taken down the way
+ * a sheet takes down the screen under it. */
+.submenu-catch {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+  mix-blend-mode: multiply;
+}
+
+/* The submenu: x246..479 / y5..266, no title, two columns of four rows. */
+.submenu {
+  position: absolute;
+  top: 5px;
+  right: 0;
+  width: 234px;
+  height: 262px;
+  display: flex;
+  gap: 14px;
+  padding: 10px 0 0 10px;
+  border-radius: 3px 0 0 3px;
+  background: var(--dialog-sheet);
+}
+
+/* [>], the tab standing out of the submenu's left edge where [<] stood
+ * (x236..245 / y145..224). */
+.lcd .submenu-close {
+  position: absolute;
+  left: -10px;
+  top: 140px;
+  width: 10px;
+  height: 80px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px 0 0 3px;
+  background: var(--dialog-sheet);
+  color: var(--text-inverse);
+}
+
+.submenu-close svg {
+  left: 1px;
+}
+
+.submenu-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lcd .submenu-btn,
+.submenu-empty {
+  flex: none;
+  width: 102px;
+  height: 52px;
+}
+
+/* A button: its mark in a 24px box 5px down, its name below. */
+.lcd .submenu-btn {
+  position: relative;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: var(--surface);
+  box-shadow: inset 0 -3px 0 var(--btn-bevel);
+  color: var(--tab-ink);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+}
+
+.lcd .submenu-btn.is-disabled {
+  background: var(--surface-disabled);
+  box-shadow: inset 0 -3px 0 var(--btn-bevel-disabled);
+  color: var(--menu-text-disabled);
+  cursor: default;
+}
+
+.submenu-glyph {
+  position: absolute;
+  left: 39px;
+  top: 5px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+}
+
+.submenu-glyph svg {
+  width: 24px;
+  height: 24px;
+}
+
+.submenu-glyph .icon-submenu-page {
+  width: 16px;
+  height: 20px;
+}
+
+.submenu-label,
+.submenu-sub {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.submenu-label {
+  top: 32px;
+  line-height: 16px;
+}
+
+/* A name with a second line under it stands higher, and the second line is
+ * smaller. Neither is drawn by a figure. */
+.submenu-sub {
+  top: 39px;
+  font-size: 10px;
+  line-height: 10px;
+}
+
+.submenu-label:has(+ .submenu-sub) {
+  top: 26px;
+}
+
+/* The gap above this row is 20px, the others 8px. */
+.submenu-col > .is-wide-gap {
+  margin-top: 12px;
+}
+
+/* --- The message from the foot of the glass ------------------------------- */
+
+/* A pale sheet in the dialog's blue frame, the dialog's mark at its left, standing
+ * on the foot of the glass over the knob bar and anything open above it. It rises
+ * in about 0.2 s, stands about 1.8 s and drops away. The place, size and timing are
+ * read off the unit; no figure shows the message. */
+.lcd-message {
+  position: absolute;
+  left: 53px;
+  bottom: 0;
+  z-index: 13;
+  width: 374px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  background: var(--dialog-sheet);
+  border: 3px solid var(--dialog-edge);
+  border-bottom: 0;
+  border-radius: 3px 3px 0 0;
+  color: var(--dialog-ink);
+  font-size: var(--fs-lg);
+  pointer-events: none;
+  animation: lcd-message 2.15s linear forwards;
+}
+
+.lcd-message-mark {
+  width: 18px;
+  height: 18px;
+  color: var(--dialog-edge);
+}
+
+.lcd-message-mark svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+@keyframes lcd-message {
+  0% {
+    bottom: -38px;
+  }
+  9%,
+  93% {
+    bottom: 0;
+  }
+  100% {
+    bottom: -38px;
+  }
+}
+
+/* With less motion asked for, it stands in place for the same time. */
+@keyframes lcd-message-still {
+  100% {
+    visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lcd-message {
+    animation: lcd-message-still 2.15s steps(1, end) forwards;
+  }
+}
