@@ -264,3 +264,20 @@ test("SEND FROM's [Paste] on MIX 2 gives it the sends copied from MIX 1", async 
   await expect(lcd(page).getByRole("status")).toHaveText("MIX 2 Parameters Pasted.");
   await expect.poll(readout).toEqual(mix1);
 });
+
+test("the keyboard's ring stands over the submenu's buttons", async ({ page }) => {
+  await reach(page, TOUR.find((s) => s.id === "ch.gate")!);
+  await tab(page).focus();
+  await page.keyboard.press("Enter");
+  await expect(menu(page)).toBeVisible();
+  await item(page, "Copy").focus();
+  await page.keyboard.press("Tab");
+  const ring = lcd(page).locator(".focus-ring");
+  await expect(ring).toBeVisible();
+  // The ring takes no touch, so a probe at its place would pass through it: compare the stacking instead.
+  const above = await page.evaluate(() => {
+    const z = (sel: string) => Number(getComputedStyle(document.querySelector(sel)!).zIndex);
+    return z(".lcd .focus-ring") > z(".lcd .submenu");
+  });
+  expect(above).toBe(true);
+});

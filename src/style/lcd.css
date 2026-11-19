@@ -11358,9 +11358,16 @@
   pointer-events: auto;
 }
 
-/* A dialog stands over the submenu's tab and darkens it with the rest of the glass. */
-.lcd:has(> .dialog-overlay) > .submenu-layer > * {
+/* A dialog or a picker sheet stands over the submenu's tab and darkens it with the
+ * rest of the glass. */
+.lcd:has(> .dialog-overlay) > .submenu-layer > *,
+.lcd:has(> .source-overlay) > .submenu-layer > * {
   z-index: 9;
+}
+
+/* While the submenu is out, the keyboard's ring stands over it. */
+.lcd:has(> .submenu-layer > .submenu) > .focus-ring {
+  z-index: 13;
 }
 
 /* [<] at the right edge: the submenu's own colour, letting what is under it show
