@@ -161,7 +161,9 @@ const COPY_NAMES: Record<string, string> = {
  * The blocks of a channel's settings each processing screen's copy takes: its own
  * block whole (confirmed on a URX44V: GATE's paste carried ON and all five values,
  * COMP's, EQ's, SSMCS's, DUCKER's, DELAY's and GEQ's every value they differed in).
- * An effect's Default puts back the values of the effect chosen and keeps it.
+ * An effect's Default puts back the values of the effect chosen and keeps it, and
+ * GEQ's puts back its bands, asking "Return to default EFFECT Setting?" / "GEQ"
+ * and saying "EFFECT Parameters Initialized." / "GEQ" (confirmed on a URX44V).
  */
 const COPY_BLOCKS: Record<string, readonly string[]> = {
   "ch.gate": ["gate"],
