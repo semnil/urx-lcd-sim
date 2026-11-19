@@ -102,11 +102,11 @@ function pixelGlyph(layers: Record<string, string>, name: string): SVGSVGElement
   return node;
 }
 
-/** One channel step arrow: a 7x12 chevron with a 2px stroke and flat ends. */
+/** One channel step arrow: a 7x12 chevron with a 1.75px stroke and flat ends. */
 function chevron(d: string): SVGSVGElement {
   const node = svg("0 0 7 12", [d]);
   const path = node.querySelector("path");
-  path?.setAttribute("stroke-width", "2");
+  path?.setAttribute("stroke-width", "1.75");
   path?.setAttribute("stroke-linecap", "butt");
   return node;
 }
@@ -630,11 +630,13 @@ export const Icons = {
     sized(svg("0 0 19 15", ["M0 0H12V2H0Z", "M0 4H12V6H0Z", "M0 8H8V10H0Z", "M13 7L19 11L13 15Z"], true), "icon-to-playing"),
 
   /**
-   * The channel step arrows. Drawn at their own size rather than set as a
-   * character, so the stroke lands on whole pixels at the size the unit uses.
+   * The channel step arrows, and the submenu's [<] and [>]. Drawn at their own size rather
+   * than set as a character, as p125-1 draws the step arrows on SEND FROM: arms at 45
+   * degrees, [<]'s point half a pixel in from its box's left edge and [>]'s half a pixel
+   * short of its right one, so [>]'s arms start half a pixel outside its box.
    */
-  chevronLeft: (): SVGSVGElement => chevron("M6.5 0 1 6 6.5 12"),
-  chevronRight: (): SVGSVGElement => chevron("M0.5 0 6 6 0.5 12"),
+  chevronLeft: (): SVGSVGElement => chevron("M6.5 0 0.5 6 6.5 12"),
+  chevronRight: (): SVGSVGElement => chevron("M-0.5 0 5.5 6 -0.5 12"),
 
   /** The step to the readout bar's next page of knobs: a solid chevron, 8x12, its arms 3px thick. */
   pageBack: (): SVGSVGElement => sized(svg("0 0 8 12", ["M8 0H5L0 6L5 12H8L3 6Z"], true), "icon-page-step"),

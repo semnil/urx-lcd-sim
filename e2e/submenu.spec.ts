@@ -48,7 +48,7 @@ test("the closed [<] stands where p125-1 draws it, its mark whole on the glass",
   });
   expect(box.tab).toEqual({ x: 473, y: 145, right: 480, bottom: 225 });
   // The mark's line, without its stroke: the point at x475.5, the arms' ends past the glass's edge.
-  expect(box.mark).toEqual({ x: 475.5, y: 180, right: 481, bottom: 192 });
+  expect(box.mark).toEqual({ x: 475.5, y: 180, right: 481.5, bottom: 192 });
   expect(box.stroke).toBe("1.5px");
 });
 

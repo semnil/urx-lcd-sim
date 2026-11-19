@@ -4822,9 +4822,11 @@
   width: 40px;
   height: 40px;
   display: grid;
-  /* Centred over the face, which the shadow band at the bottom cuts short. */
+  /* Centred over the face, which the shadow band at the bottom cuts short, and lifted one
+   * more pixel: the mark's point then paints on y20..21 as p125-1 draws it, in Chromium and
+   * WebKit alike. Over the face alone it paints a pixel lower in WebKit than in Chromium. */
   place-items: center;
-  padding-bottom: 3px;
+  padding-bottom: 4px;
   border: 0;
   border-radius: var(--radius-md);
   background: var(--surface);
@@ -4836,14 +4838,8 @@
 .ch-selector .ch-arrow svg {
   width: 7px;
   height: 12px;
-}
-
-/* The unit draws [>] a pixel left of the middle of its button, where [<] stands in the
- * middle of its own (p125-1: the marks at x18..25 and x119..126 in the buttons at
- * x2..41 and x103..142). */
-.ch-selector .ch-arrow:last-child svg {
-  position: relative;
-  left: -1px;
+  /* [>]'s arms start half a pixel left of its box (`Icons.chevronRight`). */
+  overflow: visible;
 }
 
 /* The icon keeps its place whatever the box is wide enough for, so on the
@@ -11403,11 +11399,9 @@
 }
 
 /* Its mark as p125-1 draws it: the point on x475..476 at y185..186, the arms two pixels
- * across, out to the glass's edge at y181 and y190. The half pixel is a transform, as
- * `left` lands on a whole one. */
+ * across, out to the glass's edge at y181 and y190. */
 .submenu-tab svg {
   left: 2px;
-  transform: translateX(-0.5px);
 }
 
 .submenu-tab path {

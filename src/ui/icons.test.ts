@@ -474,9 +474,9 @@ describe("the toolbar's HOME and headphone glyphs", () => {
 });
 
 describe("the channel screens' glyphs", () => {
-  it("runs the channel step chevrons to the edges of their box", () => {
-    expect(pathData(Icons.chevronLeft())).toEqual(["M6.5 0 1 6 6.5 12"]);
-    expect(pathData(Icons.chevronRight())).toEqual(["M0.5 0 6 6 0.5 12"]);
+  it("draws the channel step chevrons with arms at 45 degrees, as p125-1 does", () => {
+    expect(pathData(Icons.chevronLeft())).toEqual(["M6.5 0 0.5 6 6.5 12"]);
+    expect(pathData(Icons.chevronRight())).toEqual(["M-0.5 0 5.5 6 -0.5 12"]);
   });
 
   it("rounds SEND TO's lead into its turn", () => {

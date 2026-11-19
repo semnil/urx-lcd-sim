@@ -41,19 +41,22 @@ test("the stereo bus's [SEND] opens SEND FROM, the one view it has", async ({ pa
   await expect(button(page, "SEND TO")).toHaveCount(0);
 });
 
-// The step arrows as p125-1 draws them on SEND FROM: [<] in the middle of its button at
-// x2..41, [>] a pixel left of the middle of its button at x103..142.
+// The step arrows as p125-1 draws them on SEND FROM: arms at 45 degrees and two pixels
+// across, [<]'s point on x19..20 and [>]'s on x124..125, both on y20..21.
 test("SEND FROM's step arrows stand where p125-1 draws them", async ({ page }) => {
   await reach(page, TOUR.find((s) => s.id === "ch.sendfrom")!);
-  const at = await lcd(page).evaluate((glass) => {
+  const marks = await lcd(page).evaluate((glass) => {
     const box = glass.getBoundingClientRect();
     const k = box.width / 480;
-    const x = (n: Element) => (n.getBoundingClientRect().left - box.left) / k;
-    const arrow = (name: string) => glass.querySelector(`.ch-selector [aria-label="${name}"]`)!;
-    return {
-      prev: { button: x(arrow("Previous channel")), mark: x(arrow("Previous channel").querySelector("svg")!) },
-      next: { button: x(arrow("Next channel")), mark: x(arrow("Next channel").querySelector("svg")!) },
+    const mark = (name: string) => {
+      const path = glass.querySelector(`.ch-selector [aria-label="${name}"] path`)!;
+      const r = path.getBoundingClientRect();
+      return { x: (r.left - box.left) / k, right: (r.right - box.left) / k, y: (r.top - box.top) / k, bottom: (r.bottom - box.top) / k, stroke: getComputedStyle(path).strokeWidth };
     };
+    return { prev: mark("Previous channel"), next: mark("Next channel") };
   });
-  expect(at).toEqual({ prev: { button: 2, mark: 18.5 }, next: { button: 103, mark: 118.5 } });
+  expect(marks).toEqual({
+    prev: { x: 19, right: 25, y: 14.5, bottom: 26.5, stroke: "1.75px" },
+    next: { x: 119, right: 125, y: 14.5, bottom: 26.5, stroke: "1.75px" },
+  });
 });
