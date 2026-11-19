@@ -72,9 +72,9 @@ describe("the submenu", () => {
     expect(faces(submenuFor(shell.ctx, { id, strip: "ch1" })!.right)).toEqual(["Gain Flat", "—", "—", "—"]);
   });
 
-  it("on a MIX bus's SEND FROM carries the send operations, with the wide gap above the third row", async () => {
+  it.each(["bus.mix1", "fx1"])("on %s's SEND FROM carries the send operations, with the wide gap above the third row", async (strip) => {
     const shell = await mount();
-    const spec = submenuFor(shell.ctx, { id: "ch.sendfrom", strip: "bus.mix1" })!;
+    const spec = submenuFor(shell.ctx, { id: "ch.sendfrom", strip })!;
     expect(faces(spec.left)).toEqual(["Copy", "Paste (x)", "—", "—"]);
     expect(faces(spec.right)).toEqual(["All Pre", "All Post", "All Nominal", "Dup.Stereo"]);
     expect(spec.wideGapBefore).toBe(2);

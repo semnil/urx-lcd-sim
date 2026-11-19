@@ -1237,7 +1237,7 @@ y145..224 に立つ。
 | HOME (選んだストリップ) とチャンネルビュー | CH Copy, CH Paste, —, CH Default | MIX バスでは CH Copy Incoming Sends |
 | GATE, COMP, INS FX (インサートにエフェクトがあるとき), DUCKER, DELAY, FX チャンネルのエフェクト, SSMCS の最初・COMP・Side Chain のページ | Copy, Paste, Compare, Default | — |
 | EQ, GEQ, SSMCS の EQ のページ | Copy, Paste, Compare, Default | Gain Flat |
-| MIX バスの SEND FROM | Copy, Paste | All Pre, All Post, All Nominal, Dup.Stereo |
+| MIX バスか FX チャンネルの SEND FROM | Copy, Paste | All Pre, All Post, All Nominal, Dup.Stereo |
 
 SEND TO、ステレオバスの SEND FROM、INPUT、CH SETTING には無い。4 段の列の最後の段の上の間は 20 px、ほかは
 8 px。SEND FROM では 3 段目の上の間が 20 px。

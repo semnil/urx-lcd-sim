@@ -1426,7 +1426,7 @@ Which screens carry it, and what it holds (confirmed on a URX44V):
 | HOME (the strip selected) and the channel view | CH Copy, CH Paste, —, CH Default | CH Copy Incoming Sends on a MIX bus |
 | GATE, COMP, INS FX (while the insert holds an effect), DUCKER, DELAY, an FX channel's effect, SSMCS's first, COMP and Side Chain pages | Copy, Paste, Compare, Default | — |
 | EQ, GEQ, SSMCS's EQ page | Copy, Paste, Compare, Default | Gain Flat |
-| SEND FROM of a MIX bus | Copy, Paste | All Pre, All Post, All Nominal, Dup.Stereo |
+| SEND FROM of a MIX bus or an FX channel | Copy, Paste | All Pre, All Post, All Nominal, Dup.Stereo |
 
 SEND TO, the stereo bus's SEND FROM, INPUT and CH SETTING carry none. The gap above the last row of a column of
 four is 20 px, the others 8 px; on SEND FROM the gap above the third row is.
