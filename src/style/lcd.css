@@ -11371,7 +11371,7 @@
 }
 
 /* [<] at the right edge: the submenu's own colour, letting what is under it show
- * through (x473..479 / y145..224 in p125-1), its mark running off the glass. */
+ * through (x473..479 / y145..224 in p125-1). */
 .submenu-tab {
   position: absolute;
   right: 0;
@@ -11394,8 +11394,16 @@
   height: 12px;
 }
 
+/* Its mark as p125-1 draws it: the point on x475..476 at y185..186, the arms two pixels
+ * across, out to the glass's edge at y181 and y190. The half pixel is a transform, as
+ * `left` lands on a whole one. */
 .submenu-tab svg {
-  left: 3px;
+  left: 2px;
+  transform: translateX(-0.5px);
+}
+
+.submenu-tab path {
+  stroke-width: 1.5;
 }
 
 /* A tap outside the submenu puts it away. The screen there is taken down the way
