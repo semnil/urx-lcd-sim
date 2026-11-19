@@ -90,6 +90,15 @@ describe("the submenu", () => {
     expect(submenuFor(shell.ctx, { id, strip })).toBeUndefined();
   });
 
+  it("copies nothing where the route names no strip, or a strip the unit has not", async () => {
+    const shell = await mount();
+    expect(submenuFor(shell.ctx, { id: "ch.gate" })?.copy?.strip).toBeUndefined();
+    const lost = submenuFor(shell.ctx, { id: "channel-view", strip: "nope" })!;
+    expect(lost.copy).toBeUndefined();
+    expect(lost.left[3]?.act).toBeUndefined();
+    expect(submenuFor(shell.ctx, { id: "ch.effect", strip: "nope" })).toBeUndefined();
+  });
+
   it("lights Paste and Compare for a copy of the same kind only, and SSMCS's pages share theirs", async () => {
     const shell = await mount();
     const lit = (id: string, copied: string[]): boolean[] =>
