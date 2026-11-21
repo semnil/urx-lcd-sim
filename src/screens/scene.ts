@@ -23,19 +23,30 @@ import { dropGeqOverRate } from "./geq";
 import { keptByRecallSafe } from "./recall-safe";
 import type { ParamValue } from "../device/path";
 
-/**
- * Per unit: the selection SCENE LIST has brought into view, or that a touch on
- * the list made (the row touched is in view already), and the list's body last drawn.
- */
-const followed = new WeakMap<object, number>();
-const lastBody = new WeakMap<object, HTMLElement>();
+/** What SCENE LIST knows of following its selection, per unit. */
+interface FollowState {
+  /** The selection whose row the list has brought into view, or that a touch on the list made. */
+  followed?: number;
+  /** A follow a draw asked for that has not reached a list that could show it. */
+  pending: boolean;
+  /** A touch on a row whose write has not settled: the row touched and the one selected before it. */
+  tap?: { no: number; from: number } | undefined;
+  /** The list last drawn, and the wait for it to have a height. */
+  body?: HTMLElement;
+  watch?: ResizeObserver | undefined;
+}
+const follows = new WeakMap<object, FollowState>();
+function followState(store: object): FollowState {
+  let st = follows.get(store);
+  if (!st) follows.set(store, (st = { pending: false }));
+  return st;
+}
 
 /**
  * Scroll the list by whole rows until `row` stands in it entire, the least
  * that takes, and leave it where it is when the row is in view already.
  */
-function bringIntoView(body: HTMLElement, row: HTMLElement | undefined): void {
-  if (!row || !body.isConnected || body.clientHeight === 0) return;
+function bringIntoView(body: HTMLElement, row: HTMLElement): void {
   const view = body.getBoundingClientRect();
   const at = row.getBoundingClientRect();
   // The glass may be drawn scaled: the rectangles are in the page's pixels, the scroll in the list's own.
@@ -49,20 +60,24 @@ function bringIntoView(body: HTMLElement, row: HTMLElement | undefined): void {
 /**
  * Bring the selected row into view and count the selection as followed, once
  * the list stands in the page with a height; a list drawn while it cannot be
- * shown (taken out of the page, or with no height) waits until it can. A list
- * drawn again in its place stops the wait: that draw follows the selection.
+ * shown waits until it can, on one watch per unit that a later draw replaces.
  */
-function follow(store: object, body: HTMLElement, row: HTMLElement | undefined, selected: number): void {
+function follow(st: FollowState, body: HTMLElement, row: HTMLElement | undefined, selected: number): void {
+  st.watch?.disconnect();
+  st.watch = undefined;
   const apply = (): boolean => {
+    if (st.body !== body) return true;
     if (!row || !body.isConnected || body.clientHeight === 0) return false;
     bringIntoView(body, row);
-    followed.set(store, selected);
+    st.followed = selected;
+    st.pending = false;
     return true;
   };
   if (apply() || typeof ResizeObserver === "undefined") return;
   const watch = new ResizeObserver(() => {
-    if (lastBody.get(store) !== body || apply()) watch.disconnect();
+    if (apply()) watch.disconnect();
   });
+  st.watch = watch;
   watch.observe(body);
 }
 
@@ -317,8 +332,31 @@ export const sceneScreen: ScreenDef = {
         key: String(no),
         selected: no === selected,
         onTap: writing("scene.selected", () => {
-          followed.set(ctx.store, no);
-          void ctx.store.set("scene.selected", no);
+          // The row touched is in view: neither its own selection nor a refusal that puts the
+          // one before it back moves the list. Once the write has settled, a move is from outside.
+          const st = followState(ctx.store);
+          const tap = { no, from: selected };
+          st.tap = tap;
+          // A refusal puts the row before it back, which the list stands on still; it is heard
+          // before the redraw that shows it, and anything after it is a move from outside.
+          const off = ctx.store.onWriteFailure((f) => {
+            if (f.path !== "scene.selected" || st.tap !== tap) return;
+            st.tap = undefined;
+            st.followed = ctx.store.num("scene.selected", tap.from);
+            off();
+          });
+          void ctx.store.set("scene.selected", no).then(() => {
+            off();
+            if (st.tap !== tap) return;
+            st.tap = undefined;
+            st.followed = no;
+          });
+          // A path the unit cannot take at all is put back at once, before its refusal is heard.
+          if (ctx.store.num("scene.selected", tap.from) !== no) {
+            off();
+            st.tap = undefined;
+            st.followed = ctx.store.num("scene.selected", tap.from);
+          }
         }),
         description: marks.join(", ") || undefined,
         cells: [
@@ -398,11 +436,17 @@ export const sceneScreen: ScreenDef = {
     // where it was scrolled. A row touched on the list stays where it was touched, and a list
     // scrolled by hand stays where it is while the selection does not move.
     if (body) {
-      lastBody.set(ctx.store, body);
+      const st = followState(ctx.store);
+      st.body = body;
       const row = body.querySelectorAll<HTMLElement>(".list-row")[listed.indexOf(selected)];
       queueMicrotask(() => {
-        const carried = body.hasAttribute("data-scroll-carried");
-        if (!carried || followed.get(ctx.store) !== selected) follow(ctx.store, body, row, selected);
+        if (st.tap && (selected === st.tap.no || selected === st.tap.from)) {
+          st.followed = selected;
+          return;
+        }
+        // A follow this draw asked for passes to a draw that replaced it before it could run.
+        if (!body.hasAttribute("data-scroll-carried") || st.followed !== selected) st.pending = true;
+        if (st.pending && st.body === body) follow(st, body, row, selected);
       });
     }
 
