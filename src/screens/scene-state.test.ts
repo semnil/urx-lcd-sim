@@ -341,6 +341,15 @@ describe("storing and recalling a scene", () => {
     expect([s.str("ch.ch2.name", ""), s.str("ch.ch2.recPoint", "")], "P03's CH 2").toEqual(["Gt./Ba.", "PRE GATE"]);
   });
 
+  it.each([0, 101, 102, 103, 104, 107])("puts each MIX's GEQ Link off from factory scene %i, as the unit holds it", async (no) => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    const links = (): string[] => ["bus.mix1", "bus.mix2", "bus.stereo"].map((id) => s.str(`ch.${id}.geq.link`, ""));
+    expect(links(), "the factory unit").toEqual(["L>R", "L>R", "Off"]);
+    await recallScene(shell.ctx, no);
+    expect(links()).toEqual(["Off", "Off", "Off"]);
+  });
+
   it("lays P04 to P07 over 00 Initial Data, as the unit holds them", async () => {
     const shell = await mount();
     const s = shell.ctx.store;
@@ -359,7 +368,11 @@ describe("storing and recalling a scene", () => {
       true,
     ]);
     expect([s.str("ch.ch_5_6.source", ""), s.str("ch.ch_5_6.recPoint", ""), s.bool("ch.ch_7_8.send.bus.stereo.on", true)]).toEqual(["USB DAW 1/2", "PRE EQ", false]);
-    expect([s.str("ch.bus.stereo.name", ""), s.num("ch.bus.stereo.level", 0)], "STEREO down").toEqual(["Main", LEVEL_MIN_DB]);
+    expect([s.str("ch.bus.stereo.name", ""), s.num("ch.bus.stereo.level", 0), s.str("ch.bus.mix1.geq.link", "")], "STEREO down, MIX's GEQ Link as 00 holds it").toEqual([
+      "Main",
+      LEVEL_MIN_DB,
+      "Off",
+    ]);
     expect(s.num("scene.current", -1)).toBe(104);
 
     await recallScene(shell.ctx, 105);
