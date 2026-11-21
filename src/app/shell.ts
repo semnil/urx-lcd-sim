@@ -360,8 +360,9 @@ export class Shell {
 
   /**
    * The step that puts each list carrying `data-scroll-keep` back where the list
-   * of the same mark was scrolled before the redraw. A list whose mark no list
-   * carried before the redraw starts from its top.
+   * of the same mark was scrolled before the redraw, marking it
+   * `data-scroll-carried`. A list whose mark no list carried before the redraw
+   * starts from its top.
    */
   private scrollPlace(): () => void {
     const lists = (): HTMLElement[] => [...this.mainNode.querySelectorAll<HTMLElement>("[data-scroll-keep]")];
@@ -369,7 +370,9 @@ export class Shell {
     return () => {
       for (const node of lists()) {
         const top = was.get(node.dataset.scrollKeep);
-        if (top !== undefined) node.scrollTop = top;
+        if (top === undefined) continue;
+        node.scrollTop = top;
+        node.toggleAttribute("data-scroll-carried", true);
       }
     };
   }
