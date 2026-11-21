@@ -551,4 +551,31 @@ test("brings SCENE LIST's selected row into view when the selection moves from o
   await page.waitForTimeout(100);
   expect(await top(), "a redraw with the selection where it was").toBe(0);
   expect(await inView("30")).toBe(false);
+
+  // Opened again with the selection where it was: the row is in view.
+  await glass.locator('[aria-label="Back"]').first().click();
+  await glass.getByRole("button", { name: "Scene List", exact: true }).click();
+  await expect.poll(() => inView("30"), "30, on the list opened again").toBe(true);
+
+  // A row partly in view, touched, stays where it was touched.
+  await body.evaluate((n) => (n.scrollTop = 10));
+  const partial = await body.evaluate((n) => {
+    const view = n.getBoundingClientRect();
+    const row = [...n.querySelectorAll(".list-row")].find((r) => {
+      const at = r.getBoundingClientRect();
+      return at.top < view.bottom && at.bottom > view.bottom;
+    });
+    return row?.querySelector(".scene-no")?.textContent ?? null;
+  });
+  expect(partial, "a row cut by the list's foot").not.toBeNull();
+  await body.locator(".list-row", { has: page.locator(".scene-no", { hasText: new RegExp(`^${partial}$`) }) }).click({ position: { x: 20, y: 4 } });
+  await page.waitForTimeout(100);
+  expect(await top(), "the list where it was").toBe(10);
+
+  // Moved while the glass cannot be shown: the row comes into view once it can.
+  await page.evaluate(() => (document.getElementById("slot")!.style.display = "none"));
+  await select(50);
+  await page.waitForTimeout(100);
+  await page.evaluate(() => (document.getElementById("slot")!.style.display = ""));
+  await expect.poll(() => inView("50"), "50, once the glass is shown again").toBe(true);
 });

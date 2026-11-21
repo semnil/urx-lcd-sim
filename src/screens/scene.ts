@@ -23,8 +23,12 @@ import { dropGeqOverRate } from "./geq";
 import { keptByRecallSafe } from "./recall-safe";
 import type { ParamValue } from "../device/path";
 
-/** The row each unit's SCENE LIST was last drawn with selected. */
-const lastSelected = new WeakMap<object, number>();
+/**
+ * Per unit: the selection SCENE LIST has brought into view, or that a touch on
+ * the list made (the row touched is in view already), and the list's body last drawn.
+ */
+const followed = new WeakMap<object, number>();
+const lastBody = new WeakMap<object, HTMLElement>();
 
 /**
  * Scroll the list by whole rows until `row` stands in it entire, the least
@@ -40,6 +44,26 @@ function bringIntoView(body: HTMLElement, row: HTMLElement | undefined): void {
   const below = (at.bottom - view.bottom) / scale;
   if (above > 0.5) body.scrollTop -= Math.ceil(above / SCENE_ROW_PITCH_PX) * SCENE_ROW_PITCH_PX;
   else if (below > 0.5) body.scrollTop += Math.ceil(below / SCENE_ROW_PITCH_PX) * SCENE_ROW_PITCH_PX;
+}
+
+/**
+ * Bring the selected row into view and count the selection as followed, once
+ * the list stands in the page with a height; a list drawn while it cannot be
+ * shown (taken out of the page, or with no height) waits until it can. A list
+ * drawn again in its place stops the wait: that draw follows the selection.
+ */
+function follow(store: object, body: HTMLElement, row: HTMLElement | undefined, selected: number): void {
+  const apply = (): boolean => {
+    if (!row || !body.isConnected || body.clientHeight === 0) return false;
+    bringIntoView(body, row);
+    followed.set(store, selected);
+    return true;
+  };
+  if (apply() || typeof ResizeObserver === "undefined") return;
+  const watch = new ResizeObserver(() => {
+    if (lastBody.get(store) !== body || apply()) watch.disconnect();
+  });
+  watch.observe(body);
 }
 
 /** The numbers a unit stores scenes under run from 1 to this. */
@@ -292,7 +316,10 @@ export const sceneScreen: ScreenDef = {
       return {
         key: String(no),
         selected: no === selected,
-        onTap: writing("scene.selected", () => void ctx.store.set("scene.selected", no)),
+        onTap: writing("scene.selected", () => {
+          followed.set(ctx.store, no);
+          void ctx.store.set("scene.selected", no);
+        }),
         description: marks.join(", ") || undefined,
         cells: [
           el("span", {
@@ -365,15 +392,18 @@ export const sceneScreen: ScreenDef = {
     // A touch on a row leaves the list where it was scrolled; the other bank starts from its top.
     const bar = body ? scrollbar(body, SCENE_TRACK_PX, SCENE_ROW_PITCH_PX, false, 0, LIST_THUMB_MIN_PX, { ctx, key: "scene.list", keep: bank }) : null;
     bar?.classList.add("scene-scrollbar");
-    // A selection moved from outside the list — the connected unit's cursor, a settings file —
-    // brings its row into view once the redraw has put the list back where it was scrolled, and
-    // so does the first draw. A row touched on the list is in view already, and a list scrolled
-    // by hand with the selection where it was stays put.
-    const before = lastSelected.get(ctx.store);
-    lastSelected.set(ctx.store, selected);
-    if (body && before !== selected) {
+    // A list that starts afresh — opened, or on the other tab — brings the selected row into view,
+    // and so does a list drawn again in its place once the selection has moved from outside the
+    // list (the connected unit's cursor, a settings file): after the redraw has put the list back
+    // where it was scrolled. A row touched on the list stays where it was touched, and a list
+    // scrolled by hand stays where it is while the selection does not move.
+    if (body) {
+      lastBody.set(ctx.store, body);
       const row = body.querySelectorAll<HTMLElement>(".list-row")[listed.indexOf(selected)];
-      queueMicrotask(() => bringIntoView(body, row));
+      queueMicrotask(() => {
+        const carried = body.hasAttribute("data-scroll-carried");
+        if (!carried || followed.get(ctx.store) !== selected) follow(ctx.store, body, row, selected);
+      });
     }
 
     const main = el("div", {
