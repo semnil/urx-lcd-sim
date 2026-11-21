@@ -22,6 +22,7 @@ import { toJson } from "../device/value-json";
 import { dropGeqOverRate } from "./geq";
 import { keptByRecallSafe } from "./recall-safe";
 import type { ParamValue } from "../device/path";
+import type { DeviceStore } from "../device/store";
 
 /** What SCENE LIST knows of following its selection, per unit. */
 interface FollowState {
@@ -29,17 +30,34 @@ interface FollowState {
   followed?: number;
   /** A follow a draw asked for that has not reached a list that could show it. */
   pending: boolean;
-  /** A touch on a row whose write has not settled: the row touched and the one selected before it. */
+  /**
+   * The touches on rows whose writes have not settled: the last row touched, and the row
+   * selected before the first of them, which a refusal puts back.
+   */
   tap?: { no: number; from: number } | undefined;
+  /** How many of those writes are out. */
+  writes: number;
   /** The list last drawn, and the wait for it to have a height. */
   body?: HTMLElement;
   watch?: ResizeObserver | undefined;
 }
-const follows = new WeakMap<object, FollowState>();
-function followState(store: object): FollowState {
+const follows = new WeakMap<DeviceStore, FollowState>();
+function followState(store: DeviceStore): FollowState {
   let st = follows.get(store);
-  if (!st) follows.set(store, (st = { pending: false }));
-  return st;
+  if (st) return st;
+  const state: FollowState = { pending: false, writes: 0 };
+  follows.set(store, state);
+  // A refusal of the last touch's write puts back the row before the touches, which the list
+  // stands on still; it is heard before the redraw that shows it. A refusal of an earlier touch's
+  // write, with a later one still out, is that one's to settle, and a value other than the row
+  // before them is the unit's own.
+  store.onWriteFailure((f) => {
+    if (f.path !== "scene.selected" || state.writes > 1 || !state.tap) return;
+    const from = state.tap.from;
+    state.tap = undefined;
+    if (f.restored === from) state.followed = from;
+  });
+  return state;
 }
 
 /**
@@ -335,27 +353,19 @@ export const sceneScreen: ScreenDef = {
           // The row touched is in view: neither its own selection nor a refusal that puts the
           // one before it back moves the list. Once the write has settled, a move is from outside.
           const st = followState(ctx.store);
-          const tap = { no, from: selected };
-          st.tap = tap;
-          // A refusal puts the row before it back, which the list stands on still; it is heard
-          // before the redraw that shows it, and anything after it is a move from outside.
-          const off = ctx.store.onWriteFailure((f) => {
-            if (f.path !== "scene.selected" || st.tap !== tap) return;
-            st.tap = undefined;
-            st.followed = ctx.store.num("scene.selected", tap.from);
-            off();
-          });
+          st.tap = { no, from: st.tap ? st.tap.from : selected };
+          st.followed = no;
+          st.writes++;
           void ctx.store.set("scene.selected", no).then(() => {
-            off();
-            if (st.tap !== tap) return;
+            st.writes--;
+            if (st.writes > 0 || !st.tap) return;
             st.tap = undefined;
-            st.followed = no;
           });
           // A path the unit cannot take at all is put back at once, before its refusal is heard.
-          if (ctx.store.num("scene.selected", tap.from) !== no) {
-            off();
+          const now = ctx.store.num("scene.selected", no);
+          if (now !== no && st.tap) {
+            if (now === st.tap.from) st.followed = now;
             st.tap = undefined;
-            st.followed = ctx.store.num("scene.selected", tap.from);
           }
         }),
         description: marks.join(", ") || undefined,
@@ -440,12 +450,11 @@ export const sceneScreen: ScreenDef = {
       st.body = body;
       const row = body.querySelectorAll<HTMLElement>(".list-row")[listed.indexOf(selected)];
       queueMicrotask(() => {
-        if (st.tap && (selected === st.tap.no || selected === st.tap.from)) {
-          st.followed = selected;
-          return;
-        }
+        const carried = body.hasAttribute("data-scroll-carried");
+        // The row touched, on the list it was touched on, stays where it was touched.
+        if (carried && st.tap && selected === st.tap.no) return;
         // A follow this draw asked for passes to a draw that replaced it before it could run.
-        if (!body.hasAttribute("data-scroll-carried") || st.followed !== selected) st.pending = true;
+        if (!carried || st.followed !== selected) st.pending = true;
         if (st.pending && st.body === body) follow(st, body, row, selected);
       });
     }

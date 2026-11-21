@@ -230,3 +230,53 @@ it("brings a selection moved while the glass could not be shown into view once i
   expect([g.state().selected, g.state().inView]).toEqual(["40", true]);
   expect([Math.max(...watches), ObservedSizes.observations.size]).toEqual([1, 0]);
 });
+
+it("brings the selection into view on a list opened again while a touch's write is out", async () => {
+  const g = await mount([["scene.selected", 2]]);
+  const refuse = refuseSelection(g, "later");
+  await g.open();
+  g.list().scrollTop = 1444;
+  g.list().querySelectorAll<HTMLElement>(".list-row")[40]!.click();
+  await flush();
+  g.click('[aria-label="Back"]');
+  await flush();
+  g.menu();
+  await flush();
+  expect([g.state().selected, g.state().inView], "40, on the list opened again").toEqual(["40", true]);
+  refuse();
+  await flush();
+});
+
+it("follows the unit's move back onto the row selected before a touch whose write is out", async () => {
+  const g = await mount([["scene.selected", 40]]);
+  refuseSelection(g, "later");
+  await g.open();
+  g.list().scrollTop = 10;
+  g.list().querySelectorAll<HTMLElement>(".list-row")[3]!.click();
+  await flush();
+  g.transport.inject("scene.selected", 40);
+  await flush();
+  expect([g.state().selected, g.state().inView]).toEqual(["40", true]);
+});
+
+it("leaves the list where it was scrolled when two touches in a row are refused in turn", async () => {
+  const g = await mount([["scene.selected", 40]]);
+  const ordinaryWrite = g.transport.write.bind(g.transport);
+  const refusals: (() => void)[] = [];
+  g.transport.write = (path, value, sent) => {
+    if (path !== "scene.selected") return ordinaryWrite(path, value, sent);
+    sent?.();
+    return new Promise((_, fail) => refusals.push(() => fail(new Error("refused"))));
+  };
+  await g.open();
+  g.list().scrollTop = 10;
+  g.list().querySelectorAll<HTMLElement>(".list-row")[3]!.click();
+  await flush();
+  g.list().querySelectorAll<HTMLElement>(".list-row")[3]!.click();
+  await flush();
+  for (const refuse of refusals) {
+    refuse();
+    await flush();
+  }
+  expect([g.state().selected, g.list().scrollTop]).toEqual(["40", 10]);
+});
