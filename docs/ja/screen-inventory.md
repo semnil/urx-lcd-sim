@@ -1847,19 +1847,22 @@ BALANCE は中央に戻る。送り先を持たないファイルでは [Sends] 
 
 Standard と Simple のタブは、SAMPLING FREQUENCY の周波数と同じく両端だけを丸めた 1 本のグループボタンになる。
 Standard タブは 00 Initial Data と 01〜63 の番号を並べ、Simple タブは工場プリセットの P01〜P03 と、Standard にシーンが保存されて
-いない番号を並べる (ユーザーガイド「SCENE screen」の Scene list と NOTE)。保存の無い番号の題は空欄。バーのつまみは
+いない番号を並べる (ユーザーガイド「SCENE screen」の Scene list と NOTE)。System ファームウェア V1.5 からは、Standard タブの
+00 と 01 の間に工場プリセットの P04 Music Production・P05 DAW Streaming・P06 Sing&Talk Stream・P07 Game Streaming が並ぶ
+(p076-1。URX22 と URX44V で実機確認)。Simple タブには並ばない (URX22 で実機確認)。保存の無い番号の題は空欄。バーのつまみは
 短くても 15px (p076-1・p077-1 とも y110..124)。HOME の箱と SCENE LIST の左上の箱は、どちらも一覧で選んでいるシーンの
 番号と題を一覧と同じ規則で出し (p077-1 は選んでいる 02)、工場出荷の状態では `00 Initial Data`。選んでいる行が呼び出し中の
 シーン (▶ の行) でないあいだは、番号が 2 秒周期で徐々に消えて戻り、題は常に出す (実機確認。HOME の箱では、
 Simple タブで P01 を選ぶと `P01 Live Music 0` の番号が明滅し、呼び出し中の Standard の 07 を選ぶと `07 Initial Data` で明滅しない)。
 動きを減らす設定 (`prefers-reduced-motion: reduce`) では番号は明滅せず、代わりにどちらの箱も、呼び出し中のシーンを出している
 あいだだけ一覧と同じ ▶ を番号の左に出す。実機の箱は ▶ を出さない (D0 p073-1 の箱は、一覧で ▶ の付いた P01 を ▶ なしで出す)。
-工場プリセットの番号はどちらの箱でも `--scene-preset` の緑 (HOME の箱は、Standard Mode で Simple タブの P01 を選んだときを
-実機確認)。一覧と SCENE LIST の左上の箱の番号は題と同じ大きさの字で、題と下端を揃える (p077-1 の 02 と
-`01234-56789` はどちらも y162..170、p076-1 の箱の P01 と `Live Music 0` は y18..26 と y17..26)。
+P01〜P03 の番号は、一覧でもどちらの箱でも `--scene-preset` の緑 (D0 p073-1。HOME の箱は、Standard Mode で Simple タブの P01 を
+選んだときを実機確認)。P04〜P07 の番号はユーザーのシーンと同じに描く (p076-1 の一覧の P05・P06 と箱の P04)。箱に収まらない長さの題は
+末尾を `...` にする (p076-1 の `Music Prod...`)。一覧と SCENE LIST の左上の箱の番号は題と同じ大きさの字で、題と下端を揃える
+(p077-1 の 02 と `01234-56789` はどちらも y162..170、p076-1 の箱の P04 と `Music Prod...` は y18..26 と y17..26)。
 
 最後に呼び出したシーンの ▶ は、Store/Recall タブで番号の左に出る (D0 p073-1 の x12..19 / y124..131)。Edit タブ (p077-1) は
-同じ行でも出さない。番号は ▶ の有無によらず x23 から置く。工場出荷のシーン (00 と P01〜P03) の Lock 欄は、のこぎり屋根と煙突と窓 3 つの
+同じ行でも出さない。番号は ▶ の有無によらず x23 から置く。工場出荷のシーン (00 と P01〜P07) の Lock 欄は、のこぎり屋根と煙突と窓 3 つの
 工場の印 (p076-1 の x344..363 / y118..137)。工場出荷のシーンには保存も編集もできない。見出しの `Title` は列の中心ではなく x122 から置き、`No.` と `Lock` は
 それぞれの欄の中心に置く。
 
@@ -1876,20 +1879,33 @@ Simple タブで P01 を選ぶと `P01 Live Music 0` の番号が明滅し、呼
 出力パッチと STREAMING も持つ。STREAMING の DELAY のフレームレートだけは持たない (URX22 と URX44V で確認)。[CUE] は持たず、
 呼び出しても CUE は動かない (ガイドの、シーンに保存しない設定の一覧)。00 Initial Data は工場出荷のミキサーを
 戻し、出力パッチも工場出荷の値に戻す (URX44V で確認、USB SUB で)。P01 も出力パッチと STREAMING を工場出荷の値に戻す
-(URX44V で確認、USB SUB と STREAMING の送り元で)。P01〜P03 は工場出荷のミキサーに自分の設定を重ねる。主な設定は次のとおりで、プリセットが変える値の全体は
-`src/model/scene-presets.ts` にある。表のチャンネルはモノ CH とステレオ CH のそれぞれに若い番号から当てる。モノ CH は HI-Z
-端子のもの (表では CH 3-4) とそれ以外を分けて当て、URX22 では CH 1 が表の CH 1 を、HI-Z 端子の CH 2 が表の CH 3 を、ステレオ
-CH の CH 3/4〜9/10 が表の 4 本を取る。
+(URX44V で確認、USB SUB と STREAMING の送り元で)。どのプリセットも、00 Initial Data に自分の設定を
+重ねる (P01〜P03 は URX22 で、P04〜P07 は URX22 と URX44V で確認。シミュレーターが持つ値は、どれも本体から読んだ値とシミュレーターが
+置く値が一致した)。
+主な設定は次のとおりで、プリセットが変える値の全体は
+`src/model/scene-presets.ts` にある。表のチャンネルはモノ CH とステレオ CH のそれぞれに若い番号から当てる。URX22 では、ステレオ
+CH の CH 3/4〜9/10 が表の 4 本を取り、2 本のモノ CH が表の 4 本のうち 2 本を取る。P01〜P03 では CH 1 が表の CH 1 を、HI-Z 端子の
+CH 2 が表の CH 3 を取る。P04 では表の CH 3 と CH 4、P05 では CH 1 と CH 3、P06 と P07 では CH 1 と CH 2 を取る (URX22 で確認)。
 
 | プリセット | モノ CH | ステレオ CH (若い番号から) |
 | --- | --- | --- |
 | P01 Live Music 0 | CH 1-4 が `Dyn.Mic` (A.Gain +40 dB・HPF・COMP・1-knob EQ) | AUX IN / USB MAIN A / USB SUB / None |
 | P02 Streaming 0 | CH 1-2 が `Dyn.Mic`、CH 3-4 が `Gt./Ba.` (HI-Z・A.Gain +15 dB・EQ 切) | AUX IN / USB MAIN A / USB SUB / None |
 | P03 DAW Rec 0 | CH 1-2 が `Dyn.Mic`、CH 3-4 が `Gt./Ba.`、どれも Rec Point は PRE GATE・EQ 切 | USB DAW 1/2 / None / None / None、どれも Rec Point は PRE EQ |
+| P04 Music Production | CH 1-2 が `Keys L` / `Keys R` で BAL のペアにリンク、CH 3 が `Vocal` (A.Gain +40 dB・HPF・COMP・1-knob EQ)、CH 4 が `E. Gt` (HI-Z・A.Gain +10 dB・Insert FX の Clean)、どれも Rec Point は PRE GATE | USB DAW 1/2 / USB DAW 3/4 / USB DAW 5/6 / AUX IN、名前は `DAW PB 1`・`DAW PB 2`・`Click`・`AUX`、どれも Rec Point は PRE EQ |
+| P05 DAW Streaming | CH 1-2 が `Vocal 1` / `Vocal 2` (A.Gain +40 dB・HPF・COMP・1-knob EQ)、CH 3 が `EA. Gt` (HI-Z・A.Gain +15 dB)、CH 4 が P04 と同じ `E. Gt` | USB DAW 1/2 / USB DAW 3/4 / USB MAIN B / AUX IN、名前は `DAW PB 1`・`DAW PB 2`・`Music` (DUCKER 入)・`AUX` |
+| P06 Sing&Talk Stream | CH 1 が `Talk` (P04 の `Vocal` と同じ)、CH 2 が `Singing` (同じく。+48V・A.Gain +30 dB)、CH 3-4 が P04 と同じくリンクした `Keys L` / `Keys R` | USB MAIN A / USB MAIN B / USB SUB / AUX IN、名前は `Karaoke`・`Music` (DUCKER 入)・`SE`・`AUX` |
+| P07 Game Streaming | CH 1 が `Talk` (P06 と同じで GATE 入)、CH 2-4 は名前が `CH 2`〜`CH 4` でフェーダーが下端 | USB MAIN A / USB MAIN B / USB MAIN C / USB SUB、名前は `Game`・`Music`・`V. Chat`・`USB SUB` |
 
-3 つとも、チャンネルと STEREO のフェーダーを下端にし、MIX への送りをフェーダーの前から取り、FX 1 を `Reverb` の名前の
+P01〜P03 は、チャンネルと STEREO のフェーダーを下端にし、MIX への送りをフェーダーの前から取り、FX 1 を `Reverb` の名前の
 Rev-X Plate にして 0 dB で戻し、FX 2 を切って名前を空にし、MIX 2 の名前を `MIX3` にし、D.Gain を 0 dB にし、モノ CH の SSMCS を切る。
 P01・P02 の 1-knob EQ は、Level の掛かる元のゲインを HIGH だけ +7 dB で持ち、バンドの HIGH は 0 dB を示す。
+
+P04〜P07 は、STEREO のフェーダーを下端にし、FX 1 を `Reverb`・FX 2 を `Delay` の名前にしてどちらも 0 dB で戻し、両方の MIX へ
+0 dB で送り、MIX の名前を `Monitor1`・`Monitor2` (P07 は `Monitor`・`V. Chat`) にする。P04・P05 は送りをフェーダーの前から取り、
+P07 は MIX 2 への送りを切る。声のチャンネルの 1-knob EQ は、Level の掛かる元のゲインをバンドと同じ値で持ち、Level は 50。
+P05〜P07 は USB MAIN A と USB SUB を STREAMING に、P06・P07 は USB MAIN B と C を MIX 1 と MIX 2 にする。P06 は STEREO に
+Insert FX の M.B.Comp を掛ける。
 
 Edit タブ (p077-1) は下端の [Store] / [Recall] に代えて、字形だけのボタン [Protect]・[Delete]・[Title] を並べる (面は
 x6..95・x149..238・x291..380、字形は錠 16x21・ごみ箱 16x18・名前変更 20x20)。
