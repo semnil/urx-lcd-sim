@@ -2318,16 +2318,17 @@ describe("the SCENE menu the scene box opens", () => {
     shell.ctx.nav.push({ id: "scene.list" });
     await flush();
     const numbers = [...shell.root.querySelectorAll(".scene-list .list-row .scene-no")];
-    expect(numbers.slice(1, 4).map((n) => n.textContent)).toEqual(["01", "02", "03"]);
+    // 00 and P04 to P07 come first.
+    expect(numbers.slice(5, 8).map((n) => n.textContent)).toEqual(["01", "02", "03"]);
     const marks = (): (string | null)[] =>
       [...shell.root.querySelectorAll(".scene-list .list-row .scene-no")].map((n) => n.querySelector("svg")?.getAttribute("class") ?? null);
-    expect(marks().slice(1, 4), "Store/Recall").toEqual([null, "icon-recalled", null]);
+    expect(marks().slice(5, 8), "Store/Recall").toEqual([null, "icon-recalled", null]);
     await shell.ctx.store.set("ui.sceneMenu", "Edit");
     await flush();
-    expect(marks().slice(1, 4), "Edit draws no mark").toEqual([null, null, null]);
+    expect(marks().slice(5, 8), "Edit draws no mark").toEqual([null, null, null]);
   });
 
-  it("lists 00 and every number from 01 to 63 on Standard, and on Simple the presets before the numbers Standard has not stored", async () => {
+  it("lists 00, P04 to P07 and every number from 01 to 63 on Standard, and on Simple P01 to P03 before the numbers Standard has not stored", async () => {
     const shell = await mount();
     await shell.ctx.store.set("scene.Standard.3.title", "Band");
     shell.ctx.nav.openTop({ id: "scene" });
@@ -2336,17 +2337,28 @@ describe("the SCENE menu the scene box opens", () => {
     const rows = (): Element[] => [...shell.root.querySelectorAll(".scene-list .list-row")];
     const numbers = (): string[] => rows().map((r) => r.querySelector(".scene-no")?.textContent ?? "");
     const titles = (): string[] => rows().map((r) => r.querySelectorAll(".list-cell")[1]?.textContent ?? "");
-    expect(numbers()).toEqual(Array.from({ length: 64 }, (_, i) => String(i).padStart(2, "0")));
-    expect(titles().slice(0, 5), "a number with nothing stored has no title").toEqual(["Initial Data", "", "", "Band", ""]);
+    expect(numbers()).toEqual(["00", "P04", "P05", "P06", "P07", ...Array.from({ length: 63 }, (_, i) => String(i + 1).padStart(2, "0"))]);
+    expect(titles().slice(0, 5), "the presets System firmware V1.5 lists between 00 and 01").toEqual([
+      "Initial Data",
+      "Music Production",
+      "DAW Streaming",
+      "Sing&Talk Stream",
+      "Game Streaming",
+    ]);
+    expect(titles().slice(5, 9), "a number with nothing stored has no title").toEqual(["", "", "Band", ""]);
     const factories = (): number[] => rows().flatMap((r, i) => (r.querySelector(".scene-lock .icon-factory") ? [i] : []));
-    expect(factories(), "00 alone carries the factory").toEqual([0]);
+    expect(factories(), "00 and P04 to P07 carry the factory").toEqual([0, 1, 2, 3, 4]);
+    const green = (): number[] => rows().flatMap((r, i) => (r.querySelector(".scene-no.is-preset") ? [i] : []));
+    expect(green(), "P04 to P07 numbered as a user scene is").toEqual([]);
     expect(rows()[0]?.classList.contains("is-selected"), "the first row until one is picked").toBe(true);
     await shell.ctx.store.set("scene.bank", "Simple");
     await flush();
     expect(numbers().slice(0, 5)).toEqual(["P01", "P02", "P03", "01", "02"]);
     expect(numbers(), "Standard's 03 is not on Simple").not.toContain("03");
     expect(numbers(), "nor is 00").not.toContain("00");
+    expect(numbers(), "nor P04").not.toContain("P04");
     expect(factories(), "the presets").toEqual([0, 1, 2]);
+    expect(green(), "P02 and P03 green, P01 standing on the selection").toEqual([1, 2]);
     expect(numbers()).toHaveLength(3 + 62);
     expect(rows()[0]?.classList.contains("is-selected"), "the first preset").toBe(true);
   });
@@ -2357,9 +2369,9 @@ describe("the SCENE menu the scene box opens", () => {
     shell.ctx.nav.push({ id: "scene.list" });
     await flush();
     const rows = (): Element[] => [...shell.root.querySelectorAll(".scene-list .list-row")];
-    rows()[5]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    rows()[9]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await flush();
-    expect(shell.ctx.store.num("scene.selected", -1), "05 on Standard").toBe(5);
+    expect(shell.ctx.store.num("scene.selected", -1), "05 on Standard, below 00 and P04 to P07").toBe(5);
     [...shell.root.querySelectorAll<HTMLElement>(".scene-bank")].find((b) => b.textContent === "Simple")?.click();
     await flush();
     expect(rows().findIndex((r) => r.classList.contains("is-selected")), "P01, though Simple lists 05 too").toBe(0);
@@ -2457,7 +2469,8 @@ describe("the SCENE menu the scene box opens", () => {
     expect(described(), "and told so to assistive technology").toBe("recalled");
 
     await shell.ctx.store.set("scene.Standard.3.title", "Band");
-    await pickOnList("Standard", 3);
+    // 03 stands below 00 and P04 to P07.
+    await pickOnList("Standard", 7);
     expect(box(), "the row picked").toEqual(["03", "Band"]);
     expect(number()?.contains("is-pending"), "blinking while it is not the scene recalled").toBe(true);
     expect(described(), "and not told it is").toBeNull();
@@ -2470,6 +2483,10 @@ describe("the SCENE menu the scene box opens", () => {
     await pickOnList("Simple", 0);
     expect(box(), "a preset picked on the Simple tab").toEqual(["P01", "Live Music 0"]);
     expect([number()?.contains("is-preset"), number()?.contains("is-pending")]).toEqual([true, true]);
+
+    await pickOnList("Standard", 1);
+    expect(box(), "a preset picked on the Standard tab").toEqual(["P04", "Music Production"]);
+    expect([number()?.contains("is-preset"), number()?.contains("is-pending")], "drawn as a user scene's").toEqual([false, true]);
   });
 
   it("marks the recalled scene with the list's mark in the scene box on HOME, the bank list, the Sends sheet and SCENE LIST, and not a scene picked and not recalled", async () => {
@@ -2530,7 +2547,8 @@ describe("the SCENE menu the scene box opens", () => {
     expect(shell.root.querySelector(".scene-box-static .scene-no.is-preset"), "green only for a preset").toBeNull();
     expect(pending(), "its number blinks while the scene picked is not the one recalled").toBe(true);
     expect(shell.root.querySelector(".scene-box-static")?.getAttribute("aria-description"), "and is not told to be the one recalled").toBeNull();
-    shell.root.querySelectorAll<HTMLElement>(".scene-list .list-row")[2]?.click();
+    // 02 stands below 00 and P04 to P07.
+    shell.root.querySelectorAll<HTMLElement>(".scene-list .list-row")[6]?.click();
     await flush();
     expect(box()).toEqual(["02", "Band"]);
     await shell.ctx.store.set("scene.current", 2);
@@ -2613,8 +2631,9 @@ describe("the SCENE menu the scene box opens", () => {
     expect(editButtons(shell).map((b) => b.querySelector("svg")?.getAttribute("class"))).toEqual(["icon-lock", "icon-trash", "icon-rename"]);
     expect(pick(shell, ".scene-actions .btn", "Store"), "Store and Recall give way to them").toBeUndefined();
     expect(shut(shell), "a stored scene").toEqual([false, false, false]);
+    // 01 stands below 00 and P04 to P07.
     const padlock = (): Element | null | undefined =>
-      shell.root.querySelectorAll(".scene-list .list-row")[1]?.querySelector(".scene-lock.is-protected .icon-lock");
+      shell.root.querySelectorAll(".scene-list .list-row")[5]?.querySelector(".scene-lock.is-protected .icon-lock");
     expect(padlock()).toBeNull();
 
     await tap(editButtons(shell)[0]);

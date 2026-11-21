@@ -353,7 +353,7 @@
   --safe-off-band: #4a4e55; /* the band at the foot of an Others button while it keeps nothing: no figure shows it */
   --safe-band: #bdbebd; /* the Others tab's separator bands */
   --accent-selected: #84dfff; /* selected list row, selected option button */
-  --scene-preset: #4adb5a; /* the number of a scene the unit ships with */
+  --scene-preset: #4adb5a; /* the number of Simple Mode's presets, P01 to P03 */
   --scene-protect: #32eb73; /* a protected scene's Lock cell */
   --accent-cue: #d6ced6; /* [CUE] button when off */
   --readout: #42454a; /* the multi-function knob readout: the bar's face */

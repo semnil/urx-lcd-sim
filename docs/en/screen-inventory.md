@@ -2141,7 +2141,10 @@ played, it stayed on the folder.
 
 The Standard and Simple tabs are one grouped button rounded at its two ends only, like SAMPLING FREQUENCY's frequencies.
 The Standard tab lists 00 Initial Data and the numbers 01 to 63, and the Simple tab the factory presets P01 to P03 followed by the
-numbers Standard holds no scene under (Scene list and its NOTE in the user guide's "SCENE screen"). A number with
+numbers Standard holds no scene under (Scene list and its NOTE in the user guide's "SCENE screen"). Since System firmware V1.5 the
+Standard tab lists the factory presets P04 Music Production, P05 DAW Streaming, P06 Sing&Talk Stream and P07 Game Streaming
+between 00 and 01 (p076-1, and confirmed on a URX22 and a URX44V), and the Simple tab does not list them (confirmed on a
+URX22). A number with
 nothing stored under it has an empty title. The bar's thumb draws no shorter than 15px (y110..124 in both p076-1 and
 p077-1). The HOME box and SCENE LIST's top-left box both name the scene picked on the list by the list's rules (the picked
 02 in p077-1), `00 Initial Data` on a factory unit. While the row picked is not the recalled scene (the row with the ▶),
@@ -2149,14 +2152,16 @@ the number fades out and back in over two seconds, and the title stays (confirme
 box, picking P01 on the Simple tab blinks the number of `P01 Live Music 0`, and picking the recalled 07 on the
 Standard tab shows `07 Initial Data` without a blink). Where motion is reduced (`prefers-reduced-motion: reduce`) the
 number holds still, and either box instead puts the list's ▶ ahead of its number while it names the recalled scene. The
-unit's box draws no ▶ (D0 p073-1's box names P01, which carries the ▶ on the list, without one). A preset's number is `--scene-preset` green in either box (for the
-HOME box, P01 picked on the Simple tab in Standard Mode, confirmed on the unit). The numbers on the list
+unit's box draws no ▶ (D0 p073-1's box names P01, which carries the ▶ on the list, without one). The number of P01 to P03 is
+`--scene-preset` green on the list and in either box (D0 p073-1; for the HOME box, P01 picked on the Simple tab in Standard
+Mode, confirmed on the unit), and that of P04 to P07 is drawn as a user scene's (P05 and P06 on the list and P04 in the box
+in p076-1). A title longer than the box ends in `...` (`Music Prod...` in p076-1). The numbers on the list
 and in SCENE LIST's top-left box are set at the title's size, on the title's baseline (02 and `01234-56789` both at
-y162..170 in p077-1, and the box's P01 and `Live Music 0` at y18..26 and y17..26 in p076-1).
+y162..170 in p077-1, and the box's P04 and `Music Prod...` at y18..26 and y17..26 in p076-1).
 
 The ▶ of the last recalled scene stands left of its number on the Store/Recall tab (x12..19 / y124..131 in D0 p073-1).
 The Edit tab (p077-1) does not draw it on the same row. The number starts at x23 with or without the ▶. The Lock cell
-of a scene the unit ships with (00 and P01 to P03) carries a factory: a sawtooth roof, a chimney and three windows
+of a scene the unit ships with (00 and P01 to P07) carries a factory: a sawtooth roof, a chimney and three windows
 (x344..363 / y118..137 in p076-1). A scene the unit ships with cannot be stored over or edited.
 The heading `Title` starts at x122 rather than over the middle of its column, and `No.` and `Lock` stand over the
 middle of their cells.
@@ -2177,22 +2182,38 @@ none for comes back to the centre. A recall leaves the destination HOME's [Sends
 holds the output patch and the streaming bus as well, but for the streaming bus's DELAY frame rate (confirmed on
 a URX22 and a URX44V), and it holds no [CUE], so a recall leaves the cues where they stand (the guide's list of what
 a scene does not save). 00 Initial Data puts the factory
-mixer back, and the factory output patch with it (confirmed on a URX44V, for USB SUB). P01 puts the factory output
-patch and streaming bus back as well (confirmed on a URX44V, for USB SUB and the streaming bus's source). P01 to P03 lay settings of their own over the factory mixer. The main ones are below; the whole of what a preset
+mixer back, and the factory output patch with it (confirmed on a URX44V, for USB SUB), but with each MIX's GEQ Link off where
+the factory holds it on L>R (confirmed on a URX22 and a URX44V; P01 to P07 hold it off too). P01 puts the factory output
+patch and streaming bus back as well (confirmed on a URX44V, for USB SUB and the streaming bus's source). Each preset lays settings
+of its own over 00 Initial Data (P01 to P03 confirmed on a URX22, P04 to P07 on a URX22 and a URX44V, on every value of the scene
+but the SSMCS values of a channel whose COMP/EQ Type is not SSMCS and the BALANCE of an unlinked mono channel). The main ones are below; the whole of what a preset
 changes is in `src/model/scene-presets.ts`. The table's channels go onto the mono and the stereo channels from the lowest
-number up, the mono channels on a HI-Z connector (CH 3-4 in the table) apart from the rest: on a URX22, CH 1 takes the
-table's CH 1, CH 2 on its HI-Z connector takes the table's CH 3, and CH 3/4 to 9/10 take its four stereo channels.
+number up. On a URX22, CH 3/4 to 9/10 take the table's four stereo channels, and its two mono channels take two of the table's
+four: CH 1 the table's CH 1 and CH 2, on its HI-Z connector, the table's CH 3 on P01 to P03; CH 3 and CH 4 on P04; CH 1 and CH 3
+on P05; CH 1 and CH 2 on P06 and P07 (confirmed on a URX22).
 
 | Preset | Mono channels | Stereo channels (lowest number first) |
 | --- | --- | --- |
 | P01 Live Music 0 | CH 1-4 `Dyn.Mic` (A.Gain +40 dB, HPF, COMP, 1-knob EQ) | AUX IN / USB MAIN A / USB SUB / None |
 | P02 Streaming 0 | CH 1-2 `Dyn.Mic`, CH 3-4 `Gt./Ba.` (HI-Z, A.Gain +15 dB, EQ off) | AUX IN / USB MAIN A / USB SUB / None |
 | P03 DAW Rec 0 | CH 1-2 `Dyn.Mic`, CH 3-4 `Gt./Ba.`, all with Rec Point at PRE GATE and EQ off | USB DAW 1/2 / None / None / None, all with Rec Point at PRE EQ |
+| P04 Music Production | CH 1-2 `Keys L` / `Keys R` linked as a pair on its balance, CH 3 `Vocal` (A.Gain +40 dB, HPF, COMP, 1-knob EQ), CH 4 `E. Gt` (HI-Z, A.Gain +10 dB, Insert FX Clean), all with Rec Point at PRE GATE | USB DAW 1/2 / USB DAW 3/4 / USB DAW 5/6 / AUX IN, named `DAW PB 1`, `DAW PB 2`, `Click` and `AUX`, all with Rec Point at PRE EQ |
+| P05 DAW Streaming | CH 1-2 `Vocal 1` / `Vocal 2` (A.Gain +40 dB, HPF, COMP, 1-knob EQ), CH 3 `EA. Gt` (HI-Z, A.Gain +15 dB), CH 4 `E. Gt` as on P04 | USB DAW 1/2 / USB DAW 3/4 / USB MAIN B / AUX IN, named `DAW PB 1`, `DAW PB 2`, `Music` (DUCKER on) and `AUX` |
+| P06 Sing&Talk Stream | CH 1 `Talk` (as P04's `Vocal`), CH 2 `Singing` (likewise, on +48V at A.Gain +30 dB), CH 3-4 `Keys L` / `Keys R` linked as on P04 | USB MAIN A / USB MAIN B / USB SUB / AUX IN, named `Karaoke`, `Music` (DUCKER on), `SE` and `AUX` |
+| P07 Game Streaming | CH 1 `Talk` (as on P06, with GATE on), CH 2-4 named `CH 2` to `CH 4` with their faders at the bottom | USB MAIN A / USB MAIN B / USB MAIN C / USB SUB, named `Game`, `Music`, `V. Chat` and `USB SUB` |
 
-All three put the channel and STEREO faders at the bottom, take the sends to MIX before the fader, make FX 1 a Rev-X Plate
+P01 to P03 put the channel and STEREO faders at the bottom, take the sends to MIX before the fader, make FX 1 a Rev-X Plate
 named `Reverb` returned at 0 dB, switch FX 2 off with an empty name, name MIX 2 `MIX3`, set the D.Gain to 0 dB, and switch the
 mono channels' SSMCS off. On P01 and P02 the 1-knob EQ keeps the gains its Level scales with HIGH alone at +7 dB, while the
 HIGH band shows 0 dB.
+
+P04 to P07 put the STEREO fader at the bottom, name FX 1 `Reverb` and FX 2 `Delay`, return both at 0 dB, set the level of
+their sends to both MIX buses at 0 dB, and name the MIX buses `Monitor1` and `Monitor2` (`Monitor` and `V. Chat` on P07). P04 and
+P05 take the sends before the fader. P07 switches off the FX returns' and the stereo channels' sends to MIX 2 and `Talk`'s send
+to MIX 1, and leaves the other mono channels' sends to MIX 2 on at the bottom of their level: right after it is recalled,
+`Talk` alone reaches MIX 2 (`V. Chat`, which USB MAIN C carries), and the stereo channels reach MIX 1 and not MIX 2. Their voice channels keep the gains the 1-knob EQ's Level scales at the bands' own, the
+Level standing at 50. P05 to P07 put USB MAIN A and USB SUB on STREAMING, and P06 and P07 USB MAIN B and C on MIX 1 and MIX 2.
+P06 runs STEREO through Insert FX's M.B.Comp.
 
 The Edit tab (p077-1) sets glyph-only buttons [Protect], [Delete] and [Title] along the foot in place of [Store] /
 [Recall] (faces at x6..95, x149..238 and x291..380; glyphs a padlock 16x21, a bin 16x18 and a rename mark 20x20).
