@@ -2209,7 +2209,8 @@ HIGH band shows 0 dB.
 
 P04 to P07 put the STEREO fader at the bottom, name FX 1 `Reverb` and FX 2 `Delay`, return both at 0 dB, send them to both
 MIX buses at 0 dB, and name the MIX buses `Monitor1` and `Monitor2` (`Monitor` and `V. Chat` on P07). P04 and
-P05 take the sends before the fader, and P07 switches the sends to MIX 2 off. Their voice channels keep the gains the 1-knob EQ's Level scales at the bands' own, the
+P05 take the sends before the fader. On P07, `Talk` alone goes to MIX 2 (`V. Chat`, which USB MAIN C carries) and not to
+MIX 1, while the stereo channels go to MIX 1 and not to MIX 2, and the FX returns not to MIX 2. Their voice channels keep the gains the 1-knob EQ's Level scales at the bands' own, the
 Level standing at 50. P05 to P07 put USB MAIN A and USB SUB on STREAMING, and P06 and P07 USB MAIN B and C on MIX 1 and MIX 2.
 P06 runs STEREO through Insert FX's M.B.Comp.
 

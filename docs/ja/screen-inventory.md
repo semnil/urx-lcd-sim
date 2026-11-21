@@ -1904,7 +1904,8 @@ P01・P02 の 1-knob EQ は、Level の掛かる元のゲインを HIGH だけ +
 
 P04〜P07 は、STEREO のフェーダーを下端にし、FX 1 を `Reverb`・FX 2 を `Delay` の名前にしてどちらも 0 dB で戻し、両方の MIX へ
 0 dB で送り、MIX の名前を `Monitor1`・`Monitor2` (P07 は `Monitor`・`V. Chat`) にする。P04・P05 は送りをフェーダーの前から取り、
-P07 は MIX 2 への送りを切る。声のチャンネルの 1-knob EQ は、Level の掛かる元のゲインをバンドと同じ値で持ち、Level は 50。
+P07 は、`Talk` だけを MIX 2 (`V. Chat`。USB MAIN C に出る) へ送って MIX 1 へは送らず、ステレオ CH は MIX 1 へ送って MIX 2 へは
+送らず、FX の戻りも MIX 2 へ送らない。声のチャンネルの 1-knob EQ は、Level の掛かる元のゲインをバンドと同じ値で持ち、Level は 50。
 P05〜P07 は USB MAIN A と USB SUB を STREAMING に、P06・P07 は USB MAIN B と C を MIX 1 と MIX 2 にする。P06 は STEREO に
 Insert FX の M.B.Comp を掛ける。
 
