@@ -511,3 +511,44 @@ test.describe("every screen of the tour", () => {
     expect(a.styles).toBe(b.styles);
   });
 });
+
+// A page that moves SCENE LIST's selection from outside the list — the connected unit's cursor — gets
+// the row in view, on a list already open and on one opened afterwards; a list scrolled by hand stays
+// where it is while the selection does.
+test("brings SCENE LIST's selected row into view when the selection moves from outside the list, and leaves a list scrolled by hand where it is", async ({ page }) => {
+  await open(page, false);
+  const glass = page.locator(".urx-lcd-sim");
+  const select = (no: number): Promise<void> =>
+    page.evaluate((n) => (window as unknown as { sim: { store: { set(p: string, v: number): Promise<void> } } }).sim.store.set("scene.selected", n), no);
+  // Moved while HOME stands: the list opened afterwards shows the row.
+  await select(40);
+  await glass.locator(".scene-box").first().click();
+  await glass.getByRole("button", { name: "Scene List", exact: true }).click();
+  const body = glass.locator('.lcd[data-screen="scene.list"]:not([inert]) .scene-list .list-body');
+  await expect(body).toBeVisible();
+  const top = (): Promise<number> => body.evaluate((n) => n.scrollTop);
+  const inView = (no: string): Promise<boolean> =>
+    body.evaluate((n, wanted) => {
+      const row = [...n.querySelectorAll(".list-row")].find((r) => r.querySelector(".scene-no")?.textContent === wanted);
+      if (!row) return false;
+      const view = n.getBoundingClientRect();
+      const at = row.getBoundingClientRect();
+      return at.top >= view.top - 0.5 && at.bottom <= view.bottom + 0.5;
+    }, no);
+  await expect.poll(() => inView("40"), "40, picked before the list opened").toBe(true);
+
+  // Moved while the list stands open, to a row above it and to one below it.
+  await select(2);
+  await expect.poll(() => inView("02"), "02, above the rows in view").toBe(true);
+  await select(30);
+  await expect.poll(() => inView("30"), "30, below them").toBe(true);
+
+  // Scrolled by hand to the top, the list stays there while the selection does not move.
+  await body.evaluate((n) => (n.scrollTop = 0));
+  await page.evaluate(() =>
+    (window as unknown as { sim: { store: { set(p: string, v: number): Promise<void> } } }).sim.store.set("ch.ch1.level", -6),
+  );
+  await page.waitForTimeout(100);
+  expect(await top(), "a redraw with the selection where it was").toBe(0);
+  expect(await inView("30")).toBe(false);
+});

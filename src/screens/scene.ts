@@ -23,6 +23,25 @@ import { dropGeqOverRate } from "./geq";
 import { keptByRecallSafe } from "./recall-safe";
 import type { ParamValue } from "../device/path";
 
+/** The row each unit's SCENE LIST was last drawn with selected. */
+const lastSelected = new WeakMap<object, number>();
+
+/**
+ * Scroll the list by whole rows until `row` stands in it entire, the least
+ * that takes, and leave it where it is when the row is in view already.
+ */
+function bringIntoView(body: HTMLElement, row: HTMLElement | undefined): void {
+  if (!row || !body.isConnected || body.clientHeight === 0) return;
+  const view = body.getBoundingClientRect();
+  const at = row.getBoundingClientRect();
+  // The glass may be drawn scaled: the rectangles are in the page's pixels, the scroll in the list's own.
+  const scale = view.height / body.clientHeight || 1;
+  const above = (view.top - at.top) / scale;
+  const below = (at.bottom - view.bottom) / scale;
+  if (above > 0.5) body.scrollTop -= Math.ceil(above / SCENE_ROW_PITCH_PX) * SCENE_ROW_PITCH_PX;
+  else if (below > 0.5) body.scrollTop += Math.ceil(below / SCENE_ROW_PITCH_PX) * SCENE_ROW_PITCH_PX;
+}
+
 /** The numbers a unit stores scenes under run from 1 to this. */
 const SCENE_COUNT = 63;
 
@@ -346,6 +365,16 @@ export const sceneScreen: ScreenDef = {
     // A touch on a row leaves the list where it was scrolled; the other bank starts from its top.
     const bar = body ? scrollbar(body, SCENE_TRACK_PX, SCENE_ROW_PITCH_PX, false, 0, LIST_THUMB_MIN_PX, { ctx, key: "scene.list", keep: bank }) : null;
     bar?.classList.add("scene-scrollbar");
+    // A selection moved from outside the list — the connected unit's cursor, a settings file —
+    // brings its row into view once the redraw has put the list back where it was scrolled, and
+    // so does the first draw. A row touched on the list is in view already, and a list scrolled
+    // by hand with the selection where it was stays put.
+    const before = lastSelected.get(ctx.store);
+    lastSelected.set(ctx.store, selected);
+    if (body && before !== selected) {
+      const row = body.querySelectorAll<HTMLElement>(".list-row")[listed.indexOf(selected)];
+      queueMicrotask(() => bringIntoView(body, row));
+    }
 
     const main = el("div", {
       class: "scene-screen",

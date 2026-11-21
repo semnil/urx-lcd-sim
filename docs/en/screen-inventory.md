@@ -2142,7 +2142,9 @@ played, it stayed on the folder.
 The Standard and Simple tabs are one grouped button rounded at its two ends only, like SAMPLING FREQUENCY's frequencies.
 The Standard tab lists 00 Initial Data and the numbers 01 to 63, and the Simple tab the factory presets P01 to P03 followed by the
 numbers Standard holds no scene under (Scene list and its NOTE in the user guide's "SCENE screen"). A number with
-nothing stored under it has an empty title. The bar's thumb draws no shorter than 15px (y110..124 in both p076-1 and
+nothing stored under it has an empty title. A selection moved from outside the list — the cursor of a connected unit, a
+settings file — scrolls the list by whole rows until the row stands in it entire, and so does the list's first draw; a list
+scrolled by hand stays where it is while the selection does not move. The bar's thumb draws no shorter than 15px (y110..124 in both p076-1 and
 p077-1). The HOME box and SCENE LIST's top-left box both name the scene picked on the list by the list's rules (the picked
 02 in p077-1), `00 Initial Data` on a factory unit. While the row picked is not the recalled scene (the row with the ▶),
 the number fades out and back in over two seconds, and the title stays (confirmed on the unit; for the HOME
