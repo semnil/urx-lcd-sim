@@ -2185,8 +2185,8 @@ a scene does not save). 00 Initial Data puts the factory
 mixer back, and the factory output patch with it (confirmed on a URX44V, for USB SUB), but with each MIX's GEQ Link off where
 the factory holds it on L>R (confirmed on a URX22 and a URX44V; P01 to P07 hold it off too). P01 puts the factory output
 patch and streaming bus back as well (confirmed on a URX44V, for USB SUB and the streaming bus's source). Each preset lays settings
-of its own over 00 Initial Data (P01 to P03 confirmed on a URX22, P04 to P07 on a URX22 and a URX44V: what the simulator holds of
-each came back from the unit as the simulator puts it). The main ones are below; the whole of what a preset
+of its own over 00 Initial Data (P01 to P03 confirmed on a URX22, P04 to P07 on a URX22 and a URX44V, on every value of the scene
+but the SSMCS values of a channel whose COMP/EQ Type is not SSMCS and the BALANCE of an unlinked mono channel). The main ones are below; the whole of what a preset
 changes is in `src/model/scene-presets.ts`. The table's channels go onto the mono and the stereo channels from the lowest
 number up. On a URX22, CH 3/4 to 9/10 take the table's four stereo channels, and its two mono channels take two of the table's
 four: CH 1 the table's CH 1 and CH 2, on its HI-Z connector, the table's CH 3 on P01 to P03; CH 3 and CH 4 on P04; CH 1 and CH 3
