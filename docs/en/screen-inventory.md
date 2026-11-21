@@ -2207,10 +2207,11 @@ named `Reverb` returned at 0 dB, switch FX 2 off with an empty name, name MIX 2 
 mono channels' SSMCS off. On P01 and P02 the 1-knob EQ keeps the gains its Level scales with HIGH alone at +7 dB, while the
 HIGH band shows 0 dB.
 
-P04 to P07 put the STEREO fader at the bottom, name FX 1 `Reverb` and FX 2 `Delay`, return both at 0 dB, send them to both
-MIX buses at 0 dB, and name the MIX buses `Monitor1` and `Monitor2` (`Monitor` and `V. Chat` on P07). P04 and
-P05 take the sends before the fader. On P07, `Talk` alone goes to MIX 2 (`V. Chat`, which USB MAIN C carries) and not to
-MIX 1, while the stereo channels go to MIX 1 and not to MIX 2, and the FX returns not to MIX 2. Their voice channels keep the gains the 1-knob EQ's Level scales at the bands' own, the
+P04 to P07 put the STEREO fader at the bottom, name FX 1 `Reverb` and FX 2 `Delay`, return both at 0 dB, set the level of
+their sends to both MIX buses at 0 dB, and name the MIX buses `Monitor1` and `Monitor2` (`Monitor` and `V. Chat` on P07). P04 and
+P05 take the sends before the fader. P07 switches off the FX returns' and the stereo channels' sends to MIX 2 and `Talk`'s send
+to MIX 1, and leaves the other mono channels' sends to MIX 2 on at the bottom of their level: right after it is recalled,
+`Talk` alone reaches MIX 2 (`V. Chat`, which USB MAIN C carries), and the stereo channels reach MIX 1 and not MIX 2. Their voice channels keep the gains the 1-knob EQ's Level scales at the bands' own, the
 Level standing at 50. P05 to P07 put USB MAIN A and USB SUB on STREAMING, and P06 and P07 USB MAIN B and C on MIX 1 and MIX 2.
 P06 runs STEREO through Insert FX's M.B.Comp.
 
