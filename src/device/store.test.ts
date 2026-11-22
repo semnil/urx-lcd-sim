@@ -514,6 +514,136 @@ describe("DeviceStore", () => {
     expect(failures).toEqual([[-2, -40]]);
   });
 
+  it("says a refusal put the value back only when it did", async () => {
+    const device = heldDevice([["ch.ch1.level", 0]]);
+    const store = new DeviceStore();
+    await store.attach(device.transport);
+    const putBack: [ParamValue, ParamValue | undefined, boolean][] = [];
+    store.onWriteFailure((f) => putBack.push([f.attempted, f.restored, f.putBack]));
+    const first = store.set("ch.ch1.level", -1);
+    const second = store.set("ch.ch1.level", -2);
+    device.writes[0]!.refuse();
+    await first;
+    device.writes[1]!.refuse();
+    await second;
+    const third = store.set("ch.ch1.level", -3);
+    device.announce("ch.ch1.level", -40);
+    device.writes[2]!.refuse();
+    await third;
+
+    expect(putBack).toEqual([[-1, -2, false], [-2, 0, true], [-3, -40, false]]);
+  });
+
+  it("tells its device listeners of the device's own values, and not of echoes or of what the mirror holds already", async () => {
+    const device = heldDevice([["ch.ch1.level", 0]]);
+    const store = new DeviceStore();
+    await store.attach(device.transport);
+    const heard: [ParamPath, ParamValue][] = [];
+    store.onDeviceValue((path, value) => heard.push([path, value]));
+    device.announce("ch.ch1.level", -40);
+    device.announce("ch.ch1.level", -40);
+    device.announce("ch.ch1.level", -30, true);
+    const write = store.set("ch.ch1.level", -1);
+    device.announce("ch.ch1.level", -1);
+    device.writes[0]!.take();
+    await write;
+
+    expect(heard).toEqual([["ch.ch1.level", -40], ["ch.ch1.level", -1]]);
+  });
+
+  it("hears no move in a value announced again while a write awaits the device", async () => {
+    const device = heldDevice([["ch.ch1.level", 0]]);
+    const store = new DeviceStore();
+    await store.attach(device.transport);
+    const heard: ParamValue[] = [];
+    store.onDeviceValue((_, value) => heard.push(value));
+    device.announce("ch.ch1.level", -30);
+    const write = store.set("ch.ch1.level", -1);
+    device.announce("ch.ch1.level", -30);
+    device.writes[0]!.take();
+    await write;
+
+    expect(heard).toEqual([-30]);
+  });
+
+  it.each(["refused", "taken"] as const)("hears a move announced while a write was yet to go out only once a refusal puts it on screen, the write %s", async (answer) => {
+    const device = heldDevice([["ch.ch1.level", 0]], true);
+    const store = new DeviceStore();
+    await store.attach(device.transport);
+    const heard: ParamValue[] = [];
+    store.onDeviceValue((_, value) => heard.push(value));
+    const write = store.set("ch.ch1.level", -1);
+    device.announce("ch.ch1.level", -40);
+    expect([heard, store.num("ch.ch1.level")], "held behind the write").toEqual([[], -1]);
+    device.writes[0]!.send();
+    if (answer === "refused") device.writes[0]!.refuse();
+    else device.writes[0]!.take();
+    await write;
+
+    expect([heard, store.num("ch.ch1.level")]).toEqual(answer === "refused" ? [[-40], -40] : [[], -1]);
+  });
+
+  it.each(["nothing", "the device", "a later write", "a move onto another transport"] as const)("says whether a late refusal of a path it cannot write put the value back, with %s changing it since", async (since) => {
+    const device = heldDevice([["ch.ch1.level", 0]]);
+    Object.assign(device.transport, { writable: (path: ParamPath) => path !== "ch.ch1.level" });
+    const store = new DeviceStore();
+    await store.attach(device.transport);
+    const failures: [ParamValue | undefined, boolean][] = [];
+    store.onWriteFailure((f) => failures.push([f.restored, f.putBack]));
+    void store.set("ch.ch1.level", -1);
+    expect(store.num("ch.ch1.level"), "taken back at once").toBe(0);
+    if (since === "the device") device.announce("ch.ch1.level", -42);
+    if (since === "a later write") {
+      Object.assign(device.transport, { writable: () => true });
+      void store.set("ch.ch1.level", -42);
+    }
+    if (since === "a move onto another transport") await store.attach(new SimTransport([["ch.ch1.level", -42]]));
+    device.writes[0]!.refuse();
+    await tick();
+
+    expect(failures).toEqual([since === "nothing" ? [0, true] : [-42, false]]);
+  });
+
+  it("hears a move once, though a refusal then puts the same value back while an earlier write still awaits", async () => {
+    const device = heldDevice([["ch.ch1.level", 0]]);
+    const store = new DeviceStore();
+    await store.attach(device.transport);
+    const heard: ParamValue[] = [];
+    store.onDeviceValue((_, value) => heard.push(value));
+    const first = store.set("ch.ch1.level", -1);
+    device.announce("ch.ch1.level", -40);
+    const second = store.set("ch.ch1.level", -2);
+    device.writes[1]!.refuse();
+    await second;
+    device.writes[0]!.refuse();
+    await first;
+
+    expect([heard, store.num("ch.ch1.level")]).toEqual([[-40], -40]);
+  });
+
+  it("hears a move held behind queued writes once, when the first refusal puts it on screen and not when a later one does again", async () => {
+    const device = heldDevice([["ch.ch1.level", 0]], true);
+    const store = new DeviceStore();
+    await store.attach(device.transport);
+    const heard: ParamValue[] = [];
+    store.onDeviceValue((_, value) => heard.push(value));
+    const first = store.set("ch.ch1.level", -1);
+    const second = store.set("ch.ch1.level", -2);
+    device.announce("ch.ch1.level", -40);
+    device.writes[1]!.send();
+    device.writes[1]!.refuse();
+    await second;
+    const third = store.set("ch.ch1.level", -3);
+    device.writes[2]!.send();
+    device.writes[2]!.refuse();
+    await third;
+    device.writes[0]!.send();
+    device.writes[0]!.refuse();
+    await first;
+
+    expect([heard, store.num("ch.ch1.level")]).toEqual([[-40], -40]);
+  });
+
   it("tells no one of a change when a write the device's announcement took off the screen is refused", async () => {
     const device = heldDevice([["ch.ch1.level", 0]]);
     const { store, failures } = await storeOn(device);

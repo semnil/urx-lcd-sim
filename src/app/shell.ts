@@ -26,6 +26,7 @@ import type { NumericSpec } from "../ui/param-spec";
 import { BRIGHTNESS_MAX, formatValue } from "../ui/param-spec";
 import type { ScreenBody, ScreenRegistry } from "../screens/types";
 import { holdsFile, recordMode } from "../screens/recording";
+import { releaseSceneFollow } from "../screens/scene-follow";
 import { drawAtOneMoment } from "../screens/signal-flow";
 import { dateDraftWriteRule } from "../screens/date-time";
 import { hiZWriteRule } from "../screens/head-amp";
@@ -89,6 +90,8 @@ export class Shell {
   /** The message the unit raises from the foot of the glass, while it is up. */
   private message: HTMLElement | undefined;
   private repaintScheduled = false;
+  /** Set by destroy(): a draw asked for before then, or after, draws nothing. */
+  private destroyed = false;
   /** The screen the glass last drew. */
   private drawn: string | null = null;
   /** The strip of the screen the glass last drew. */
@@ -239,6 +242,7 @@ export class Shell {
 
   /** Give up the window and anything layered over the screen. */
   destroy(): void {
+    this.destroyed = true;
     window.removeEventListener("keydown", this.onTab);
     window.removeEventListener("keydown", this.onEscape);
     this.offStore();
@@ -250,6 +254,7 @@ export class Shell {
     this.offFocusRing();
     this.offSwipe();
     this.closeOverlays();
+    releaseSceneFollow(this.ctx.store);
   }
 
   /** Hold `locks` shut and nothing else, and draw the glass again under them. */
@@ -284,6 +289,7 @@ export class Shell {
   }
 
   render(): void {
+    if (this.destroyed) return;
     const route = this.ctx.nav.current;
     const def = this.registry.get(route.id);
     if (def?.needsCard === true && !this.ctx.store.bool("sd.mounted", true)) {
@@ -305,6 +311,8 @@ export class Shell {
     clear(this.sideNode);
     clear(this.toolbarNode);
     clear(this.knobStripNode);
+    // A list waiting to be shown is gone with the screen; SCENE LIST drawn again waits anew.
+    releaseSceneFollow(this.ctx.store);
     this.ctx.focus.sweep(this.lcd);
 
     if (!def) {
@@ -360,8 +368,9 @@ export class Shell {
 
   /**
    * The step that puts each list carrying `data-scroll-keep` back where the list
-   * of the same mark was scrolled before the redraw. A list whose mark no list
-   * carried before the redraw starts from its top.
+   * of the same mark was scrolled before the redraw, marking it
+   * `data-scroll-carried`. A list whose mark no list carried before the redraw
+   * starts from its top.
    */
   private scrollPlace(): () => void {
     const lists = (): HTMLElement[] => [...this.mainNode.querySelectorAll<HTMLElement>("[data-scroll-keep]")];
@@ -369,7 +378,9 @@ export class Shell {
     return () => {
       for (const node of lists()) {
         const top = was.get(node.dataset.scrollKeep);
-        if (top !== undefined) node.scrollTop = top;
+        if (top === undefined) continue;
+        node.scrollTop = top;
+        node.toggleAttribute("data-scroll-carried", true);
       }
     };
   }

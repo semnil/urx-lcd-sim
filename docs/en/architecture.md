@@ -75,8 +75,17 @@ the unit is asynchronous, which is why the values are held twice.
   value the unit announced in a notify, or, for a write the unit took with nothing announced after
   the write was sent and no later write's answer before it, the value the transport reports the
   unit holding (`BridgeTransport` reports it as encoded for the unit). Where a later write, or a notify from the unit since, has changed
-  the value, that value stays. Either way `onWriteFailure` is notified. The screen never keeps
-  showing a value the unit did not accept.
+  the value, that value stays. Either way `onWriteFailure` is notified, with `putBack` saying
+  whether this refusal is what put the value back (for a path the transport cannot write, while
+  nothing has changed it on screen since, on the same transport). The screen never keeps showing a
+  value the unit did not accept.
+- **The unit's own moves** — `onDeviceValue` tells a listener of each move the unit makes of its own
+  once it is on screen: a value announced in a notify that is not an echo of a write and differs from
+  what the unit was last heard to hold, when the mirror takes it, or when the unit moves onto the value
+  a write still awaiting it shows (a redraw is asked for then). A move announced while a write is yet
+  to go out is heard only once a refusal puts it on screen; a value announced again is no move, and a
+  move is heard once, however often a refusal puts the same value back. SCENE LIST follows its
+  selection by it.
 - **The writes one edit carries with it** — `DeviceStore` holds a single write rule, handed to it by
   the Shell at start-up and made of the following: `src/screens/stereo-link.ts` carries an edit on one channel
   of a stereo-linked pair onto the other, and `src/screens/date-time.ts` brings the DATE / TIME

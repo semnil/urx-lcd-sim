@@ -2144,8 +2144,12 @@ The Standard tab lists 00 Initial Data and the numbers 01 to 63, and the Simple 
 numbers Standard holds no scene under (Scene list and its NOTE in the user guide's "SCENE screen"). Since System firmware V1.5 the
 Standard tab lists the factory presets P04 Music Production, P05 DAW Streaming, P06 Sing&Talk Stream and P07 Game Streaming
 between 00 and 01 (p076-1, and confirmed on a URX22 and a URX44V), and the Simple tab does not list them (confirmed on a
-URX22). A number with
-nothing stored under it has an empty title. The bar's thumb draws no shorter than 15px (y110..124 in both p076-1 and
+URX22). A number with nothing stored under it has an empty title. A list that starts afresh (opened, or on the other tab)
+scrolls by whole rows until the selected row stands in it entire, and so does a list drawn again in its place once the
+selection has moved from outside the list (the cursor of a connected unit, a settings file); a glass that cannot be shown at
+that moment does it once it can. A row touched on the list stays where it was touched, and so does a row the touches stood on
+that a refusal of their write puts back; a move the unit makes of its own is followed onto any row, the one a touch waits on
+included, and the touches after it start from the row it moved to. A list scrolled by hand stays where it is while the selection does not move. The bar's thumb draws no shorter than 15px (y110..124 in both p076-1 and
 p077-1). The HOME box and SCENE LIST's top-left box both name the scene picked on the list by the list's rules (the picked
 02 in p077-1), `00 Initial Data` on a factory unit. While the row picked is not the recalled scene (the row with the ▶),
 the number fades out and back in over two seconds, and the title stays (confirmed on the unit; for the HOME
