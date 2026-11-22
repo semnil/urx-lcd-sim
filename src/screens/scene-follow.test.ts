@@ -328,3 +328,22 @@ it("brings the selection into view on SCENE LIST opened again after it was left 
   await flush();
   expect([g.state().selected, g.state().inView]).toEqual(["40", true]);
 });
+
+it.each(["an outside change", "a change through the store", "opening the list"] as const)("starts no watch from a redraw %s scheduled just before the glass is given up", async (by) => {
+  const g = await mount();
+  await g.open();
+  if (by === "opening the list") {
+    g.click('[aria-label="Back"]');
+    await flush();
+  }
+  g.host.style.display = "none";
+  if (by === "an outside change") g.transport.inject("scene.selected", 40);
+  else if (by === "a change through the store") void g.sim.store.set("scene.selected", 40);
+  else g.menu();
+  // A change reaches the shell a turn later, which then schedules its redraw.
+  if (by !== "opening the list") await Promise.resolve();
+  g.sim.dispose();
+  await flush();
+  ObservedSizes.frame();
+  expect(ObservedSizes.observations.size).toBe(0);
+});

@@ -90,6 +90,8 @@ export class Shell {
   /** The message the unit raises from the foot of the glass, while it is up. */
   private message: HTMLElement | undefined;
   private repaintScheduled = false;
+  /** Set by destroy(): a draw asked for before then, or after, draws nothing. */
+  private destroyed = false;
   /** The screen the glass last drew. */
   private drawn: string | null = null;
   /** The strip of the screen the glass last drew. */
@@ -240,6 +242,7 @@ export class Shell {
 
   /** Give up the window and anything layered over the screen. */
   destroy(): void {
+    this.destroyed = true;
     window.removeEventListener("keydown", this.onTab);
     window.removeEventListener("keydown", this.onEscape);
     this.offStore();
@@ -286,6 +289,7 @@ export class Shell {
   }
 
   render(): void {
+    if (this.destroyed) return;
     const route = this.ctx.nav.current;
     const def = this.registry.get(route.id);
     if (def?.needsCard === true && !this.ctx.store.bool("sd.mounted", true)) {
