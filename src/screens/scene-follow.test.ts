@@ -158,14 +158,23 @@ const refuseSelection = (g: Mounted, when: "unwritable" | "at once" | "later"): 
   return () => refuse();
 };
 
-/** Writes to the selection that wait for an answer; `answer(i, taken)` takes or refuses the i-th, in the order they were made. */
-const holdSelection = (g: Mounted): ((index: number, taken: boolean) => Promise<void>) => {
+/**
+ * Writes to the selection that wait for an answer; `answer(i, taken)` takes or refuses the i-th, in
+ * the order they were made. With `queued`, a write goes out to the unit only once it is answered.
+ */
+const holdSelection = (g: Mounted, queued = false): ((index: number, taken: boolean) => Promise<void>) => {
   const ordinaryWrite = g.transport.write.bind(g.transport);
   const out: ((taken: boolean) => void)[] = [];
   g.transport.write = (path, value, sent) => {
     if (path !== "scene.selected") return ordinaryWrite(path, value, sent);
-    sent?.();
-    return new Promise<ParamValue>((resolve, reject) => out.push((taken) => (taken ? resolve(value) : reject(new Error("refused")))));
+    if (!queued) sent?.();
+    return new Promise<ParamValue>((resolve, reject) =>
+      out.push((taken) => {
+        if (queued) sent?.();
+        if (taken) resolve(value);
+        else reject(new Error("refused"));
+      }),
+    );
   };
   return async (index, taken) => {
     out[index]!(taken);
@@ -405,4 +414,39 @@ it.each(["before", "after"] as const)("brings the unit's move into view when a t
   if (when === "after") await flush();
   await answer(0, false);
   expect([g.state().selected, g.state().inView]).toEqual(["40", true]);
+});
+
+it("brings the touched row in entire when the unit moves onto it of its own while the touch's write is out", async () => {
+  const g = await mount([["scene.selected", 40]]);
+  holdSelection(g);
+  await g.open();
+  // 03 stands cut by the list's lower edge.
+  g.list().scrollTop = pitch * g.rowIndex("03") - 100;
+  g.row("03").click();
+  await flush();
+  expect(g.state().inView, "the row touched, where it was touched").toBe(false);
+  g.transport.inject("scene.selected", 3);
+  await flush();
+  expect([g.state().selected, g.state().inView]).toEqual(["03", true]);
+});
+
+it.each([["30", 30], ["03", 3]] as const)("follows the unit's move to %s heard while two touches' writes were yet to go out only once their refusals put it on screen", async (no, value) => {
+  const g = await mount([["scene.selected", 40]]);
+  const answer = holdSelection(g, true);
+  await g.open();
+  // 04 stands cut by the list's lower edge.
+  g.list().scrollTop = pitch * g.rowIndex("04") - 100;
+  g.row("03").click();
+  await flush();
+  g.row("04").click();
+  await flush();
+  const scroll = g.list().scrollTop;
+  g.transport.inject("scene.selected", value);
+  await flush();
+  g.sim.setLocks([]);
+  await flush();
+  expect([g.state().selected, g.list().scrollTop], "held behind the write, the list stays").toEqual(["04", scroll]);
+  await answer(0, false);
+  await answer(1, false);
+  expect([g.state().selected, g.state().inView], "put on screen by the refusals").toEqual([no, true]);
 });
