@@ -158,6 +158,21 @@ const refuseSelection = (g: Mounted, when: "unwritable" | "at once" | "later"): 
   return () => refuse();
 };
 
+/** Writes to the selection that wait for an answer; `answer(i, taken)` takes or refuses the i-th, in the order they were made. */
+const holdSelection = (g: Mounted): ((index: number, taken: boolean) => Promise<void>) => {
+  const ordinaryWrite = g.transport.write.bind(g.transport);
+  const out: ((taken: boolean) => void)[] = [];
+  g.transport.write = (path, value, sent) => {
+    if (path !== "scene.selected") return ordinaryWrite(path, value, sent);
+    sent?.();
+    return new Promise<ParamValue>((resolve, reject) => out.push((taken) => (taken ? resolve(value) : reject(new Error("refused")))));
+  };
+  return async (index, taken) => {
+    out[index]!(taken);
+    await flush();
+  };
+};
+
 it.each(["unwritable", "at once", "later"] as const)("leaves the list where it was scrolled when a row touched is refused %s", async (when) => {
   const g = await mount([["scene.selected", 40]]);
   const refuse = refuseSelection(g, when);
@@ -346,4 +361,48 @@ it.each(["an outside change", "a change through the store", "opening the list"] 
   await flush();
   ObservedSizes.frame();
   expect(ObservedSizes.observations.size).toBe(0);
+});
+
+it.each([["03", "30"], ["30", "03"]] as const)("leaves the list where it was scrolled when of two touches, %s then %s, the first is taken and the second refused", async (first, second) => {
+  const g = await mount([["scene.selected", 40]]);
+  const answer = holdSelection(g);
+  await g.open();
+  g.list().scrollTop = pitch * (g.rowIndex(first) - 1);
+  g.row(first).click();
+  await flush();
+  g.list().scrollTop = pitch * (g.rowIndex(second) - 1);
+  g.row(second).click();
+  await flush();
+  const scroll = g.list().scrollTop;
+  await answer(0, true);
+  await answer(1, false);
+  expect([g.state().selected, g.list().scrollTop]).toEqual([first, scroll]);
+});
+
+it.each([["03", 3], ["P06", 106]] as const)("brings the unit's own moves into view while the write of a touch on %s is out, onto that row as well", async (no, value) => {
+  const g = await mount([["scene.selected", 40]]);
+  holdSelection(g);
+  await g.open();
+  g.list().scrollTop = pitch * (g.rowIndex(no) - 1);
+  g.row(no).click();
+  await flush();
+  g.transport.inject("scene.selected", 30);
+  await flush();
+  expect([g.state().selected, g.state().inView], "30, the unit's move").toEqual(["30", true]);
+  g.transport.inject("scene.selected", value);
+  await flush();
+  expect([g.state().selected, g.state().inView], "the unit's move back onto the row touched").toEqual([no, true]);
+});
+
+it.each(["before", "after"] as const)("brings the unit's move into view when a touch's refusal comes %s the redraw it asked for", async (when) => {
+  const g = await mount([["scene.selected", 40]]);
+  const answer = holdSelection(g);
+  await g.open();
+  g.list().scrollTop = pitch * (g.rowIndex("03") - 1);
+  g.row("03").click();
+  await flush();
+  g.transport.inject("scene.selected", 40);
+  if (when === "after") await flush();
+  await answer(0, false);
+  expect([g.state().selected, g.state().inView]).toEqual(["40", true]);
 });
