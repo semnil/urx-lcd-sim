@@ -83,10 +83,8 @@ export function carriesGeq(strip: Pick<Strip, "kind">): boolean {
   return strip.kind === "stereo" || strip.kind === "mix";
 }
 
-/** The GEQ Link a bus ships on: L>R on a MIX, off on the stereo bus. */
-export function geqLinkShipped(strip: Pick<Strip, "kind">): GeqLink {
-  return strip.kind === "mix" ? "L>R" : "Off";
-}
+/** The GEQ Link every bus ships on. */
+export const GEQ_LINK_SHIPPED: GeqLink = "Off";
 
 /** The two sides of a bus, as their paths name them. */
 export const GEQ_SIDES = ["l", "r"] as const;

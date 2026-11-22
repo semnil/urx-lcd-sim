@@ -17,7 +17,7 @@ import { SOURCES_SHIPPED_DOWN, digitalGainPath, digitalGainShipped } from "./sou
 import type { Strip, UnitModel } from "./types";
 import { CUE_MODE, CUE_MODE_SHIPPED, SENDS_TARGET_SHIPPED, allStrips, carriesInsert, channelPairs, findStrip, sendsTo } from "./types";
 import { UDK_BANKS, UDK_KNOBS, UDK_SHIPPED, UDK_UNASSIGNED, udkPath } from "./udk";
-import { EQ_TYPE_SHIPPED, GEQ_BANDS, GEQ_LIMIT_SHIPPED, GEQ_SIDES, carriesGeq, eqTypePath, geqBandPath, geqLimitPath, geqLinkPath, geqLinkShipped, geqOnPath } from "./geq";
+import { EQ_TYPE_SHIPPED, GEQ_BANDS, GEQ_LIMIT_SHIPPED, GEQ_SIDES, carriesGeq, eqTypePath, geqBandPath, geqLimitPath, geqLinkPath, GEQ_LINK_SHIPPED, geqOnPath } from "./geq";
 
 /**
  * The CH SETTING name a strip ships with. Mono channels are "ch 1", a stereo
@@ -302,7 +302,7 @@ function seedStrip(out: Map<ParamPath, ParamValue>, strip: Strip, model: UnitMod
   if (carriesGeq(strip)) {
     const base = chPath(strip.id);
     out.set(eqTypePath(base), EQ_TYPE_SHIPPED);
-    out.set(geqLinkPath(base), geqLinkShipped(strip));
+    out.set(geqLinkPath(base), GEQ_LINK_SHIPPED);
     for (const side of GEQ_SIDES) {
       out.set(geqOnPath(base, side), true);
       out.set(geqLimitPath(base, side), GEQ_LIMIT_SHIPPED);

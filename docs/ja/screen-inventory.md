@@ -1883,8 +1883,8 @@ P01〜P03 の番号は、一覧でもどちらの箱でも `--scene-preset` の�
 (URX44V で実機確認、MIX 1 で保存したシーンを FX 1 のまま呼び出して)。System ファームウェア V1.5 からは、シーンは
 出力パッチと STREAMING も持つ。STREAMING の DELAY のフレームレートだけは持たない (URX22 と URX44V で確認)。[CUE] は持たず、
 呼び出しても CUE は動かない (ガイドの、シーンに保存しない設定の一覧)。00 Initial Data は工場出荷のミキサーを
-戻し、出力パッチも工場出荷の値に戻す (URX44V で確認、USB SUB で)。ただし MIX の GEQ Link は、工場出荷の L>R ではなく切に
-する (URX22 と URX44V で確認。P01〜P07 も切で持つ)。P01 も出力パッチと STREAMING を工場出荷の値に戻す
+戻し、出力パッチも工場出荷の値に戻す (URX44V で確認、USB SUB で)。MIX の GEQ Link は切で、System ファームウェア V1.5 で
+工場出荷の状態に戻した本体と同じ (どちらも URX22 と URX44V で確認。P01〜P07 も切で持つ)。P01 も出力パッチと STREAMING を工場出荷の値に戻す
 (URX44V で確認、USB SUB と STREAMING の送り元で)。どのプリセットも、00 Initial Data に自分の設定を
 重ねる (P01〜P03 は URX22 で、P04〜P07 は URX22 と URX44V で確認。確かめたのは、COMP/EQ Type が SSMCS でないチャンネルの SSMCS の値と、
 リンクしていないモノ CH の BALANCE を除く、シーンの全ての値)。
