@@ -2651,8 +2651,10 @@ describe("the SCENE menu the scene box opens", () => {
     expect(button("Recall")?.classList.contains("is-disabled"), "an empty number").toBe(true);
     expect(button("Recall")?.getAttribute("aria-disabled"), "and marked out of reach").toBe("true");
     expect(button("Store")?.classList.contains("is-disabled"), "Store stays open").toBe(false);
+    const before = [shell.ctx.store.num("scene.current", -1), shell.ctx.store.num("ch.ch1.level", 99)];
     await tap(button("Recall"));
     expect(shell.root.querySelector(".dialog"), "a shut Recall asks nothing").toBeNull();
+    expect([shell.ctx.store.num("scene.current", -1), shell.ctx.store.num("ch.ch1.level", 99)], "and recalls nothing").toEqual(before);
     await shell.ctx.store.set("scene.Standard.7.title", "Band");
     await flush();
     expect(button("Recall")?.classList.contains("is-disabled"), "a stored scene").toBe(false);

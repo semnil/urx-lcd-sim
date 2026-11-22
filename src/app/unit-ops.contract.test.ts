@@ -219,4 +219,15 @@ describe("the operations a screen hands the unit", () => {
       expect(progress || JSON.stringify([...values(shell)]) !== JSON.stringify([...before]), "the store moved or a progress modal came up").toBe(true);
     });
   }
+
+  it("hands the unit nothing for [Recall] on a number holding no scene", async () => {
+    const handed: UnitOp[] = [];
+    const shell = await mount(SCENE, { kind: "device", perform: (op) => (handed.push(op), true) }, (s) => set(s, STORED));
+    await row(7)(shell);
+    const before = values(shell);
+    await click(shell, ".scene-actions .btn", "Recall");
+    for (let i = 0; i < 10; i++) await flush();
+    expect(handed).toEqual([]);
+    expect(values(shell)).toEqual(before);
+  });
 });
