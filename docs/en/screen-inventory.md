@@ -2149,7 +2149,7 @@ scrolls by whole rows until the selected row stands in it entire, and so does a 
 selection has moved from outside the list (the cursor of a connected unit, a settings file); a glass that cannot be shown at
 that moment does it once it can. A row touched on the list stays where it was touched, and so does a row the touches stood on
 that a refusal of their write puts back; a move the unit makes of its own is followed onto any row, the one a touch waits on
-included. A list scrolled by hand stays where it is while the selection does not move. The bar's thumb draws no shorter than 15px (y110..124 in both p076-1 and
+included, and the touches after it start from the row it moved to. A list scrolled by hand stays where it is while the selection does not move. The bar's thumb draws no shorter than 15px (y110..124 in both p076-1 and
 p077-1). The HOME box and SCENE LIST's top-left box both name the scene picked on the list by the list's rules (the picked
 02 in p077-1), `00 Initial Data` on a factory unit. While the row picked is not the recalled scene (the row with the ▶),
 the number fades out and back in over two seconds, and the title stays (confirmed on the unit; for the HOME

@@ -450,3 +450,38 @@ it.each([["30", 30], ["03", 3]] as const)("follows the unit's move to %s heard w
   await answer(1, false);
   expect([g.state().selected, g.state().inView], "put on screen by the refusals").toEqual([no, true]);
 });
+
+it("leaves a hand scroll where it is when a touch the unit then moved onto of its own is refused", async () => {
+  const g = await mount([["scene.selected", 40]]);
+  const answer = holdSelection(g);
+  await g.open();
+  g.list().scrollTop = pitch * g.rowIndex("03") - 100;
+  g.row("03").click();
+  await flush();
+  g.transport.inject("scene.selected", 3);
+  await flush();
+  expect(g.state().inView, "the unit's move onto the row touched, in entire").toBe(true);
+  g.list().scrollTop = 700;
+  await flush();
+  await answer(0, false);
+  expect([g.state().selected, g.list().scrollTop]).toEqual(["03", 700]);
+});
+
+it.each([true, false])("leaves a hand scroll where it is when a touch after the unit's own move is refused back onto that move (the touch before it taken: %s)", async (taken) => {
+  const g = await mount([["scene.selected", 40]]);
+  const answer = holdSelection(g);
+  await g.open();
+  g.row("03").click();
+  await flush();
+  g.transport.inject("scene.selected", 30);
+  await flush();
+  expect([g.state().selected, g.state().inView], "the unit's move").toEqual(["30", true]);
+  g.list().scrollTop = pitch * (g.rowIndex("04") - 1);
+  await flush();
+  g.row("04").click();
+  await flush();
+  const scroll = g.list().scrollTop;
+  await answer(0, taken);
+  await answer(1, false);
+  expect([g.state().selected, g.list().scrollTop]).toEqual(["30", scroll]);
+});

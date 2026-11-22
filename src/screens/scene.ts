@@ -31,9 +31,12 @@ function followState(store: DeviceStore): FollowState {
   const state: FollowState = { pending: false, moved: false, writes: 0 };
   follows.set(store, state);
   // The unit's own move of the selection is followed, onto whatever row it lands, a row a touch
-  // is waiting on included.
+  // is waiting on included. It ends the touches before it: the next touch starts from the row it
+  // moved to, and a refusal of a write made before it holds the list to nothing.
   store.onDeviceValue((path) => {
-    if (path === "scene.selected") state.moved = true;
+    if (path !== "scene.selected") return;
+    state.moved = true;
+    state.tap = undefined;
   });
   // A refusal that put back a row the touches stood on — the one before them, or one an earlier
   // touch's write took — leaves the list where it is; it is heard before the redraw that shows it.
