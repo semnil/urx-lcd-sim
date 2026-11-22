@@ -660,14 +660,14 @@ function keeps(ctx: AppContext, strip: Strip, key: SafeKey): boolean {
 /**
  * Whether the row keeps what no one column names: its [Safe] on and any of its
  * parameters selected. A mono pair's Signal Type is held by the pair and kept by
- * its first channel's row, CH 1's or CH 3's, and not by the second's (confirmed
- * on a URX44V).
+ * either of its rows: recalling a scene with the pair linked onto the pair
+ * unlinked, one row alone kept it unlinked (confirmed on a URX22 with CH 1's and
+ * CH 2's rows, and on a URX44V with CH 2's, CH 3's and CH 4's).
  */
 function keepsRow(ctx: AppContext, strip: Strip): boolean {
   const tab = strip.side === "input" ? "Input" : "Output";
   const partner = strip.kind === "monoIn" ? linkPartner(ctx, strip) : undefined;
-  const holder = partner !== undefined && (partner.channels[0] ?? 0) < (strip.channels[0] ?? 0) ? partner : strip;
-  return isSafe(ctx, holder) && selectsAny(ctx, holder, tab);
+  return [strip, ...(partner ? [partner] : [])].some((row) => isSafe(ctx, row) && selectsAny(ctx, row, tab));
 }
 
 /**

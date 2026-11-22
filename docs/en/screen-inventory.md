@@ -2286,9 +2286,11 @@ Mode the menu's [Recall Safe] is out of reach, and a recall keeps nothing.
   (confirmed on a URX44V). A kept HA keeps the channel's polarity, a stereo input's L and R alike, and the D.Gain of
   the channel's own input source, and no other source's: with USB MAIN A's kept, USB MAIN B's and USB SUB's went back.
   A mono pair's Signal Type and a MIX bus's Pan Link are kept by any parameter the row keeps, whichever it is: [Safe]
-  with no parameter selected keeps neither. A pair's Signal Type is kept by its first channel's row (CH 1, CH 3), not
-  by the second's (confirmed on a URX44V). A kept HA also keeps +48V, A.Gain and Clip Safe, which the guide's table
-  puts under HA, and Hi-Z, which the table does not name; a recall of these four is unconfirmed.
+  with no parameter selected keeps neither. Either row of a pair keeps its Signal Type: recalling a scene with the
+  pair linked onto the pair unlinked, one row alone with [Safe] and a parameter kept it unlinked (confirmed on a URX22
+  with CH 1's and CH 2's rows, and on a URX44V with CH 2's, CH 3's and CH 4's). A kept HA also keeps +48V, A.Gain
+  and Clip Safe, which the guide's table puts under HA, and Hi-Z, which the table does not name; a recall of these four
+  is unconfirmed.
 - Others lays out three bands, EFFECT, BUS TYPE and OTHERS (x10..389, 20 high), with the buttons four to a row
   under each (86 by 40, 12 apart): FX 1, FX 2, INS FX (Input), INS FX (Output); MIX1, MIX2; Output Patch (p080-1).
   A button is in a row name box's colour under white words while off and green while on (confirmed on a URX44V),

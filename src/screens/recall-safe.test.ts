@@ -410,13 +410,13 @@ describe("what a recall keeps", () => {
 
   it("keeps a mono pair's Signal Type and a MIX bus's Pan Link with any parameter the row keeps, and not with Safe alone", async () => {
     const shell = await stored();
-    // CH 1: Safe and CH Level. CH 3: Safe alone; CH 4: Safe and CH Level, the pair's second row,
-    // which does not keep the pair. MIX 1: Safe and Name; MIX 2: Name without Safe.
-    await set(shell, "safe.ch1.on", true);
-    await set(shell, "safe.ch1.chLevel", true);
-    await set(shell, "safe.ch3.on", true);
-    await set(shell, "safe.ch4.on", true);
-    await set(shell, "safe.ch4.chLevel", true);
+    // Linked pairs select as one, so each pair's two rows match. CH 1 and CH 2: Safe and CH Level.
+    // CH 3 and CH 4: Safe alone. MIX 1: Safe and Name; MIX 2: Name without Safe.
+    for (const ch of ["ch1", "ch2"]) {
+      await set(shell, `safe.${ch}.on`, true);
+      await set(shell, `safe.${ch}.chLevel`, true);
+    }
+    for (const ch of ["ch3", "ch4"]) await set(shell, `safe.${ch}.on`, true);
     await set(shell, "safe.bus.mix1.on", true);
     await set(shell, "safe.bus.mix1.name", true);
     await set(shell, "safe.bus.mix2.name", true);
@@ -425,6 +425,21 @@ describe("what a recall keeps", () => {
     await recallScene(shell.ctx, 13);
     expect(["ch1", "ch2", "ch3", "ch4"].map((ch) => shell.ctx.store.str(`ch.${ch}.signalType`, ""))).toEqual(["STEREO", "STEREO", "MONO x 2", "MONO x 2"]);
     expect(["mix1", "mix2"].map((bus) => shell.ctx.store.bool(`ch.bus.${bus}.panLink`, false))).toEqual([true, false]);
+  });
+
+  it.each([["ch1"], ["ch2"], ["ch3"], ["ch4"]] as const)("keeps an unlinked mono pair unlinked through a recall of it linked by %s's row alone, and links the other pair", async (row) => {
+    const shell = await mount();
+    for (const ch of ["ch1", "ch2", "ch3", "ch4"]) await set(shell, `ch.${ch}.signalType`, "STEREO");
+    await shell.ctx.store.set("scene.Standard.13.title", "LINK TEST");
+    await storeScene(shell.ctx, "Standard", 13);
+    for (const ch of ["ch1", "ch2", "ch3", "ch4"]) await set(shell, `ch.${ch}.signalType`, "MONO x 2");
+    await set(shell, `safe.${row}.on`, true);
+    await set(shell, `safe.${row}.chLevel`, true);
+    await recallScene(shell.ctx, 13);
+    const kept = row === "ch1" || row === "ch2" ? ["ch1", "ch2"] : ["ch3", "ch4"];
+    expect(["ch1", "ch2", "ch3", "ch4"].map((ch) => shell.ctx.store.str(`ch.${ch}.signalType`, ""))).toEqual(
+      ["ch1", "ch2", "ch3", "ch4"].map((ch) => (kept.includes(ch) ? "MONO x 2" : "STEREO")),
+    );
   });
 
   it("keeps nothing it has no row or column for", async () => {
