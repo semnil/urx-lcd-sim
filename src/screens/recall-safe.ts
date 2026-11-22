@@ -170,11 +170,25 @@ function selectionWrites(ctx: AppContext, strip: Strip, key: SafeKey): ParamPath
 /** The pair's other row while the two run as a stereo pair. */
 const linkedPartner = (ctx: AppContext, strip: Strip): Strip | undefined => linkedRows(ctx, strip).find((s) => s !== strip);
 
-/** The parameters other than Source the partner's row offers, which a press on a parameter carries over. */
-const carried = (strip: Strip, partner: Strip): SafeKey[] =>
-  safeColumns(strip.side === "input" ? "Input" : "Output")
+/**
+ * What a press on the parameter carries onto the row's stereo partner besides
+ * the parameter itself: each other parameter where the partner's selection
+ * differs from the pressed row's once the press lands. A parameter the two rows
+ * already share is left out, so a page holding it does not hold the press.
+ */
+function pressCarry(ctx: AppContext, strip: Strip, key: SafeKey): { partner: Strip; values: (readonly [SafeKey, boolean])[] } | undefined {
+  const partner = linkedPartner(ctx, strip);
+  if (!partner) return undefined;
+  const on = !isSelected(ctx, strip, key);
+  // The pressed row's selection once the press lands: clearing Source clears HA.
+  const after = (k: SafeKey): boolean => (k === key ? on : key === "source" && !on && k === "ha" ? false : isSelected(ctx, strip, k));
+  const values = safeColumns(strip.side === "input" ? "Input" : "Output")
     .map((c) => c.key)
-    .filter((k) => k !== "source" && offers(partner, k));
+    .filter((k) => k !== key && k !== "source" && offers(partner, k))
+    .map((k) => [k, after(k)] as const)
+    .filter(([k, v]) => isSelected(ctx, partner, k) !== v);
+  return { partner, values };
+}
 
 /**
  * A press on one of the row's parameters. On a stereo pair the other row takes
@@ -185,20 +199,17 @@ const carried = (strip: Strip, partner: Strip): SafeKey[] =>
  */
 function pressCell(ctx: AppContext, strip: Strip, key: SafeKey): void {
   const on = !isSelected(ctx, strip, key);
-  const partner = linkedPartner(ctx, strip);
-  // The pressed row's selection once the press lands: clearing Source clears HA.
-  const after = (k: SafeKey): boolean => (k === key ? on : key === "source" && !on && k === "ha" ? false : isSelected(ctx, strip, k));
-  const carry = partner ? carried(strip, partner).map((k) => [k, after(k)] as const) : [];
+  const carry = pressCarry(ctx, strip, key);
   ctx.store.operation(() => {
     setSelected(ctx, strip, key, on);
-    if (partner) for (const [k, v] of carry) void ctx.store.set(safeKeyPath(partner, k), v);
+    if (carry) for (const [k, v] of carry.values) void ctx.store.set(safeKeyPath(carry.partner, k), v);
   });
 }
 
-/** The paths a press on the parameter writes. */
+/** The paths a press on the parameter writes: the parameter, and what it carries onto the partner. */
 function pressWrites(ctx: AppContext, strip: Strip, key: SafeKey): ParamPath[] {
-  const partner = linkedPartner(ctx, strip);
-  const writes = [...selectionWrites(ctx, strip, key), ...(partner ? carried(strip, partner).map((k) => safeKeyPath(partner, k)) : [])];
+  const carry = pressCarry(ctx, strip, key);
+  const writes = [...selectionWrites(ctx, strip, key), ...(carry ? carry.values.map(([k]) => safeKeyPath(carry.partner, k)) : [])];
   return [...new Set(writes)];
 }
 

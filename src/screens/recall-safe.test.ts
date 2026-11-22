@@ -126,6 +126,26 @@ describe("RECALL SAFE", () => {
     expect(shell.ctx.store.bool("safe.others.fx1", false)).toBe(true);
   });
 
+  it("carries a press onto a linked partner only where the partner differs, so a page holding a parameter both rows share does not hold it", async () => {
+    const shell = await mount();
+    for (const ch of ["ch1", "ch2"]) {
+      await shell.ctx.store.set(`ch.${ch}.signalType`, "STEREO");
+      await shell.ctx.store.set(`safe.${ch}.name`, true);
+    }
+    await flush();
+    shell.setLocks([{ target: { kind: "path", path: "safe.ch2.name" }, reason: "held" }]);
+    await flush();
+    expect(button(shell, "C H 1 C H Level").getAttribute("aria-disabled"), "Name is shared, so CH Level stays open").toBeNull();
+    await tap(shell, "C H 1 C H Level");
+    expect(["ch1", "ch2"].map((ch) => shell.ctx.store.bool(`safe.${ch}.chLevel`, false))).toEqual([true, true]);
+    // With the rows apart on Name, a press would move the held Name, so it is held shut.
+    shell.setLocks([]);
+    await shell.ctx.store.set("safe.ch2.name", false);
+    shell.setLocks([{ target: { kind: "path", path: "safe.ch2.name" }, reason: "held" }]);
+    await flush();
+    expect(button(shell, "C H 1 C H ON").getAttribute("aria-disabled")).toBe("true");
+  });
+
   it("selects Source by the input source's pair, opens HA with it, and drops HA's selection with it", async () => {
     const shell = await mount();
     await tap(shell, "C H 1 Source");
