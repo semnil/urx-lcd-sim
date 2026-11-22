@@ -674,14 +674,15 @@ describe("an operation the page holds shut", () => {
     expect(handed).toHaveBeenCalledWith({ kind: "card.test" });
   });
 
-  it("asks before recalling once the page lets it go", async () => {
-    const shell = await sceneList([{ target: { kind: "op", op: "scene.recall" }, reason: REASON }]);
+  it("recalls once the page lets it go", async () => {
+    const handed = vi.fn((_: UnitOp) => true);
+    const shell = await sceneList([{ target: { kind: "op", op: "scene.recall" }, reason: REASON }], { kind: "device", perform: handed });
     shell.setLocks([]);
     await flush();
     drawnOpen(button(shell, "Recall"));
     button(shell, "Recall")?.click();
     await flush();
-    expect(shell.root.querySelector(".dialog-actions")).not.toBeNull();
+    expect(handed).toHaveBeenCalledWith({ kind: "scene.recall", scene: 0 });
   });
 
   it("draws the recorder's button for it shut in the state that would start it", async () => {
@@ -848,15 +849,6 @@ describe("a dialog's [OK] the page holds shut", () => {
 describe("a dialog's [OK] that hands the unit an operation the page holds", () => {
   const okOf = (shell: Shell): HTMLElement | undefined => byText(shell, ".dialog-overlay .btn", "OK");
   const cases: { name: string; op: UnitOp["kind"]; routes: Route[]; open: (shell: Shell) => Promise<void> }[] = [
-    {
-      name: "Recall",
-      op: "scene.recall",
-      routes: [{ id: "scene" }, { id: "scene.list" }],
-      open: async (shell) => {
-        byText(shell, ".scene-actions .btn", "Recall")?.click();
-        await flush();
-      },
-    },
     {
       name: "inserting the card",
       op: "card.insert",

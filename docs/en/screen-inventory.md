@@ -2179,8 +2179,8 @@ the simulator holds it the same 2 seconds each time (the operator's choice). [Ca
 stores nothing.
 
 [Recall] cannot be used on a number with nothing stored, and a press asks nothing. On a stored number and on a factory scene
-it asks `Recall scene "Band"?` (the title is the picked scene's) with [Cancel] / [OK], and on [OK] puts that scene's mixer
-back and makes it the recalled one. A source the scene holds no D.Gain for comes back to 0 dB, and a BALANCE the scene holds
+it puts that scene's mixer back at once and makes it the recalled one, asking nothing first, as the unit does (confirmed
+on a URX22 and a URX44V). A source the scene holds no D.Gain for comes back to 0 dB, and a BALANCE the scene holds
 none for comes back to the centre. A recall leaves the destination HOME's [Sends] shows where it stands, as on the unit
 (confirmed on a URX44V, for a scene stored on MIX 1 and recalled over FX 1). Since System firmware V1.5 a scene
 holds the output patch and the streaming bus as well, but for the streaming bus's DELAY frame rate (confirmed on

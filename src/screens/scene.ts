@@ -391,16 +391,12 @@ export const sceneScreen: ScreenDef = {
       };
     });
 
-    // Only a number holding a scene can be recalled.
+    // Only a number holding a scene can be recalled, and [Recall] recalls it at once,
+    // asking nothing (confirmed on a URX22 and a URX44V).
     const recallShut = owner === null && !isFactoryLocked(selected);
     const recall = markShut(button("Recall", aimed(() => {
       if (recallShut) return;
-      ctx.overlay(
-        dialog({
-          message: `Recall scene "${sceneTitle(ctx, selected)}"?`,
-          onOk: aimed(() => void perform(ctx, { kind: "scene.recall", scene: selected }), { kind: "op", op: "scene.recall" }),
-        }),
-      );
+      void perform(ctx, { kind: "scene.recall", scene: selected });
     }, { kind: "op", op: "scene.recall" })), recallShut);
 
     const storeShut = isFactoryLocked(selected) || guarded || readOnly;

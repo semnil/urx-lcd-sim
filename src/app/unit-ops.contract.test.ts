@@ -66,7 +66,7 @@ const row = (no: number) => async (shell: Shell): Promise<void> => {
 };
 
 const CASES: Case[] = [
-  { op: { kind: "scene.recall", scene: 2 }, routes: SCENE, prep: (s) => set(s, STORED), reach: async (s) => { await row(2)(s); await click(s, ".scene-actions .btn", "Recall"); }, hand: ok },
+  { op: { kind: "scene.recall", scene: 2 }, routes: SCENE, prep: (s) => set(s, STORED), reach: row(2), hand: (s) => click(s, ".scene-actions .btn", "Recall") },
   {
     op: { kind: "scene.store", bank: "Standard", scene: 3, title: "Mix A" },
     routes: SCENE,
@@ -219,4 +219,15 @@ describe("the operations a screen hands the unit", () => {
       expect(progress || JSON.stringify([...values(shell)]) !== JSON.stringify([...before]), "the store moved or a progress modal came up").toBe(true);
     });
   }
+
+  it("hands the unit nothing for [Recall] on a number holding no scene", async () => {
+    const handed: UnitOp[] = [];
+    const shell = await mount(SCENE, { kind: "device", perform: (op) => (handed.push(op), true) }, (s) => set(s, STORED));
+    await row(7)(shell);
+    const before = values(shell);
+    await click(shell, ".scene-actions .btn", "Recall");
+    for (let i = 0; i < 10; i++) await flush();
+    expect(handed).toEqual([]);
+    expect(values(shell)).toEqual(before);
+  });
 });
