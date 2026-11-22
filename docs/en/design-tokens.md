@@ -177,7 +177,7 @@ PY
 | `--accent-on` | `#84e3ff` | [ON] / [CUE] / [PRE] switches lit (the same value on the three screens p046-1 / p095-1 / p125-1), [HPF] and [HI-Z] lit, and the HPF and HI-Z marks on HOME's strip and in the channel view (the marks are the operator's own) |
 | `--accent-selected` | `#84dfff` | The selected list row (p076-1), the selected language button (p056-1), USB Storage Mode (p083-1), MONITOR's [Clear CUE] and the chosen CUE Mode (x90 / y138..174 and x190 / y114..150 in p071-1) |
 | `--list-selected-mark` | `#3a3d3a` | A mark in a selected row: the ▶ (x12..19 / y124..131) and the factory preset's mark (x344..363 / y118..137) in D0 p073-1, the speaker in p086-1, the file mark in p089-1, the protection padlock in p077-1 |
-| `--scene-preset` | `#4adb5a` | The number of a scene the unit ships with (P01 in the scene name box at x19..34 / y18..26, P02 / P03 in the list at x24..41 / y162..170 and y200..208 in D0 p073-1) |
+| `--scene-preset` | `#4adb5a` | The number of Simple Mode's presets P01 to P03; 00 and P04 to P07 are drawn as a user scene is (P01 in the scene name box at x19..34 / y18..26, P02 / P03 in the list at x24..41 / y162..170 and y200..208 in D0 p073-1) |
 | `--scene-protect` | `#32eb73` | A protected scene's Lock cell (the mean over x329..378 / y112..143 of 01's in p077-1) |
 | `--safe-panel` | `#42454a` | RECALL SAFE's panels, behind the rows and behind the scrolled columns (p079-1, x211..393 / y53..250) |
 | `--safe-row-name` | `#6b717b` | A RECALL SAFE row's name box (p079-1, MIX 1's at x11..68 / y124..159) |

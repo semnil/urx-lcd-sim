@@ -590,7 +590,7 @@
   }
 }
 
-/* The number a preset carries is green; a scene stored on the unit is not. */
+/* The number P01 to P03 carry is green; that of 00, P04 to P07 and a scene stored on the unit is not. */
 .scene-no {
   position: relative;
   font-size: var(--fs-md);

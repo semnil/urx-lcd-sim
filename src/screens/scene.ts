@@ -106,16 +106,30 @@ const SCENE_COUNT = 63;
 const SCENE_TRACK_PX = 111;
 const SCENE_ROW_PITCH_PX = 38;
 
-/** Preset scenes the unit ships with, one per Simple Mode use case. They take the numbers past the base, P01 first. */
+/**
+ * Preset scenes the unit ships with: P01 to P03, one per Simple Mode use case,
+ * listed on the Simple tab, and P04 to P07, which System firmware V1.5 lists on
+ * the Standard tab between 00 and 01. They take the numbers past the base, P01 first.
+ */
 const SIMPLE_PRESETS = ["Live Music 0", "Streaming 0", "DAW Rec 0"];
+const STANDARD_PRESETS = ["Music Production", "DAW Streaming", "Sing&Talk Stream", "Game Streaming"];
+const PRESETS = [...SIMPLE_PRESETS, ...STANDARD_PRESETS];
 const PRESET_BASE = 100;
 
 /** The banks a scene is stored on, in the order a number is looked up. */
 const BANKS = ["Standard", "Simple"] as const;
 
-/** A Simple Mode preset, numbered from P01. */
+/** A preset, numbered from P01. */
 function isPreset(no: number): boolean {
   return no > PRESET_BASE;
+}
+
+/**
+ * One of Simple Mode's presets, P01 to P03, whose number the unit draws green
+ * (D0 p073-1). P04 to P07 are numbered as a user scene is drawn (p076-1).
+ */
+function isSimplePreset(no: number): boolean {
+  return isPreset(no) && no <= PRESET_BASE + SIMPLE_PRESETS.length;
 }
 
 /**
@@ -146,7 +160,7 @@ export function storedSceneCount(ctx: AppContext): number {
 
 /** A scene's title: a preset's name, what a bank has stored under the number, or nothing where no scene is stored. */
 export function sceneTitle(ctx: AppContext, no: number): string {
-  if (isPreset(no)) return SIMPLE_PRESETS[no - PRESET_BASE - 1] ?? "";
+  if (isPreset(no)) return PRESETS[no - PRESET_BASE - 1] ?? "";
   if (no === 0) return ctx.store.str("scene.0.title", "Initial Data");
   const bank = storedBank(ctx, no);
   return bank ? ctx.store.str(`scene.${bank}.${no}.title`, "") : "";
@@ -222,13 +236,14 @@ export async function storeScene(ctx: AppContext, bank: string, no: number): Pro
 }
 
 /**
- * The scenes a bank lists: 00 and every number on Standard; on Simple, the
- * presets and the numbers Standard has not stored a scene under.
+ * The scenes a bank lists: on Standard, 00, P04 to P07 and every number; on
+ * Simple, P01 to P03 and the numbers Standard has not stored a scene under.
  */
 function sceneRows(ctx: AppContext, bank: string): number[] {
   const numbers = Array.from({ length: SCENE_COUNT }, (_, i) => i + 1);
-  if (bank !== "Simple") return [0, ...numbers];
-  return [...SIMPLE_PRESETS.map((_, i) => PRESET_BASE + i + 1), ...numbers.filter((n) => !ctx.store.str(`scene.Standard.${n}.title`, ""))];
+  const presets = (first: number, names: readonly string[]): number[] => names.map((_, i) => PRESET_BASE + first + i);
+  if (bank !== "Simple") return [0, ...presets(SIMPLE_PRESETS.length + 1, STANDARD_PRESETS), ...numbers];
+  return [...presets(1, SIMPLE_PRESETS), ...numbers.filter((n) => !ctx.store.str(`scene.Standard.${n}.title`, ""))];
 }
 
 /**
@@ -261,8 +276,8 @@ function pickedRow(ctx: AppContext, listed: number[]): number {
 
 /**
  * Fill a scene box, HOME's or SCENE LIST's, with the number and title of the
- * scene on SCENE LIST's cursor rather than the scene recalled. A preset's number
- * is green, the number blinks while the scene on the cursor is not the one
+ * scene on SCENE LIST's cursor rather than the scene recalled. The number of
+ * P01 to P03 is green, the number blinks while the scene on the cursor is not the one
  * recalled, and while it is, the box is described as recalled and carries the
  * list's recalled mark, which stands in for the blink where motion is reduced.
  */
@@ -271,7 +286,7 @@ export function nameCursorScene<T extends HTMLElement>(ctx: AppContext, box: T):
   const current = ctx.store.num("scene.current", 0);
   box.append(
     el("span", {
-      class: `scene-no${isPreset(selected) ? " is-preset" : ""}${selected === current ? "" : " is-pending"}`,
+      class: `scene-no${isSimplePreset(selected) ? " is-preset" : ""}${selected === current ? "" : " is-pending"}`,
       children: [selected === current && Icons.recalled(), document.createTextNode(sceneNumber(selected))],
     }),
     el("span", { class: "scene-title", text: sceneTitle(ctx, selected) }),
@@ -371,7 +386,7 @@ export const sceneScreen: ScreenDef = {
         description: marks.join(", ") || undefined,
         cells: [
           el("span", {
-            class: `scene-no${isPreset(no) && no !== selected ? " is-preset" : ""}`,
+            class: `scene-no${isSimplePreset(no) && no !== selected ? " is-preset" : ""}`,
             children: [recalled && Icons.recalled(), document.createTextNode(sceneNumber(no))],
           }) as HTMLElement,
           sceneTitle(ctx, no),
