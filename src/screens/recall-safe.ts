@@ -694,13 +694,16 @@ function keeps(ctx: AppContext, strip: Strip, key: SafeKey): boolean {
 
 /**
  * Whether the row keeps what no one column names: its [Safe] on and any of its
- * parameters selected. A mono pair's Signal Type is each channel's, kept by its
- * own row, and the pair comes out of a recall linked only where both channels
- * come out STEREO. So a pair left unlinked stays unlinked when either row keeps
- * it (confirmed on a URX22 and a URX44V, with each row alone), and a pair left
- * linked stays linked only when both rows keep it (confirmed on a URX22 with
- * both rows, and on a URX44V, where the first row alone and the second alone
- * each let it unlink).
+ * parameters selected. A mono pair's link is decided channel by channel: each
+ * row keeps its own channel's Signal Type, and the pair comes out of a recall
+ * linked only where both channels would come out STEREO, and with both channels
+ * MONO x 2 otherwise (a linked pair that came apart with one row kept read MONO
+ * on both channels, confirmed on a URX44V). Where the scene's link differs from
+ * the pair's, an unlinked pair stays unlinked when either row keeps it
+ * (confirmed on a URX22 and a URX44V, with each row alone), and a linked pair
+ * stays linked only when both rows keep it (confirmed on a URX22 with both rows,
+ * and on a URX44V, where the first row alone and the second alone each let it
+ * come apart). Where they agree, the pair stays as it is whatever the rows keep.
  */
 function keepsRow(ctx: AppContext, strip: Strip): boolean {
   const tab = strip.side === "input" ? "Input" : "Output";
