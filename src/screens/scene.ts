@@ -73,8 +73,9 @@ function bringIntoView(body: HTMLElement, row: HTMLElement): void {
 function follow(st: FollowState, body: HTMLElement, row: HTMLElement | undefined, selected: number): void {
   st.watch?.disconnect();
   st.watch = undefined;
+  // A draw that replaces the list lets go of this wait first (releaseSceneFollow), so the list it
+  // waits for is still the one drawn.
   const apply = (): boolean => {
-    if (st.body !== body) return true;
     if (!row || !body.isConnected || body.clientHeight === 0) return false;
     bringIntoView(body, row);
     st.followed = selected;
@@ -370,10 +371,11 @@ export const sceneScreen: ScreenDef = {
             if (st.writes > 0 || !st.tap) return;
             st.tap = undefined;
           });
-          // A path the unit cannot take at all is put back at once, before its refusal is heard.
+          // A path the unit cannot take at all is put back at once, before its refusal is heard,
+          // onto what the list showed before the touch: a row the touches stood on, which stays.
           const now = ctx.store.num("scene.selected", no);
           if (now !== no && st.tap) {
-            if (st.tap.rows.has(now)) st.followed = now;
+            st.followed = now;
             st.tap = undefined;
           }
         }),

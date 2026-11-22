@@ -485,3 +485,26 @@ it.each([true, false])("leaves a hand scroll where it is when a touch after the 
   await answer(1, false);
   expect([g.state().selected, g.list().scrollTop]).toEqual(["30", scroll]);
 });
+
+it("follows a value the unit answered a touch's write with, once a later touch's refusal puts it back", async () => {
+  const g = await mount([["scene.selected", 40]]);
+  const ordinaryWrite = g.transport.write.bind(g.transport);
+  const answers: ((held: ParamValue | Error) => void)[] = [];
+  g.transport.write = (path, value, sent) => {
+    if (path !== "scene.selected") return ordinaryWrite(path, value, sent);
+    sent?.();
+    return new Promise<ParamValue>((resolve, reject) => answers.push((held) => (held instanceof Error ? reject(held) : resolve(held))));
+  };
+  await g.open();
+  g.list().scrollTop = pitch * (g.rowIndex("04") - 1);
+  g.row("03").click();
+  await flush();
+  g.row("04").click();
+  await flush();
+  // The unit took the first touch as 30, a row no touch stood on, and said nothing more.
+  answers[0]!(30);
+  await flush();
+  answers[1]!(new Error("refused"));
+  await flush();
+  expect([g.state().selected, g.state().inView]).toEqual(["30", true]);
+});

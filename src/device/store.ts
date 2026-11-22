@@ -202,11 +202,12 @@ export class DeviceStore {
     const current = this.mirror.get(n.path);
     if (current === n.value) {
       // The device moved onto the value a write still awaiting it shows: nothing changes on
-      // screen, but its listeners hear of the move, after a redraw is asked for.
+      // screen, but its listeners hear of the move, after a redraw is asked for. With no write
+      // awaiting, a value the mirror holds is what the device was heard to hold, and no move.
       if (own) {
         this.markChanged(n.path);
         this.tellDevice(n.path, n.value);
-        if (awaited) awaited.heldOwn = false;
+        awaited!.heldOwn = false;
       }
       return;
     }
