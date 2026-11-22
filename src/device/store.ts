@@ -48,6 +48,13 @@ export interface WriteFailure {
   path: ParamPath;
   attempted: ParamValue;
   restored: ParamValue | undefined;
+  /**
+   * Whether this refusal is what put the mirror back: the refused write was the
+   * newest to its path and still on screen, or the transport cannot write the
+   * path and the edit was taken back. False where a later write or the device
+   * had put another value there, which `restored` then is.
+   */
+  putBack: boolean;
   error: unknown;
 }
 
@@ -94,6 +101,7 @@ export class DeviceStore {
   private readonly listeners = new Set<ChangeListener>();
   private readonly failureListeners = new Set<(f: WriteFailure) => void>();
   private readonly moveListeners = new Set<() => void>();
+  private readonly deviceListeners = new Set<(path: ParamPath, value: ParamValue) => void>();
 
   /** Each path with writes awaiting the device, and the count each write is numbered from. */
   private readonly awaiting = new Map<ParamPath, Awaited>();
@@ -176,6 +184,7 @@ export class DeviceStore {
    */
   private adopt(n: Notify): void {
     const awaited = this.awaiting.get(n.path);
+    if (!n.echo && (awaited || this.mirror.get(n.path) !== n.value)) for (const l of [...this.deviceListeners]) l(n.path, n.value);
     if (awaited) {
       awaited.held = n.value;
       awaited.heard = awaited.sent;
@@ -411,7 +420,7 @@ export class DeviceStore {
     for (const q of refused) {
       t.write(q.path, q.value).then(undefined, (error: unknown) => {
         const restored = this.mirror.get(q.path);
-        for (const l of [...this.failureListeners]) l({ path: q.path, attempted: q.value, restored, error });
+        for (const l of [...this.failureListeners]) l({ path: q.path, attempted: q.value, restored, putBack: true, error });
       });
     }
     return result;
@@ -483,14 +492,15 @@ export class DeviceStore {
         // the newest write to the path on the transport the store is on and is
         // still on screen; a later write, a value the device announced since, or
         // a snapshot the store has moved onto, stays.
-        if (onThisTransport && awaited.newest === n && this.mirror.get(path) === value) {
+        const putBack = onThisTransport && awaited.newest === n && this.mirror.get(path) === value;
+        if (putBack) {
           if (awaited.held === undefined) this.mirror.delete(path);
           else this.mirror.set(path, awaited.held);
           this.markChanged(path);
         }
         const restored = this.mirror.get(path);
         for (const l of [...this.failureListeners]) {
-          l({ path, attempted: value, restored, error });
+          l({ path, attempted: value, restored, putBack, error });
         }
       },
     );
@@ -504,6 +514,17 @@ export class DeviceStore {
   onWriteFailure(listener: (f: WriteFailure) => void): () => void {
     this.failureListeners.add(listener);
     return () => this.failureListeners.delete(listener);
+  }
+
+  /**
+   * Tell `listener` of each value the device announces of its own for a path —
+   * a notify that is not an echo of a write — where it differs from the mirror
+   * or comes while a write to the path awaits the device, before the mirror
+   * takes it (or keeps the write's value, for a write yet to go out).
+   */
+  onDeviceValue(listener: (path: ParamPath, value: ParamValue) => void): () => void {
+    this.deviceListeners.add(listener);
+    return () => this.deviceListeners.delete(listener);
   }
 
   /**
