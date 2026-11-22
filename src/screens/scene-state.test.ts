@@ -341,6 +341,92 @@ describe("storing and recalling a scene", () => {
     expect([s.str("ch.ch2.name", ""), s.str("ch.ch2.recPoint", "")], "P03's CH 2").toEqual(["Gt./Ba.", "PRE GATE"]);
   });
 
+  it.each([0, 101, 102, 103, 104, 107])("puts each MIX's GEQ Link off from factory scene %i, as the unit holds it", async (no) => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    const links = (): string[] => ["bus.mix1", "bus.mix2", "bus.stereo"].map((id) => s.str(`ch.${id}.geq.link`, ""));
+    expect(links(), "the factory unit").toEqual(["L>R", "L>R", "Off"]);
+    await recallScene(shell.ctx, no);
+    expect(links()).toEqual(["Off", "Off", "Off"]);
+  });
+
+  it("lays P04 to P07 over 00 Initial Data, as the unit holds them", async () => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    const names = (ids: string[]): string[] => ids.map((id) => s.str(`ch.${id}.name`, ""));
+    const mono = ["ch1", "ch2", "ch3", "ch4"];
+    const stereo = ["ch_5_6", "ch_7_8", "ch_9_10", "ch_11_12"];
+    const patch = (): string[] => ["usbMainA", "usbMainB", "usbMainC", "usbSub"].map((p) => s.str(`setup.outputPatch.${p}`, ""));
+
+    await recallScene(shell.ctx, 104);
+    expect(names(mono), "P04's mono channels").toEqual(["Keys L", "Keys R", "Vocal", "E. Gt"]);
+    expect(names(stereo), "P04's stereo channels").toEqual(["DAW PB 1", "DAW PB 2", "Click", "AUX"]);
+    expect([s.str("ch.ch1.signalType", ""), s.str("ch.ch1.panBal", ""), s.str("ch.ch4.insFx.effect", ""), s.bool("ch.ch4.hiZ", false)]).toEqual([
+      "STEREO",
+      "BAL",
+      "Clean",
+      true,
+    ]);
+    expect([s.str("ch.ch_5_6.source", ""), s.str("ch.ch_5_6.recPoint", ""), s.bool("ch.ch_7_8.send.bus.stereo.on", true)]).toEqual(["USB DAW 1/2", "PRE EQ", false]);
+    expect([s.str("ch.bus.stereo.name", ""), s.num("ch.bus.stereo.level", 0), s.str("ch.bus.mix1.geq.link", "")], "STEREO down, MIX's GEQ Link as 00 holds it").toEqual([
+      "Main",
+      LEVEL_MIN_DB,
+      "Off",
+    ]);
+    expect(s.num("scene.current", -1)).toBe(104);
+
+    await recallScene(shell.ctx, 105);
+    expect(names(mono), "P05's mono channels").toEqual(["Vocal 1", "Vocal 2", "EA. Gt", "E. Gt"]);
+    expect([s.bool("ch.ch_9_10.ducker.on", false), s.num("ch.ch_9_10.ducker.decay", 0)], "Music ducked").toEqual([true, 4200]);
+    expect(patch(), "P05's output patch").toEqual(["STREAMING", "STEREO", "STEREO", "STREAMING"]);
+
+    await recallScene(shell.ctx, 106);
+    expect(names(mono), "P06's mono channels").toEqual(["Talk", "Singing", "Keys L", "Keys R"]);
+    expect([s.bool("ch.ch2.phantom", false), s.num("ch.ch2.send.fx1.level", 0)], "Singing on +48V into FX 1").toEqual([true, -20]);
+    expect([s.str("ch.bus.stereo.insFx.effect", ""), s.bool("ch.bus.stereo.insFx.on", false)], "STEREO through M.B.Comp").toEqual(["M.B.Comp", true]);
+    expect(patch(), "P06's output patch").toEqual(["STREAMING", "MIX 1", "MIX 2", "STREAMING"]);
+
+    await recallScene(shell.ctx, 107);
+    expect(names(mono), "P07's mono channels").toEqual(["Talk", "CH 2", "CH 3", "CH 4"]);
+    expect(["ch2", "ch3", "ch4"].map((id) => s.num(`ch.${id}.level`, 0)), "with the faders down").toEqual([LEVEL_MIN_DB, LEVEL_MIN_DB, LEVEL_MIN_DB]);
+    expect(names(stereo), "P07's stereo channels").toEqual(["Game", "Music", "V. Chat", "USB SUB"]);
+    expect(names(["bus.mix1", "bus.mix2"]), "P07's MIX buses").toEqual(["Monitor", "V. Chat"]);
+    expect([s.bool("ch.ch1.gate.on", false), s.bool("ch.ch1.send.bus.mix1.on", true)], "Talk gated, and kept off MIX 1").toEqual([true, false]);
+  });
+
+  it("keeps the gains P04 to P07 give a voice channel's 1-knob EQ, so its Level scales them and not what it set last", async () => {
+    const shell = await mount();
+    const s = shell.ctx.store;
+    const gains = (): number[] => ["lowMid", "highMid", "high"].map((b) => s.num(`ch.ch3.eq.${b}.gain`, 0));
+    await recallScene(shell.ctx, 104);
+    expect(gains(), "the curve at Level 50").toEqual([5, -7.3, 4]);
+    await s.set("ch.ch3.eq.oneKnob.level", 100);
+    expect(gains(), "twice the gains kept").toEqual([10, -14.6, 8]);
+    await s.set("ch.ch3.eq.oneKnob.level", 70);
+    expect(gains(), "from the gains kept, not from those at 100").toEqual([7, -10.2, 5.6]);
+  });
+
+  it("lays P04 to P07 onto a URX22's two mono channels as the unit does, and their stereo channels from CH 3/4 in order", async () => {
+    const shell = await mount("URX22");
+    const s = shell.ctx.store;
+    const names = (ids: string[]): string[] => ids.map((id) => s.str(`ch.${id}.name`, ""));
+    const seen: [string[], boolean[]][] = [];
+    for (const no of [104, 105, 106, 107]) {
+      await recallScene(shell.ctx, no);
+      seen.push([names(["ch1", "ch2"]), ["ch1", "ch2"].map((id) => s.bool(`ch.${id}.hiZ`, false))]);
+    }
+    expect(seen, "each preset's two channels, and whether each is on HI-Z").toEqual([
+      [["Vocal", "E. Gt"], [false, true]],
+      [["Vocal 1", "EA. Gt"], [false, true]],
+      [["Talk", "Singing"], [false, false]],
+      [["Talk", "CH 2"], [false, false]],
+    ]);
+    expect(names(["ch_3_4", "ch_5_6", "ch_7_8", "ch_9_10"]), "P07's stereo channels").toEqual(["Game", "Music", "V. Chat", "USB SUB"]);
+    await recallScene(shell.ctx, 104);
+    expect([s.str("ch.ch2.insFx.effect", ""), s.bool("ch.ch1.comp.on", false)], "P04's guitar and voice").toEqual(["Clean", true]);
+    expect(s.has("ch.ch3.name"), "and no channel it does not have").toBe(false);
+  });
+
   it("brings a source's digital gain the scene does not name back to 0 dB", async () => {
     const shell = await mount();
     const s = shell.ctx.store;
@@ -627,32 +713,38 @@ describe("what SCENE LIST's rows tell assistive technology", () => {
     shell.ctx.nav.push({ id: "scene.list" });
     await flush();
     const rows = (): HTMLElement[] => [...shell.root.querySelectorAll<HTMLElement>(".scene-list .list-row")];
-    const described = (): (string | null)[] => rows().slice(0, 3).map((r) => r.getAttribute("aria-description"));
+    // 00 and P04, then 01 and 02 below P04 to P07.
+    const described = (): (string | null)[] => [0, 1, 5, 6].map((i) => rows()[i]?.getAttribute("aria-description") ?? null);
     const button = (label: string): HTMLElement | undefined =>
       [...shell.root.querySelectorAll<HTMLElement>(".scene-actions .btn")].find((b) => (b.getAttribute("aria-label") ?? b.textContent) === label);
     const tap = async (node: HTMLElement | undefined): Promise<void> => {
       node?.click();
       await flush();
     };
-    expect(described(), "00 ships with the unit and is the one recalled; 01 and 02 carry no mark").toEqual(["recalled, factory scene", null, null]);
+    expect(described(), "00 and P04 ship with the unit and 00 is the one recalled; 01 and 02 carry no mark").toEqual([
+      "recalled, factory scene",
+      "factory scene",
+      null,
+      null,
+    ]);
 
-    await tap(rows()[1]);
+    await tap(rows()[5]);
     await s.set("ui.sceneMenu", "Edit");
     await flush();
     expect(button("Protect")?.getAttribute("aria-pressed"), "[Protect] before it is pressed").toBe("false");
     await tap(button("Protect"));
     expect(s.num("scene.Standard.1.protect", 0)).toBe(1);
     expect(button("Protect")?.getAttribute("aria-pressed"), "[Protect] once 01 is protected").toBe("true");
-    expect(described(), "the Edit tab draws no recalled glyph").toEqual(["factory scene", "protected", null]);
+    expect(described(), "the Edit tab draws no recalled glyph").toEqual(["factory scene", "factory scene", "protected", null]);
 
     await s.set("ui.sceneMenu", "Store/Recall");
     await flush();
-    await tap(rows()[2]);
+    await tap(rows()[6]);
     await tap(button("Recall"));
     await tap([...shell.root.querySelectorAll<HTMLElement>("[role=dialog] .btn")].find((b) => b.textContent === "OK"));
     await flush();
     expect(s.num("scene.current", -1)).toBe(2);
-    expect(described(), "02 recalled").toEqual(["factory scene", "protected", "recalled"]);
+    expect(described(), "02 recalled").toEqual(["factory scene", "factory scene", "protected", "recalled"]);
   });
 
   it("names the list, whose rows the arrow keys, Home and End step the focus along, the selection staying where it is", async () => {
@@ -670,15 +762,16 @@ describe("what SCENE LIST's rows tell assistive technology", () => {
         document.activeElement?.dispatchEvent(ev);
         return [ev.defaultPrevented, rows.indexOf(document.activeElement as HTMLElement), shell.ctx.store.num("scene.selected", 0)];
       };
-      expect([body?.getAttribute("role"), body?.getAttribute("aria-label"), rows.length]).toEqual(["listbox", "Scene List", 64]);
+      // 00, P04 to P07 and 01 to 63.
+      expect([body?.getAttribute("role"), body?.getAttribute("aria-label"), rows.length]).toEqual(["listbox", "Scene List", 68]);
       rows[0]?.focus();
       const seen = ["ArrowDown", "ArrowDown", "ArrowUp", "End", "ArrowDown", "Home", "ArrowUp", "ArrowRight"].map((name) => [name, ...key(name)]);
       expect(seen).toEqual([
         ["ArrowDown", true, 1, 0],
         ["ArrowDown", true, 2, 0],
         ["ArrowUp", true, 1, 0],
-        ["End", true, 63, 0],
-        ["ArrowDown", true, 63, 0],
+        ["End", true, 67, 0],
+        ["ArrowDown", true, 67, 0],
         ["Home", true, 0, 0],
         ["ArrowUp", true, 0, 0],
         ["ArrowRight", false, 0, 0],
@@ -838,7 +931,8 @@ describe("the SCENE LIST", () => {
     const body = (): HTMLElement | null => shell.root.querySelector<HTMLElement>(".scene-list .list-body");
     const before = body();
     if (before) before.scrollTop = 1400;
-    before?.querySelectorAll<HTMLElement>(".list-row")[40]?.click();
+    // 40 stands below 00 and P04 to P07.
+    before?.querySelectorAll<HTMLElement>(".list-row")[44]?.click();
     await flush();
     expect(shell.ctx.store.num("scene.selected", -1)).toBe(40);
     expect(body(), "the touch drew the list again").not.toBe(before);
