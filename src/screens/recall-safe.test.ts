@@ -146,6 +146,21 @@ describe("RECALL SAFE", () => {
     expect(button(shell, "C H 1 C H ON").getAttribute("aria-disabled")).toBe("true");
   });
 
+  it("clears HA on both rows of a linked pair with Source, carrying none of the pressed row's HA onto the other", async () => {
+    const shell = await mount();
+    for (const ch of ["ch1", "ch2"]) {
+      await shell.ctx.store.set(`ch.${ch}.signalType`, "STEREO");
+      await shell.ctx.store.set(`safe.${ch}.source`, true);
+    }
+    await shell.ctx.store.set("safe.ch1.ha", true);
+    await flush();
+    await tap(shell, "C H 1 Source");
+    expect(["ch1", "ch2"].map((ch) => [shell.ctx.store.bool(`safe.${ch}.source`, true), shell.ctx.store.bool(`safe.${ch}.ha`, true)])).toEqual([
+      [false, false],
+      [false, false],
+    ]);
+  });
+
   it("selects Source by the input source's pair, opens HA with it, and drops HA's selection with it", async () => {
     const shell = await mount();
     await tap(shell, "C H 1 Source");

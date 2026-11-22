@@ -179,10 +179,11 @@ const linkedPartner = (ctx: AppContext, strip: Strip): Strip | undefined => link
 function pressCarry(ctx: AppContext, strip: Strip, key: SafeKey): { partner: Strip; values: (readonly [SafeKey, boolean])[] } | undefined {
   const partner = linkedPartner(ctx, strip);
   if (!partner) return undefined;
-  const on = !isSelected(ctx, strip, key);
-  // The pressed row's selection once the press lands: clearing Source clears HA.
-  const after = (k: SafeKey): boolean => (k === key ? on : key === "source" && !on && k === "ha" ? false : isSelected(ctx, strip, k));
-  const values = safeColumns(strip.side === "input" ? "Input" : "Output")
+  const clearsHa = key === "source" && isSelected(ctx, strip, key);
+  // The pressed row's other parameters once the press lands: clearing Source clears HA.
+  const after = (k: SafeKey): boolean => (clearsHa && k === "ha" ? false : isSelected(ctx, strip, k));
+  // A stereo partner is a mono input's, so its row is on the Input tab.
+  const values = safeColumns("Input")
     .map((c) => c.key)
     .filter((k) => k !== key && k !== "source" && offers(partner, k))
     .map((k) => [k, after(k)] as const)
