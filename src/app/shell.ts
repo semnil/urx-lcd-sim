@@ -26,6 +26,7 @@ import type { NumericSpec } from "../ui/param-spec";
 import { BRIGHTNESS_MAX, formatValue } from "../ui/param-spec";
 import type { ScreenBody, ScreenRegistry } from "../screens/types";
 import { holdsFile, recordMode } from "../screens/recording";
+import { releaseSceneFollow } from "../screens/scene-follow";
 import { drawAtOneMoment } from "../screens/signal-flow";
 import { dateDraftWriteRule } from "../screens/date-time";
 import { hiZWriteRule } from "../screens/head-amp";
@@ -250,6 +251,7 @@ export class Shell {
     this.offFocusRing();
     this.offSwipe();
     this.closeOverlays();
+    releaseSceneFollow(this.ctx.store);
   }
 
   /** Hold `locks` shut and nothing else, and draw the glass again under them. */
@@ -305,6 +307,8 @@ export class Shell {
     clear(this.sideNode);
     clear(this.toolbarNode);
     clear(this.knobStripNode);
+    // A list waiting to be shown is gone with the screen; SCENE LIST drawn again waits anew.
+    releaseSceneFollow(this.ctx.store);
     this.ctx.focus.sweep(this.lcd);
 
     if (!def) {

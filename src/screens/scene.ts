@@ -23,25 +23,8 @@ import { dropGeqOverRate } from "./geq";
 import { keptByRecallSafe } from "./recall-safe";
 import type { ParamValue } from "../device/path";
 import type { DeviceStore } from "../device/store";
+import { follows, type FollowState } from "./scene-follow";
 
-/** What SCENE LIST knows of following its selection, per unit. */
-interface FollowState {
-  /** The selection whose row the list has brought into view, or that a touch on the list made. */
-  followed?: number;
-  /** A follow a draw asked for that has not reached a list that could show it. */
-  pending: boolean;
-  /**
-   * The touches on rows whose writes have not settled: the last row touched, and the row
-   * selected before the first of them, which a refusal puts back.
-   */
-  tap?: { no: number; from: number } | undefined;
-  /** How many of those writes are out. */
-  writes: number;
-  /** The list last drawn, and the wait for it to have a height. */
-  body?: HTMLElement;
-  watch?: ResizeObserver | undefined;
-}
-const follows = new WeakMap<DeviceStore, FollowState>();
 function followState(store: DeviceStore): FollowState {
   let st = follows.get(store);
   if (st) return st;

@@ -288,3 +288,43 @@ it("leaves the list where it was scrolled when two touches in a row are refused 
   }
   expect([g.state().selected, g.list().scrollTop]).toEqual(["40", 10]);
 });
+
+it.each(["leaving it for another screen", "giving the glass up"] as const)("keeps no watch for a list waiting to be shown after %s", async (how) => {
+  const g = await mount();
+  await g.open();
+  g.host.style.display = "none";
+  g.transport.inject("scene.selected", 40);
+  await flush();
+  ObservedSizes.frame();
+  expect(ObservedSizes.observations.size, "a watch while the list waits").toBe(1);
+  if (how === "leaving it for another screen") g.click('[aria-label="Back"]');
+  else g.sim.dispose();
+  await flush();
+  expect(ObservedSizes.observations.size).toBe(0);
+});
+
+it("starts no watch from a draw made just before the glass is given up", async () => {
+  const g = await mount();
+  await g.open();
+  g.host.style.display = "none";
+  g.transport.inject("scene.selected", 40);
+  g.sim.setLocks([]);
+  g.sim.dispose();
+  await flush();
+  ObservedSizes.frame();
+  expect(ObservedSizes.observations.size).toBe(0);
+});
+
+it("brings the selection into view on SCENE LIST opened again after it was left while waiting to be shown", async () => {
+  const g = await mount();
+  await g.open();
+  g.host.style.display = "none";
+  g.transport.inject("scene.selected", 40);
+  await flush();
+  g.click('[aria-label="Back"]');
+  await flush();
+  g.host.style.display = "";
+  g.menu();
+  await flush();
+  expect([g.state().selected, g.state().inView]).toEqual(["40", true]);
+});
