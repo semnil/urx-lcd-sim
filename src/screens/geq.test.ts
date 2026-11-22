@@ -39,19 +39,20 @@ const bands = (shell: Shell, id: string, side: "l" | "r"): number[] => GEQ_BANDS
 describe("the EQ Type", () => {
   it.each([
     ["bus.stereo", "Off"],
-    ["bus.mix1", "L>R"],
+    ["bus.mix1", "Off"],
   ])("ships %s on 4band PEQ, with its GEQ Link %s", async (id, link) => {
     const shell = await mount();
     expect([shell.ctx.store.str(`ch.${id}.eqType`, ""), shell.ctx.store.str(`ch.${id}.geq.link`, "")]).toEqual(["4band PEQ", link]);
   });
 
   it.each([
-    ["bus.stereo", "Off"],
-    ["bus.mix1", "Off"],
-  ])("turns %s's EQ on when it goes to Flex12GEQ, and its GEQ Link to %s", async (id, link) => {
+    ["bus.stereo", "Off", "Off"],
+    ["bus.mix1", "L>R", "Off"],
+  ])("turns %s's EQ on when it goes to Flex12GEQ, and its GEQ Link from %s to %s", async (id, before, link) => {
     const shell = await mount();
     const s = shell.ctx.store;
     await s.set(`ch.${id}.eq.on`, false);
+    await s.set(`ch.${id}.geq.link`, before);
     setEqType(shell.ctx, strip(shell, id), "Flex12GEQ");
     await flush();
     expect([s.str(`ch.${id}.eqType`, ""), s.bool(`ch.${id}.eq.on`, false), s.str(`ch.${id}.geq.link`, "")]).toEqual(["Flex12GEQ", true, link]);

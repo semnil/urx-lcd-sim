@@ -345,7 +345,10 @@ describe("storing and recalling a scene", () => {
     const shell = await mount();
     const s = shell.ctx.store;
     const links = (): string[] => ["bus.mix1", "bus.mix2", "bus.stereo"].map((id) => s.str(`ch.${id}.geq.link`, ""));
-    expect(links(), "the factory unit").toEqual(["L>R", "L>R", "Off"]);
+    expect(links(), "the factory unit").toEqual(["Off", "Off", "Off"]);
+    await s.set("ch.bus.mix1.geq.link", "L>R");
+    await s.set("ch.bus.mix2.geq.link", "R>L");
+    expect(links(), "linked before the recall").toEqual(["L>R", "R>L", "Off"]);
     await recallScene(shell.ctx, no);
     expect(links()).toEqual(["Off", "Off", "Off"]);
   });

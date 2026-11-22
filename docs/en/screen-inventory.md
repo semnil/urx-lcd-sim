@@ -363,7 +363,8 @@ place of their 4-band EQ (p97-98, p104).
   `±15dB`. Both lists read so, top to bottom, and the stereo bus's CH SETTING carries the two in the MIX bus's places, its third row empty (confirmed on a URX44V). EQ Type's list hangs under its box and GEQ Limit's opens beside it, its foot level with the box's foot, both on BUS Type's 31px rows (confirmed on a URX44V, where they open). Coming and going, GEQ Limit moves no other field. Over 48 kHz EQ Type is left out, as the unit drops the item.
 - Taking Flex12GEQ switches the bus's EQ on, and on a MIX bus switches the GEQ Link off; going back to
   4band PEQ changes nothing else. Each side holds its own [GEQ] switch and GEQ Limit (confirmed on a
-  URX44V). The simulator ships a MIX bus with its GEQ Link on, L to R, and the stereo bus with it off.
+  URX44V). The simulator ships every bus with its GEQ Link off, as a unit reset to the factory under System firmware V1.5
+  holds it (confirmed on a URX22 and a URX44V).
 - A narrower GEQ Limit pulls each band of the side into its window, `-24dB` taking every band above
   0 dB to 0 dB, and a wider one leaves them where they were pulled to. While the GEQ Link is on, the
   other side takes the same limit (confirmed on a URX44V).
@@ -2186,8 +2187,8 @@ none for comes back to the centre. A recall leaves the destination HOME's [Sends
 holds the output patch and the streaming bus as well, but for the streaming bus's DELAY frame rate (confirmed on
 a URX22 and a URX44V), and it holds no [CUE], so a recall leaves the cues where they stand (the guide's list of what
 a scene does not save). 00 Initial Data puts the factory
-mixer back, and the factory output patch with it (confirmed on a URX44V, for USB SUB), but with each MIX's GEQ Link off where
-the factory holds it on L>R (confirmed on a URX22 and a URX44V; P01 to P07 hold it off too). P01 puts the factory output
+mixer back, and the factory output patch with it (confirmed on a URX44V, for USB SUB). Each MIX's GEQ Link is off in it, as on
+a unit reset to the factory under System firmware V1.5 (both confirmed on a URX22 and a URX44V; P01 to P07 hold it off too). P01 puts the factory output
 patch and streaming bus back as well (confirmed on a URX44V, for USB SUB and the streaming bus's source). Each preset lays settings
 of its own over 00 Initial Data (P01 to P03 confirmed on a URX22, P04 to P07 on a URX22 and a URX44V, on every value of the scene
 but the SSMCS values of a channel whose COMP/EQ Type is not SSMCS and the BALANCE of an unlinked mono channel). The main ones are below; the whole of what a preset

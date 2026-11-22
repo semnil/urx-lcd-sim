@@ -329,8 +329,8 @@ Flex12GEQ を使える (p97-98・p104)。
   のどれかで、表示している側 (L か R) の値。出荷時は `±15dB`。2 つの一覧は上からこの順でこの綴りで、STEREO バスの CH SETTING も 2 つを MIX バスと同じ位置に出し、3 行目は空く (URX44V で確認)。EQ Type の一覧は箱の下に、GEQ Limit の一覧は箱の右に、下端を箱の下端にそろえて開き、どちらも BUS Type と同じ 31px の行 (URX44V で確認、開く位置)。GEQ Limit は出ても消えても、ほかの欄を動かさない。48 kHz より上では、
   本体が項目を消すので EQ Type を出さない。
 - Flex12GEQ にするとバスの EQ がオンになり、MIX バスでは GEQ Link がオフになる。4band PEQ に戻しても、ほかは変わらない。
-  [GEQ] のスイッチと GEQ Limit は側ごとに持つ (URX44V で確認)。シミュレーターの出荷時の状態では、MIX バスの GEQ Link は
-  L から R でオン、STEREO バスはオフ。
+  [GEQ] のスイッチと GEQ Limit は側ごとに持つ (URX44V で確認)。シミュレーターの出荷時の状態では、どのバスも GEQ Link は
+  オフで、System ファームウェア V1.5 で工場出荷の状態に戻した本体と同じ (URX22 と URX44V で確認)。
 - GEQ Limit を狭めると、その側のバンドを新しい範囲へ寄せる。`-24dB` では 0 dB より上のバンドが 0 dB になる。
   広げても、寄せた値は戻らない。GEQ Link がオンのあいだは、もう片側も同じ Limit になる (URX44V で確認)。
 - サンプリング周波数が 48 kHz を超えると、Flex12GEQ のバスは 4band PEQ に戻り、両側の全バンドが 0 dB になる。
@@ -1883,8 +1883,8 @@ P01〜P03 の番号は、一覧でもどちらの箱でも `--scene-preset` の�
 (URX44V で実機確認、MIX 1 で保存したシーンを FX 1 のまま呼び出して)。System ファームウェア V1.5 からは、シーンは
 出力パッチと STREAMING も持つ。STREAMING の DELAY のフレームレートだけは持たない (URX22 と URX44V で確認)。[CUE] は持たず、
 呼び出しても CUE は動かない (ガイドの、シーンに保存しない設定の一覧)。00 Initial Data は工場出荷のミキサーを
-戻し、出力パッチも工場出荷の値に戻す (URX44V で確認、USB SUB で)。ただし MIX の GEQ Link は、工場出荷の L>R ではなく切に
-する (URX22 と URX44V で確認。P01〜P07 も切で持つ)。P01 も出力パッチと STREAMING を工場出荷の値に戻す
+戻し、出力パッチも工場出荷の値に戻す (URX44V で確認、USB SUB で)。MIX の GEQ Link は切で、System ファームウェア V1.5 で
+工場出荷の状態に戻した本体と同じ (どちらも URX22 と URX44V で確認。P01〜P07 も切で持つ)。P01 も出力パッチと STREAMING を工場出荷の値に戻す
 (URX44V で確認、USB SUB と STREAMING の送り元で)。どのプリセットも、00 Initial Data に自分の設定を
 重ねる (P01〜P03 は URX22 で、P04〜P07 は URX22 と URX44V で確認。確かめたのは、COMP/EQ Type が SSMCS でないチャンネルの SSMCS の値と、
 リンクしていないモノ CH の BALANCE を除く、シーンの全ての値)。

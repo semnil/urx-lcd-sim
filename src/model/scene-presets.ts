@@ -122,13 +122,6 @@ const PRESET_SOURCES = ["AUX IN", "USB MAIN A", "USB MAIN B", "USB MAIN C", "USB
 /** Settings on the strips other than the channels, keyed by strip. */
 type Strips = Readonly<Record<string, Settings>>;
 
-/**
- * What 00 Initial Data holds over the factory mixer, and every preset with it:
- * each MIX's GEQ Link off (00 and P04 to P07 confirmed on a URX22 and a URX44V,
- * P01 to P03 on a URX22).
- */
-const INITIAL_DATA: Strips = { "bus.mix1": { "geq.link": "Off" }, "bus.mix2": { "geq.link": "Off" } };
-
 interface Preset {
   /** The mono channels, CH 1 up, four of them. */
   mono: readonly Settings[];
@@ -408,7 +401,6 @@ export function shippedScene(model: UnitModel, preset: number): Record<ParamPath
   const layStrips = (strips: Strips): void => {
     for (const [strip, settings] of Object.entries(strips)) lay(strip, settings);
   };
-  layStrips(INITIAL_DATA);
   if (preset === 0) return out;
   const layout = PRESETS[preset - 1];
   if (!layout) return undefined;
