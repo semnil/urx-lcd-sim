@@ -75,7 +75,7 @@ interface Awaited {
    * answer before it. Undefined where it held none.
    */
   held: ParamValue | undefined;
-  /** Whether `held` is a value the device moved to of its own, announced and not yet on screen or since put there by a refusal. */
+  /** Whether `held` is a move the device made of its own that has not reached the screen yet; heard once, when it does. */
   heldOwn: boolean;
   /**
    * The number of the newest write `held` is known to follow: the newest write
@@ -206,12 +206,17 @@ export class DeviceStore {
       if (own) {
         this.markChanged(n.path);
         this.tellDevice(n.path, n.value);
+        if (awaited) awaited.heldOwn = false;
       }
       return;
     }
     this.mirror.set(n.path, n.value);
     this.markChanged(n.path);
-    if (own) this.tellDevice(n.path, n.value);
+    if (own) {
+      this.tellDevice(n.path, n.value);
+      // The move is on screen: a refusal that later puts the same value back moves nothing.
+      if (awaited) awaited.heldOwn = false;
+    }
   }
 
   /** A count that moves on every change to the mirror, for whatever keeps what it worked out from the values. */
@@ -521,7 +526,10 @@ export class DeviceStore {
           else this.mirror.set(path, awaited.held);
           this.markChanged(path);
           // A move of the device's own, held back while the write was to go out, reaches the screen now.
-          if (awaited.heldOwn && awaited.held !== undefined) this.tellDevice(path, awaited.held);
+          if (awaited.heldOwn && awaited.held !== undefined) {
+            awaited.heldOwn = false;
+            this.tellDevice(path, awaited.held);
+          }
         }
         const restored = this.mirror.get(path);
         for (const l of [...this.failureListeners]) {
