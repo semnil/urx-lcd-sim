@@ -868,12 +868,10 @@ describe("drawing the glass over a recall and a load", () => {
     await flush();
     [...shell.root.querySelectorAll<HTMLElement>(".scene-list .list-row")].find((r) => r.querySelector(".scene-no")?.textContent?.endsWith(no))?.click();
     await flush();
-    byText(shell.root, ".scene-actions .btn", "Recall")?.click();
-    await flush();
-    const ok = byText(shell.root, ".dialog-actions .btn", "OK");
-    if (!ok) throw new Error(`no [Recall] to confirm on ${bank} ${no}`);
+    const recall = byText(shell.root, ".scene-actions .btn", "Recall");
+    if (!recall) throw new Error(`no [Recall] on ${bank} ${no}`);
     const render = vi.spyOn(shell, "render");
-    ok.click();
+    recall.click();
     await settle(() => shell.ctx.store.num("scene.current", -1) === current);
     const renders = render.mock.calls.length;
     render.mockRestore();
