@@ -115,6 +115,14 @@ async function mount(entries: [ParamPath, ParamValue][] = []) {
     node.click();
   };
   const list = () => one(bodySelector);
+  // A row by the number it shows, so the presets the Standard tab lists between 00 and 01 do not move it.
+  const rows = () => [...list().querySelectorAll<HTMLElement>(".list-row")];
+  const rowIndex = (no: string) => {
+    const index = rows().findIndex((r) => r.querySelector(".scene-no")?.textContent === no);
+    if (index < 0) throw new Error("Missing row " + no);
+    return index;
+  };
+  const row = (no: string) => rows()[rowIndex(no)]!;
   const menu = () => button(".menu-grid .menu-btn", "Scene List");
   const open = async () => {
     click(".scene-box");
@@ -130,7 +138,7 @@ async function mount(entries: [ParamPath, ParamValue][] = []) {
       scroll: list().scrollTop, span: [r.top - view.top, r.bottom - view.top],
       inView: r.top >= view.top - 0.5 && r.bottom <= view.bottom + 0.5 };
   };
-  return { host, sim, transport, one, click, button, list, open, menu, state, failures };
+  return { host, sim, transport, one, click, button, list, row, rowIndex, open, menu, state, failures };
 }
 
 type Mounted = Awaited<ReturnType<typeof mount>>;
@@ -156,7 +164,7 @@ it.each(["unwritable", "at once", "later"] as const)("leaves the list where it w
   await g.open();
   expect(g.state().inView, "the selection in view on opening").toBe(true);
   g.list().scrollTop = 10;
-  g.list().querySelectorAll<HTMLElement>(".list-row")[3]!.click();
+  g.row("03").click();
   await flush();
   refuse();
   await flush();
@@ -168,7 +176,7 @@ it("follows the unit's own move onto the number of a touch it refused", async ()
   refuseSelection(g, "unwritable");
   await g.open();
   g.list().scrollTop = 10;
-  g.list().querySelectorAll<HTMLElement>(".list-row")[3]!.click();
+  g.row("03").click();
   expect(g.sim.store.num("scene.selected", 0), "put back at once").toBe(40);
   g.transport.inject("scene.selected", 3);
   await flush();
@@ -180,7 +188,7 @@ it("keeps a selection the unit moved to while a touch waited, after the touch is
   const refuse = refuseSelection(g, "later");
   await g.open();
   g.list().scrollTop = 10;
-  g.list().querySelectorAll<HTMLElement>(".list-row")[3]!.click();
+  g.row("03").click();
   await flush();
   expect([g.state().selected, g.list().scrollTop], "the touch's row where it was touched").toEqual(["03", 10]);
   g.transport.inject("scene.selected", 30);
@@ -235,8 +243,8 @@ it("brings the selection into view on a list opened again while a touch's write 
   const g = await mount([["scene.selected", 2]]);
   const refuse = refuseSelection(g, "later");
   await g.open();
-  g.list().scrollTop = 1444;
-  g.list().querySelectorAll<HTMLElement>(".list-row")[40]!.click();
+  g.list().scrollTop = pitch * (g.rowIndex("40") - 2);
+  g.row("40").click();
   await flush();
   g.click('[aria-label="Back"]');
   await flush();
@@ -252,7 +260,7 @@ it("follows the unit's move back onto the row selected before a touch whose writ
   refuseSelection(g, "later");
   await g.open();
   g.list().scrollTop = 10;
-  g.list().querySelectorAll<HTMLElement>(".list-row")[3]!.click();
+  g.row("03").click();
   await flush();
   g.transport.inject("scene.selected", 40);
   await flush();
@@ -270,9 +278,9 @@ it("leaves the list where it was scrolled when two touches in a row are refused 
   };
   await g.open();
   g.list().scrollTop = 10;
-  g.list().querySelectorAll<HTMLElement>(".list-row")[3]!.click();
+  g.row("03").click();
   await flush();
-  g.list().querySelectorAll<HTMLElement>(".list-row")[3]!.click();
+  g.row("03").click();
   await flush();
   for (const refuse of refusals) {
     refuse();
