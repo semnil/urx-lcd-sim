@@ -2273,22 +2273,30 @@ Mode the menu's [Recall Safe] is out of reach, and a recall keeps nothing.
   are and `All` lit once all are, and the headings take a Safe row's faces while any row's [Safe] is on. The
   heading over Safe reads `ALL` in a row name box's colour, `...` cyan while some rows are on, and `ALL` green once all are
   (confirmed on a URX44V).
-- Source goes by the input source's pair: CH 1 with CH 2 and CH 3 with CH 4. Selecting it opens the pair's HA,
-  which goes by channel, and clearing it clears HA. A stereo input's Source goes by its own row and opens its own
-  HA the same way. The two rows of a stereo-linked mono pair select as one: [Safe], CH ON and CH Level pressed on
-  CH 1's row turn on with CH 2's, and a recall keeps the pair whole. Linking a pair gives CH 2's row CH 1's [Safe]
-  and selections, made before the link (confirmed on a URX44V); the other columns are taken to go together the same
-  way. A row's [All] selects every parameter, its HA included, then clears them. A heading selects its
-  column on every row, and the heading over Safe turns Safe on every row of the tab, the other tab's rows left alone
-  (confirmed on a URX44V).
-- A recall keeps a channel's parameter only where the row's [Safe] is on and the parameter is selected, and keeps
-  the sends into a MIX bus where its [Safe] and [Incoming Sends] are both on; [Safe] alone keeps nothing
-  (confirmed on a URX44V). A kept HA keeps the channel's polarity, a stereo input's L and R alike, and the D.Gain of
-  the channel's own input source, and no other source's: with USB MAIN A's kept, USB MAIN B's and USB SUB's went back.
-  A mono pair's Signal Type and a MIX bus's Pan Link are kept by any parameter the row keeps, whichever it is: [Safe]
-  with no parameter selected keeps neither. A pair's Signal Type is kept by its first channel's row (CH 1, CH 3), not
-  by the second's (confirmed on a URX44V). A kept HA also keeps +48V, A.Gain and Clip Safe, which the guide's table
-  puts under HA, and Hi-Z, which the table does not name; a recall of these four is unconfirmed.
+- Source goes by the input source's pair: CH 1 with CH 2 and CH 3 with CH 4. Selecting it opens the pair's HA, which
+  goes by channel, and clearing it clears HA. A stereo input's Source goes by its own row and opens its own HA the
+  same way. The two rows of a stereo-linked mono pair select as one: [Safe], CH ON and CH Level pressed on CH 1's row
+  turn on with CH 2's, and a recall keeps the pair whole. Linking a pair gives CH 2's row CH 1's [Safe] and
+  selections, made before the link (confirmed on a URX44V); the other columns are taken to go together the same way. A
+  recall that links a pair carries neither row onto the other, so a linked pair's rows can differ, and a parameter
+  pressed on either row then gives the other row the pressed row's whole selection, [Safe] apart: with CH 3's row on
+  Name and CH 4's on [Safe] alone, CH Level pressed on CH 4's row left CH 3's on CH Level alone (confirmed on a
+  URX44V). A row's [All] selects every parameter, its HA included, then clears them. A heading selects its column on
+  every row, and the heading over Safe turns Safe on every row of the tab, the other tab's rows left alone (confirmed
+  on a URX44V).
+- A recall keeps a channel's parameter only where the row's [Safe] is on and the parameter is selected, and keeps the
+  sends into a MIX bus where its [Safe] and [Incoming Sends] are both on; [Safe] alone keeps nothing (confirmed on a
+  URX44V). A kept HA keeps the channel's polarity, a stereo input's L and R alike, and the D.Gain of the channel's own
+  input source, and no other source's: with USB MAIN A's kept, USB MAIN B's and USB SUB's went back. A mono pair's
+  Signal Type and a MIX bus's Pan Link are kept by any parameter the row keeps, whichever it is: [Safe] with no
+  parameter selected keeps neither. A pair's link is decided channel by channel: each row keeps its own channel's
+  Signal Type, and the pair comes out of a recall linked only where both channels would come out STEREO, and with both
+  MONO x 2 otherwise (both read MONO after a linked pair came apart with one row kept, confirmed on a URX44V).
+  Recalling a scene with the pair linked onto the pair unlinked, one row alone with [Safe] and a parameter kept it
+  unlinked (confirmed on a URX22 and a URX44V, with each row alone), and recalling a scene with the pair unlinked onto
+  the pair linked kept it linked only with both rows (confirmed on a URX22 with both rows, and on a URX44V, where the
+  first row alone and the second alone each let it unlink). A kept HA also keeps +48V, A.Gain and Clip Safe, which the
+  guide's table puts under HA, and Hi-Z, which the table does not name; a recall of these four is unconfirmed.
 - Others lays out three bands, EFFECT, BUS TYPE and OTHERS (x10..389, 20 high), with the buttons four to a row
   under each (86 by 40, 12 apart): FX 1, FX 2, INS FX (Input), INS FX (Output); MIX1, MIX2; Output Patch (p080-1).
   A button is in a row name box's colour under white words while off and green while on (confirmed on a URX44V),

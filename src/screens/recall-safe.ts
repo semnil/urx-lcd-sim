@@ -167,6 +167,53 @@ function selectionWrites(ctx: AppContext, strip: Strip, key: SafeKey): ParamPath
   return sourceOwners(ctx, strip).flatMap((s) => [safeKeyPath(s, "source"), ...(offers(s, "ha") ? [safeKeyPath(s, "ha")] : [])]);
 }
 
+/** The pair's other row while the two run as a stereo pair. */
+const linkedPartner = (ctx: AppContext, strip: Strip): Strip | undefined => linkedRows(ctx, strip).find((s) => s !== strip);
+
+/**
+ * What a press on the parameter carries onto the row's stereo partner besides
+ * the parameter itself: each other parameter where the partner's selection
+ * differs from the pressed row's once the press lands. A parameter the two rows
+ * already share is left out, so a page holding it does not hold the press.
+ */
+function pressCarry(ctx: AppContext, strip: Strip, key: SafeKey): { partner: Strip; values: (readonly [SafeKey, boolean])[] } | undefined {
+  const partner = linkedPartner(ctx, strip);
+  if (!partner) return undefined;
+  const clearsHa = key === "source" && isSelected(ctx, strip, key);
+  // The pressed row's other parameters once the press lands: clearing Source clears HA.
+  const after = (k: SafeKey): boolean => (clearsHa && k === "ha" ? false : isSelected(ctx, strip, k));
+  // A stereo partner is a mono input's, so its row is on the Input tab.
+  const values = safeColumns("Input")
+    .map((c) => c.key)
+    .filter((k) => k !== key && k !== "source" && offers(partner, k))
+    .map((k) => [k, after(k)] as const)
+    .filter(([k, v]) => isSelected(ctx, partner, k) !== v);
+  return { partner, values };
+}
+
+/**
+ * A press on one of the row's parameters. On a stereo pair the other row takes
+ * the pressed row's whole selection, [Safe] apart: with CH 3's row on Name and
+ * CH 4's on [Safe] alone, CH Level pressed on CH 4's row left CH 3's on CH Level
+ * alone, its [Safe] still off (confirmed on a URX44V, on a pair a recall had
+ * linked, which carries neither row onto the other).
+ */
+function pressCell(ctx: AppContext, strip: Strip, key: SafeKey): void {
+  const on = !isSelected(ctx, strip, key);
+  const carry = pressCarry(ctx, strip, key);
+  ctx.store.operation(() => {
+    setSelected(ctx, strip, key, on);
+    if (carry) for (const [k, v] of carry.values) void ctx.store.set(safeKeyPath(carry.partner, k), v);
+  });
+}
+
+/** The paths a press on the parameter writes: the parameter, and what it carries onto the partner. */
+function pressWrites(ctx: AppContext, strip: Strip, key: SafeKey): ParamPath[] {
+  const carry = pressCarry(ctx, strip, key);
+  const writes = [...selectionWrites(ctx, strip, key), ...(carry ? carry.values.map(([k]) => safeKeyPath(carry.partner, k)) : [])];
+  return [...new Set(writes)];
+}
+
 /** How many of a set of buttons are selected: none, some or all. */
 type Fill = "none" | "some" | "all";
 function fillOf(selected: boolean[]): Fill {
@@ -523,8 +570,8 @@ function gridTab(ctx: AppContext, tab: "Input" | "Output"): HTMLElement {
               label: `${name} ${c.name}`,
               on: isSelected(ctx, strip, c.key),
               safe,
-              writes: selectionWrites(ctx, strip, c.key),
-              onTap: () => setSelected(ctx, strip, c.key, !isSelected(ctx, strip, c.key)),
+              writes: pressWrites(ctx, strip, c.key),
+              onTap: () => pressCell(ctx, strip, c.key),
             })
           : noCell(),
       ),
@@ -659,15 +706,23 @@ function keeps(ctx: AppContext, strip: Strip, key: SafeKey): boolean {
 
 /**
  * Whether the row keeps what no one column names: its [Safe] on and any of its
- * parameters selected. A mono pair's Signal Type is held by the pair and kept by
- * its first channel's row, CH 1's or CH 3's, and not by the second's (confirmed
- * on a URX44V).
+ * parameters selected. A mono pair's link is decided channel by channel: each
+ * row keeps its own channel's Signal Type, and the pair comes out of a recall
+ * linked only where both channels would come out STEREO, and with both channels
+ * MONO x 2 otherwise (a linked pair that came apart with one row kept read MONO
+ * on both channels, confirmed on a URX44V). Where the scene's link differs from
+ * the pair's, an unlinked pair stays unlinked when either row keeps it
+ * (confirmed on a URX22 and a URX44V, with each row alone), and a linked pair
+ * stays linked only when both rows keep it (confirmed on a URX22 with both rows,
+ * and on a URX44V, where the first row alone and the second alone each let it
+ * come apart). Where they agree, the pair stays as it is whatever the rows keep.
  */
 function keepsRow(ctx: AppContext, strip: Strip): boolean {
   const tab = strip.side === "input" ? "Input" : "Output";
+  const own = (row: Strip): boolean => isSafe(ctx, row) && selectsAny(ctx, row, tab);
   const partner = strip.kind === "monoIn" ? linkPartner(ctx, strip) : undefined;
-  const holder = partner !== undefined && (partner.channels[0] ?? 0) < (strip.channels[0] ?? 0) ? partner : strip;
-  return isSafe(ctx, holder) && selectsAny(ctx, holder, tab);
+  if (!partner) return own(strip);
+  return isStereoLinked(ctx, strip) ? own(strip) && own(partner) : own(strip) || own(partner);
 }
 
 /**
