@@ -167,6 +167,41 @@ function selectionWrites(ctx: AppContext, strip: Strip, key: SafeKey): ParamPath
   return sourceOwners(ctx, strip).flatMap((s) => [safeKeyPath(s, "source"), ...(offers(s, "ha") ? [safeKeyPath(s, "ha")] : [])]);
 }
 
+/** The pair's other row while the two run as a stereo pair. */
+const linkedPartner = (ctx: AppContext, strip: Strip): Strip | undefined => linkedRows(ctx, strip).find((s) => s !== strip);
+
+/** The parameters other than Source the partner's row offers, which a press on a parameter carries over. */
+const carried = (strip: Strip, partner: Strip): SafeKey[] =>
+  safeColumns(strip.side === "input" ? "Input" : "Output")
+    .map((c) => c.key)
+    .filter((k) => k !== "source" && offers(partner, k));
+
+/**
+ * A press on one of the row's parameters. On a stereo pair the other row takes
+ * the pressed row's whole selection, [Safe] apart: with CH 3's row on Name and
+ * CH 4's on [Safe] alone, CH Level pressed on CH 4's row left CH 3's on CH Level
+ * alone, its [Safe] still off (confirmed on a URX44V, on a pair a recall had
+ * linked, which carries neither row onto the other).
+ */
+function pressCell(ctx: AppContext, strip: Strip, key: SafeKey): void {
+  const on = !isSelected(ctx, strip, key);
+  const partner = linkedPartner(ctx, strip);
+  // The pressed row's selection once the press lands: clearing Source clears HA.
+  const after = (k: SafeKey): boolean => (k === key ? on : key === "source" && !on && k === "ha" ? false : isSelected(ctx, strip, k));
+  const carry = partner ? carried(strip, partner).map((k) => [k, after(k)] as const) : [];
+  ctx.store.operation(() => {
+    setSelected(ctx, strip, key, on);
+    if (partner) for (const [k, v] of carry) void ctx.store.set(safeKeyPath(partner, k), v);
+  });
+}
+
+/** The paths a press on the parameter writes. */
+function pressWrites(ctx: AppContext, strip: Strip, key: SafeKey): ParamPath[] {
+  const partner = linkedPartner(ctx, strip);
+  const writes = [...selectionWrites(ctx, strip, key), ...(partner ? carried(strip, partner).map((k) => safeKeyPath(partner, k)) : [])];
+  return [...new Set(writes)];
+}
+
 /** How many of a set of buttons are selected: none, some or all. */
 type Fill = "none" | "some" | "all";
 function fillOf(selected: boolean[]): Fill {
@@ -523,8 +558,8 @@ function gridTab(ctx: AppContext, tab: "Input" | "Output"): HTMLElement {
               label: `${name} ${c.name}`,
               on: isSelected(ctx, strip, c.key),
               safe,
-              writes: selectionWrites(ctx, strip, c.key),
-              onTap: () => setSelected(ctx, strip, c.key, !isSelected(ctx, strip, c.key)),
+              writes: pressWrites(ctx, strip, c.key),
+              onTap: () => pressCell(ctx, strip, c.key),
             })
           : noCell(),
       ),
@@ -659,15 +694,20 @@ function keeps(ctx: AppContext, strip: Strip, key: SafeKey): boolean {
 
 /**
  * Whether the row keeps what no one column names: its [Safe] on and any of its
- * parameters selected. A mono pair's Signal Type is held by the pair and kept by
- * either of its rows: recalling a scene with the pair linked onto the pair
- * unlinked, one row alone kept it unlinked (confirmed on a URX22 and a URX44V,
- * with each row alone).
+ * parameters selected. A mono pair's Signal Type is each channel's, kept by its
+ * own row, and the pair comes out of a recall linked only where both channels
+ * come out STEREO. So a pair left unlinked stays unlinked when either row keeps
+ * it (confirmed on a URX22 and a URX44V, with each row alone), and a pair left
+ * linked stays linked only when both rows keep it (confirmed on a URX22 with
+ * both rows, and on a URX44V, where the first row alone and the second alone
+ * each let it unlink).
  */
 function keepsRow(ctx: AppContext, strip: Strip): boolean {
   const tab = strip.side === "input" ? "Input" : "Output";
+  const own = (row: Strip): boolean => isSafe(ctx, row) && selectsAny(ctx, row, tab);
   const partner = strip.kind === "monoIn" ? linkPartner(ctx, strip) : undefined;
-  return [strip, ...(partner ? [partner] : [])].some((row) => isSafe(ctx, row) && selectsAny(ctx, row, tab));
+  if (!partner) return own(strip);
+  return isStereoLinked(ctx, strip) ? own(strip) && own(partner) : own(strip) || own(partner);
 }
 
 /**

@@ -442,6 +442,48 @@ describe("what a recall keeps", () => {
     );
   });
 
+  it.each([
+    ["the first row alone", ["ch3"], "MONO x 2"],
+    ["the second row alone", ["ch4"], "MONO x 2"],
+    ["both rows", ["ch3", "ch4"], "STEREO"],
+  ] as const)("keeps a linked mono pair linked through a recall of it unlinked only by both rows: %s", async (_, rows, type) => {
+    const shell = await mount();
+    for (const ch of ["ch3", "ch4"]) await set(shell, `ch.${ch}.signalType`, "MONO x 2");
+    await shell.ctx.store.set("scene.Standard.13.title", "APART");
+    await storeScene(shell.ctx, "Standard", 13);
+    const stored = ["ch3", "ch4"].map((ch) => shell.ctx.store.num(`ch.${ch}.level`, 99));
+    for (const ch of ["ch3", "ch4"]) await set(shell, `ch.${ch}.signalType`, "STEREO");
+    for (const ch of ["ch3", "ch4"]) await set(shell, `ch.${ch}.level`, -20);
+    for (const ch of rows) {
+      await set(shell, `safe.${ch}.on`, true);
+      await set(shell, `safe.${ch}.chLevel`, true);
+    }
+    await recallScene(shell.ctx, 13);
+    expect(["ch3", "ch4"].map((ch) => shell.ctx.store.str(`ch.${ch}.signalType`, ""))).toEqual([type, type]);
+    // Each channel's level follows its own row, linked or not.
+    expect(["ch3", "ch4"].map((ch) => shell.ctx.store.num(`ch.${ch}.level`, 99))).toEqual(
+      ["ch3", "ch4"].map((ch, i) => ((rows as readonly string[]).includes(ch) ? -20 : stored[i])),
+    );
+  });
+
+  it("links a pair a recall links without carrying either row onto the other, and a press then gives the other row the pressed row's selection, Safe apart", async () => {
+    const shell = await mount();
+    for (const ch of ["ch3", "ch4"]) await set(shell, `ch.${ch}.signalType`, "STEREO");
+    await shell.ctx.store.set("scene.Standard.13.title", "LINKED");
+    await storeScene(shell.ctx, "Standard", 13);
+    for (const ch of ["ch3", "ch4"]) await set(shell, `ch.${ch}.signalType`, "MONO x 2");
+    // CH 3's row: Name without Safe. CH 4's: Safe alone. Neither keeps the pair apart.
+    await set(shell, "safe.ch3.name", true);
+    await set(shell, "safe.ch4.on", true);
+    await recallScene(shell.ctx, 13);
+    await flush();
+    const rowOf = (ch: string): string[] => ["on", "name", "chLevel"].filter((k) => shell.ctx.store.bool(`safe.${ch}.${k}`, false));
+    expect(["ch3", "ch4"].map((ch) => shell.ctx.store.str(`ch.${ch}.signalType`, ""))).toEqual(["STEREO", "STEREO"]);
+    expect([rowOf("ch3"), rowOf("ch4")], "the link carries no row").toEqual([["name"], ["on"]]);
+    await tap(shell, "C H 4 C H Level");
+    expect([rowOf("ch3"), rowOf("ch4")], "CH 3's Name goes, its Safe stays off").toEqual([["chLevel"], ["on", "chLevel"]]);
+  });
+
   it("keeps nothing it has no row or column for", async () => {
     const shell = await stored();
     await set(shell, "safe.ch1.on", true);
